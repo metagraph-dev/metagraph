@@ -1,0 +1,35 @@
+{% set name = "metagraph" %}
+{% set version = "0.0.1" %}
+
+package:
+  name: "{{ name }}"
+  version: "{{ version }}"
+
+source:
+  url: https://github.com/ContinuumIO/{{ name }}/archive/v{{ version }}.tar.gz
+  sha256: --- FILL THIS IN ---
+
+build:
+  number: 0
+
+requirements:
+  build:
+    - python >=3
+
+  host:
+    - python >=3
+
+  run:
+    - python >=3
+
+about:
+  home: https://github.com/ContinuumIO/metagraph
+  license: Apache 2.0
+  license_family: Apache
+  license_file: LICENSE
+  summary: 'Graph algorithm solver across multiple hardware backends'
+  description: |
+    Python library for running graph algorithms on a variety of hardware backends.
+    Data representing the graph will be automatically converted between available hardware options
+    to find an efficient solution.
+  dev_url: https://github.com/ContinuumIO/metagraph
