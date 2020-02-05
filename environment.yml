@@ -1,0 +1,12 @@
+name: mg
+dependencies:
+# dev environment
+  - python=3.7
+  - coverage
+  - pytest
+  - pytest-cov
+  - black
+  - conda-forge::pre-commit
+
+# metagraph dependencies (so setup.py develop doesn't pip install them)
+  - importlib_metadata
