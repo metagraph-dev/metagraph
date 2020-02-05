@@ -1,0 +1,4 @@
+[metagraph.plugins]
+abstract_type = plugin1:abstract_type
+concrete_type = plugin1:concrete_type
+translator = plugin1:translator
