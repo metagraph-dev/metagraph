@@ -27,3 +27,16 @@ def test_find_plugin_loaders(site_dir):
             assert len(plugins) > 0
             for obj in plugins:
                 assert isinstance(obj, kind_class)
+
+
+def test_load_plugins(site_dir):
+    kinds = {
+        "abstract_type": AbstractType,
+        "concrete_type": ConcreteType,
+        "translator": Translator,
+    }
+    for kind, kind_class in kinds.items():
+        plugins = metagraph.entrypoints.load_plugins(kind)
+        assert len(plugins) > 0
+        for obj in plugins:
+            assert isinstance(obj, kind_class)
