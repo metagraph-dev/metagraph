@@ -8,7 +8,7 @@ to find an efficient solution.
 To create a new development environment:
 
 ```
-conda create -n mg python=3.7 pytest pytest-cov coverage black conda-forge::pre-commit
+conda env create
 conda activate mg
 pre-commit install  # for black
 python setup.py develop
