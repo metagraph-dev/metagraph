@@ -1,0 +1,6 @@
+[metagraph.plugins]
+abstract_types = plugin1:abstract_types
+concrete_types = plugin1:concrete_types
+translators = plugin1:translators
+abstract_algorithms = plugin1:abstract_algorithms
+concrete_algorithms = plugin1:concrete_algorithms
