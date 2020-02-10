@@ -2,8 +2,14 @@ import sys
 import os
 import pytest
 
-import metagraph.entrypoints
-from metagraph.plugin import AbstractType, ConcreteType, Translator
+import metagraph.core.entrypoints
+from metagraph.core.plugin import (
+    AbstractType,
+    ConcreteType,
+    Translator,
+    AbstractAlgorithm,
+    ConcreteAlgorithm,
+)
 
 
 @pytest.fixture
@@ -14,29 +20,28 @@ def site_dir():
     sys.path.remove(test_site_dir)
 
 
+KINDS = {
+    "abstract_types": (issubclass, AbstractType),
+    "concrete_types": (issubclass, ConcreteType),
+    "translators": (isinstance, Translator),
+    "abstract_algorithms": (isinstance, AbstractAlgorithm),
+    "concrete_algorithms": (isinstance, ConcreteAlgorithm),
+}
+
+
 def test_find_plugin_loaders(site_dir):
-    kinds = {
-        "abstract_type": AbstractType,
-        "concrete_type": ConcreteType,
-        "translator": Translator,
-    }
-    for kind, kind_class in kinds.items():
-        loaders = metagraph.entrypoints.find_plugin_loaders(kind)
+    for kind, (test_func, kind_class) in KINDS.items():
+        loaders = metagraph.core.entrypoints.find_plugin_loaders(kind)
         for loader in loaders:
             plugins = loader()
             assert len(plugins) > 0
             for obj in plugins:
-                assert isinstance(obj, kind_class)
+                assert test_func(obj, kind_class)
 
 
 def test_load_plugins(site_dir):
-    kinds = {
-        "abstract_type": AbstractType,
-        "concrete_type": ConcreteType,
-        "translator": Translator,
-    }
-    for kind, kind_class in kinds.items():
-        plugins = metagraph.entrypoints.load_plugins(kind)
+    for kind, (test_func, kind_class) in KINDS.items():
+        plugins = metagraph.core.entrypoints.load_plugins(kind)
         assert len(plugins) > 0
         for obj in plugins:
-            assert isinstance(obj, kind_class)
+            assert test_func(obj, kind_class)
