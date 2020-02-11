@@ -47,9 +47,14 @@ class ConcreteType:
     def __hash__(self):
         return hash((self.__class__, tuple(self.props.items())))
 
-    def is_typeof(self, obj):
+    @classmethod
+    def is_typeof(cls, obj):
         """Is obj described by this type?"""
-        return self.is_satisfied_by(self.__class__.get_type(obj))
+        try:
+            cls.get_type(obj)
+            return True
+        except TypeError:
+            return False
 
     @classmethod
     def get_type(cls, obj):

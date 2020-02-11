@@ -14,15 +14,15 @@ from .entrypoints import load_plugins
 
 class Resolver:
     def __init__(self):
-        abstract_types: Set[AbstractType] = {}
-        concrete_types: Set[ConcreteType] = {}
-        translators: Dict[Tuple(ConcreteType, ConcreteType), Translator] = {}
+        self.abstract_types: Set[AbstractType] = set()
+        self.concrete_types: Set[ConcreteType] = set()
+        self.translators: Dict[Tuple(ConcreteType, ConcreteType), Translator] = {}
 
         # map abstract name to instance of abstract algorithm
-        abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
+        self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
 
         # map abstract name to list of concrete instances
-        concrete_algorithms: Dict[str, List[ConcreteAlgorithm]] = defaultdict(list)
+        self.concrete_algorithms: Dict[str, List[ConcreteAlgorithm]] = defaultdict(list)
 
     def register(
         self,
@@ -44,7 +44,7 @@ class Resolver:
         if concrete_types is not None:
             for ct in concrete_types:
                 name = ct.__qualname__
-                if abstract_name not in self.abstract_types:
+                if ct.abstract not in self.abstract_types:
                     abstract_name = ct.abstract.__qualname__
                     raise ValueError(
                         f"concrete type {name} has unregistered abstract type {abstract_name}"
@@ -53,12 +53,12 @@ class Resolver:
 
         if translators is not None:
             for tr in translators:
-                signature = inpect.signature(tr.func)
-                src_type = signature.parameters[0]
+                signature = inspect.signature(tr.func)
+                src_type = next(iter(signature.parameters.values())).annotation
                 dst_type = signature.return_annotation
                 if src_type.abstract != dst_type.abstract:
                     raise ValueError(
-                        f"Translator {tr.__qualname__} must convert between concrete types of same abstract type"
+                        f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
                     )
 
                 self.translators[(src_type, dst_type)] = tr
@@ -74,9 +74,9 @@ class Resolver:
                 # FIXME: type check here
                 if ca.abstract_name not in self.abstract_algorithms:
                     raise ValueError(
-                        f"concrete algorithm {ca.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
+                        f"concrete algorithm {ca.__class__.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
                     )
-                self.concrete_algorithms[c.abstract_name].append(ca)
+                self.concrete_algorithms[ca.abstract_name].append(ca)
 
     def load_plugins_from_environment(self):
         """Scans environment for plugins and populates registry with them."""
@@ -99,18 +99,18 @@ class Resolver:
         """Return the concrete type corresponding to a value"""
         # FIXME: silly implementation
         for ct in self.concrete_types:
-            if ct.is_typeof(value):
+            try:
                 return ct.get_type(value)
-        else:
-            return ValueError(
-                f"Class {value.__class__} does not have a registered type"
-            )
+            except TypeError:
+                pass
+
+        raise TypeError(f"Class {value.__class__} does not have a registered type")
 
     def find_translator(self, value, dst_type):
-        src_type = self.typeof(value)
+        src_type = self.typeof(value).__class__
         return self.translators.get((src_type, dst_type), None)
 
-    def convert(self, value, dst_type, **props):
+    def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""
         translator = self.find_translator(value, dst_type)
         if translator is None:
