@@ -63,7 +63,7 @@ class ConcreteType:
         if isinstance(obj, cls.value_class):
             return cls()  # no properties to specialize on
         else:
-            raise TypeError(f"object not of type f{cls.__class__}")
+            raise TypeError(f"object not of type {cls.__class__}")
 
 
 class Translator:

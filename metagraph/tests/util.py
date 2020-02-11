@@ -37,7 +37,7 @@ class StrType(plugin.ConcreteType):
             is_lower = obj.lower() == obj
             return cls(lowercase=is_lower)
         else:
-            raise TypeError(f"object not of type f{cls.__class__}")
+            raise TypeError(f"object not of type {cls.__class__}")
 
 
 class OtherType(plugin.ConcreteType):
