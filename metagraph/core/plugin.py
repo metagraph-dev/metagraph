@@ -1,5 +1,6 @@
 """Base classes for basic metagraph plugins.
 """
+import inspect
 
 
 class AbstractType:
@@ -82,10 +83,31 @@ def translator(func):
     return Translator(func)
 
 
+def normalize_type(t):
+    if issubclass(t, ConcreteType):
+        return t()
+    else:
+        return t
+
+
+def normalize_parameter(p):
+    return p.replace(annotation=normalize_type(p.annotation))
+
+
+def normalize_signature(sig):
+    """Return normalized signature with bare type classes instantiated"""
+    new_params = [normalize_parameter(p) for p in sig.parameters.values()]
+    new_return = normalize_type(sig.return_annotation)
+    return sig.replace(parameters=new_params, return_annotation=new_return)
+
+
 class AbstractAlgorithm:
     def __init__(self, func, name):
         self.func = func
         self.name = name
+
+    def get_signature(self):
+        return inspect.signature(self.func)
 
 
 def abstract_algorithm(name):
@@ -99,6 +121,9 @@ class ConcreteAlgorithm:
     def __init__(self, func, abstract_name):
         self.func = func
         self.abstract_name = abstract_name
+
+    def get_signature(self):
+        return normalize_signature(inspect.signature(self.func))
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)

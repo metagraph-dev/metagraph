@@ -75,12 +75,62 @@ class Resolver:
 
         if concrete_algorithms is not None:
             for ca in concrete_algorithms:
-                # FIXME: type check here
-                if ca.abstract_name not in self.abstract_algorithms:
+                abstract = self.abstract_algorithms.get(ca.abstract_name, None)
+                if abstract is None:
                     raise ValueError(
                         f"concrete algorithm {ca.__class__.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
                     )
+                abstract = self.abstract_algorithms[ca.abstract_name]
+                self._raise_if_concrete_algorithm_signature_invalid(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].append(ca)
+
+    @staticmethod
+    def _raise_if_concrete_algorithm_signature_invalid(abstract, concrete):
+        abs_sig = abstract.get_signature()
+        conc_sig = concrete.get_signature()
+
+        # Check parameters
+        abs_params = list(abs_sig.parameters.values())
+        conc_params = list(conc_sig.parameters.values())
+        if len(abs_params) != len(conc_params):
+            raise TypeError(
+                f"number of parameters does not match between {abstract.func.__qualname__} and {concrete.func.__qualname__}"
+            )
+        for abs_param, conc_param in zip(abs_params, conc_params):
+            abs_type = abs_param.annotation
+            conc_type = conc_param.annotation
+
+            if abs_param.name != conc_param.name:
+                raise TypeError(
+                    f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
+                )
+
+            if not isinstance(conc_type, ConcreteType):
+                # regular Python types need to match exactly
+                if abs_type != conc_type:
+                    raise TypeError(
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                    )
+            else:
+                if not issubclass(conc_type.abstract, abs_type):
+                    raise TypeError(
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
+                    )
+
+        # Check return type
+        abs_ret = abs_sig.return_annotation
+        conc_ret = conc_sig.return_annotation
+        if not isinstance(conc_ret, ConcreteType):
+            # regular Python types need to match exactly
+            if abs_ret != conc_ret:
+                raise TypeError(
+                    f"{concrete.func.__qualname__} return type does not match abstract function signature"
+                )
+        else:
+            if not issubclass(conc_ret.abstract, abs_ret):
+                raise TypeError(
+                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                )
 
     def load_plugins_from_environment(self):
         """Scans environment for plugins and populates registry with them."""

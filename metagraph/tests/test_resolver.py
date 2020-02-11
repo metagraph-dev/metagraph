@@ -25,7 +25,7 @@ def test_load_plugins(site_dir):
     assert len(res.concrete_algorithms["hyperstuff.supercluster"]) == 2
 
 
-def test_register_abstract_type_error():
+def test_register_errors():
     res = Resolver()
 
     class Abstract1(AbstractType):
@@ -80,6 +80,76 @@ def test_register_abstract_type_error():
 
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(concrete_algorithms=[my_algo3])
+
+
+def test_incorrect_signature_errors(example_resolver):
+    from .util import IntType
+
+    class Abstract1(AbstractType):
+        pass
+
+    class Concrete1(ConcreteType):
+        abstract = Abstract1
+
+    @concrete_algorithm("power")
+    def too_many_args(
+        x: IntType, p: IntType, w: IntType
+    ) -> IntType:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match="number of parameters"):
+        example_resolver.register(concrete_algorithms=[too_many_args])
+
+    @concrete_algorithm("power")
+    def wrong_abstract_arg(x: Concrete1, p: IntType) -> IntType:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match='"x" does not have type compatible'):
+        example_resolver.register(concrete_algorithms=[wrong_abstract_arg])
+
+    @concrete_algorithm("power")
+    def wrong_return_arg(x: IntType, p: IntType) -> Concrete1:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match="return type is not compatible"):
+        example_resolver.register(concrete_algorithms=[wrong_return_arg])
+
+    @concrete_algorithm("power")
+    def wrong_arg_name(X: IntType, p: IntType) -> IntType:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match='"X" does not match name of parameter'):
+        example_resolver.register(concrete_algorithms=[wrong_arg_name])
+
+
+def test_python_types_in_signature(example_resolver):
+    from .util import IntType, MyAbstractType
+
+    @abstract_algorithm("testing.python_types")
+    def python_types(x: MyAbstractType, p: int) -> MyAbstractType:  # pragma: no cover
+        pass
+
+    example_resolver.register(abstract_algorithms=[python_types])
+
+    @concrete_algorithm("testing.python_types")
+    def correct_python_type(x: IntType, p: int) -> IntType:  # pragma: no cover
+        pass
+
+    example_resolver.register(concrete_algorithms=[correct_python_type])
+
+    @concrete_algorithm("testing.python_types")
+    def wrong_python_type(x: IntType, p) -> IntType:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match='"p" does not match'):
+        example_resolver.register(concrete_algorithms=[wrong_python_type])
+
+    @concrete_algorithm("testing.python_types")
+    def wrong_return_type(x: IntType, p: int) -> int:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match="return type does not match"):
+        example_resolver.register(concrete_algorithms=[wrong_return_type])
 
 
 def test_typeof(example_resolver):
