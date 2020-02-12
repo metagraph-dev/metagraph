@@ -42,6 +42,13 @@ class ConcreteType:
                     return False
         return True
 
+    def is_satisfied_by_value(self, obj):
+        try:
+            t = self.get_type(obj)
+            return self.is_satisfied_by(t)
+        except TypeError:
+            return False
+
     def __eq__(self, other_type):
         return isinstance(other_type, self.__class__) and self.props == other_type.props
 

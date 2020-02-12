@@ -170,3 +170,34 @@ class Resolver:
         if translator is None:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
         return translator(value, **props)
+
+    @staticmethod
+    def _check_arg_types(bound_args):
+        parameters = bound_args.signature.parameters
+        for arg_name, arg_value in bound_args.arguments.items():
+            if not parameters[arg_name].annotation.is_satisfied_by_value(arg_value):
+                return False
+        return True
+
+    def find_algorithm(self, algo_name, *args, **kwargs):
+        if algo_name not in self.abstract_algorithms:
+            raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
+
+        for concrete_algo in self.concrete_algorithms.get(algo_name, []):
+            sig = concrete_algo.get_signature()
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+
+            if self._check_arg_types(bound_args):
+                return concrete_algo
+
+        return None
+
+    def call_algorithm(self, algo_name, *args, **kwargs):
+        algo = self.find_algorithm(algo_name, *args, **kwargs)
+        if algo is None:
+            raise TypeError(
+                f'No concrete algorithm for "{algo_name}" can be found matching argument type signature'
+            )
+        else:
+            return algo(*args, **kwargs)

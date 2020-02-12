@@ -185,3 +185,37 @@ def test_translate(example_resolver):
         example_resolver.translate(4, OtherType)
     with pytest.raises(TypeError, match="does not have a registered type"):
         example_resolver.translate(set(), StrType)
+
+
+def test_find_algorithm(example_resolver):
+    from .util import int_power
+
+    with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
+        example_resolver.find_algorithm("does_not_exist", 1, thing=2)
+
+    assert example_resolver.find_algorithm("power", 1, 3) == int_power
+    assert example_resolver.find_algorithm("power", p=1, x=3) == int_power
+    assert example_resolver.find_algorithm("power", 1, "4") is None
+    assert example_resolver.find_algorithm("power", 1, p=2) == int_power
+
+    with pytest.raises(TypeError, match="too many positional arguments"):
+        example_resolver.find_algorithm("power", 1, 2, 3)
+
+    with pytest.raises(TypeError, match="missing a required argument: 'p'"):
+        example_resolver.find_algorithm("power", x=1, q=2)
+
+
+def test_call_algorithm(example_resolver):
+    from .util import int_power
+
+    with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
+        example_resolver.call_algorithm("does_not_exist", 1, thing=2)
+
+    assert example_resolver.call_algorithm("power", 2, 3) == 8
+    assert example_resolver.call_algorithm("power", p=2, x=3) == 9
+    with pytest.raises(
+        TypeError,
+        match='No concrete algorithm for "power" can be found matching argument type signature',
+    ):
+        example_resolver.call_algorithm("power", 1, "4")
+    assert example_resolver.call_algorithm("power", 2, p=3) == 8
