@@ -67,8 +67,8 @@ def int_power(x: IntType, p: IntType) -> IntType:
     return x ** p
 
 
-@pytest.fixture
-def example_resolver():
+# Handy for manual testing
+def make_example_resolver():
     res = Resolver()
     res.register(
         abstract_types=[MyAbstractType],
@@ -78,3 +78,8 @@ def example_resolver():
         concrete_algorithms=[int_power],
     )
     return res
+
+
+@pytest.fixture
+def example_resolver():
+    return make_example_resolver()
