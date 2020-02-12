@@ -34,6 +34,11 @@ def test_concrete_type():
     # specialization
     assert ct.is_satisfied_by(ct_lower)
     assert not ct_lower.is_satisfied_by(ct)
+    assert ct.is_satisfied_by_value("Python")
+    assert ct.is_satisfied_by_value("python")
+    assert not ct.is_satisfied_by_value(1)
+    assert ct_lower.is_satisfied_by_value("python")
+    assert not ct_lower.is_satisfied_by_value("Python")
 
     # default typeof
     assert IntType.get_type(10) == IntType()
