@@ -1,5 +1,6 @@
 """Base classes for basic metagraph plugins.
 """
+import inspect
 
 
 class AbstractType:
@@ -41,15 +42,27 @@ class ConcreteType:
                     return False
         return True
 
+    def is_satisfied_by_value(self, obj):
+        try:
+            t = self.get_type(obj)
+            return self.is_satisfied_by(t)
+        except TypeError:
+            return False
+
     def __eq__(self, other_type):
         return isinstance(other_type, self.__class__) and self.props == other_type.props
 
     def __hash__(self):
         return hash((self.__class__, tuple(self.props.items())))
 
-    def is_typeof(self, obj):
+    @classmethod
+    def is_typeof(cls, obj):
         """Is obj described by this type?"""
-        return self.is_satisfied_by(self.__class__.get_type(obj))
+        try:
+            cls.get_type(obj)
+            return True
+        except TypeError:
+            return False
 
     @classmethod
     def get_type(cls, obj):
@@ -58,7 +71,7 @@ class ConcreteType:
         if isinstance(obj, cls.value_class):
             return cls()  # no properties to specialize on
         else:
-            raise TypeError(f"object not of type f{cls.__class__}")
+            raise TypeError(f"object not of type {cls.__class__}")
 
 
 class Translator:
@@ -77,10 +90,31 @@ def translator(func):
     return Translator(func)
 
 
+def normalize_type(t):
+    if issubclass(t, ConcreteType):
+        return t()
+    else:
+        return t
+
+
+def normalize_parameter(p):
+    return p.replace(annotation=normalize_type(p.annotation))
+
+
+def normalize_signature(sig):
+    """Return normalized signature with bare type classes instantiated"""
+    new_params = [normalize_parameter(p) for p in sig.parameters.values()]
+    new_return = normalize_type(sig.return_annotation)
+    return sig.replace(parameters=new_params, return_annotation=new_return)
+
+
 class AbstractAlgorithm:
     def __init__(self, func, name):
         self.func = func
         self.name = name
+
+    def get_signature(self):
+        return inspect.signature(self.func)
 
 
 def abstract_algorithm(name):
@@ -94,6 +128,9 @@ class ConcreteAlgorithm:
     def __init__(self, func, abstract_name):
         self.func = func
         self.abstract_name = abstract_name
+
+    def get_signature(self):
+        return normalize_signature(inspect.signature(self.func))
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
