@@ -1,5 +1,8 @@
-from .base import Scalar, SparseArray
-from .. import dtypes
+from ... import PluginRegistry, ConcreteType, dtypes
+from ..abstract_types import SparseVectorType
+
+reg = PluginRegistry("metagraph_core")
+
 
 _dtype_mapper = {
     bool: dtypes.BOOL,
@@ -8,14 +11,7 @@ _dtype_mapper = {
 }
 
 
-class PythonScalar(Scalar):
-    def __init__(self, val):
-        super().__init__()
-        self.obj = val
-        self.dtype = _dtype_mapper[type(val)]
-
-
-class PythonSparseArray(SparseArray):
+class PythonSparseVector:
     def __init__(self, data, size=None):
         """
         data: dict of node: weight
@@ -46,3 +42,10 @@ class PythonSparseArray(SparseArray):
                 raise Exception(f"Invalid type: {types}")
             self._dtype = _dtype_mapper[type_]
         return self._dtype
+
+
+@reg.register
+class PythonSparseVectorType(ConcreteType):
+    name = "PythonSparseVector"
+    abstract = SparseVectorType
+    value_class = PythonSparseVector
