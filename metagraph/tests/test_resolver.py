@@ -7,9 +7,34 @@ from metagraph import (
     abstract_algorithm,
     concrete_algorithm,
 )
-from metagraph.core.resolver import Resolver
+from metagraph.core.resolver import Resolver, Namespace, Dispatcher
 
 from .util import site_dir, example_resolver
+
+
+def test_namespace():
+    ns = Namespace()
+    ns._register("A.B.c", 3)
+    ns._register("A.B.d", "test")
+    ns._register("A.other", 1.5)
+
+    assert ns.A.B.c == 3
+    assert ns.A.B.d == "test"
+    assert ns.A.other == 1.5
+
+    with pytest.raises(AttributeError, match="does_not_exist"):
+        ns.does_not_exist
+
+    with pytest.raises(AttributeError, match="does_not_exist"):
+        ns.A.does_not_exist
+
+    with pytest.raises(AttributeError, match="foo"):
+        ns.foo.does_not_exist
+
+
+def test_dispatcher(example_resolver):
+    ns = Dispatcher(example_resolver, "power")
+    assert ns(2, 3) == 8
 
 
 def test_load_plugins(site_dir):
@@ -219,3 +244,18 @@ def test_call_algorithm(example_resolver):
     ):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
+
+
+def test_algo_attribute(example_resolver):
+    with pytest.raises(
+        AttributeError, match="'Namespace' object has no attribute 'does_not_exist'"
+    ):
+        example_resolver.algo.does_not_exist(1, thing=2)
+
+    assert example_resolver.algo.power(2, 3) == 8
+    assert example_resolver.algo.power(p=2, x=3) == 9
+    with pytest.raises(
+        TypeError,
+        match='No concrete algorithm for "power" can be found matching argument type signature',
+    ):
+        example_resolver.algo.power(1, "4")

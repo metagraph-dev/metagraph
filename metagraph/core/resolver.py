@@ -12,6 +12,33 @@ from .plugin import (
 from .entrypoints import load_plugins
 
 
+class Namespace:
+    def __init__(self):
+        self._attrs = defaultdict(lambda: Namespace())
+
+    def _register(self, path: str, obj):
+        parts = path.split(".")
+        if len(parts) == 1:
+            self._attrs[parts[0]] = obj
+        else:
+            self._attrs[parts[0]]._register(".".join(parts[1:]), obj)
+
+    def __getattr__(self, name: str):
+        if name in self._attrs:
+            return self._attrs[name]
+        else:
+            raise AttributeError(f"'Namespace' object has no attribute '{name}'")
+
+
+class Dispatcher:
+    def __init__(self, resolver: "Resolver", algo_name: str):
+        self._resolver = resolver
+        self._algo_name = algo_name
+
+    def __call__(self, *args, **kwargs):
+        return self._resolver.call_algorithm(self._algo_name, *args, **kwargs)
+
+
 class Resolver:
     def __init__(self):
         self.abstract_types: Set[AbstractType] = set()
@@ -23,6 +50,8 @@ class Resolver:
 
         # map abstract name to list of concrete instances
         self.concrete_algorithms: Dict[str, List[ConcreteAlgorithm]] = defaultdict(list)
+
+        self.algo = Namespace()
 
     def register(
         self,
@@ -72,6 +101,7 @@ class Resolver:
                 if aa.name in self.abstract_algorithms:
                     raise ValueError(f"abstract algorithm {aa.name} already exists")
                 self.abstract_algorithms[aa.name] = aa
+                self.algo._register(aa.name, Dispatcher(self, aa.name))
 
         if concrete_algorithms is not None:
             for ca in concrete_algorithms:
