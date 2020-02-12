@@ -29,11 +29,21 @@ class Namespace:
         else:
             raise AttributeError(f"'Namespace' object has no attribute '{name}'")
 
+    def __dir__(self):
+        return self._attrs.keys()
+
 
 class Dispatcher:
     def __init__(self, resolver: "Resolver", algo_name: str):
         self._resolver = resolver
         self._algo_name = algo_name
+
+        # make dispatcher look like the abstract algorithm
+        abstract_algo = resolver.abstract_algorithms[algo_name].func
+        self.__name__ = algo_name
+        self.__doc__ = abstract_algo.__doc__
+        self.__signature__ = inspect.signature(abstract_algo)
+        self.__wrapped__ = abstract_algo
 
     def __call__(self, *args, **kwargs):
         return self._resolver.call_algorithm(self._algo_name, *args, **kwargs)
@@ -116,8 +126,8 @@ class Resolver:
 
     @staticmethod
     def _raise_if_concrete_algorithm_signature_invalid(abstract, concrete):
-        abs_sig = abstract.get_signature()
-        conc_sig = concrete.get_signature()
+        abs_sig = abstract.__signature__
+        conc_sig = concrete.__signature__
 
         # Check parameters
         abs_params = list(abs_sig.parameters.values())
@@ -214,7 +224,7 @@ class Resolver:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
         for concrete_algo in self.concrete_algorithms.get(algo_name, []):
-            sig = concrete_algo.get_signature()
+            sig = concrete_algo.__signature__
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
 

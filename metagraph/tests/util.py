@@ -47,11 +47,13 @@ class OtherType(plugin.ConcreteType):
 
 @plugin.translator
 def int_to_str(src: IntType) -> StrType:
+    """Convert int to str"""
     return str(src)
 
 
 @plugin.translator
 def str_to_int(src: StrType) -> IntType:
+    """Convert str to int"""
     return int(src)
 
 
@@ -59,6 +61,7 @@ def str_to_int(src: StrType) -> IntType:
 def abstract_power(
     x: MyAbstractType, p: MyAbstractType
 ) -> MyAbstractType:  # pragma: no cover
+    """Raise x to the power of p"""
     pass
 
 
