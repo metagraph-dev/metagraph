@@ -56,12 +56,15 @@ def test_concrete_type():
 
 def test_translator():
     assert isinstance(int_to_str, plugin.Translator)
-    # FIXME: check type attributes
+    assert int_to_str.__name__ == "int_to_str"
+    assert "Convert int to str" in int_to_str.__doc__
     assert int_to_str(4) == "4"
 
 
 def test_abstract_algorithm():
     assert isinstance(abstract_power, plugin.AbstractAlgorithm)
+    assert abstract_power.__name__ == "abstract_power"
+    assert "Raise x to " in abstract_power.__doc__
     assert abstract_power.name == "power"
 
 

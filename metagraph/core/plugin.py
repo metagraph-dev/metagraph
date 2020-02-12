@@ -77,8 +77,9 @@ class ConcreteType:
 class Translator:
     def __init__(self, func):
         self.func = func
-        self.src_type = None
-        self.dst_type = None
+        self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
+        self.__wrapped__ = func
 
     def __call__(self, src, **props):
         return self.func(src, **props)
@@ -112,9 +113,10 @@ class AbstractAlgorithm:
     def __init__(self, func, name):
         self.func = func
         self.name = name
-
-    def get_signature(self):
-        return inspect.signature(self.func)
+        self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
+        self.__wrapped__ = func
+        self.__signature__ = inspect.signature(self.func)
 
 
 def abstract_algorithm(name):
@@ -128,9 +130,10 @@ class ConcreteAlgorithm:
     def __init__(self, func, abstract_name):
         self.func = func
         self.abstract_name = abstract_name
-
-    def get_signature(self):
-        return normalize_signature(inspect.signature(self.func))
+        self.__name__ = func.__name__
+        self.__doc__ = func.__doc__
+        self.__wrapped__ = func
+        self.__signature__ = normalize_signature(inspect.signature(self.func))
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
