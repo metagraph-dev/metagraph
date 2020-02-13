@@ -1,6 +1,7 @@
 """Base classes for basic metagraph plugins.
 """
 import inspect
+from typing import Callable
 
 
 class AbstractType:
@@ -15,7 +16,12 @@ class AbstractType:
 
 
 class ConcreteType:
-    """A specific data type in a particular memory space recognized by metagraph"""
+    """A specific data type in a particular memory space recognized by metagraph.
+
+    Subclasses of ConcreteType should override the `abstract` and
+    `value_class` attributes.  In type signatures, the uninstantiated class is
+    considered equivalent to an instance with no properties set.
+    """
 
     # Most subclasses only need to set these class attributes
     abstract = None  # must override this
@@ -25,6 +31,7 @@ class ConcreteType:
 
     # Override these methods only if necessary
     def __init__(self, **props):
+        """Set required properties of for this type with keyword arguments"""
         for key in props:
             if key not in self.allowed_props:
                 raise KeyError(f"{key} not allowed property of {self.__class__}")
@@ -43,6 +50,10 @@ class ConcreteType:
         return True
 
     def is_satisfied_by_value(self, obj):
+        """Is the type associated with this object compatible with this type?
+
+        (self must be equivalent or less specific than the type of obj)
+        """
         try:
             t = self.get_type(obj)
             return self.is_satisfied_by(t)
@@ -75,7 +86,10 @@ class ConcreteType:
 
 
 class Translator:
-    def __init__(self, func):
+    """Converts from one concrete type to another, enforcing properties on the
+    destination if requested."""
+
+    def __init__(self, func: Callable):
         self.func = func
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
@@ -86,23 +100,25 @@ class Translator:
 
 
 # decorator
-def translator(func):
+def translator(func: Callable):
     # FIXME: signature checks?
     return Translator(func)
 
 
 def normalize_type(t):
+    """Instantiate ConcreteType classes with no properties (found in signatures)"""
     if issubclass(t, ConcreteType):
         return t()
     else:
         return t
 
 
-def normalize_parameter(p):
+def normalize_parameter(p: inspect.Parameter):
+    """Instantiate any ConcreteType classes found in this parameter annotation"""
     return p.replace(annotation=normalize_type(p.annotation))
 
 
-def normalize_signature(sig):
+def normalize_signature(sig: inspect.Signature):
     """Return normalized signature with bare type classes instantiated"""
     new_params = [normalize_parameter(p) for p in sig.parameters.values()]
     new_return = normalize_type(sig.return_annotation)
@@ -110,7 +126,12 @@ def normalize_signature(sig):
 
 
 class AbstractAlgorithm:
-    def __init__(self, func, name):
+    """A named algorithm with a type signature of AbstractTypes and/or Python types.
+    
+    Abstract algorithms should have empty function bodies.
+    """
+
+    def __init__(self, func: Callable, name: str):
         self.func = func
         self.name = name
         self.__name__ = func.__name__
@@ -119,15 +140,22 @@ class AbstractAlgorithm:
         self.__signature__ = inspect.signature(self.func)
 
 
-def abstract_algorithm(name):
-    def _abstract_decorator(func):
+def abstract_algorithm(name: str):
+    def _abstract_decorator(func: Callable):
         return AbstractAlgorithm(func=func, name=name)
 
     return _abstract_decorator
 
 
 class ConcreteAlgorithm:
-    def __init__(self, func, abstract_name):
+    """A specific implementation of an abstract algorithm.
+
+    Function signature should consist of ConcreteTypes that are compatible
+    with the AbstractTypes in the corresponding abstract algorithm.  Python
+    types (which are not converted) must match exactly.
+    """
+
+    def __init__(self, func: Callable, abstract_name: str):
         self.func = func
         self.abstract_name = abstract_name
         self.__name__ = func.__name__
@@ -139,8 +167,8 @@ class ConcreteAlgorithm:
         return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name):
-    def _concrete_decorator(func):
+def concrete_algorithm(abstract_name: str):
+    def _concrete_decorator(func: Callable):
         return ConcreteAlgorithm(func=func, abstract_name=abstract_name)
 
     return _concrete_decorator

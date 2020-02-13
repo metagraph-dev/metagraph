@@ -1,4 +1,7 @@
-"""A resolver manages the linkage between plugins, and match values to types"""
+"""A Resolver manages a collection of plugins, resolves types, and dispatches
+to concrete algorithms.
+
+"""
 from collections import defaultdict
 import inspect
 from typing import List, Dict, Optional
@@ -13,6 +16,13 @@ from .entrypoints import load_plugins
 
 
 class Namespace:
+    """Helper class to construct arbitrary nested namespaces of objects on the fly.
+
+    Objects are registered with their full dotted attribute path, and the appropriate
+    nested namespace object structure is automatically constructed as needed.  There
+    is no removal mechanism.
+    """
+
     def __init__(self):
         self._attrs = defaultdict(lambda: Namespace())
 
@@ -33,23 +43,13 @@ class Namespace:
         return self._attrs.keys()
 
 
-class Dispatcher:
-    def __init__(self, resolver: "Resolver", algo_name: str):
-        self._resolver = resolver
-        self._algo_name = algo_name
-
-        # make dispatcher look like the abstract algorithm
-        abstract_algo = resolver.abstract_algorithms[algo_name].func
-        self.__name__ = algo_name
-        self.__doc__ = abstract_algo.__doc__
-        self.__signature__ = inspect.signature(abstract_algo)
-        self.__wrapped__ = abstract_algo
-
-    def __call__(self, *args, **kwargs):
-        return self._resolver.call_algorithm(self._algo_name, *args, **kwargs)
-
-
 class Resolver:
+    """Manages a collection of plugins (types, translators, and algorithms).
+
+    Provides utilities to resolve the types of objects, select translators,
+    and dispatch to concrete algorithms based on type matching.
+    """
+
     def __init__(self):
         self.abstract_types: Set[AbstractType] = set()
         self.concrete_types: Set[ConcreteType] = set()
@@ -72,6 +72,15 @@ class Resolver:
         abstract_algorithms: Optional[List[AbstractAlgorithm]] = None,
         concrete_algorithms: Optional[List[ConcreteAlgorithm]] = None,
     ):
+        """Register plugins for use with this resolver.
+
+        Plugins will be processed in category order (see function signature)
+        to ensure that abstract types are registered before concrete types,
+        concrete types before translators, and so on.
+
+        This function may be called multiple times to add additional plugins
+        at any time.  Plugins cannot be removed.
+        """
 
         if abstract_types is not None:
             for at in abstract_types:
@@ -125,7 +134,9 @@ class Resolver:
                 self.concrete_algorithms[ca.abstract_name].append(ca)
 
     @staticmethod
-    def _raise_if_concrete_algorithm_signature_invalid(abstract, concrete):
+    def _raise_if_concrete_algorithm_signature_invalid(
+        abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
+    ):
         abs_sig = abstract.__signature__
         conc_sig = concrete.__signature__
 
@@ -200,7 +211,7 @@ class Resolver:
 
         raise TypeError(f"Class {value.__class__} does not have a registered type")
 
-    def find_translator(self, value, dst_type):
+    def find_translator(self, value, dst_type) -> Optional[Translator]:
         src_type = self.typeof(value).__class__
         return self.translators.get((src_type, dst_type), None)
 
@@ -212,14 +223,16 @@ class Resolver:
         return translator(value, **props)
 
     @staticmethod
-    def _check_arg_types(bound_args):
+    def _check_arg_types(bound_args: inspect.BoundArguments) -> bool:
         parameters = bound_args.signature.parameters
         for arg_name, arg_value in bound_args.arguments.items():
             if not parameters[arg_name].annotation.is_satisfied_by_value(arg_value):
                 return False
         return True
 
-    def find_algorithm(self, algo_name, *args, **kwargs):
+    def find_algorithm(
+        self, algo_name: str, *args, **kwargs
+    ) -> Optional[ConcreteAlgorithm]:
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
@@ -233,7 +246,7 @@ class Resolver:
 
         return None
 
-    def call_algorithm(self, algo_name, *args, **kwargs):
+    def call_algorithm(self, algo_name: str, *args, **kwargs):
         algo = self.find_algorithm(algo_name, *args, **kwargs)
         if algo is None:
             raise TypeError(
@@ -241,3 +254,22 @@ class Resolver:
             )
         else:
             return algo(*args, **kwargs)
+
+
+class Dispatcher:
+    """Impersonates abstract algorithm, but dispatches to a resolver to select
+    the appropriate concrete algorithm."""
+
+    def __init__(self, resolver: Resolver, algo_name: str):
+        self._resolver = resolver
+        self._algo_name = algo_name
+
+        # make dispatcher look like the abstract algorithm
+        abstract_algo = resolver.abstract_algorithms[algo_name].func
+        self.__name__ = algo_name
+        self.__doc__ = abstract_algo.__doc__
+        self.__signature__ = inspect.signature(abstract_algo)
+        self.__wrapped__ = abstract_algo
+
+    def __call__(self, *args, **kwargs):
+        return self._resolver.call_algorithm(self._algo_name, *args, **kwargs)
