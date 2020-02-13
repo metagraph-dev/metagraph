@@ -61,6 +61,9 @@ class Resolver:
         # map abstract name to list of concrete instances
         self.concrete_algorithms: Dict[str, List[ConcreteAlgorithm]] = defaultdict(list)
 
+        # map python classes to concrete types
+        self.class_to_concrete: Dict[type, ConcreteType] = {}
+
         self.algo = Namespace()
 
     def register(
@@ -98,13 +101,22 @@ class Resolver:
                     raise ValueError(
                         f"concrete type {name} has unregistered abstract type {abstract_name}"
                     )
+                if ct.value_class in self.class_to_concrete:
+                    raise ValueError(
+                        f"Python class '{ct.value_class}' already has a registered concrete type: {self.class_to_concrete[ct.value_class]}"
+                    )
+
                 self.concrete_types.add(ct)
+                if ct.value_class is not None:
+                    self.class_to_concrete[ct.value_class] = ct
 
         if translators is not None:
             for tr in translators:
                 signature = inspect.signature(tr.func)
                 src_type = next(iter(signature.parameters.values())).annotation
+                src_type = self.class_to_concrete.get(src_type, src_type)
                 dst_type = signature.return_annotation
+                dst_type = self.class_to_concrete.get(dst_type, dst_type)
                 if src_type.abstract != dst_type.abstract:
                     raise ValueError(
                         f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
@@ -130,9 +142,20 @@ class Resolver:
                 self._raise_if_concrete_algorithm_signature_invalid(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].append(ca)
 
-    @staticmethod
+    def _normalize_conc_type(self, conc_type, abs_type: AbstractType):
+        # handle Python classes used as concrete types
+        if issubclass(abs_type, AbstractType) and not isinstance(
+            conc_type, ConcreteType
+        ):
+            if conc_type in self.class_to_concrete:
+                return self.class_to_concrete[conc_type]()
+            else:
+                raise TypeError(f"'{conc_type}' is not a concrete type of '{abs_type}'")
+        else:
+            return conc_type
+
     def _raise_if_concrete_algorithm_signature_invalid(
-        abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
+        self, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
     ):
         abs_sig = abstract.__signature__
         conc_sig = concrete.__signature__
@@ -146,7 +169,9 @@ class Resolver:
             )
         for abs_param, conc_param in zip(abs_params, conc_params):
             abs_type = abs_param.annotation
-            conc_type = conc_param.annotation
+            conc_type = self._normalize_conc_type(
+                conc_type=conc_param.annotation, abs_type=abs_type
+            )
 
             if abs_param.name != conc_param.name:
                 raise TypeError(
@@ -167,7 +192,9 @@ class Resolver:
 
         # Check return type
         abs_ret = abs_sig.return_annotation
-        conc_ret = conc_sig.return_annotation
+        conc_ret = self._normalize_conc_type(
+            conc_type=conc_sig.return_annotation, abs_type=abs_ret
+        )
         if not isinstance(conc_ret, ConcreteType):
             # regular Python types need to match exactly
             if abs_ret != conc_ret:
@@ -219,12 +246,16 @@ class Resolver:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
         return translator(value, **props)
 
-    @staticmethod
-    def _check_arg_types(bound_args: inspect.BoundArguments) -> bool:
+    def _check_arg_types(self, bound_args: inspect.BoundArguments) -> bool:
         parameters = bound_args.signature.parameters
         for arg_name, arg_value in bound_args.arguments.items():
-            if not parameters[arg_name].annotation.is_satisfied_by_value(arg_value):
-                return False
+            param_type = parameters[arg_name].annotation
+            if isinstance(param_type, ConcreteType):
+                if not param_type.is_satisfied_by_value(arg_value):
+                    return False
+            else:
+                if not isinstance(arg_value, param_type):
+                    return False
         return True
 
     def find_algorithm(
