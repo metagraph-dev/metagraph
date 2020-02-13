@@ -21,6 +21,9 @@ def test_namespace():
     assert ns.A.B.c == 3
     assert ns.A.B.d == "test"
     assert ns.A.other == 1.5
+    assert dir(ns) == ["A"]
+    assert dir(ns.A) == ["B", "other"]
+    assert dir(ns.A.B) == ["c", "d"]
 
     with pytest.raises(AttributeError, match="does_not_exist"):
         ns.does_not_exist
