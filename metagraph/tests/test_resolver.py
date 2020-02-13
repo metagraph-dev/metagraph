@@ -106,10 +106,10 @@ def test_register_errors():
         res.register(concrete_algorithms=[my_algo3])
 
     class Concrete3(ConcreteType, abstract=Abstract1):
-        value_class = int
+        value_type = int
 
     class Concrete4(ConcreteType, abstract=Abstract1):
-        value_class = int
+        value_type = int
 
     with pytest.raises(ValueError, match="already has a registered concrete type"):
         res.register(abstract_types=[Abstract1], concrete_types=[Concrete3, Concrete4])

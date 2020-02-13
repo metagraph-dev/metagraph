@@ -20,18 +20,18 @@ class MyAbstractType(plugin.AbstractType):
 
 
 class IntType(plugin.ConcreteType, abstract=MyAbstractType):
-    value_class = int
+    value_type = int
     target = "pdp11"
 
 
 class StrType(plugin.ConcreteType, abstract=MyAbstractType):
-    value_class = str
+    value_type = str
     allowed_props = dict(lowercase=bool)
     target = "pdp11"
 
     @classmethod
     def get_type(cls, obj):
-        if isinstance(obj, cls.value_class):
+        if isinstance(obj, cls.value_type):
             is_lower = obj.lower() == obj
             return cls(lowercase=is_lower)
         else:

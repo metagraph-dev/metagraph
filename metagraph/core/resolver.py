@@ -101,14 +101,14 @@ class Resolver:
                     raise ValueError(
                         f"concrete type {name} has unregistered abstract type {abstract_name}"
                     )
-                if ct.value_class in self.class_to_concrete:
+                if ct.value_type in self.class_to_concrete:
                     raise ValueError(
-                        f"Python class '{ct.value_class}' already has a registered concrete type: {self.class_to_concrete[ct.value_class]}"
+                        f"Python class '{ct.value_type}' already has a registered concrete type: {self.class_to_concrete[ct.value_type]}"
                     )
 
                 self.concrete_types.add(ct)
-                if ct.value_class is not None:
-                    self.class_to_concrete[ct.value_class] = ct
+                if ct.value_type is not None:
+                    self.class_to_concrete[ct.value_type] = ct
 
         if translators is not None:
             for tr in translators:

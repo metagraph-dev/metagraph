@@ -18,14 +18,22 @@ class AbstractType:
 class ConcreteType:
     """A specific data type in a particular memory space recognized by metagraph.
 
-    Subclasses of ConcreteType should override the `abstract` and
-    `value_class` attributes.  In type signatures, the uninstantiated class is
-    considered equivalent to an instance with no properties set.
+    Subclasses of ConcreteType pass an `abstract` keyword argument in the
+    inheritance definition:
+
+        class MyConcreteType(ConcreteType, abstract=MyAbstractType):
+            pass
+
+
+    For faster dispatch, set the `value_type` attribute to the Python class
+    which is uniquely associated with this type.
+
+    In type signatures, the uninstantiated class is considered equivalent to
+    an instance with no properties set.
     """
 
     # Most subclasses only need to set these class attributes
-    abstract = None  # must override this
-    value_class = None  # override this for fast path type identification
+    value_type = None  # override this for fast path type identification
     allowed_props = {}  # default is no props
     target = "cpu"  # key may be used in future to guide dispatch
 
@@ -91,7 +99,7 @@ class ConcreteType:
     def get_type(cls, obj):
         """Get an instance of this type class that describes obj"""
         assert len(cls.allowed_props) == 0  # must override if there are properties
-        if isinstance(obj, cls.value_class):
+        if isinstance(obj, cls.value_type):
             return cls()  # no properties to specialize on
         else:
             raise TypeError(f"object not of type {cls.__class__}")
