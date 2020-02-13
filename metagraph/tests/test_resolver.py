@@ -253,6 +253,14 @@ def test_translate(example_resolver):
     with pytest.raises(TypeError, match="does not have a registered type"):
         example_resolver.translate(set(), StrType)
 
+    # Check registration of translator with Python types works
+    @translator
+    def int_to_int(src: int, **props) -> int:  # pragma: no cover
+        return src
+
+    example_resolver.register(translators=[int_to_int])
+    assert example_resolver.translate(4, int) == 4
+
 
 def test_find_algorithm(example_resolver):
     from .util import int_power, MyAbstractType
