@@ -38,18 +38,17 @@ class ConcreteType:
             # maybe type check?
         self.props = dict(props)
 
-    def __init_subclass__(cls, **kwargs):
+    def __init_subclass__(cls, *, abstract=None):
         """Enforce requirements on 'abstract' attribute"""
-        super().__init_subclass__(**kwargs)
+        super().__init_subclass__()
 
-        if cls.abstract is None:
-            raise TypeError(f"Missing required 'abstract' class attribute on {cls}.")
-        elif not isinstance(cls.abstract, type) or not issubclass(
-            cls.abstract, AbstractType
-        ):
+        if abstract is None:
+            raise TypeError(f"Missing required 'abstract' keyword argument on {cls}.")
+        elif not isinstance(abstract, type) or not issubclass(abstract, AbstractType):
             raise TypeError(
-                f"'abstract' attribute on {cls} must be subclass of AbstractType"
+                f"'abstract' keyword argument on {cls} must be subclass of AbstractType"
             )
+        cls.abstract = abstract
 
     def is_satisfied_by(self, other_type):
         """Is other_type and its properties compatible with this type?

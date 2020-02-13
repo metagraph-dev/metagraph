@@ -19,14 +19,12 @@ class MyAbstractType(plugin.AbstractType):
     pass
 
 
-class IntType(plugin.ConcreteType):
-    abstract = MyAbstractType
+class IntType(plugin.ConcreteType, abstract=MyAbstractType):
     value_class = int
     target = "pdp11"
 
 
-class StrType(plugin.ConcreteType):
-    abstract = MyAbstractType
+class StrType(plugin.ConcreteType, abstract=MyAbstractType):
     value_class = str
     allowed_props = dict(lowercase=bool)
     target = "pdp11"
@@ -40,8 +38,7 @@ class StrType(plugin.ConcreteType):
             raise TypeError(f"object not of type {cls.__class__}")
 
 
-class OtherType(plugin.ConcreteType):
-    abstract = MyAbstractType
+class OtherType(plugin.ConcreteType, abstract=MyAbstractType):
     target = "pdp11"
 
 

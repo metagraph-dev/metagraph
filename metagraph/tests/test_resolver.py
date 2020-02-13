@@ -65,8 +65,8 @@ def test_register_errors():
 
     res = Resolver()
 
-    class Concrete1(ConcreteType):
-        abstract = Abstract1
+    class Concrete1(ConcreteType, abstract=Abstract1):
+        pass
 
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(concrete_types=[Concrete1])
@@ -76,8 +76,8 @@ def test_register_errors():
     class Abstract2(AbstractType):
         pass
 
-    class Concrete2(ConcreteType):
-        abstract = Abstract2
+    class Concrete2(ConcreteType, abstract=Abstract2):
+        pass
 
     @translator
     def c1_to_c2(src: Concrete1, **props) -> Concrete2:  # pragma: no cover
@@ -105,12 +105,10 @@ def test_register_errors():
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(concrete_algorithms=[my_algo3])
 
-    class Concrete3(ConcreteType):
-        abstract = Abstract1
+    class Concrete3(ConcreteType, abstract=Abstract1):
         value_class = int
 
-    class Concrete4(ConcreteType):
-        abstract = Abstract1
+    class Concrete4(ConcreteType, abstract=Abstract1):
         value_class = int
 
     with pytest.raises(ValueError, match="already has a registered concrete type"):
@@ -123,8 +121,8 @@ def test_incorrect_signature_errors(example_resolver):
     class Abstract1(AbstractType):
         pass
 
-    class Concrete1(ConcreteType):
-        abstract = Abstract1
+    class Concrete1(ConcreteType, abstract=Abstract1):
+        pass
 
     @concrete_algorithm("power")
     def too_many_args(
