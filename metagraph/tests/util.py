@@ -19,39 +19,38 @@ class MyAbstractType(plugin.AbstractType):
     pass
 
 
-class IntType(plugin.ConcreteType):
-    abstract = MyAbstractType
-    value_class = int
+class IntType(plugin.ConcreteType, abstract=MyAbstractType):
+    value_type = int
     target = "pdp11"
 
 
-class StrType(plugin.ConcreteType):
-    abstract = MyAbstractType
-    value_class = str
+class StrType(plugin.ConcreteType, abstract=MyAbstractType):
+    value_type = str
     allowed_props = dict(lowercase=bool)
     target = "pdp11"
 
     @classmethod
     def get_type(cls, obj):
-        if isinstance(obj, cls.value_class):
+        if isinstance(obj, cls.value_type):
             is_lower = obj.lower() == obj
             return cls(lowercase=is_lower)
         else:
             raise TypeError(f"object not of type {cls.__class__}")
 
 
-class OtherType(plugin.ConcreteType):
-    abstract = MyAbstractType
+class OtherType(plugin.ConcreteType, abstract=MyAbstractType):
     target = "pdp11"
 
 
 @plugin.translator
 def int_to_str(src: IntType) -> StrType:
+    """Convert int to str"""
     return str(src)
 
 
 @plugin.translator
 def str_to_int(src: StrType) -> IntType:
+    """Convert str to int"""
     return int(src)
 
 
@@ -59,6 +58,7 @@ def str_to_int(src: StrType) -> IntType:
 def abstract_power(
     x: MyAbstractType, p: MyAbstractType
 ) -> MyAbstractType:  # pragma: no cover
+    """Raise x to the power of p"""
     pass
 
 

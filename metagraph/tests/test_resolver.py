@@ -21,6 +21,9 @@ def test_namespace():
     assert ns.A.B.c == 3
     assert ns.A.B.d == "test"
     assert ns.A.other == 1.5
+    assert dir(ns) == ["A"]
+    assert dir(ns.A) == ["B", "other"]
+    assert dir(ns.A.B) == ["c", "d"]
 
     with pytest.raises(AttributeError, match="does_not_exist"):
         ns.does_not_exist
@@ -62,23 +65,19 @@ def test_register_errors():
 
     res = Resolver()
 
-    class Concrete1(ConcreteType):
-        abstract = Abstract1
+    class Concrete1(ConcreteType, abstract=Abstract1):
+        pass
 
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(concrete_types=[Concrete1])
 
-    class ConcreteMistake(ConcreteType):
-        pass  # forgot to set abstract type
-
-    with pytest.raises(ValueError, match="does not have an abstract type"):
-        res.register(concrete_types=[ConcreteMistake])
+    # forgetting to set abstract attribute is tested in test_plugins now
 
     class Abstract2(AbstractType):
         pass
 
-    class Concrete2(ConcreteType):
-        abstract = Abstract2
+    class Concrete2(ConcreteType, abstract=Abstract2):
+        pass
 
     @translator
     def c1_to_c2(src: Concrete1, **props) -> Concrete2:  # pragma: no cover
@@ -106,6 +105,15 @@ def test_register_errors():
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(concrete_algorithms=[my_algo3])
 
+    class Concrete3(ConcreteType, abstract=Abstract1):
+        value_type = int
+
+    class Concrete4(ConcreteType, abstract=Abstract1):
+        value_type = int
+
+    with pytest.raises(ValueError, match="already has a registered concrete type"):
+        res.register(abstract_types=[Abstract1], concrete_types=[Concrete3, Concrete4])
+
 
 def test_incorrect_signature_errors(example_resolver):
     from .util import IntType
@@ -113,8 +121,8 @@ def test_incorrect_signature_errors(example_resolver):
     class Abstract1(AbstractType):
         pass
 
-    class Concrete1(ConcreteType):
-        abstract = Abstract1
+    class Concrete1(ConcreteType, abstract=Abstract1):
+        pass
 
     @concrete_algorithm("power")
     def too_many_args(
@@ -170,11 +178,43 @@ def test_python_types_in_signature(example_resolver):
         example_resolver.register(concrete_algorithms=[wrong_python_type])
 
     @concrete_algorithm("testing.python_types")
-    def wrong_return_type(x: IntType, p: int) -> int:  # pragma: no cover
+    def wrong_return_type(x: IntType, p: int) -> float:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match="is not a concrete type of"):
+        example_resolver.register(concrete_algorithms=[wrong_return_type])
+
+    @abstract_algorithm("testing.return_type")
+    def return_type(x: MyAbstractType) -> int:  # pragma: nocover
+        pass
+
+    @concrete_algorithm("testing.return_type")
+    def notmatching_return_type(x: int) -> float:  # pragma: no cover
         pass
 
     with pytest.raises(TypeError, match="return type does not match"):
-        example_resolver.register(concrete_algorithms=[wrong_return_type])
+        example_resolver.register(
+            abstract_algorithms=[return_type],
+            concrete_algorithms=[notmatching_return_type],
+        )
+
+
+def test_python_types_as_concrete_substitutes(example_resolver):
+    from .util import IntType, MyAbstractType
+
+    @abstract_algorithm("testing.python_types")
+    def python_types(x: MyAbstractType, p: int) -> MyAbstractType:  # pragma: no cover
+        pass
+
+    example_resolver.register(abstract_algorithms=[python_types])
+
+    @concrete_algorithm("testing.python_types")
+    def correct_python_type(x: int, p: int) -> IntType:  # pragma: no cover
+        pass
+
+    example_resolver.register(concrete_algorithms=[correct_python_type])
+    algo = example_resolver.find_algorithm("testing.python_types", 3, 4)
+    assert algo == correct_python_type
 
 
 def test_typeof(example_resolver):
@@ -211,9 +251,17 @@ def test_translate(example_resolver):
     with pytest.raises(TypeError, match="does not have a registered type"):
         example_resolver.translate(set(), StrType)
 
+    # Check registration of translator with Python types works
+    @translator
+    def int_to_int(src: int, **props) -> int:  # pragma: no cover
+        return src
+
+    example_resolver.register(translators=[int_to_int])
+    assert example_resolver.translate(4, int) == 4
+
 
 def test_find_algorithm(example_resolver):
-    from .util import int_power
+    from .util import int_power, MyAbstractType
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.find_algorithm("does_not_exist", 1, thing=2)
@@ -228,6 +276,21 @@ def test_find_algorithm(example_resolver):
 
     with pytest.raises(TypeError, match="missing a required argument: 'p'"):
         example_resolver.find_algorithm("power", x=1, q=2)
+
+    @abstract_algorithm("testing.match_python_type")
+    def python_type(x: MyAbstractType) -> int:  # pragma: no cover
+        pass
+
+    @concrete_algorithm("testing.match_python_type")
+    def correct_python_type(x: int) -> int:  # pragma: no cover
+        return 2 * x
+
+    example_resolver.register(
+        abstract_algorithms=[python_type], concrete_algorithms=[correct_python_type]
+    )
+    algo = example_resolver.find_algorithm("testing.match_python_type", 2)
+    assert algo == correct_python_type
+    assert example_resolver.find_algorithm("testing.match_python_type", set()) is None
 
 
 def test_call_algorithm(example_resolver):
