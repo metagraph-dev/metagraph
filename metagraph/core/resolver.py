@@ -237,6 +237,8 @@ class Resolver:
 
     def find_translator(self, value, dst_type) -> Optional[Translator]:
         src_type = self.typeof(value).__class__
+        if not issubclass(dst_type, ConcreteType):
+            dst_type = self.class_to_concrete.get(dst_type, dst_type)
         return self.translators.get((src_type, dst_type), None)
 
     def translate(self, value, dst_type, **props):
