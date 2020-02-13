@@ -1,7 +1,7 @@
-from ... import PluginRegistry, ConcreteType
-from ..abstract_types import SparseMatrixType, GraphType, WeightedGraphType
+from ... import ConcreteType, Wrapper
+from ..abstract_types import SparseMatrix, Graph, WeightedGraph
+from .. import registry
 
-reg = PluginRegistry("metagraph_core")
 
 try:
     import scipy.sparse as ss
@@ -11,7 +11,8 @@ except ImportError:
 
 if ss is not None:
 
-    class ScipySparseMatrix:
+    @registry.register
+    class ScipySparseMatrix(Wrapper, abstract=SparseMatrix):
         def __init__(self, data):
             self.obj = data
             assert isinstance(data, ss.spmatrix)
@@ -20,7 +21,8 @@ if ss is not None:
         def format(self):
             return self.obj.format
 
-    class ScipyAdjacencyMatrix:
+    @registry.register
+    class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(self, data, transposed=False):
             self.obj = data
             self.transposed = transposed
@@ -30,7 +32,8 @@ if ss is not None:
         def format(self):
             return self.obj.format
 
-    class ScipyWeightedAdjacencyMatrix:
+    @registry.register
+    class ScipyWeightedAdjacencyMatrix(Wrapper, abstract=WeightedGraph):
         def __init__(self, data, transposed=False):
             self.obj = data
             self.transposed = transposed
@@ -40,7 +43,8 @@ if ss is not None:
         def format(self):
             return self.obj.format
 
-    class ScipyIncidenceMatrix:
+    @registry.register
+    class ScipyIncidenceMatrix(Wrapper, abstract=Graph):
         def __init__(self, data, transposed=False):
             self.obj = data
             self.transposed = transposed
@@ -49,27 +53,3 @@ if ss is not None:
         @property
         def format(self):
             return self.obj.format
-
-    @reg.register
-    class ScipySparseMatrixType(ConcreteType):
-        name = "ScipySparseMatrix"
-        abstract = SparseMatrixType
-        value_class = ScipySparseMatrix
-
-    @reg.register
-    class ScipyAdjacencyMatrix(ConcreteType):
-        name = "ScipyAdjacencyMatrix"
-        abstract = GraphType
-        value_class = ScipyAdjacencyMatrix
-
-    @reg.register
-    class ScipyWeightedAdjacencyMatrixType(ConcreteType):
-        name = "ScipyWeightedAdjacencyMatrix"
-        abstract = WeightedGraphType
-        value_class = ScipyWeightedAdjacencyMatrix
-
-    @reg.register
-    class ScipyIncidenceMatrixType(ConcreteType):
-        name = "ScipyIncidenceMatrix"
-        abstract = GraphType
-        value_class = ScipyIncidenceMatrix

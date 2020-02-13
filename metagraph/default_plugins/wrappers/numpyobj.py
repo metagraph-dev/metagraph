@@ -1,7 +1,7 @@
-from ... import PluginRegistry, ConcreteType, dtypes
-from ..abstract_types import VectorType, SparseVectorType, MatrixType, SparseMatrixType
+from ... import ConcreteType, Wrapper, dtypes
+from ..abstract_types import DenseVector, SparseVector, DenseMatrix, SparseMatrix
+from .. import registry
 
-reg = PluginRegistry("metagraph_core")
 
 try:
     import numpy as np
@@ -25,7 +25,8 @@ if np is not None:
     }
     dtype_mg_to_np = {v: k for k, v in dtype_np_to_mg.items()}
 
-    class NumpyVector:
+    @registry.register
+    class NumpyVector(Wrapper, abstract=DenseVector):
         def __init__(self, data):
             self.obj = data
             assert isinstance(data, np.ndarray)
@@ -38,12 +39,14 @@ if np is not None:
         def dtype(self):
             return dtype_np_to_mg[self.obj.dtype.type]
 
-    class NumpySparseVector(NumpyVector):
+    @registry.register
+    class NumpySparseVector(NumpyVector, abstract=SparseVector):
         def __init__(self, data, missing_value=np.nan):
             super().__init__(data)
             self.missing_value = missing_value
 
-    class NumpyMatrix:
+    @registry.register
+    class NumpyMatrix(Wrapper, abstract=DenseMatrix):
         def __init__(self, data):
             """
             data: np.ndarray with ndims=2
@@ -62,31 +65,8 @@ if np is not None:
         def dtype(self):
             return dtype_np_to_mg[self.obj.dtype.type]
 
-    class NumpySparseMatrix(NumpyMatrix):
+    @registry.register
+    class NumpySparseMatrix(NumpyMatrix, abstract=SparseMatrix):
         def __init__(self, data, missing_value=np.nan):
             super().__init__(data)
             self.missing_value = missing_value
-
-    @reg.register
-    class NumpyVectorType(ConcreteType):
-        name = "NumpyVector"
-        abstract = VectorType
-        value_class = NumpyVector
-
-    @reg.register
-    class NumpySparseVectorType(ConcreteType):
-        name = "NumpySparseVector"
-        abstract = SparseVectorType
-        value_class = NumpySparseVector
-
-    @reg.register
-    class NumpyMatrixType(ConcreteType):
-        name = "NumpyMatrix"
-        abstract = MatrixType
-        value_class = NumpyMatrix
-
-    @reg.register
-    class NumpySparseMatrixType(ConcreteType):
-        name = "NumpySparseMatrix"
-        abstract = SparseMatrixType
-        value_class = NumpySparseMatrix

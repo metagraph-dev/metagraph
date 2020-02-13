@@ -1,7 +1,6 @@
-from ... import PluginRegistry, ConcreteType, dtypes
-from ..abstract_types import SparseVectorType
-
-reg = PluginRegistry("metagraph_core")
+from ... import Wrapper, dtypes
+from ..abstract_types import SparseVector
+from .. import registry
 
 
 _dtype_mapper = {
@@ -11,7 +10,8 @@ _dtype_mapper = {
 }
 
 
-class PythonSparseVector:
+@registry.register
+class PythonSparseVector(Wrapper, abstract=SparseVector):
     def __init__(self, data, size=None):
         """
         data: dict of node: weight
@@ -42,10 +42,3 @@ class PythonSparseVector:
                 raise Exception(f"Invalid type: {types}")
             self._dtype = _dtype_mapper[type_]
         return self._dtype
-
-
-@reg.register
-class PythonSparseVectorType(ConcreteType):
-    name = "PythonSparseVector"
-    abstract = SparseVectorType
-    value_class = PythonSparseVector

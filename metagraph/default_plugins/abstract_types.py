@@ -6,40 +6,39 @@ from .. import (
     abstract_algorithm,
     concrete_algorithm,
 )
-
-reg = PluginRegistry("metagraph_core")
-
-
-@reg.register
-class VectorType(AbstractType):
-    name = "Vector"
+from . import registry as reg
 
 
 @reg.register
-class SparseVectorType(AbstractType):
-    name = "SparseVector"
+class DenseVector(AbstractType):
+    pass
 
 
 @reg.register
-class MatrixType(AbstractType):
-    name = "Matrix"
+class SparseVector(AbstractType):
+    pass
 
 
 @reg.register
-class SparseMatrixType(AbstractType):
-    name = "SparseMatrix"
+class DenseMatrix(AbstractType):
+    pass
 
 
 @reg.register
-class DataFrameType(AbstractType):
-    name = "DataFrame"
+class SparseMatrix(AbstractType):
+    pass
 
 
 @reg.register
-class GraphType(AbstractType):
-    name = "Graph"
+class DataFrame(AbstractType):
+    pass
 
 
 @reg.register
-class WeightedGraphType(GraphType):
-    name = "WeightedGraph"
+class Graph(AbstractType):
+    pass
+
+
+@reg.register
+class WeightedGraph(Graph):
+    pass

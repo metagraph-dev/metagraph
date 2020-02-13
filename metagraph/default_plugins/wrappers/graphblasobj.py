@@ -1,12 +1,11 @@
-from ... import PluginRegistry, ConcreteType, dtypes
+from ... import ConcreteType, dtypes
 from ..abstract_types import (
-    SparseVectorType,
-    SparseMatrixType,
-    GraphType,
-    WeightedGraphType,
+    SparseVector,
+    SparseMatrix,
+    Graph,
+    WeightedGraph,
 )
-
-reg = PluginRegistry("metagraph_core")
+from .. import registry
 
 try:
     import grblas
@@ -32,18 +31,16 @@ if grblas is not None:
     }
     dtype_mg_to_grblas = {v: k for k, v in dtype_grblas_to_mg.items()}
 
-    # class GrblasVector(SparseArray):
-    #     def __init__(self, obj):
-    #         self.obj = obj
-    #         assert isinstance(obj, grblas.Vector)
-    #
-    #     def __len__(self):
-    #         return self.obj.size
-    #
-    #     def dtype(self):
-    #         return dtype_grblas_to_mg[self.obj.dtype]
+    @registry.register
+    class GrblasVector(ConcreteType, abstract=SparseVector):
+        value_type = grblas.Vector
 
-    class GrblasAdjacencyMatrix:
+    @registry.register
+    class GrblasMatrix(ConcreteType, abstract=SparseMatrix):
+        value_type = grblas.Matrix
+
+    @registry.register
+    class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(self, obj, transposed=False):
             self.obj = obj
             self.transposed = transposed
@@ -55,7 +52,8 @@ if grblas is not None:
         def dtype(self):
             return dtype_grblas_to_mg[self.obj.dtype]
 
-    class GrblasWeightedAdjacencyMatrix:
+    @registry.register
+    class GrblasWeightedAdjacencyMatrix(Wrapper, abstract=WeightedGraph):
         def __init__(self, obj, transposed=False):
             self.obj = obj
             self.transposed = transposed
@@ -67,7 +65,8 @@ if grblas is not None:
         def dtype(self):
             return dtype_grblas_to_mg[self.obj.dtype]
 
-    class GrblasIncidenceMatrix:
+    @registry.register
+    class GrblasIncidenceMatrix(Wrapper, abstract=Graph):
         def __init__(self, obj, transposed=False):
             self.obj = obj
             self.transposed = transposed
@@ -78,33 +77,3 @@ if grblas is not None:
 
         def dtype(self):
             return dtype_grblas_to_mg[self.obj.dtype]
-
-    @reg.register
-    class GrblasVectorType(ConcreteType):
-        name = "GrblasVector"
-        abstract = SparseVectorType
-        value_class = grblas.Vector
-
-    @reg.register
-    class GrblasMatrixType(ConcreteType):
-        name = "GrblasMatrix"
-        abstract = SparseMatrixType
-        value_class = grblas.Matrix
-
-    @reg.register
-    class GrblasAdjacencyMatrixType(ConcreteType):
-        name = "GrblasAdjacencyMatrix"
-        abstract = GraphType
-        value_class = GrblasAdjacencyMatrix
-
-    @reg.register
-    class GrblasWeightedAdjacencyMatrixType(ConcreteType):
-        name = "GrblasWeightedAdjacencyMatrix"
-        abstract = WeightedGraphType
-        value_class = GrblasWeightedAdjacencyMatrix
-
-    @reg.register
-    class GrblasIncidenceMatrix(ConcreteType):
-        name = "GrblasIncidenceMatrix"
-        abstract = GraphType
-        value_class = GrblasIncidenceMatrix
