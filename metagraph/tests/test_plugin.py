@@ -55,15 +55,15 @@ def test_concrete_type():
 
 
 def test_concrete_type_abstract_errors():
-    with pytest.raises(TypeError, match="Missing required 'abstract' class attribute"):
+    with pytest.raises(TypeError, match="Missing required 'abstract' keyword argument"):
 
         class MyBadType(plugin.ConcreteType):
             pass
 
     with pytest.raises(TypeError, match="must be subclass of AbstractType"):
 
-        class MyBadType(plugin.ConcreteType):
-            abstract = 4
+        class MyBadType(plugin.ConcreteType, abstract=4):
+            pass
 
 
 def test_translator():
