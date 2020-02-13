@@ -54,6 +54,18 @@ def test_concrete_type():
         StrType.get_type(4)
 
 
+def test_concrete_type_abstract_errors():
+    with pytest.raises(TypeError, match="Missing required 'abstract' class attribute"):
+
+        class MyBadType(plugin.ConcreteType):
+            pass
+
+    with pytest.raises(TypeError, match="must be subclass of AbstractType"):
+
+        class MyBadType(plugin.ConcreteType):
+            abstract = 4
+
+
 def test_translator():
     assert isinstance(int_to_str, plugin.Translator)
     assert int_to_str.__name__ == "int_to_str"

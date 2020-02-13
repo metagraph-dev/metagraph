@@ -71,11 +71,7 @@ def test_register_errors():
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(concrete_types=[Concrete1])
 
-    class ConcreteMistake(ConcreteType):
-        pass  # forgot to set abstract type
-
-    with pytest.raises(ValueError, match="does not have an abstract type"):
-        res.register(concrete_types=[ConcreteMistake])
+    # forgetting to set abstract attribute is tested in test_plugins now
 
     class Abstract2(AbstractType):
         pass
