@@ -92,10 +92,7 @@ class Resolver:
         if concrete_types is not None:
             for ct in concrete_types:
                 name = ct.__qualname__
-                if ct.abstract is None:
-                    raise ValueError(
-                        f"concrete type {name} does not have an abstract type"
-                    )
+                # ct.abstract cannot be None due to ConcreteType.__init_subclass__
                 if ct.abstract not in self.abstract_types:
                     abstract_name = ct.abstract.__qualname__
                     raise ValueError(
