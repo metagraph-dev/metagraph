@@ -11,12 +11,12 @@ class HyperGraph(AbstractType):
     pass
 
 
-class CPUHyperGraph(ConcreteType):
-    abstract = HyperGraph
+class CPUHyperGraph(ConcreteType, abstract=HyperGraph):
+    pass
 
 
-class GPUHyperGraph(ConcreteType):
-    abstract = HyperGraph
+class GPUHyperGraph(ConcreteType, abstract=HyperGraph):
+    pass
 
 
 @translator
