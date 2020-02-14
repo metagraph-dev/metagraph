@@ -1,7 +1,7 @@
 from ... import translator
-from ..wrappers.pythonobj import PythonSparseVector
-from ..wrappers.numpyobj import NumpySparseVector
-from ..wrappers.graphblasobj import GrblasVector, dtype_mg_to_grblas
+from ..wrappers.python import PythonSparseVector
+from ..wrappers.numpy import NumpySparseVector
+from ..wrappers.graphblas import GrblasVector, dtype_mg_to_grblas
 from .. import registry
 
 
@@ -66,7 +66,7 @@ try:
     def translate_sparsevector_grb2py(x: GrblasVector, **props) -> PythonSparseVector:
         idx, vals = x.to_values()
         data = {k: v for k, v in zip(idx, vals)}
-        return PythonSparseVector(data, size=len(x))
+        return PythonSparseVector(data, size=x.size)
 
 
 except (ImportError, AttributeError):

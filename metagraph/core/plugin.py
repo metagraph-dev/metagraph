@@ -157,18 +157,34 @@ class Translator:
         return self.func(src, **props)
 
 
-# decorator
-def translator(func: Callable, *, registry=None):
+# decorator can be called as either:
+# @translator
+# def myfunc(): ...
+# - or -
+# @translator(registry=reg)
+# def myfunc(): ...
+#
+# we also handle the format
+# @translate()
+# def myfunc(): ...
+def translator(func: Callable = None, *, registry=None):
     # FIXME: signature checks?
-    trans = Translator(func)
-    if registry is not None:
-        registry.register(trans)
-    return trans
+    if func is None:
+
+        def _translator(func: Callable):
+            trans = Translator(func)
+            if registry is not None:
+                registry.register(trans)
+            return trans
+
+        return _translator
+    else:
+        return Translator(func)
 
 
 def normalize_type(t):
     """Instantiate ConcreteType classes with no properties (found in signatures)"""
-    if issubclass(t, ConcreteType):
+    if type(t) is type and issubclass(t, ConcreteType):
         return t()
     else:
         return t

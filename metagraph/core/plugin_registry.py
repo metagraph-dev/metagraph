@@ -68,7 +68,7 @@ class PluginRegistry:
     def __init__(self):
         self.plugins = {
             "abstract_types": [],
-            "wrappers": [],
+            "concrete_types": [],
             "translators": [],
             "abstract_algorithms": [],
             "concrete_algorithms": [],
@@ -78,19 +78,27 @@ class PluginRegistry:
         """
         Decorate classes and functions to include them in the registry
         """
-        if isinstance(obj, AbstractType):
-            self.plugins["abstract_types"].append(obj)
-        elif isinstance(obj, ConcreteType):
-            self.plugins["concrete_types"].append(obj)
-        elif isinstance(obj, Wrapper):
-            self.plugins["concrete_types"].append(obj.Type)
-        elif isinstance(obj, Translator):
-            self.plugins["translators"].append(obj)
-        elif isinstance(obj, AbstractAlgorithm):
-            self.plugins["abstract_algorithms"].append(obj)
-        elif isinstance(obj, ConcreteAlgorithm):
-            self.plugins["concrete_algorithms"].append(obj)
+        unknown = False
+        if type(obj) is type:
+            if issubclass(obj, AbstractType):
+                self.plugins["abstract_types"].append(obj)
+            elif issubclass(obj, ConcreteType):
+                self.plugins["concrete_types"].append(obj)
+            elif issubclass(obj, Wrapper):
+                self.plugins["concrete_types"].append(obj.Type)
+            else:
+                unknown = True
         else:
+            if isinstance(obj, Translator):
+                self.plugins["translators"].append(obj)
+            elif isinstance(obj, AbstractAlgorithm):
+                self.plugins["abstract_algorithms"].append(obj)
+            elif isinstance(obj, ConcreteAlgorithm):
+                self.plugins["concrete_algorithms"].append(obj)
+            else:
+                unknown = True
+
+        if unknown:
             raise PluginRegistryError(
                 f"Invalid object for plugin registry: {type(obj)}"
             )

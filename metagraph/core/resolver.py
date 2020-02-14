@@ -4,7 +4,7 @@ to concrete algorithms.
 """
 from collections import defaultdict
 import inspect
-from typing import List, Dict, Optional
+from typing import List, Tuple, Set, Dict, Optional, Any
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -53,7 +53,7 @@ class Resolver:
     def __init__(self):
         self.abstract_types: Set[AbstractType] = set()
         self.concrete_types: Set[ConcreteType] = set()
-        self.translators: Dict[Tuple(ConcreteType, ConcreteType), Translator] = {}
+        self.translators: Dict[Tuple[ConcreteType, ConcreteType], Translator] = {}
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
@@ -144,6 +144,8 @@ class Resolver:
 
     def _normalize_conc_type(self, conc_type, abs_type: AbstractType):
         # handle Python classes used as concrete types
+        if abs_type is Any:
+            return conc_type
         if issubclass(abs_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
         ):
