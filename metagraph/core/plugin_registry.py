@@ -69,6 +69,7 @@ class PluginRegistry:
         self.plugins = {
             "abstract_types": [],
             "concrete_types": [],
+            "wrappers": [],
             "translators": [],
             "abstract_algorithms": [],
             "concrete_algorithms": [],
@@ -85,7 +86,7 @@ class PluginRegistry:
             elif issubclass(obj, ConcreteType):
                 self.plugins["concrete_types"].append(obj)
             elif issubclass(obj, Wrapper):
-                self.plugins["concrete_types"].append(obj.Type)
+                self.plugins["wrappers"].append(obj)
             else:
                 unknown = True
         else:

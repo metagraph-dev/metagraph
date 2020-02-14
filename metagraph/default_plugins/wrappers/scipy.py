@@ -14,42 +14,42 @@ if ss is not None:
     @registry.register
     class ScipySparseMatrix(Wrapper, abstract=SparseMatrix):
         def __init__(self, data):
-            self.obj = data
+            self.value = data
             assert isinstance(data, ss.spmatrix)
 
         @property
         def format(self):
-            return self.obj.format
+            return self.value.format
 
     @registry.register
     class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(self, data, transposed=False):
-            self.obj = data
+            self.value = data
             self.transposed = transposed
             assert isinstance(data, ss.spmatrix)
 
         @property
         def format(self):
-            return self.obj.format
+            return self.value.format
 
     @registry.register
     class ScipyWeightedAdjacencyMatrix(Wrapper, abstract=WeightedGraph):
         def __init__(self, data, transposed=False):
-            self.obj = data
+            self.value = data
             self.transposed = transposed
             assert isinstance(data, ss.spmatrix)
 
         @property
         def format(self):
-            return self.obj.format
+            return self.value.format
 
     @registry.register
     class ScipyIncidenceMatrix(Wrapper, abstract=Graph):
         def __init__(self, data, transposed=False):
-            self.obj = data
+            self.value = data
             self.transposed = transposed
             assert isinstance(data, ss.spmatrix)
 
         @property
         def format(self):
-            return self.obj.format
+            return self.value.format

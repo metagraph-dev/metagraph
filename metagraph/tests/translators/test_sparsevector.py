@@ -1,5 +1,3 @@
-import pytest
-from .util import default_plugin_resolver
 from metagraph.default_plugins.wrappers.python import PythonSparseVector
 from metagraph.default_plugins.wrappers.numpy import NumpySparseVector
 from metagraph.default_plugins.wrappers.graphblas import GrblasVector
@@ -15,13 +13,13 @@ def test_python(default_plugin_resolver):
     npd = dpr.translate(x, NumpySparseVector)
     assert isinstance(npd, NumpySparseVector)
     y = dpr.translate(npd, PythonSparseVector)
-    assert y.obj == sparse_dict
+    assert y.value == sparse_dict
     assert len(y) == 30
     # Convert back and forth from grblas vector
     grbv = dpr.translate(x, GrblasVector)
     assert isinstance(grbv, grblas.Vector)
     z = dpr.translate(grbv, PythonSparseVector)
-    assert z.obj == sparse_dict
+    assert z.value == sparse_dict
     assert len(z) == 30
 
 
@@ -38,7 +36,7 @@ def test_numpy(default_plugin_resolver):
     assert len(pysa) == 8
     y = dpr.translate(pysa, NumpySparseVector)
     np.testing.assert_equal(
-        y.obj, np.where(dense_array == 0, y.missing_value, dense_array)
+        y.value, np.where(dense_array == 0, y.missing_value, dense_array)
     )
     # Convert back and forth from grblas vector
     grbv = dpr.translate(x, GrblasVector)
@@ -46,7 +44,7 @@ def test_numpy(default_plugin_resolver):
     assert grbv.size == 8
     z = dpr.translate(grbv, NumpySparseVector)
     np.testing.assert_equal(
-        z.obj, np.where(dense_array == 0, z.missing_value, dense_array)
+        z.value, np.where(dense_array == 0, z.missing_value, dense_array)
     )
 
 

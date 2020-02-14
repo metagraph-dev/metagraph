@@ -17,7 +17,7 @@ if nx is not None:
     @registry.register
     class NetworkXWeightedGraph(Wrapper, abstract=WeightedGraph):
         def __init__(self, graph, weight_label="weight"):
-            self.obj = graph
+            self.value = graph
             self.weight_label = weight_label
             assert isinstance(graph, nx.DiGraph)
             assert (
