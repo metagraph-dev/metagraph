@@ -7,10 +7,13 @@ del get_versions
 from .core.plugin import (
     AbstractType,
     ConcreteType,
+    Wrapper,
     translator,
     abstract_algorithm,
     concrete_algorithm,
 )
+from .core import dtypes
+from .core.plugin_registry import PluginRegistry
 
 _SPECIAL_ATTRS = ["resolver", "algo", "translate", "typeof"]
 

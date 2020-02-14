@@ -1,5 +1,6 @@
 """Base classes for basic metagraph plugins.
 """
+import types
 import inspect
 from typing import Callable
 
@@ -13,6 +14,12 @@ class AbstractType:
 
     def __hash__(self):
         return hash(self.__class__)
+
+    def __init_subclass__(cls, *, registry=None):
+        # Usually types are decorated with @registry.register,
+        # but this provides another valid way
+        if registry is not None:
+            registry.register(cls)
 
 
 class ConcreteType:
@@ -46,7 +53,7 @@ class ConcreteType:
             # maybe type check?
         self.props = dict(props)
 
-    def __init_subclass__(cls, *, abstract=None):
+    def __init_subclass__(cls, *, abstract=None, registry=None):
         """Enforce requirements on 'abstract' attribute"""
         super().__init_subclass__()
 
@@ -57,6 +64,11 @@ class ConcreteType:
                 f"'abstract' keyword argument on {cls} must be subclass of AbstractType"
             )
         cls.abstract = abstract
+
+        # Usually types are decorated with @registry.register,
+        # but this provides another valid way
+        if registry is not None:
+            registry.register(cls)
 
     def is_satisfied_by(self, other_type):
         """Is other_type and its properties compatible with this type?
@@ -105,6 +117,32 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__class__}")
 
 
+class Wrapper:
+    """Helper class for creating wrappers around data objects
+
+    A ConcreteType will be automatically created with its `value_type` set to this class.
+    The auto-created ConcreteType will be attached as `.Type` onto the wrapper class.
+    """
+
+    # These class attributes will be passed on to the created ConcreteType
+    allowed_props = {}  # default is no props
+    target = "cpu"  # key may be used in future to guide dispatch
+
+    def __init_subclass__(cls, *, abstract=None, registry=None):
+        cls.Type = types.new_class(
+            f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
+        )
+        cls.Type.__module__ = cls.__module__
+        cls.Type.value_type = cls
+        cls.Type.allowed_props = cls.allowed_props
+        cls.Type.target = cls.target
+
+        # Usually wrappers are decorated with @registry.register,
+        # but this provides another valid way
+        if registry is not None:
+            registry.register(cls)
+
+
 class Translator:
     """Converts from one concrete type to another, enforcing properties on the
     destination if requested."""
@@ -120,9 +158,12 @@ class Translator:
 
 
 # decorator
-def translator(func: Callable):
+def translator(func: Callable, *, registry=None):
     # FIXME: signature checks?
-    return Translator(func)
+    trans = Translator(func)
+    if registry is not None:
+        registry.register(trans)
+    return trans
 
 
 def normalize_type(t):
@@ -160,9 +201,12 @@ class AbstractAlgorithm:
         self.__signature__ = inspect.signature(self.func)
 
 
-def abstract_algorithm(name: str):
+def abstract_algorithm(name: str, *, registry=None):
     def _abstract_decorator(func: Callable):
-        return AbstractAlgorithm(func=func, name=name)
+        algo = AbstractAlgorithm(func=func, name=name)
+        if registry is not None:
+            registry.register(algo)
+        return algo
 
     return _abstract_decorator
 
@@ -187,8 +231,11 @@ class ConcreteAlgorithm:
         return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name: str):
+def concrete_algorithm(abstract_name: str, *, registry=None):
     def _concrete_decorator(func: Callable):
-        return ConcreteAlgorithm(func=func, abstract_name=abstract_name)
+        algo = ConcreteAlgorithm(func=func, abstract_name=abstract_name)
+        if registry is not None:
+            registry.register(algo)
+        return algo
 
     return _concrete_decorator
