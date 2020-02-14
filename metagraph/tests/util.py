@@ -83,12 +83,3 @@ def make_example_resolver():
 @pytest.fixture
 def example_resolver():
     return make_example_resolver()
-
-
-@pytest.fixture
-def default_plugin_resolver():
-    from metagraph.default_plugins import find_plugins
-
-    res = Resolver()
-    res.register(**find_plugins())
-    return res

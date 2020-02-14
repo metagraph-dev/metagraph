@@ -28,22 +28,36 @@ if np is not None:
     @registry.register
     class NumpyVector(Wrapper, abstract=DenseVector):
         def __init__(self, data):
-            self.obj = data
+            self.value = data
             assert isinstance(data, np.ndarray)
             assert len(data.shape) == 1
 
         def __len__(self):
-            return len(self.obj)
+            return len(self.value)
 
         @property
         def dtype(self):
-            return dtype_np_to_mg[self.obj.dtype.type]
+            return dtype_np_to_mg[self.value.dtype.type]
 
     @registry.register
     class NumpySparseVector(NumpyVector, abstract=SparseVector):
         def __init__(self, data, missing_value=np.nan):
             super().__init__(data)
             self.missing_value = missing_value
+
+        def get_missing_mask(self):
+            """
+            Returns an array of True/False where True indicates a missing value
+            """
+            if self.missing_value != self.missing_value:
+                # Special handling for np.nan which does not equal itself
+                return np.isnan(self.value)
+            else:
+                return self.value == self.missing_value
+
+        @property
+        def nnz(self):
+            return np.count_nonzero(~self.get_missing_mask())
 
     @registry.register
     class NumpyMatrix(Wrapper, abstract=DenseMatrix):
@@ -54,19 +68,33 @@ if np is not None:
             """
             if isinstance(data, np.matrix):
                 data = np.array(data)
-            self.obj = data
+            self.value = data
             assert isinstance(data, np.ndarray)
 
         @property
         def shape(self):
-            return self.obj.shape
+            return self.value.shape
 
         @property
         def dtype(self):
-            return dtype_np_to_mg[self.obj.dtype.type]
+            return dtype_np_to_mg[self.value.dtype.type]
 
     @registry.register
     class NumpySparseMatrix(NumpyMatrix, abstract=SparseMatrix):
         def __init__(self, data, missing_value=np.nan):
             super().__init__(data)
             self.missing_value = missing_value
+
+        def get_missing_mask(self):
+            """
+            Returns an array of True/False where True indicates a missing value
+            """
+            if self.missing_value != self.missing_value:
+                # Special handling for np.nan which does not equal itself
+                return np.isnan(self.value)
+            else:
+                return self.value == self.missing_value
+
+        @property
+        def nnz(self):
+            return np.count_nonzero(~self.get_missing_mask())

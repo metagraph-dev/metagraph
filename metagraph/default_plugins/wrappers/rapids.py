@@ -23,7 +23,7 @@ if cugraph is not None:
     @registry.register
     class CuGraphWeighted(Wrapper, abstract=WeightedGraph):
         def __init__(self, graph, weight_label="weight"):
-            self.obj = graph
+            self.value = graph
             self.weight_label = weight_label
             assert isinstance(graph, cugraph.DiGraph)
             assert (
@@ -40,7 +40,7 @@ if cudf is not None:
     @registry.register
     class CuDFEdgeList(Wrapper, abstract=Graph):
         def __init__(self, df, src_label="source", dest_label="destination"):
-            self.obj = df
+            self.value = df
             self.src_label = src_label
             self.dest_label = dest_label
             assert isinstance(df, cudf.DataFrame)

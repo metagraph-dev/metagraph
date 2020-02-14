@@ -8,6 +8,7 @@ from typing import List, Tuple, Set, Dict, Optional, Any
 from .plugin import (
     AbstractType,
     ConcreteType,
+    Wrapper,
     Translator,
     AbstractAlgorithm,
     ConcreteAlgorithm,
@@ -65,12 +66,14 @@ class Resolver:
         self.class_to_concrete: Dict[type, ConcreteType] = {}
 
         self.algo = Namespace()
+        self.wrapper = Namespace()
 
     def register(
         self,
         *,
         abstract_types: Optional[List[AbstractType]] = None,
         concrete_types: Optional[List[ConcreteType]] = None,
+        wrappers: Optional[List[Wrapper]] = None,
         translators: Optional[List[Translator]] = None,
         abstract_algorithms: Optional[List[AbstractAlgorithm]] = None,
         concrete_algorithms: Optional[List[ConcreteAlgorithm]] = None,
@@ -91,6 +94,16 @@ class Resolver:
                     name = at.__qualname__
                     raise ValueError(f"abstract type {name} already exists")
                 self.abstract_types.add(at)
+
+        if wrappers is not None:
+            # Let concrete type associated with each wrapper be handled by concrete_types list
+            if concrete_types is None:
+                concrete_types = []
+            for wr in wrappers:
+                concrete_types.append(wr.Type)
+                # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
+                path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
+                self.wrapper._register(path, wr)
 
         if concrete_types is not None:
             for ct in concrete_types:
@@ -254,7 +267,9 @@ class Resolver:
         parameters = bound_args.signature.parameters
         for arg_name, arg_value in bound_args.arguments.items():
             param_type = parameters[arg_name].annotation
-            if isinstance(param_type, ConcreteType):
+            if param_type is Any:
+                return True
+            elif isinstance(param_type, ConcreteType):
                 if not param_type.is_satisfied_by_value(arg_value):
                     return False
             else:

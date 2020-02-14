@@ -41,39 +41,39 @@ if grblas is not None:
 
     @registry.register
     class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
-        def __init__(self, obj, transposed=False):
-            self.obj = obj
+        def __init__(self, value, transposed=False):
+            self.value = value
             self.transposed = transposed
-            assert isinstance(obj, grblas.Matrix)
+            assert isinstance(value, grblas.Matrix)
 
         def shape(self):
-            return (self.obj.nrows, self.obj.ncols)
+            return (self.value.nrows, self.value.ncols)
 
         def dtype(self):
-            return dtype_grblas_to_mg[self.obj.dtype]
+            return dtype_grblas_to_mg[self.value.dtype]
 
     @registry.register
     class GrblasWeightedAdjacencyMatrix(Wrapper, abstract=WeightedGraph):
-        def __init__(self, obj, transposed=False):
-            self.obj = obj
+        def __init__(self, value, transposed=False):
+            self.value = value
             self.transposed = transposed
-            assert isinstance(obj, grblas.Matrix)
+            assert isinstance(value, grblas.Matrix)
 
         def shape(self):
-            return (self.obj.nrows, self.obj.ncols)
+            return (self.value.nrows, self.value.ncols)
 
         def dtype(self):
-            return dtype_grblas_to_mg[self.obj.dtype]
+            return dtype_grblas_to_mg[self.value.dtype]
 
     @registry.register
     class GrblasIncidenceMatrix(Wrapper, abstract=Graph):
-        def __init__(self, obj, transposed=False):
-            self.obj = obj
+        def __init__(self, value, transposed=False):
+            self.value = value
             self.transposed = transposed
-            assert isinstance(obj, grblas.Matrix)
+            assert isinstance(value, grblas.Matrix)
 
         def shape(self):
-            return (self.obj.nrows, self.obj.ncols)
+            return (self.value.nrows, self.value.ncols)
 
         def dtype(self):
-            return dtype_grblas_to_mg[self.obj.dtype]
+            return dtype_grblas_to_mg[self.value.dtype]

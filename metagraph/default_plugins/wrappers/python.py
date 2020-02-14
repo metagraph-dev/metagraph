@@ -19,7 +19,7 @@ class PythonSparseVector(Wrapper, abstract=SparseVector):
               if None, computes the size as the max index found
         """
         super().__init__()
-        self.obj = data
+        self.value = data
         if size is None:
             size = max(data.keys())
         self.size = size
@@ -32,7 +32,7 @@ class PythonSparseVector(Wrapper, abstract=SparseVector):
     @property
     def dtype(self):
         if self._dtype is None:
-            types = set(type(val) for val in self.obj.values())
+            types = set(type(val) for val in self.value.values())
             if not types:
                 return None
             for type_ in (float, int, bool):

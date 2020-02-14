@@ -15,7 +15,7 @@ try:
 
         data = np.empty((len(x),))
         data[:] = np.nan  # default missing value
-        for idx, val in x.obj.items():
+        for idx, val in x.value.items():
             data[idx] = val
         return NumpySparseVector(data, missing_value=np.nan)
 
@@ -30,12 +30,11 @@ try:
     def translate_sparsevector_np2py(
         x: NumpySparseVector, **props
     ) -> PythonSparseVector:
-        missing = x.missing_value
-        if missing == missing:
-            data = {idx: val for idx, val in enumerate(x.obj) if val != missing}
-        else:
-            # Special case handling for np.nan where nan != nan
-            data = {idx: val for idx, val in enumerate(x.obj) if val == val}
+        data = {
+            idx: x.value[idx]
+            for idx, is_missing in enumerate(x.get_missing_mask())
+            if not is_missing
+        }
         return PythonSparseVector(data, size=len(x))
 
 
@@ -49,7 +48,7 @@ try:
     def translate_sparsevector_py2grb(x: PythonSparseVector, **props) -> GrblasVector:
         import grblas
 
-        idx, vals = zip(*x.obj.items())
+        idx, vals = zip(*x.value.items())
         vec = grblas.Vector.new_from_values(
             idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.dtype]
         )
@@ -79,16 +78,10 @@ try:
     def translate_sparsevector_np2grb(x: NumpySparseVector, **props) -> GrblasVector:
         import grblas
 
-        missing = x.missing_value
-        if missing == missing:
-            idx, vals = zip(
-                *((idx, val) for idx, val in enumerate(x.obj) if val != missing)
-            )
-        else:
-            # Special case handling for np.nan where nan != nan
-            idx, vals = zip(
-                *((idx, val) for idx, val in enumerate(x.obj) if val == val)
-            )
+        idx = [
+            idx for idx, is_missing in enumerate(x.get_missing_mask()) if not is_missing
+        ]
+        vals = [x.value[i] for i in idx]
         vec = grblas.Vector.new_from_values(
             idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.dtype]
         )

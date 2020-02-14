@@ -18,7 +18,7 @@ if pd is not None:
     @registry.register
     class PandasEdgeList(Wrapper, abstract=Graph):
         def __init__(self, df, src_label="source", dest_label="destination"):
-            self.obj = df
+            self.value = df
             self.src_label = src_label
             self.dest_label = dest_label
             assert isinstance(df, pd.DataFrame)
