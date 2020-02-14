@@ -1,9 +1,9 @@
 from . import (
-    graphblasobj,
-    networkxobj,
-    numpyobj,
-    pandasobj,
-    pythonobj,
-    rapidsobj,
-    scipyobj,
+    graphblas,
+    networkx,
+    numpy,
+    pandas,
+    python,
+    rapids,
+    scipy,
 )
