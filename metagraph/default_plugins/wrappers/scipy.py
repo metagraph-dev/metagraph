@@ -1,4 +1,4 @@
-from ... import Wrapper
+from ... import ConcreteType, Wrapper
 from ..abstract_types import SparseMatrix, Graph, WeightedGraph
 from .. import registry
 
@@ -12,14 +12,8 @@ except ImportError:
 if ss is not None:
 
     @registry.register
-    class ScipySparseMatrix(Wrapper, abstract=SparseMatrix):
-        def __init__(self, data):
-            self.value = data
-            assert isinstance(data, ss.spmatrix)
-
-        @property
-        def format(self):
-            return self.value.format
+    class ScipySparseMatrixType(ConcreteType, abstract=SparseMatrix):
+        value_type = ss.spmatrix
 
     @registry.register
     class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):

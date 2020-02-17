@@ -1,1 +1,1 @@
-from . import sparsevector
+from . import sparsevector, sparsematrix

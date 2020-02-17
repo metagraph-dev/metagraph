@@ -1,6 +1,6 @@
 from metagraph.default_plugins.wrappers.python import PythonSparseVector
 from metagraph.default_plugins.wrappers.numpy import NumpySparseVector
-from metagraph.default_plugins.wrappers.graphblas import GrblasVector
+from metagraph.default_plugins.wrappers.graphblas import GrblasVectorType
 import grblas
 
 
@@ -9,14 +9,14 @@ def test_python(default_plugin_resolver):
     sparse_dict = {1: 1.1, 5: 5.5, 2: 2.2}
     x = PythonSparseVector(sparse_dict, size=30)
     assert len(x) == 30
-    # Convert back and forth from numpy dense array
-    npd = dpr.translate(x, NumpySparseVector)
-    assert isinstance(npd, NumpySparseVector)
-    y = dpr.translate(npd, PythonSparseVector)
+    # Convert back and forth from numpy sparse array
+    nps = dpr.translate(x, NumpySparseVector)
+    assert isinstance(nps, NumpySparseVector)
+    y = dpr.translate(nps, PythonSparseVector)
     assert y.value == sparse_dict
     assert len(y) == 30
     # Convert back and forth from grblas vector
-    grbv = dpr.translate(x, GrblasVector)
+    grbv = dpr.translate(x, GrblasVectorType)
     assert isinstance(grbv, grblas.Vector)
     z = dpr.translate(grbv, PythonSparseVector)
     assert z.value == sparse_dict
@@ -39,7 +39,7 @@ def test_numpy(default_plugin_resolver):
         y.value, np.where(dense_array == 0, y.missing_value, dense_array)
     )
     # Convert back and forth from grblas vector
-    grbv = dpr.translate(x, GrblasVector)
+    grbv = dpr.translate(x, GrblasVectorType)
     assert isinstance(grbv, grblas.Vector)
     assert grbv.size == 8
     z = dpr.translate(grbv, NumpySparseVector)
@@ -58,11 +58,11 @@ def test_grblas(default_plugin_resolver):
     pysa = dpr.translate(x, PythonSparseVector)
     assert isinstance(pysa, PythonSparseVector)
     assert len(pysa) == 15
-    y = dpr.translate(pysa, GrblasVector)
+    y = dpr.translate(pysa, grblas.Vector)
     assert y == x
-    # Convert back and forth from numpy dense array
-    npd = dpr.translate(x, NumpySparseVector)
-    assert isinstance(npd, NumpySparseVector)
-    assert len(npd) == 15
-    z = dpr.translate(npd, GrblasVector)
+    # Convert back and forth from numpy sparse array
+    nps = dpr.translate(x, NumpySparseVector)
+    assert isinstance(nps, NumpySparseVector)
+    assert len(nps) == 15
+    z = dpr.translate(nps, grblas.Vector)
     assert z == x

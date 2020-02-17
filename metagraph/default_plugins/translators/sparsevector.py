@@ -1,7 +1,7 @@
 from ... import translator
 from ..wrappers.python import PythonSparseVector
 from ..wrappers.numpy import NumpySparseVector
-from ..wrappers.graphblas import GrblasVector, dtype_mg_to_grblas
+from ..wrappers.graphblas import GrblasVectorType, dtype_mg_to_grblas
 from .. import registry
 
 
@@ -45,7 +45,9 @@ except (ImportError, AttributeError):
 try:
 
     @translator(registry=registry)
-    def translate_sparsevector_py2grb(x: PythonSparseVector, **props) -> GrblasVector:
+    def translate_sparsevector_py2grb(
+        x: PythonSparseVector, **props
+    ) -> GrblasVectorType:
         import grblas
 
         idx, vals = zip(*x.value.items())
@@ -62,7 +64,9 @@ except (ImportError, AttributeError):
 try:
 
     @translator(registry=registry)
-    def translate_sparsevector_grb2py(x: GrblasVector, **props) -> PythonSparseVector:
+    def translate_sparsevector_grb2py(
+        x: GrblasVectorType, **props
+    ) -> PythonSparseVector:
         idx, vals = x.to_values()
         data = {k: v for k, v in zip(idx, vals)}
         return PythonSparseVector(data, size=x.size)
@@ -75,7 +79,9 @@ except (ImportError, AttributeError):
 try:
 
     @translator(registry=registry)
-    def translate_sparsevector_np2grb(x: NumpySparseVector, **props) -> GrblasVector:
+    def translate_sparsevector_np2grb(
+        x: NumpySparseVector, **props
+    ) -> GrblasVectorType:
         import grblas
 
         idx = [
@@ -95,7 +101,9 @@ except (ImportError, AttributeError):
 try:
 
     @translator(registry=registry)
-    def translate_sparsevector_grb2np(x: GrblasVector, **props) -> NumpySparseVector:
+    def translate_sparsevector_grb2np(
+        x: GrblasVectorType, **props
+    ) -> NumpySparseVector:
         import numpy as np
 
         inds, vals = x.to_values()
