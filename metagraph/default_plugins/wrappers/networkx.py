@@ -1,14 +1,10 @@
 from ... import ConcreteType, Wrapper
 from ..abstract_types import Graph, WeightedGraph
-from .. import registry
-
-try:
-    import networkx as nx
-except ImportError:
-    nx = None
+from .. import registry, networkx
 
 
-if nx is not None:
+if networkx is not None:
+    nx = networkx
 
     @registry.register
     class NetworkXGraphType(ConcreteType, abstract=Graph):

@@ -2,10 +2,12 @@ from ... import translator
 from ..wrappers.scipy import ScipySparseMatrixType
 from ..wrappers.numpy import NumpySparseMatrix, dtype_np_to_mg
 from ..wrappers.graphblas import GrblasMatrixType, dtype_mg_to_grblas
-from .. import registry
+from .. import registry, numpy, scipy, grblas
 
 
-try:
+if scipy and numpy:
+    ss = scipy.sparse
+    np = numpy
 
     @translator(registry=registry)
     def translate_sparsematrix_sci2np(
@@ -24,13 +26,6 @@ try:
         data[mask == 0] = np.nan  # default missing value
         return NumpySparseMatrix(data, missing_value=np.nan)
 
-
-except (ImportError, AttributeError):
-    pass
-
-
-try:
-
     @translator(registry=registry)
     def translate_sparsematrix_np2sci(
         x: NumpySparseMatrix, **props
@@ -46,11 +41,8 @@ try:
         return mat
 
 
-except (ImportError, AttributeError):
-    pass
-
-
-try:
+if scipy and grblas:
+    ss = scipy.sparse
 
     @translator(registry=registry)
     def translate_sparsematrix_sci2grb(
@@ -71,13 +63,6 @@ try:
         )
         return vec
 
-
-except (ImportError, AttributeError):
-    pass
-
-
-try:
-
     @translator(registry=registry)
     def translate_sparsematrix_grb2sci(
         x: GrblasMatrixType, **props
@@ -87,7 +72,3 @@ try:
         rows, cols, vals = x.to_values()
         mat = ss.coo_matrix((tuple(vals), (tuple(rows), tuple(cols))), x.shape)
         return mat
-
-
-except (ImportError, AttributeError):
-    pass

@@ -9,3 +9,45 @@ def find_plugins():
     from . import abstract_types, wrappers, translators, algorithms
 
     return registry.plugins
+
+
+############################
+# Libraries used as plugins
+############################
+try:
+    import numpy
+except ImportError:
+    numpy = None
+
+try:
+    import scipy
+    import scipy.sparse
+except ImportError:
+    scipy = None
+
+try:
+    import networkx
+except ImportError:
+    networkx = None
+
+try:
+    import pandas
+except ImportError:
+    pandas = None
+
+try:
+    import cugraph
+except ImportError:
+    cugraph = None
+
+try:
+    import cudf
+except ImportError:
+    cudf = None
+
+try:
+    import grblas
+
+    grblas.init("suitesparse")
+except ImportError:
+    grblas = None

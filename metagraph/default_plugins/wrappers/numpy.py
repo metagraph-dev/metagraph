@@ -1,15 +1,11 @@
 from ... import Wrapper, dtypes
 from ..abstract_types import DenseVector, SparseVector, DenseMatrix, SparseMatrix
-from .. import registry
+from .. import registry, numpy
 
 
-try:
-    import numpy as np
-except ImportError:
-    np = None
+if numpy is not None:
+    np = numpy
 
-
-if np is not None:
     dtype_np_to_mg = {
         np.bool_: dtypes.BOOL,
         np.int8: dtypes.INT8,
