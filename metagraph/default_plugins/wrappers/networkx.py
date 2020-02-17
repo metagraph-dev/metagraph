@@ -11,7 +11,7 @@ except ImportError:
 if nx is not None:
 
     @registry.register
-    class NetworkXGraph(ConcreteType, abstract=Graph):
+    class NetworkXGraphType(ConcreteType, abstract=Graph):
         value_type = nx.DiGraph
 
     @registry.register

@@ -32,11 +32,11 @@ if grblas is not None:
     dtype_mg_to_grblas = {v: k for k, v in dtype_grblas_to_mg.items()}
 
     @registry.register
-    class GrblasVector(ConcreteType, abstract=SparseVector):
+    class GrblasVectorType(ConcreteType, abstract=SparseVector):
         value_type = grblas.Vector
 
     @registry.register
-    class GrblasMatrix(ConcreteType, abstract=SparseMatrix):
+    class GrblasMatrixType(ConcreteType, abstract=SparseMatrix):
         value_type = grblas.Matrix
 
     @registry.register
