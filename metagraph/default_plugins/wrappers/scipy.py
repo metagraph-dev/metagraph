@@ -1,15 +1,10 @@
 from ... import ConcreteType, Wrapper
 from ..abstract_types import SparseMatrix, Graph, WeightedGraph
-from .. import registry
+from .. import registry, scipy
 
 
-try:
-    import scipy.sparse as ss
-except ImportError:
-    ss = None
-
-
-if ss is not None:
+if scipy is not None:
+    ss = scipy.sparse
 
     @registry.register
     class ScipySparseMatrixType(ConcreteType, abstract=SparseMatrix):

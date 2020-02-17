@@ -5,14 +5,7 @@ from ..abstract_types import (
     Graph,
     WeightedGraph,
 )
-from .. import registry
-
-try:
-    import grblas
-
-    grblas.init("suitesparse")
-except ImportError:
-    grblas = None
+from .. import registry, grblas
 
 
 if grblas is not None:

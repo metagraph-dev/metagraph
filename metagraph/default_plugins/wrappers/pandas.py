@@ -1,15 +1,10 @@
 from ... import ConcreteType, Wrapper
 from ..abstract_types import DataFrame, Graph, WeightedGraph
-from .. import registry
+from .. import registry, pandas
 
 
-try:
-    import pandas as pd
-except ImportError:
-    pd = None
-
-
-if pd is not None:
+if pandas is not None:
+    pd = pandas
 
     @registry.register
     class PandasDataFrameType(ConcreteType, abstract=DataFrame):

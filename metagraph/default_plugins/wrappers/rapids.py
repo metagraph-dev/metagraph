@@ -1,17 +1,6 @@
 from ... import ConcreteType, Wrapper
 from ..abstract_types import DataFrame, Graph, WeightedGraph
-from .. import registry
-
-
-try:
-    import cugraph
-except ImportError:
-    cugraph = None
-
-try:
-    import cudf
-except ImportError:
-    cudf = None
+from .. import registry, cugraph, cudf
 
 
 if cugraph is not None:
