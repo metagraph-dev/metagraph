@@ -142,6 +142,19 @@ class Wrapper:
         if registry is not None:
             registry.register(cls)
 
+    @staticmethod
+    def _assert_instance(obj, klass, err_msg=None):
+        if not isinstance(obj, klass):
+            if err_msg:
+                raise TypeError(err_msg)
+            else:
+                raise TypeError(f"{obj} is not an instance of {klass.__name__}")
+
+    @staticmethod
+    def _assert(cond, err_msg):
+        if not cond:
+            raise TypeError(err_msg)
+
 
 class Translator:
     """Converts from one concrete type to another, enforcing properties on the
@@ -157,17 +170,19 @@ class Translator:
         return self.func(src, **props)
 
 
-# decorator can be called as either:
-# @translator
-# def myfunc(): ...
-# - or -
-# @translator(registry=reg)
-# def myfunc(): ...
-#
-# we also handle the format
-# @translate()
-# def myfunc(): ...
 def translator(func: Callable = None, *, registry=None):
+    """
+    decorator which can be called as either:
+    >>> @translator
+    >>> def myfunc(): ...
+    - or -
+    >>> @translator(registry=reg)
+    >>> def myfunc(): ...
+
+    We also handle the format
+    >>> @translate()
+    >>> def myfunc(): ...
+    """
     # FIXME: signature checks?
     if func is None:
 
