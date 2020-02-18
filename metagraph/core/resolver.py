@@ -4,7 +4,7 @@ to concrete algorithms.
 """
 from collections import defaultdict
 import inspect
-from typing import List, Tuple, Set, Dict, Optional, Any
+from typing import List, Tuple, Set, Dict, Callable, Optional, Any
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -14,6 +14,11 @@ from .plugin import (
     ConcreteAlgorithm,
 )
 from .entrypoints import load_plugins
+import numpy as np
+
+
+class ResolveFailureError(Exception):
+    pass
 
 
 class Namespace:
@@ -25,23 +30,20 @@ class Namespace:
     """
 
     def __init__(self):
-        self._attrs = defaultdict(lambda: Namespace())
+        self._registered = set()
 
     def _register(self, path: str, obj):
         parts = path.split(".")
+        self._registered.add(parts[0])
         if len(parts) == 1:
-            self._attrs[parts[0]] = obj
+            setattr(self, parts[0], obj)
         else:
-            self._attrs[parts[0]]._register(".".join(parts[1:]), obj)
-
-    def __getattr__(self, name: str):
-        if name in self._attrs:
-            return self._attrs[name]
-        else:
-            raise AttributeError(f"'Namespace' object has no attribute '{name}'")
+            if not hasattr(self, parts[0]):
+                setattr(self, parts[0], Namespace())
+            getattr(self, parts[0])._register(".".join(parts[1:]), obj)
 
     def __dir__(self):
-        return self._attrs.keys()
+        return self._registered
 
 
 class Resolver:
@@ -64,6 +66,13 @@ class Resolver:
 
         # map python classes to concrete types
         self.class_to_concrete: Dict[type, ConcreteType] = {}
+
+        # translation graph matrices
+        # Single-sourch shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
+        # Stored result is (concrete_types list, sssp_matrix, predecessors_matrix)
+        self.translation_matrices: Dict[
+            AbstractType, Tuple[List[ConcreteType], np.ndarray, np.ndarray]
+        ] = {}
 
         self.algo = Namespace()
         self.wrapper = Namespace()
@@ -106,6 +115,7 @@ class Resolver:
                 self.wrapper._register(path, wr)
 
         if concrete_types is not None:
+            self.translation_matrices.clear()  # Force a rebuild with new concrete types
             for ct in concrete_types:
                 name = ct.__qualname__
                 # ct.abstract cannot be None due to ConcreteType.__init_subclass__
@@ -250,11 +260,78 @@ class Resolver:
 
         raise TypeError(f"Class {value.__class__} does not have a registered type")
 
-    def find_translator(self, value, dst_type) -> Optional[Translator]:
+    def find_translation_path(self, src_type, dst_type) -> Optional[Translator]:
+        import scipy.sparse as ss
+
+        abstract = dst_type.abstract
+        if abstract not in self.translation_matrices:
+            # Build translation matrix
+            concrete_types = [
+                ct for ct in self.concrete_types if issubclass(ct.abstract, abstract)
+            ]
+            m = ss.dok_matrix((len(concrete_types), len(concrete_types)), dtype=bool)
+            for s, d in self.translators:
+                try:
+                    sidx = concrete_types.index(s)
+                    didx = concrete_types.index(d)
+                    m[sidx, didx] = True
+                except ValueError:
+                    pass
+            sssp, predecessors = ss.csgraph.dijkstra(
+                m.tocsr(), return_predecessors=True, unweighted=True
+            )
+            self.translation_matrices[abstract] = (concrete_types, sssp, predecessors)
+        # Lookup shortest path from stored results
+        concrete_types, sssp, predecessors = self.translation_matrices[abstract]
+        sidx = concrete_types.index(src_type)
+        didx = concrete_types.index(dst_type)
+        if sssp[sidx, didx] == np.inf:
+            return None
+        # Path exists; use predecessor matrix to build up required transformations
+        steps = []
+        while True:
+            parent_idx = predecessors[sidx, didx]
+            steps.insert(
+                0, self.translators[(concrete_types[parent_idx], concrete_types[didx])]
+            )
+            if parent_idx == sidx:
+                break
+            didx = parent_idx
+
+        def walk_steps(src, **props):
+            # print(f'Walking to final translation. Starting type = {type(src)}')
+            # Move source along shortest path
+            for trns in steps[:-1]:
+                src = trns(src)
+                # print(f'Walking to final translation. Intermediate type = {type(src)}')
+            # Finish by reaching destination along with required properties
+            dst = steps[-1](src, **props)
+            # print(f'Walking to final translation. Final type = {type(dst)}')
+            return dst
+
+        trns = Translator(walk_steps)
+        trns._num_steps = len(
+            steps
+        )  # monkey patch to pass along information about complexity
+        return trns
+
+    def find_translator(self, value, dest_type, *, exact=False) -> Optional[Translator]:
         src_type = self.typeof(value).__class__
+        dst_type = dest_type  # save original for error message
         if not issubclass(dst_type, ConcreteType):
             dst_type = self.class_to_concrete.get(dst_type, dst_type)
-        return self.translators.get((src_type, dst_type), None)
+        ret_val = self.translators.get((src_type, dst_type), None)
+        if ret_val is None and not exact and src_type != dst_type:
+            ret_val = self.find_translation_path(src_type, dst_type)
+            if ret_val is None:
+                # errmsg = (
+                #     f'No translator found for {src_type} -> {dst_type}\n'
+                #     f'incoming type: {type(value)}\n'
+                #     f'outgoing type: {dest_type}'
+                # )
+                # raise ResolveFailureError(errmsg)
+                return None
+        return ret_val
 
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""
@@ -263,43 +340,102 @@ class Resolver:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
         return translator(value, **props)
 
-    def _check_arg_types(self, bound_args: inspect.BoundArguments) -> bool:
-        parameters = bound_args.signature.parameters
-        for arg_name, arg_value in bound_args.arguments.items():
-            param_type = parameters[arg_name].annotation
-            if param_type is Any:
-                return True
-            elif isinstance(param_type, ConcreteType):
-                if not param_type.is_satisfied_by_value(arg_value):
-                    return False
-            else:
-                if not isinstance(arg_value, param_type):
-                    return False
+    def _find_required_translations(
+        self, bound_args: inspect.BoundArguments
+    ) -> Optional[Dict[str, Translator]]:
+        """
+        Attempts to find translators required to make arguments compatible
+        If successful, returns a dict of required translations
+        If unsuccessful, returns None
+        """
+        required_translations = {}
+        try:
+            parameters = bound_args.signature.parameters
+            for arg_name, arg_value in bound_args.arguments.items():
+                param_type = parameters[arg_name].annotation
+                # If argument type is okay, no need to add an adjustment
+                # If argument type is not okay, look for translator
+                #   If translator is found, add to required_translations
+                #   If no translator is found, return None to indicate failure
+                if not self._check_arg_type(arg_value, param_type):
+                    translator = self.find_translator(arg_value, param_type)
+                    if translator is None:
+                        return
+                    required_translations[arg_name] = translator
+            return required_translations
+        except TypeError:
+            return
+
+    def _check_arg_type(self, arg_value, param_type) -> bool:
+        if param_type is Any:
+            return True
+        elif isinstance(param_type, ConcreteType):
+            if not param_type.is_satisfied_by_value(arg_value):
+                return False
+        else:
+            if not isinstance(arg_value, param_type):
+                return False
         return True
 
-    def find_algorithm(
+    def find_algorithm_solutions(
         self, algo_name: str, *args, **kwargs
-    ) -> Optional[ConcreteAlgorithm]:
+    ) -> List[Tuple[int, ConcreteAlgorithm]]:
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
+        # Find all possible solution paths
+        solutions: List[
+            Tuple[int, ConcreteAlgorithm]
+        ] = []  # ranked by number of translations required
         for concrete_algo in self.concrete_algorithms.get(algo_name, []):
             sig = concrete_algo.__signature__
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
 
-            if self._check_arg_types(bound_args):
-                return concrete_algo
+            required_translations = self._find_required_translations(bound_args)
+            if required_translations is None:  # No solution found
+                continue
+            elif not required_translations:  # Exact solution found
+                solutions.append((0, concrete_algo))
+            else:  # Solution found which requires translations
+                num_translations = 0
+                for trns in required_translations.values():
+                    # On-the-fly translators have been monkey-patched; original translators have not
+                    num_translations += getattr(trns, "_num_steps", 1)
 
-        return None
+                def onthefly_concrete_algo(*args, **kwargs):
+                    bound_args = sig.bind(*args, **kwargs)
+                    bound_args.apply_defaults()
+                    for varname in required_translations:
+                        # print(f'applying adjustment to {varname}. starting type = {type(bound_args.arguments[varname])}')
+                        bound_args.arguments[varname] = required_translations[varname](
+                            bound_args.arguments[varname]
+                        )
+                        # print(f'applying adjustment to {varname}. ending type = {type(bound_args.arguments[varname])}')
+                    return concrete_algo(*bound_args.args, **bound_args.kwargs)
+
+                solutions.append((num_translations, onthefly_concrete_algo))
+
+        solutions.sort()
+        return solutions
+
+    def find_algorithm(
+        self, algo_name: str, *args, **kwargs
+    ) -> Optional[ConcreteAlgorithm]:
+        valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
+        if not valid_algos:
+            return None
+        return valid_algos[0][-1]
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
-        algo = self.find_algorithm(algo_name, *args, **kwargs)
-        if algo is None:
+        valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
+        if not valid_algos:
             raise TypeError(
                 f'No concrete algorithm for "{algo_name}" can be found matching argument type signature'
             )
         else:
+            # choose the solutions requiring the fewest translations
+            algo = valid_algos[0][-1]
             return algo(*args, **kwargs)
 
 

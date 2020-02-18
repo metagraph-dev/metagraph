@@ -25,8 +25,9 @@ if numpy is not None:
     class NumpyVector(Wrapper, abstract=DenseVector):
         def __init__(self, data):
             self.value = data
-            assert isinstance(data, np.ndarray)
-            assert len(data.shape) == 1
+            self._assert_instance(data, np.ndarray)
+            if len(data.shape) != 1:
+                raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
 
         def __len__(self):
             return len(self.value)
@@ -65,7 +66,7 @@ if numpy is not None:
             if isinstance(data, np.matrix):
                 data = np.array(data)
             self.value = data
-            assert isinstance(data, np.ndarray)
+            self._assert_instance(data, np.ndarray)
 
         @property
         def shape(self):

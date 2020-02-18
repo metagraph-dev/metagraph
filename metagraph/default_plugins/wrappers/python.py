@@ -24,7 +24,7 @@ class PythonSparseVector(Wrapper, abstract=SparseVector):
             size = max(data.keys())
         self.size = size
         self._dtype = None
-        assert isinstance(data, dict)
+        self._assert_instance(data, dict)
 
     def __len__(self):
         return self.size

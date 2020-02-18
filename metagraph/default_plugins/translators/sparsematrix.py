@@ -13,8 +13,6 @@ if scipy and numpy:
     def translate_sparsematrix_sci2np(
         x: ScipySparseMatrixType, **props
     ) -> NumpySparseMatrix:
-        import numpy as np
-
         # This is trickier than simply calling .toarray() because
         # scipy.sparse assumes empty means zero
         # Mask is required To properly handle any non-empty zeros
@@ -30,8 +28,6 @@ if scipy and numpy:
     def translate_sparsematrix_np2sci(
         x: NumpySparseMatrix, **props
     ) -> ScipySparseMatrixType:
-        import scipy.sparse as ss
-
         # scipy.sparse assumes zero mean empty
         # To work around this limitation, we use a mask
         # and directly set .data after construction
@@ -48,8 +44,6 @@ if scipy and grblas:
     def translate_sparsematrix_sci2grb(
         x: ScipySparseMatrixType, **props
     ) -> GrblasMatrixType:
-        import grblas
-
         x = x.tocoo()
         nrows, ncols = x.shape
         dtype = dtype_np_to_mg[x.dtype.type]
@@ -67,8 +61,6 @@ if scipy and grblas:
     def translate_sparsematrix_grb2sci(
         x: GrblasMatrixType, **props
     ) -> ScipySparseMatrixType:
-        import scipy.sparse as ss
-
         rows, cols, vals = x.to_values()
         mat = ss.coo_matrix((tuple(vals), (tuple(rows), tuple(cols))), x.shape)
         return mat

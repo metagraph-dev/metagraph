@@ -37,7 +37,7 @@ if grblas is not None:
         def __init__(self, value, transposed=False):
             self.value = value
             self.transposed = transposed
-            assert isinstance(value, grblas.Matrix)
+            self._assert_instance(value, grblas.Matrix)
 
         def shape(self):
             return (self.value.nrows, self.value.ncols)
@@ -50,7 +50,7 @@ if grblas is not None:
         def __init__(self, value, transposed=False):
             self.value = value
             self.transposed = transposed
-            assert isinstance(value, grblas.Matrix)
+            self._assert_instance(value, grblas.Matrix)
 
         def shape(self):
             return (self.value.nrows, self.value.ncols)
@@ -63,7 +63,7 @@ if grblas is not None:
         def __init__(self, value, transposed=False):
             self.value = value
             self.transposed = transposed
-            assert isinstance(value, grblas.Matrix)
+            self._assert_instance(value, grblas.Matrix)
 
         def shape(self):
             return (self.value.nrows, self.value.ncols)

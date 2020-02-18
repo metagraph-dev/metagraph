@@ -15,7 +15,7 @@ if scipy is not None:
         def __init__(self, data, transposed=False):
             self.value = data
             self.transposed = transposed
-            assert isinstance(data, ss.spmatrix)
+            self._assert_instance(data, ss.spmatrix)
 
         @property
         def format(self):
@@ -26,7 +26,7 @@ if scipy is not None:
         def __init__(self, data, transposed=False):
             self.value = data
             self.transposed = transposed
-            assert isinstance(data, ss.spmatrix)
+            self._assert_instance(data, ss.spmatrix)
 
         @property
         def format(self):
@@ -37,7 +37,7 @@ if scipy is not None:
         def __init__(self, data, transposed=False):
             self.value = data
             self.transposed = transposed
-            assert isinstance(data, ss.spmatrix)
+            self._assert_instance(data, ss.spmatrix)
 
         @property
         def format(self):
