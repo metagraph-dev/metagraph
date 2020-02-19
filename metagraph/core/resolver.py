@@ -21,6 +21,10 @@ class ResolveFailureError(Exception):
     pass
 
 
+class NamespaceError(Exception):
+    pass
+
+
 class Namespace:
     """Helper class to construct arbitrary nested namespaces of objects on the fly.
 
@@ -34,13 +38,16 @@ class Namespace:
 
     def _register(self, path: str, obj):
         parts = path.split(".")
-        self._registered.add(parts[0])
+        name = parts[0]
+        self._registered.add(name)
         if len(parts) == 1:
-            setattr(self, parts[0], obj)
+            if hasattr(self, name):
+                raise NamespaceError(f"Name already registered: {name}")
+            setattr(self, name, obj)
         else:
-            if not hasattr(self, parts[0]):
-                setattr(self, parts[0], Namespace())
-            getattr(self, parts[0])._register(".".join(parts[1:]), obj)
+            if not hasattr(self, name):
+                setattr(self, name, Namespace())
+            getattr(self, name)._register(".".join(parts[1:]), obj)
 
     def __dir__(self):
         return self._registered
@@ -76,6 +83,7 @@ class Resolver:
 
         self.algo = Namespace()
         self.wrapper = Namespace()
+        self.types = Namespace()
 
     def register(
         self,
@@ -132,6 +140,10 @@ class Resolver:
                 self.concrete_types.add(ct)
                 if ct.value_type is not None:
                     self.class_to_concrete[ct.value_type] = ct
+
+                # Make types available via resolver.types.<abstract name>.<concrete name>
+                path = f"{ct.abstract.__name__}.{ct.__name__}"
+                self.types._register(path, ct)
 
         if translators is not None:
             for tr in translators:
@@ -251,7 +263,10 @@ class Resolver:
 
     def typeof(self, value):
         """Return the concrete type corresponding to a value"""
-        # FIXME: silly implementation
+        concrete_type = self.class_to_concrete.get(type(value))
+        if concrete_type is not None:
+            return concrete_type.get_type(value)
+
         for ct in self.concrete_types:
             try:
                 return ct.get_type(value)
@@ -283,8 +298,11 @@ class Resolver:
             self.translation_matrices[abstract] = (concrete_types, sssp, predecessors)
         # Lookup shortest path from stored results
         concrete_types, sssp, predecessors = self.translation_matrices[abstract]
-        sidx = concrete_types.index(src_type)
-        didx = concrete_types.index(dst_type)
+        try:
+            sidx = concrete_types.index(src_type)
+            didx = concrete_types.index(dst_type)
+        except ValueError:
+            return None
         if sssp[sidx, didx] == np.inf:
             return None
         # Path exists; use predecessor matrix to build up required transformations
