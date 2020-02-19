@@ -15,12 +15,6 @@ class AbstractType:
     def __hash__(self):
         return hash(self.__class__)
 
-    def __init_subclass__(cls, *, registry=None):
-        # Usually types are decorated with @registry.register,
-        # but this provides another valid way
-        if registry is not None:
-            registry.register(cls)
-
 
 class ConcreteType:
     """A specific data type in a particular memory space recognized by metagraph.
@@ -53,7 +47,7 @@ class ConcreteType:
             # maybe type check?
         self.props = dict(props)
 
-    def __init_subclass__(cls, *, abstract=None, registry=None):
+    def __init_subclass__(cls, *, abstract=None):
         """Enforce requirements on 'abstract' attribute"""
         super().__init_subclass__()
 
@@ -65,14 +59,9 @@ class ConcreteType:
             )
         cls.abstract = abstract
 
-        # Usually types are decorated with @registry.register,
-        # but this provides another valid way
-        if registry is not None:
-            registry.register(cls)
-
     def is_satisfied_by(self, other_type):
         """Is other_type and its properties compatible with this type?
-        
+
         (self must be equivalent or less specific than other_type)
         """
         if isinstance(other_type, self.__class__):
@@ -128,7 +117,7 @@ class Wrapper:
     allowed_props = {}  # default is no props
     target = "cpu"  # key may be used in future to guide dispatch
 
-    def __init_subclass__(cls, *, abstract=None, registry=None):
+    def __init_subclass__(cls, *, abstract=None):
         cls.Type = types.new_class(
             f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
         )
@@ -136,11 +125,6 @@ class Wrapper:
         cls.Type.value_type = cls
         cls.Type.allowed_props = cls.allowed_props
         cls.Type.target = cls.target
-
-        # Usually wrappers are decorated with @registry.register,
-        # but this provides another valid way
-        if registry is not None:
-            registry.register(cls)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):
@@ -170,13 +154,10 @@ class Translator:
         return self.func(src, **props)
 
 
-def translator(func: Callable = None, *, registry=None):
+def translator(func: Callable = None):
     """
     decorator which can be called as either:
     >>> @translator
-    >>> def myfunc(): ...
-    - or -
-    >>> @translator(registry=reg)
     >>> def myfunc(): ...
 
     We also handle the format
@@ -185,14 +166,7 @@ def translator(func: Callable = None, *, registry=None):
     """
     # FIXME: signature checks?
     if func is None:
-
-        def _translator(func: Callable):
-            trans = Translator(func)
-            if registry is not None:
-                registry.register(trans)
-            return trans
-
-        return _translator
+        return Translator
     else:
         return Translator(func)
 
@@ -219,7 +193,7 @@ def normalize_signature(sig: inspect.Signature):
 
 class AbstractAlgorithm:
     """A named algorithm with a type signature of AbstractTypes and/or Python types.
-    
+
     Abstract algorithms should have empty function bodies.
     """
 
@@ -232,12 +206,9 @@ class AbstractAlgorithm:
         self.__signature__ = inspect.signature(self.func)
 
 
-def abstract_algorithm(name: str, *, registry=None):
+def abstract_algorithm(name: str):
     def _abstract_decorator(func: Callable):
-        algo = AbstractAlgorithm(func=func, name=name)
-        if registry is not None:
-            registry.register(algo)
-        return algo
+        return AbstractAlgorithm(func=func, name=name)
 
     return _abstract_decorator
 
@@ -262,11 +233,8 @@ class ConcreteAlgorithm:
         return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name: str, *, registry=None):
+def concrete_algorithm(abstract_name: str):
     def _concrete_decorator(func: Callable):
-        algo = ConcreteAlgorithm(func=func, abstract_name=abstract_name)
-        if registry is not None:
-            registry.register(algo)
-        return algo
+        return ConcreteAlgorithm(func=func, abstract_name=abstract_name)
 
     return _concrete_decorator

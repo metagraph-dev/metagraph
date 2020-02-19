@@ -1,6 +1,5 @@
 from ... import Wrapper, dtypes
 from ..abstract_types import SparseVector
-from .. import registry
 
 
 _dtype_mapper = {
@@ -10,7 +9,6 @@ _dtype_mapper = {
 }
 
 
-@registry.register
 class PythonSparseVector(Wrapper, abstract=SparseVector):
     def __init__(self, data, size=None):
         """
