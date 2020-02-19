@@ -1,16 +1,14 @@
 from ... import ConcreteType, Wrapper
 from ..abstract_types import Graph, WeightedGraph
-from .. import registry, networkx
+from .. import networkx
 
 
 if networkx is not None:
     nx = networkx
 
-    @registry.register
     class NetworkXGraphType(ConcreteType, abstract=Graph):
         value_type = nx.DiGraph
 
-    @registry.register
     class NetworkXWeightedGraph(Wrapper, abstract=WeightedGraph):
         def __init__(self, graph, weight_label="weight"):
             self.value = graph

@@ -8,6 +8,10 @@ def find_plugins():
     # Ensure we import all items we want registered
     from . import abstract_types, wrappers, translators, algorithms
 
+    registry.register_from_module(abstract_types)
+    registry.register_from_module(wrappers)
+    registry.register_from_module(translators)
+    registry.register_from_module(algorithms)
     return registry.plugins
 
 

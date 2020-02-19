@@ -2,14 +2,14 @@ from ... import translator
 from ..wrappers.scipy import ScipySparseMatrixType
 from ..wrappers.numpy import NumpySparseMatrix, dtype_np_to_mg
 from ..wrappers.graphblas import GrblasMatrixType, dtype_mg_to_grblas
-from .. import registry, numpy, scipy, grblas
+from .. import numpy, scipy, grblas
 
 
 if scipy and numpy:
     ss = scipy.sparse
     np = numpy
 
-    @translator(registry=registry)
+    @translator
     def translate_sparsematrix_sci2np(
         x: ScipySparseMatrixType, **props
     ) -> NumpySparseMatrix:
@@ -24,7 +24,7 @@ if scipy and numpy:
         data[mask == 0] = np.nan  # default missing value
         return NumpySparseMatrix(data, missing_value=np.nan)
 
-    @translator(registry=registry)
+    @translator
     def translate_sparsematrix_np2sci(
         x: NumpySparseMatrix, **props
     ) -> ScipySparseMatrixType:
@@ -40,7 +40,7 @@ if scipy and numpy:
 if scipy and grblas:
     ss = scipy.sparse
 
-    @translator(registry=registry)
+    @translator
     def translate_sparsematrix_sci2grb(
         x: ScipySparseMatrixType, **props
     ) -> GrblasMatrixType:
@@ -57,7 +57,7 @@ if scipy and grblas:
         )
         return vec
 
-    @translator(registry=registry)
+    @translator
     def translate_sparsematrix_grb2sci(
         x: GrblasMatrixType, **props
     ) -> ScipySparseMatrixType:

@@ -1,3 +1,4 @@
+import inspect
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -105,3 +106,50 @@ class PluginRegistry:
             )
 
         return obj
+
+    def register_from_module(self, module, *, recurse=True):
+        """
+        Find and register all suitable objects within a module.
+
+        This only includes objects created within the module or one of its submodules.
+        Objects whose names begin with `_` are skipped.
+
+        If ``recurse`` is True, then also recurse into any submodule we find.
+        """
+        # If requested, we could break this out into a function that yields items.
+        def _register_module(module, *, recurse, base_name, seen_modules):
+            for key, val in vars(module).items():
+                try:
+                    if key.startswith("_"):
+                        continue
+                    if isinstance(val, type):
+                        if (
+                            issubclass(val, (Wrapper, ConcreteType, AbstractType))
+                            and val.__module__.startswith(base_name)
+                            and val not in {Wrapper, ConcreteType, AbstractType}
+                        ):
+                            self.register(val)
+                    elif isinstance(
+                        val, (Translator, ConcreteAlgorithm, AbstractAlgorithm)
+                    ):
+                        # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
+                        self.register(val)
+                    elif (
+                        recurse
+                        and inspect.ismodule(val)
+                        and val.__name__.startswith(base_name)
+                        and val not in seen_modules
+                    ):
+                        seen_modules.add(val)
+                        _register_module(
+                            val,
+                            recurse=recurse,
+                            base_name=base_name,
+                            seen_modules=seen_modules,
+                        )
+                except Exception:
+                    pass
+
+        return _register_module(
+            module, recurse=recurse, base_name=module.__name__, seen_modules={module}
+        )

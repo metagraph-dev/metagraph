@@ -5,7 +5,7 @@ from ..abstract_types import (
     Graph,
     WeightedGraph,
 )
-from .. import registry, grblas
+from .. import grblas
 
 
 if grblas is not None:
@@ -24,15 +24,12 @@ if grblas is not None:
     }
     dtype_mg_to_grblas = {v: k for k, v in dtype_grblas_to_mg.items()}
 
-    @registry.register
     class GrblasVectorType(ConcreteType, abstract=SparseVector):
         value_type = grblas.Vector
 
-    @registry.register
     class GrblasMatrixType(ConcreteType, abstract=SparseMatrix):
         value_type = grblas.Matrix
 
-    @registry.register
     class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(self, value, transposed=False):
             self.value = value
@@ -45,7 +42,6 @@ if grblas is not None:
         def dtype(self):
             return dtype_grblas_to_mg[self.value.dtype]
 
-    @registry.register
     class GrblasWeightedAdjacencyMatrix(Wrapper, abstract=WeightedGraph):
         def __init__(self, value, transposed=False):
             self.value = value
@@ -58,7 +54,6 @@ if grblas is not None:
         def dtype(self):
             return dtype_grblas_to_mg[self.value.dtype]
 
-    @registry.register
     class GrblasIncidenceMatrix(Wrapper, abstract=Graph):
         def __init__(self, value, transposed=False):
             self.value = value
