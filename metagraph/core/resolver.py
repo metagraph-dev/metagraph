@@ -153,11 +153,6 @@ class Resolver:
                 src_type = self.class_to_concrete.get(src_type, src_type)
                 dst_type = signature.return_annotation
                 dst_type = self.class_to_concrete.get(dst_type, dst_type)
-                if not hasattr(dst_type, "abstract"):
-                    print(dst_type)
-                    print(self.class_to_concrete)
-                    print(self.abstract_types)
-                    print(self.concrete_types)
                 if src_type.abstract != dst_type.abstract:
                     raise ValueError(
                         f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
