@@ -117,10 +117,11 @@ class PluginRegistry:
         """
         if len(modules) == 1 and isinstance(modules[0], (list, tuple)):
             modules = modules[0]
-        if not all(inspect.ismodule(module) for module in modules):
-            raise TypeError(
-                f"Expected one or more modules.  Got a type f{type(module)} instead."
-            )
+        for module in modules:
+            if not inspect.ismodule(module):
+                raise TypeError(
+                    f"Expected one or more modules.  Got a type {type(module)} instead."
+                )
 
         # If requested, we could break this out into a function that yields items.
         def _register_module(module, *, recurse, base_name, seen_modules):

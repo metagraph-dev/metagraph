@@ -9,6 +9,7 @@ from metagraph.core.plugin import (
     Translator,
     AbstractAlgorithm,
     ConcreteAlgorithm,
+    Wrapper,
 )
 
 from .util import site_dir
@@ -18,6 +19,7 @@ KINDS = {
     "abstract_types": (issubclass, AbstractType),
     "concrete_types": (issubclass, ConcreteType),
     "translators": (isinstance, Translator),
+    "wrappers": (issubclass, Wrapper),
     "abstract_algorithms": (isinstance, AbstractAlgorithm),
     "concrete_algorithms": (isinstance, ConcreteAlgorithm),
 }
