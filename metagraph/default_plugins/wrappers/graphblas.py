@@ -1,10 +1,5 @@
 from ... import ConcreteType, Wrapper, dtypes
-from ..abstract_types import (
-    SparseVector,
-    SparseMatrix,
-    Graph,
-    WeightedGraph,
-)
+from ..abstract_types import SparseVector, SparseMatrix, Graph, WeightedGraph
 from .. import grblas
 
 
