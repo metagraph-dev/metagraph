@@ -21,6 +21,10 @@ class ResolveFailureError(Exception):
     pass
 
 
+class NamespaceError(Exception):
+    pass
+
+
 class Namespace:
     """Helper class to construct arbitrary nested namespaces of objects on the fly.
 
@@ -34,13 +38,16 @@ class Namespace:
 
     def _register(self, path: str, obj):
         parts = path.split(".")
-        self._registered.add(parts[0])
+        name = parts[0]
+        self._registered.add(name)
         if len(parts) == 1:
-            setattr(self, parts[0], obj)
+            if hasattr(self, name):
+                raise NamespaceError(f"Name already registered: {name}")
+            setattr(self, name, obj)
         else:
-            if not hasattr(self, parts[0]):
-                setattr(self, parts[0], Namespace())
-            getattr(self, parts[0])._register(".".join(parts[1:]), obj)
+            if not hasattr(self, name):
+                setattr(self, name, Namespace())
+            getattr(self, name)._register(".".join(parts[1:]), obj)
 
     def __dir__(self):
         return self._registered
@@ -69,13 +76,15 @@ class Resolver:
 
         # translation graph matrices
         # Single-sourch shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
-        # Stored result is (concrete_types list, sssp_matrix, predecessors_matrix)
+        # Stored result is (concrete_types list, concrete_types lookup, sssp_matrix, predecessors_matrix)
         self.translation_matrices: Dict[
-            AbstractType, Tuple[List[ConcreteType], np.ndarray, np.ndarray]
+            AbstractType,
+            Tuple[List[ConcreteType], Dict[ConcreteType, int], np.ndarray, np.ndarray],
         ] = {}
 
         self.algo = Namespace()
         self.wrapper = Namespace()
+        self.types = Namespace()
 
     def register(
         self,
@@ -132,6 +141,10 @@ class Resolver:
                 self.concrete_types.add(ct)
                 if ct.value_type is not None:
                     self.class_to_concrete[ct.value_type] = ct
+
+                # Make types available via resolver.types.<abstract name>.<concrete name>
+                path = f"{ct.abstract.__name__}.{ct.__name__}"
+                self.types._register(path, ct)
 
         if translators is not None:
             for tr in translators:
@@ -251,7 +264,10 @@ class Resolver:
 
     def typeof(self, value):
         """Return the concrete type corresponding to a value"""
-        # FIXME: silly implementation
+        concrete_type = self.class_to_concrete.get(type(value))
+        if concrete_type is not None:
+            return concrete_type.get_type(value)
+
         for ct in self.concrete_types:
             try:
                 return ct.get_type(value)
@@ -266,25 +282,39 @@ class Resolver:
         abstract = dst_type.abstract
         if abstract not in self.translation_matrices:
             # Build translation matrix
-            concrete_types = [
-                ct for ct in self.concrete_types if issubclass(ct.abstract, abstract)
-            ]
-            m = ss.dok_matrix((len(concrete_types), len(concrete_types)), dtype=bool)
+            concrete_list = []
+            concrete_lookup = {}
+            for ct in self.concrete_types:
+                if issubclass(ct.abstract, abstract):
+                    concrete_lookup[ct] = len(concrete_list)
+                    concrete_list.append(ct)
+            m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)
             for s, d in self.translators:
-                try:
-                    sidx = concrete_types.index(s)
-                    didx = concrete_types.index(d)
-                    m[sidx, didx] = True
-                except ValueError:
-                    pass
+                # only accept destinations of specific abstract type
+                if d.abstract == abstract:
+                    try:
+                        sidx = concrete_lookup[s]
+                        didx = concrete_lookup[d]
+                        m[sidx, didx] = True
+                    except KeyError:
+                        pass
             sssp, predecessors = ss.csgraph.dijkstra(
                 m.tocsr(), return_predecessors=True, unweighted=True
             )
-            self.translation_matrices[abstract] = (concrete_types, sssp, predecessors)
+            self.translation_matrices[abstract] = (
+                concrete_list,
+                concrete_lookup,
+                sssp,
+                predecessors,
+            )
         # Lookup shortest path from stored results
-        concrete_types, sssp, predecessors = self.translation_matrices[abstract]
-        sidx = concrete_types.index(src_type)
-        didx = concrete_types.index(dst_type)
+        packed_data = self.translation_matrices[abstract]
+        concrete_list, concrete_lookup, sssp, predecessors = packed_data
+        try:
+            sidx = concrete_lookup[src_type]
+            didx = concrete_lookup[dst_type]
+        except KeyError:
+            return None
         if sssp[sidx, didx] == np.inf:
             return None
         # Path exists; use predecessor matrix to build up required transformations
@@ -292,7 +322,7 @@ class Resolver:
         while True:
             parent_idx = predecessors[sidx, didx]
             steps.insert(
-                0, self.translators[(concrete_types[parent_idx], concrete_types[didx])]
+                0, self.translators[(concrete_list[parent_idx], concrete_list[didx])]
             )
             if parent_idx == sidx:
                 break
