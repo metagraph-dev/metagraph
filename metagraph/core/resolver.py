@@ -76,9 +76,10 @@ class Resolver:
 
         # translation graph matrices
         # Single-sourch shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
-        # Stored result is (concrete_types list, sssp_matrix, predecessors_matrix)
+        # Stored result is (concrete_types list, concrete_types lookup, sssp_matrix, predecessors_matrix)
         self.translation_matrices: Dict[
-            AbstractType, Tuple[List[ConcreteType], np.ndarray, np.ndarray]
+            AbstractType,
+            Tuple[List[ConcreteType], Dict[ConcreteType, int], np.ndarray, np.ndarray],
         ] = {}
 
         self.algo = Namespace()
@@ -281,27 +282,38 @@ class Resolver:
         abstract = dst_type.abstract
         if abstract not in self.translation_matrices:
             # Build translation matrix
-            concrete_types = [
-                ct for ct in self.concrete_types if issubclass(ct.abstract, abstract)
-            ]
-            m = ss.dok_matrix((len(concrete_types), len(concrete_types)), dtype=bool)
+            concrete_list = []
+            concrete_lookup = {}
+            for ct in self.concrete_types:
+                if issubclass(ct.abstract, abstract):
+                    concrete_lookup[ct] = len(concrete_list)
+                    concrete_list.append(ct)
+            m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)
             for s, d in self.translators:
-                try:
-                    sidx = concrete_types.index(s)
-                    didx = concrete_types.index(d)
-                    m[sidx, didx] = True
-                except ValueError:
-                    pass
+                # only accept destinations of specific abstract type
+                if d.abstract == abstract:
+                    try:
+                        sidx = concrete_lookup[s]
+                        didx = concrete_lookup[d]
+                        m[sidx, didx] = True
+                    except KeyError:
+                        pass
             sssp, predecessors = ss.csgraph.dijkstra(
                 m.tocsr(), return_predecessors=True, unweighted=True
             )
-            self.translation_matrices[abstract] = (concrete_types, sssp, predecessors)
+            self.translation_matrices[abstract] = (
+                concrete_list,
+                concrete_lookup,
+                sssp,
+                predecessors,
+            )
         # Lookup shortest path from stored results
-        concrete_types, sssp, predecessors = self.translation_matrices[abstract]
+        packed_data = self.translation_matrices[abstract]
+        concrete_list, concrete_lookup, sssp, predecessors = packed_data
         try:
-            sidx = concrete_types.index(src_type)
-            didx = concrete_types.index(dst_type)
-        except ValueError:
+            sidx = concrete_lookup[src_type]
+            didx = concrete_lookup[dst_type]
+        except KeyError:
             return None
         if sssp[sidx, didx] == np.inf:
             return None
@@ -310,7 +322,7 @@ class Resolver:
         while True:
             parent_idx = predecessors[sidx, didx]
             steps.insert(
-                0, self.translators[(concrete_types[parent_idx], concrete_types[didx])]
+                0, self.translators[(concrete_list[parent_idx], concrete_list[didx])]
             )
             if parent_idx == sidx:
                 break
