@@ -247,20 +247,8 @@ class Resolver:
 
     def load_plugins_from_environment(self):
         """Scans environment for plugins and populates registry with them."""
-
-        abstract_types = load_plugins("abstract_types")
-        concrete_types = load_plugins("concrete_types")
-        translators = load_plugins("translators")
-        abstract_algorithms = load_plugins("abstract_algorithms")
-        concrete_algorithms = load_plugins("concrete_algorithms")
-
-        self.register(
-            abstract_types=abstract_types,
-            concrete_types=concrete_types,
-            translators=translators,
-            abstract_algorithms=abstract_algorithms,
-            concrete_algorithms=concrete_algorithms,
-        )
+        plugins = load_plugins()
+        self.register(**plugins)
 
     def typeof(self, value):
         """Return the concrete type corresponding to a value"""

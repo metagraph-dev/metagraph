@@ -7,12 +7,17 @@ from .site_dir import plugin1
 def test_registry_modules():
     reg = PluginRegistry()
     reg.register_from_modules(plugin1)
-    assert len(reg.plugins["abstract_types"]) == len(plugin1.abstract_types())
-    assert len(reg.plugins["concrete_types"]) == len(plugin1.concrete_types())
-    assert len(reg.plugins["wrappers"]) == len(plugin1.wrappers())
-    assert len(reg.plugins["translators"]) == len(plugin1.translators())
-    assert len(reg.plugins["abstract_algorithms"]) == len(plugin1.abstract_algorithms())
-    assert len(reg.plugins["concrete_algorithms"]) == len(plugin1.concrete_algorithms())
+    plugins = plugin1.find_plugins()
+    assert len(reg.plugins["abstract_types"]) == len(plugins["abstract_types"])
+    assert len(reg.plugins["concrete_types"]) == len(plugins["concrete_types"])
+    assert len(reg.plugins["wrappers"]) == len(plugins["wrappers"])
+    assert len(reg.plugins["translators"]) == len(plugins["translators"])
+    assert len(reg.plugins["abstract_algorithms"]) == len(
+        plugins["abstract_algorithms"]
+    )
+    assert len(reg.plugins["concrete_algorithms"]) == len(
+        plugins["concrete_algorithms"]
+    )
 
     # List also allowed
     reg2 = PluginRegistry()

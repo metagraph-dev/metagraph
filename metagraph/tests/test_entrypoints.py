@@ -25,19 +25,10 @@ KINDS = {
 }
 
 
-def test_find_plugin_loaders(site_dir):
-    for kind, (test_func, kind_class) in KINDS.items():
-        loaders = metagraph.core.entrypoints.find_plugin_loaders(kind)
-        for loader in loaders:
-            plugins = loader()
-            assert len(plugins) > 0
-            for obj in plugins:
-                assert test_func(obj, kind_class)
-
-
 def test_load_plugins(site_dir):
+    plugins = metagraph.core.entrypoints.load_plugins()
     for kind, (test_func, kind_class) in KINDS.items():
-        plugins = metagraph.core.entrypoints.load_plugins(kind)
-        assert len(plugins) > 0
-        for obj in plugins:
+        kind_plugins = plugins[kind]
+        assert len(kind_plugins) > 0
+        for obj in kind_plugins:
             assert test_func(obj, kind_class)
