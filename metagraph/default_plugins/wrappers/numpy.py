@@ -1,6 +1,6 @@
 from ... import Wrapper, dtypes
 from ..abstract_types import DenseVector, SparseVector, DenseMatrix, SparseMatrix
-from .. import registry, numpy
+from .. import numpy
 
 
 if numpy is not None:
@@ -21,7 +21,6 @@ if numpy is not None:
     }
     dtype_mg_to_np = {v: k for k, v in dtype_np_to_mg.items()}
 
-    @registry.register
     class NumpyVector(Wrapper, abstract=DenseVector):
         def __init__(self, data):
             self.value = data
@@ -36,7 +35,6 @@ if numpy is not None:
         def dtype(self):
             return dtype_np_to_mg[self.value.dtype.type]
 
-    @registry.register
     class NumpySparseVector(NumpyVector, abstract=SparseVector):
         def __init__(self, data, missing_value=np.nan):
             super().__init__(data)
@@ -56,7 +54,6 @@ if numpy is not None:
         def nnz(self):
             return np.count_nonzero(~self.get_missing_mask())
 
-    @registry.register
     class NumpyMatrix(Wrapper, abstract=DenseMatrix):
         def __init__(self, data):
             """
@@ -76,7 +73,6 @@ if numpy is not None:
         def dtype(self):
             return dtype_np_to_mg[self.value.dtype.type]
 
-    @registry.register
     class NumpySparseMatrix(NumpyMatrix, abstract=SparseMatrix):
         def __init__(self, data, missing_value=np.nan):
             super().__init__(data)

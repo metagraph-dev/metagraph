@@ -24,7 +24,7 @@ import importlib_metadata
 
 
 def find_plugin_loaders(kind: str) -> List[Callable]:
-    """Return a list of plugin loading functions discovered via the 
+    """Return a list of plugin loading functions discovered via the
     metagraph.plugins entrypoint
 
     kind - one of the plugin types: abstract_type, concrete_type, translator,
