@@ -8,21 +8,21 @@ from metagraph import (
 )
 
 
-class HyperGraph(AbstractType):
+class HyperGraphType(AbstractType):
     pass
 
 
-class CPUHyperGraph(ConcreteType, abstract=HyperGraph):
+class CPUHyperGraphType(ConcreteType, abstract=HyperGraphType):
     pass
 
 
-class GPUHyperGraph(Wrapper, abstract=HyperGraph):
+class GPUHyperGraph(Wrapper, abstract=HyperGraphType):
     pass
 
 
 @translator
 def cpu_to_gpu_hypergraph(
-    src: CPUHyperGraph, **props
+    src: CPUHyperGraphType, **props
 ) -> GPUHyperGraph:  # pragma: no cover
     pass
 
@@ -30,18 +30,18 @@ def cpu_to_gpu_hypergraph(
 @translator
 def gpu_to_cpu_hypergraph(
     src: GPUHyperGraph, **props
-) -> CPUHyperGraph:  # pragma: no cover
+) -> CPUHyperGraphType:  # pragma: no cover
     pass
 
 
 @abstract_algorithm("hyperstuff.supercluster")
-def supercluster(hg: HyperGraph) -> HyperGraph:  # pragma: no cover
+def supercluster(hg: HyperGraphType) -> HyperGraphType:  # pragma: no cover
     """Make a supercluster from a hypergraph"""
     pass
 
 
 @concrete_algorithm("hyperstuff.supercluster")
-def cpu_supercluster(hg: CPUHyperGraph) -> CPUHyperGraph:  # pragma: no cover
+def cpu_supercluster(hg: CPUHyperGraphType) -> CPUHyperGraphType:  # pragma: no cover
     pass
 
 
@@ -50,25 +50,12 @@ def gpu_supercluster(hg: GPUHyperGraph) -> GPUHyperGraph:  # pragma: no cover
     pass
 
 
-def abstract_types():
-    return [HyperGraph]
-
-
-def concrete_types():
-    return [CPUHyperGraph]
-
-
-def wrappers():
-    return [GPUHyperGraph]
-
-
-def translators():
-    return [cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph]
-
-
-def abstract_algorithms():
-    return [supercluster]
-
-
-def concrete_algorithms():
-    return [cpu_supercluster, gpu_supercluster]
+def find_plugins():
+    return {
+        "abstract_types": [HyperGraphType],
+        "concrete_types": [CPUHyperGraphType],
+        "wrappers": [GPUHyperGraph],
+        "translators": [cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph],
+        "abstract_algorithms": [supercluster],
+        "concrete_algorithms": [cpu_supercluster, gpu_supercluster],
+    }
