@@ -6,40 +6,44 @@ setup(
     ...,
     entry_points={
         "metagraph.plugins": [
-            "abstract_types = mypackage.mysubmodule:abstract_types_plugin_func",
-            "concrete_types = mypackage.mysubmodule:abstract_types_plugin_func",
-            "translators = mypackage.mysubmodule:translators_plugin_func",
-            "abstract_algorithms = mypackage.mysubmodule:abstract_algorithms_plugin_func",
-            "concrete_algorithms = mypackage.mysubmodule:concrete_algorithms_plugin_func",
+            "plugins" = mypackage.mysubmodule:find_plugins()"
         ],
     },
 )
 
-Each of these plugin functions should return a list of the approprate classes
+The find_plugins function should return a dict of lists of the appropriate classes
 (types) or objects (translators and functions).
+Allowable keys in the plugins dict:
+ - abstract_types
+ - concrete_types
+ - wrappers
+ - translators
+ - abstract_algorithms
+ - concrete_algorithms
 """
 
-from typing import List, Callable
+from typing import List, Dict, Callable
 import importlib_metadata
 
 
-def find_plugin_loaders(kind: str) -> List[Callable]:
-    """Return a list of plugin loading functions discovered via the
-    metagraph.plugins entrypoint
-
-    kind - one of the plugin types: abstract_type, concrete_type, translator,
-           abstract_algorithms, concrete_algorithms
-    """
-    plugins = importlib_metadata.entry_points().get("metagraph.plugins", [])
-    return [ep.load() for ep in plugins if ep.name == kind]
+class EntryPointsError(Exception):
+    pass
 
 
-def load_plugins(kind: str) -> List:
+def load_plugins() -> Dict[str, List]:
     """Return a list of plugins of particular kind.
 
     See find_plugin_loaders() for valid kind values.
     """
-    plugins = []
-    for loader in find_plugin_loaders(kind):
-        plugins.extend(loader())
+    plugin_loaders = importlib_metadata.entry_points().get("metagraph.plugins", [])
+    plugins = {}
+    for pl in plugin_loaders:
+        if pl.name != "plugins":
+            raise EntryPointsError(
+                f"metagraph.plugin found an unexpected entry_point: {pl.name}"
+            )
+        else:
+            plugin_loader = pl.load()
+            plugins.update(plugin_loader())
+
     return plugins

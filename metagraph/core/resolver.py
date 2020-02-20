@@ -153,6 +153,11 @@ class Resolver:
                 src_type = self.class_to_concrete.get(src_type, src_type)
                 dst_type = signature.return_annotation
                 dst_type = self.class_to_concrete.get(dst_type, dst_type)
+                if not hasattr(dst_type, "abstract"):
+                    print(dst_type)
+                    print(self.class_to_concrete)
+                    print(self.abstract_types)
+                    print(self.concrete_types)
                 if src_type.abstract != dst_type.abstract:
                     raise ValueError(
                         f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
@@ -247,20 +252,8 @@ class Resolver:
 
     def load_plugins_from_environment(self):
         """Scans environment for plugins and populates registry with them."""
-
-        abstract_types = load_plugins("abstract_types")
-        concrete_types = load_plugins("concrete_types")
-        translators = load_plugins("translators")
-        abstract_algorithms = load_plugins("abstract_algorithms")
-        concrete_algorithms = load_plugins("concrete_algorithms")
-
-        self.register(
-            abstract_types=abstract_types,
-            concrete_types=concrete_types,
-            translators=translators,
-            abstract_algorithms=abstract_algorithms,
-            concrete_algorithms=concrete_algorithms,
-        )
+        plugins = load_plugins()
+        self.register(**plugins)
 
     def typeof(self, value):
         """Return the concrete type corresponding to a value"""
