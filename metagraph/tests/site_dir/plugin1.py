@@ -1,6 +1,7 @@
 from metagraph import (
     AbstractType,
     ConcreteType,
+    Wrapper,
     translator,
     abstract_algorithm,
     concrete_algorithm,
@@ -15,7 +16,7 @@ class CPUHyperGraph(ConcreteType, abstract=HyperGraph):
     pass
 
 
-class GPUHyperGraph(ConcreteType, abstract=HyperGraph):
+class GPUHyperGraph(Wrapper, abstract=HyperGraph):
     pass
 
 
@@ -54,7 +55,11 @@ def abstract_types():
 
 
 def concrete_types():
-    return [CPUHyperGraph, GPUHyperGraph]
+    return [CPUHyperGraph]
+
+
+def wrappers():
+    return [GPUHyperGraph]
 
 
 def translators():

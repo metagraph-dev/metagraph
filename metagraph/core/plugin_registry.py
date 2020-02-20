@@ -1,3 +1,4 @@
+import inspect
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -103,5 +104,62 @@ class PluginRegistry:
             raise PluginRegistryError(
                 f"Invalid object for plugin registry: {type(obj)}"
             )
-
         return obj
+
+    def register_from_modules(self, *modules, recurse=True):
+        """
+        Find and register all suitable objects within modules.
+
+        This only includes objects created within a module or one of its submodules.
+        Objects whose names begin with `_` are skipped.
+
+        If ``recurse`` is True, then also recurse into any submodule we find.
+        """
+        if len(modules) == 1 and isinstance(modules[0], (list, tuple)):
+            modules = modules[0]
+        for module in modules:
+            if not inspect.ismodule(module):
+                raise TypeError(
+                    f"Expected one or more modules.  Got a type {type(module)} instead."
+                )
+
+        # If requested, we could break this out into a function that yields items.
+        def _register_module(module, *, recurse, base_name, seen_modules):
+            for key, val in vars(module).items():
+                if key.startswith("_"):
+                    continue
+                if isinstance(val, type):
+                    if (
+                        issubclass(val, (Wrapper, ConcreteType, AbstractType))
+                        and val.__module__.startswith(base_name)
+                        and val not in {Wrapper, ConcreteType, AbstractType}
+                    ):
+                        self.register(val)
+                elif isinstance(
+                    val, (Translator, ConcreteAlgorithm, AbstractAlgorithm)
+                ):
+                    # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
+                    self.register(val)
+                elif (
+                    recurse
+                    and inspect.ismodule(val)
+                    and val.__name__.startswith(base_name)
+                    and val not in seen_modules
+                ):
+                    seen_modules.add(val)
+                    _register_module(
+                        val,
+                        recurse=recurse,
+                        base_name=base_name,
+                        seen_modules=seen_modules,
+                    )
+
+        seen_modules = set()
+        for module in sorted(modules, key=lambda x: x.__name__.count(".")):
+            seen_modules.add(module)
+            _register_module(
+                module,
+                recurse=recurse,
+                base_name=module.__name__,
+                seen_modules=seen_modules,
+            )
