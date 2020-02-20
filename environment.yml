@@ -8,5 +8,10 @@ dependencies:
   - black
   - conda-forge::pre-commit
 
+# for default plugins
+  - scipy
+  - networkx
+  - jim22k::grblas
+
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata
