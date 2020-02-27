@@ -18,6 +18,8 @@ if numpy is not None:
         np.uint64: dtypes.UINT64,
         np.float32: dtypes.FLOAT32,
         np.float64: dtypes.FLOAT64,
+        np.longlong: dtypes.INT64,
+        np.ulonglong: dtypes.UINT64,
     }
     dtype_mg_to_np = {v: k for k, v in dtype_np_to_mg.items()}
 
