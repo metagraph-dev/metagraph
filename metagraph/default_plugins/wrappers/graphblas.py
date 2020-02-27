@@ -37,6 +37,9 @@ if grblas is not None:
         def dtype(self):
             return dtype_grblas_to_mg[self.value.dtype]
 
+        def show(self):
+            return self.value.show()
+
     class GrblasWeightedAdjacencyMatrix(Wrapper, abstract=WeightedGraph):
         def __init__(self, value, transposed=False):
             self.value = value
@@ -49,6 +52,9 @@ if grblas is not None:
         def dtype(self):
             return dtype_grblas_to_mg[self.value.dtype]
 
+        def show(self):
+            return self.value.show()
+
     class GrblasIncidenceMatrix(Wrapper, abstract=Graph):
         def __init__(self, value, transposed=False):
             self.value = value
@@ -60,3 +66,6 @@ if grblas is not None:
 
         def dtype(self):
             return dtype_grblas_to_mg[self.value.dtype]
+
+        def show(self):
+            return self.value.show()
