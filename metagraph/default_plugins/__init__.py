@@ -37,16 +37,6 @@ except ImportError:
     pandas = None
 
 try:
-    import cugraph
-except ImportError:
-    cugraph = None
-
-try:
-    import cudf
-except ImportError:
-    cudf = None
-
-try:
     import grblas
 
     grblas.init("suitesparse")
