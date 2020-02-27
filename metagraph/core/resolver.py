@@ -116,9 +116,9 @@ class Resolver:
         if wrappers is not None:
             # Let concrete type associated with each wrapper be handled by concrete_types list
             if concrete_types is None:
-                concrete_types = []
+                concrete_types = set()
             for wr in wrappers:
-                concrete_types.append(wr.Type)
+                concrete_types.add(wr.Type)
                 # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
                 path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
                 self.wrapper._register(path, wr)
