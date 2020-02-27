@@ -6,8 +6,9 @@ package:
   version: "{{ version }}"
 
 source:
-  url: https://github.com/ContinuumIO/{{ name }}/archive/v{{ version }}.tar.gz
-  sha256: --- FILL THIS IN ---
+#  url: https://github.com/ContinuumIO/{{ name }}/archive/v{{ version }}.tar.gz
+#  sha256: --- FILL THIS IN ---
+  path: ../
 
 build:
   number: 0
@@ -15,12 +16,15 @@ build:
 requirements:
   build:
     - python >=3
-
-  host:
-    - python >=3
+    - importlib_metadata
+    - numpy
+    - scipy
 
   run:
     - python >=3
+    - importlib_metadata
+    - numpy
+    - scipy
 
 about:
   home: https://github.com/ContinuumIO/metagraph

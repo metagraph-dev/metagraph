@@ -1,5 +1,5 @@
 from ... import translator
-from .. import scipy, pandas, networkx, cugraph, cudf, grblas
+from .. import scipy, pandas, networkx, grblas
 
 
 if pandas and networkx:
@@ -36,17 +36,6 @@ if networkx and scipy:
         return ScipyAdjacencyMatrix(m)
 
 
-if pandas and cudf:
-    pd = pandas
-    from ..wrappers.pandas import PandasEdgeList
-    from ..wrappers.rapids import CuDFEdgeList
-
-    @translator
-    def translate_graph_pdedge2cudf(x: PandasEdgeList, **props) -> CuDFEdgeList:
-        df = cudf.from_pandas(x.value)
-        return CuDFEdgeList(df, src_label=x.src_label, dest_label=x.dest_label)
-
-
 if scipy and grblas:
     ss = scipy.sparse
     from ..wrappers.scipy import ScipyAdjacencyMatrix
@@ -62,13 +51,3 @@ if scipy and grblas:
             m.row, m.col, m.data, nrows=nrows, ncols=ncols, dtype=grblas.dtypes.INT64
         )
         return GrblasAdjacencyMatrix(out, transposed=x.transposed)
-
-
-if cudf and cugraph:
-    from ..wrappers.rapids import CuDFEdgeList, CuGraphType
-
-    @translator
-    def translate_graph_cudfedge2cugraph(x: CuDFEdgeList, **props) -> CuGraphType:
-        g = cugraph.DiGraph()
-        g.from_cudf_edgelist(x.value, x.src_label, x.dest_label)
-        return g

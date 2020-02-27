@@ -46,4 +46,13 @@ def load_plugins() -> Dict[str, List]:
             plugin_loader = pl.load()
             plugins.update(plugin_loader())
 
+    # Convenience feature for developers of metagraph
+    # If default_plugins aren't loaded (because metagraph isn't actually installed), load them now
+    import metagraph as mg
+
+    if not hasattr(mg, "default_plugins"):
+        from metagraph import default_plugins
+
+        plugins.update(default_plugins.find_plugins())
+
     return plugins

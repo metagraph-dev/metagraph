@@ -1,7 +1,7 @@
 from ... import abstract_algorithm, concrete_algorithm
 from ..abstract_types import Graph
 from ..wrappers.scipy import ScipyAdjacencyMatrix
-from .. import networkx, cugraph, scipy
+from .. import networkx, scipy
 
 
 @abstract_algorithm("cluster.triangle_count")
@@ -24,13 +24,6 @@ if networkx:
         # Divide by 3 becuase each triangle is counted 3 times
         total_triangles = sum(triangles.values()) // 3
         return total_triangles
-
-
-if cugraph:
-
-    @concrete_algorithm("cluster.triangle_count")
-    def cugraph_triangle_count(graph: cugraph.DiGraph) -> int:
-        return cugraph.triangles(graph) // 3
 
 
 if scipy:
