@@ -44,11 +44,18 @@ def test_load_plugins(site_dir):
     res = Resolver()
     res.load_plugins_from_environment()
 
-    assert len(res.abstract_types) == 1
-    assert len(res.concrete_types) == 2
-    assert len(res.translators) == 2
-    assert len(res.abstract_algorithms) == 1
-    assert len(res.concrete_algorithms) == 1
+    def is_from_plugin1(x):
+        if isinstance(x, list):
+            return any(is_from_plugin1(item) for item in x)
+        if hasattr(x, "__wrapped__"):
+            x = x.__wrapped__
+        return x.__module__.endswith("plugin1")
+
+    assert len([x for x in res.abstract_types if is_from_plugin1(x)]) == 1
+    assert len([x for x in res.concrete_types if is_from_plugin1(x)]) == 2
+    assert len([x for x in res.translators.values() if is_from_plugin1(x)]) == 2
+    assert len([x for x in res.abstract_algorithms.values() if is_from_plugin1(x)]) == 1
+    assert len([x for x in res.concrete_algorithms.values() if is_from_plugin1(x)]) == 1
     assert "hyperstuff.supercluster" in res.concrete_algorithms
     assert len(res.concrete_algorithms["hyperstuff.supercluster"]) == 2
 
