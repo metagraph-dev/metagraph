@@ -37,13 +37,19 @@ def load_plugins() -> Dict[str, List]:
     """
     plugin_loaders = importlib_metadata.entry_points().get("metagraph.plugins", [])
     plugins = {}
+    seen = set()
     for pl in plugin_loaders:
         if pl.name != "plugins":
             raise EntryPointsError(
                 f"metagraph.plugin found an unexpected entry_point: {pl.name}"
             )
-        else:
+        elif pl not in seen:
             plugin_loader = pl.load()
-            plugins.update(plugin_loader())
-
+            plugin_items = plugin_loader()
+            for key, vals in plugin_items.items():
+                if key not in plugins:
+                    plugins[key] = set(vals)
+                else:
+                    plugins[key].update(vals)
+            seen.add(pl)
     return plugins
