@@ -87,7 +87,7 @@ class Resolver:
         self.wrapper = Namespace()
         self.types = Namespace()
 
-        self.planning = Planner(self)
+        self.plan = Planner(self)
 
     def register(
         self,
@@ -171,9 +171,7 @@ class Resolver:
                     raise ValueError(f"abstract algorithm {aa.name} already exists")
                 self.abstract_algorithms[aa.name] = aa
                 self.algo._register(aa.name, Dispatcher(self, aa.name))
-                self.planning.algo._register(
-                    aa.name, Dispatcher(self.planning, aa.name)
-                )
+                self.plan.algo._register(aa.name, Dispatcher(self.plan, aa.name))
 
         if concrete_algorithms is not None:
             for ca in concrete_algorithms:
