@@ -1,12 +1,11 @@
 from ... import translator
 from ..wrappers.python import PythonSparseVector
-from ..wrappers.numpy import NumpySparseVector
-from ..wrappers.graphblas import GrblasVectorType, dtype_mg_to_grblas
 from .. import numpy, grblas
 
 
 if numpy:
     np = numpy
+    from ..wrappers.numpy import NumpySparseVector
 
     @translator
     def translate_sparsevector_py2np(
@@ -31,6 +30,7 @@ if numpy:
 
 
 if grblas:
+    from ..wrappers.graphblas import GrblasVectorType, dtype_mg_to_grblas
 
     @translator
     def translate_sparsevector_py2grb(
@@ -53,6 +53,8 @@ if grblas:
 
 if numpy and grblas:
     np = numpy
+    from ..wrappers.numpy import NumpySparseVector
+    from ..wrappers.graphblas import GrblasVectorType, dtype_mg_to_grblas
 
     @translator
     def translate_sparsevector_np2grb(
