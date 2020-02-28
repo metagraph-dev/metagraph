@@ -89,12 +89,12 @@ class Resolver:
     def register(
         self,
         *,
-        abstract_types: Optional[List[AbstractType]] = None,
-        concrete_types: Optional[List[ConcreteType]] = None,
-        wrappers: Optional[List[Wrapper]] = None,
-        translators: Optional[List[Translator]] = None,
-        abstract_algorithms: Optional[List[AbstractAlgorithm]] = None,
-        concrete_algorithms: Optional[List[ConcreteAlgorithm]] = None,
+        abstract_types: Optional[Set[AbstractType]] = None,
+        concrete_types: Optional[Set[ConcreteType]] = None,
+        wrappers: Optional[Set[Wrapper]] = None,
+        translators: Optional[Set[Translator]] = None,
+        abstract_algorithms: Optional[Set[AbstractAlgorithm]] = None,
+        concrete_algorithms: Optional[Set[ConcreteAlgorithm]] = None,
     ):
         """Register plugins for use with this resolver.
 
@@ -116,9 +116,11 @@ class Resolver:
         if wrappers is not None:
             # Let concrete type associated with each wrapper be handled by concrete_types list
             if concrete_types is None:
-                concrete_types = []
+                concrete_types = set()
+            else:
+                concrete_types = set(concrete_types)  # copy; don't mutate the original
             for wr in wrappers:
-                concrete_types.append(wr.Type)
+                concrete_types.add(wr.Type)
                 # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
                 path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
                 self.wrapper._register(path, wr)
