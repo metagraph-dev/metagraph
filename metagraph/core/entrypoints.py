@@ -22,7 +22,7 @@ Allowable keys in the plugins dict:
  - concrete_algorithms
 """
 
-from typing import List, Dict, Callable
+from typing import Set, Dict, Callable
 import importlib_metadata
 
 
@@ -30,29 +30,27 @@ class EntryPointsError(Exception):
     pass
 
 
-def load_plugins() -> Dict[str, List]:
+def load_plugins() -> Dict[str, Set]:
     """Return a list of plugins of particular kind.
 
     See find_plugin_loaders() for valid kind values.
     """
     plugin_loaders = importlib_metadata.entry_points().get("metagraph.plugins", [])
     plugins = {}
+    seen = set()
     for pl in plugin_loaders:
         if pl.name != "plugins":
             raise EntryPointsError(
                 f"metagraph.plugin found an unexpected entry_point: {pl.name}"
             )
-        else:
+        elif pl not in seen:
             plugin_loader = pl.load()
-            plugins.update(plugin_loader())
 
-    # Convenience feature for developers of metagraph
-    # If default_plugins aren't loaded (because metagraph isn't actually installed), load them now
-    import metagraph as mg
-
-    if not hasattr(mg, "default_plugins"):
-        from metagraph import default_plugins
-
-        plugins.update(default_plugins.find_plugins())
-
+            plugin_items = plugin_loader()
+            for key, vals in plugin_items.items():
+                if key not in plugins:
+                    plugins[key] = set(vals)
+                else:
+                    plugins[key].update(vals)
+            seen.add(pl)
     return plugins
