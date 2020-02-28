@@ -11,17 +11,18 @@ source:
   path: ../
 
 build:
+#  noarch: python
   number: 0
 
 requirements:
   build:
-    - python >=3
+    - python ==3.7
     - importlib_metadata
     - numpy
     - scipy
 
   run:
-    - python >=3
+    - python >=3.7
     - importlib_metadata
     - numpy
     - scipy
