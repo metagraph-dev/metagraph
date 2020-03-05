@@ -3,6 +3,7 @@ to concrete algorithms.
 
 """
 from collections import defaultdict
+from functools import partial
 import inspect
 from typing import List, Tuple, Set, Dict, Callable, Optional, Any
 from .plugin import (
@@ -86,15 +87,17 @@ class Resolver:
         self.wrapper = Namespace()
         self.types = Namespace()
 
+        self.plan = Planner(self)
+
     def register(
         self,
         *,
-        abstract_types: Optional[List[AbstractType]] = None,
-        concrete_types: Optional[List[ConcreteType]] = None,
-        wrappers: Optional[List[Wrapper]] = None,
-        translators: Optional[List[Translator]] = None,
-        abstract_algorithms: Optional[List[AbstractAlgorithm]] = None,
-        concrete_algorithms: Optional[List[ConcreteAlgorithm]] = None,
+        abstract_types: Optional[Set[AbstractType]] = None,
+        concrete_types: Optional[Set[ConcreteType]] = None,
+        wrappers: Optional[Set[Wrapper]] = None,
+        translators: Optional[Set[Translator]] = None,
+        abstract_algorithms: Optional[Set[AbstractAlgorithm]] = None,
+        concrete_algorithms: Optional[Set[ConcreteAlgorithm]] = None,
     ):
         """Register plugins for use with this resolver.
 
@@ -116,9 +119,11 @@ class Resolver:
         if wrappers is not None:
             # Let concrete type associated with each wrapper be handled by concrete_types list
             if concrete_types is None:
-                concrete_types = []
+                concrete_types = set()
+            else:
+                concrete_types = set(concrete_types)  # copy; don't mutate the original
             for wr in wrappers:
-                concrete_types.append(wr.Type)
+                concrete_types.add(wr.Type)
                 # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
                 path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
                 self.wrapper._register(path, wr)
@@ -166,6 +171,7 @@ class Resolver:
                     raise ValueError(f"abstract algorithm {aa.name} already exists")
                 self.abstract_algorithms[aa.name] = aa
                 self.algo._register(aa.name, Dispatcher(self, aa.name))
+                self.plan.algo._register(aa.name, Dispatcher(self.plan, aa.name))
 
         if concrete_algorithms is not None:
             for ca in concrete_algorithms:
@@ -264,7 +270,9 @@ class Resolver:
 
         raise TypeError(f"Class {value.__class__} does not have a registered type")
 
-    def find_translation_path(self, src_type, dst_type) -> Optional[Translator]:
+    def find_translation_path(
+        self, src_type, dst_type, planning_only=False
+    ) -> Optional[Translator]:
         import scipy.sparse as ss
 
         abstract = dst_type.abstract
@@ -302,30 +310,49 @@ class Resolver:
             sidx = concrete_lookup[src_type]
             didx = concrete_lookup[dst_type]
         except KeyError:
-            return None
+            if planning_only:
+                raise
+            else:
+                return None
         if sssp[sidx, didx] == np.inf:
             return None
         # Path exists; use predecessor matrix to build up required transformations
         steps = []
         while True:
             parent_idx = predecessors[sidx, didx]
-            steps.insert(
-                0, self.translators[(concrete_list[parent_idx], concrete_list[didx])]
-            )
+            if planning_only:
+                steps.insert(0, concrete_list[didx])
+            else:
+                steps.insert(
+                    0,
+                    self.translators[(concrete_list[parent_idx], concrete_list[didx])],
+                )
             if parent_idx == sidx:
                 break
             didx = parent_idx
 
-        def walk_steps(src, **props):
-            # print(f'Walking to final translation. Starting type = {type(src)}')
-            # Move source along shortest path
-            for trns in steps[:-1]:
-                src = trns(src)
-                # print(f'Walking to final translation. Intermediate type = {type(src)}')
-            # Finish by reaching destination along with required properties
-            dst = steps[-1](src, **props)
-            # print(f'Walking to final translation. Final type = {type(dst)}')
-            return dst
+        if planning_only:
+
+            def walk_steps(src, **props):
+                if len(steps) > 1:
+                    print("[Multi-step Translation]")
+                    print(f"(start)  {type(src).__name__}")
+                    for i, src_type in enumerate(steps[:-1]):
+                        print(f"         {'  '*i}  -> {src_type.__name__}")
+                    print(f" (end)   {'  '*(i+1)}  -> {dst_type.__name__}")
+                else:
+                    print("[Direct Translation]")
+                    print(f"{type(src).__name__} -> {dst_type.__name__}")
+
+        else:
+
+            def walk_steps(src, **props):
+                # Move source along shortest path
+                for trns in steps[:-1]:
+                    src = trns(src)
+                # Finish by reaching destination along with required properties
+                dst = steps[-1](src, **props)
+                return dst
 
         trns = Translator(walk_steps)
         trns._num_steps = len(
@@ -333,22 +360,28 @@ class Resolver:
         )  # monkey patch to pass along information about complexity
         return trns
 
-    def find_translator(self, value, dest_type, *, exact=False) -> Optional[Translator]:
+    def find_translator(
+        self, value, dst_type, *, exact=False, planning_only=False
+    ) -> Optional[Translator]:
         src_type = self.typeof(value).__class__
-        dst_type = dest_type  # save original for error message
         if not issubclass(dst_type, ConcreteType):
             dst_type = self.class_to_concrete.get(dst_type, dst_type)
+
+        if planning_only:
+            if exact:
+                raise ValueError(
+                    "Set `exact` or `planning_only`, but not both when calling `find_translator`"
+                )
+            ret_val = self.find_translation_path(src_type, dst_type, planning_only=True)
+            if ret_val is None:
+                raise ResolveFailureError(
+                    f"No translation path found for {src_type.__name__} -> {dst_type.__name__}"
+                )
+            return ret_val
+
         ret_val = self.translators.get((src_type, dst_type), None)
         if ret_val is None and not exact and src_type != dst_type:
             ret_val = self.find_translation_path(src_type, dst_type)
-            if ret_val is None:
-                # errmsg = (
-                #     f'No translator found for {src_type} -> {dst_type}\n'
-                #     f'incoming type: {type(value)}\n'
-                #     f'outgoing type: {dest_type}'
-                # )
-                # raise ResolveFailureError(errmsg)
-                return None
         return ret_val
 
     def translate(self, value, dst_type, **props):
@@ -359,7 +392,7 @@ class Resolver:
         return translator(value, **props)
 
     def _find_required_translations(
-        self, bound_args: inspect.BoundArguments
+        self, bound_args: inspect.BoundArguments, planning_only=False
     ) -> Optional[Dict[str, Translator]]:
         """
         Attempts to find translators required to make arguments compatible
@@ -376,7 +409,9 @@ class Resolver:
                 #   If translator is found, add to required_translations
                 #   If no translator is found, return None to indicate failure
                 if not self._check_arg_type(arg_value, param_type):
-                    translator = self.find_translator(arg_value, param_type)
+                    translator = self.find_translator(
+                        arg_value, param_type, planning_only=planning_only
+                    )
                     if translator is None:
                         return
                     required_translations[arg_name] = translator
@@ -401,6 +436,8 @@ class Resolver:
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
+        planning_only = kwargs.pop("__mg__planning_only", False)
+
         # Find all possible solution paths
         solutions: List[
             Tuple[int, ConcreteAlgorithm]
@@ -410,46 +447,94 @@ class Resolver:
             bound_args = sig.bind(*args, **kwargs)
             bound_args.apply_defaults()
 
-            required_translations = self._find_required_translations(bound_args)
-            if required_translations is None:  # No solution found
+            try:
+                required_translations = self._find_required_translations(
+                    bound_args, planning_only=planning_only
+                )
+                if required_translations is None:  # No solution found
+                    continue
+            except ResolveFailureError:  # No solution found in planning_only mode
                 continue
-            elif not required_translations:  # Exact solution found
-                solutions.append((0, concrete_algo))
-            else:  # Solution found which requires translations
-                num_translations = 0
-                for trns in required_translations.values():
-                    # On-the-fly translators have been monkey-patched; original translators have not
-                    num_translations += getattr(trns, "_num_steps", 1)
 
-                def onthefly_concrete_algo(*args, **kwargs):
+            num_translations = 0
+            for trns in required_translations.values():
+                # On-the-fly translators have been monkey-patched; original translators have not
+                num_translations += getattr(trns, "_num_steps", 1)
+
+            if planning_only:
+
+                def planning_steps(
+                    concrete_algo, required_translations, *args, **kwargs
+                ):
+                    sig = concrete_algo.__signature__
+                    bound_args = sig.bind(*args, **kwargs)
+                    bound_args.apply_defaults()
+                    parameters = bound_args.signature.parameters
+                    print(f"{concrete_algo.__name__}")
+                    print(f"{concrete_algo.__signature__}")
+                    print("=====================")
+                    print("Argument Translations")
+                    print("---------------------")
+                    for varname in bound_args.arguments:
+                        if varname in required_translations:
+                            print(f"** {varname} **  ", end="")
+                            bound_args.arguments[varname] = required_translations[
+                                varname
+                            ](bound_args.arguments[varname])
+                        else:
+                            print(f"** {varname} **  [No Translation Required]")
+                            print(f"{parameters[varname].annotation.__name__}")
+                    print("---------------------")
+
+                func = partial(planning_steps, concrete_algo, required_translations)
+
+            elif not required_translations:  # Exact solution found
+                func = concrete_algo
+
+            else:  # Solution found which requires translations
+
+                def onthefly_concrete_algo(
+                    concrete_algo, required_translations, *args, **kwargs
+                ):
                     bound_args = sig.bind(*args, **kwargs)
                     bound_args.apply_defaults()
                     for varname in required_translations:
-                        # print(f'applying adjustment to {varname}. starting type = {type(bound_args.arguments[varname])}')
                         bound_args.arguments[varname] = required_translations[varname](
                             bound_args.arguments[varname]
                         )
-                        # print(f'applying adjustment to {varname}. ending type = {type(bound_args.arguments[varname])}')
                     return concrete_algo(*bound_args.args, **bound_args.kwargs)
 
-                solutions.append((num_translations, onthefly_concrete_algo))
+                func = partial(
+                    onthefly_concrete_algo, concrete_algo, required_translations
+                )
 
-        solutions.sort()
+            solutions.append((num_translations, func))
+
+        solutions.sort(key=lambda x: x[0])
         return solutions
+
+    def find_algorithm_exact(
+        self, algo_name: str, *args, **kwargs
+    ) -> Optional[ConcreteAlgorithm]:
+        valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
+        if valid_algos:
+            num_translations, best_algo = valid_algos[0]
+            if num_translations == 0:
+                return best_algo
 
     def find_algorithm(
         self, algo_name: str, *args, **kwargs
     ) -> Optional[ConcreteAlgorithm]:
         valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
-        if not valid_algos:
-            return None
-        return valid_algos[0][-1]
+        if valid_algos:
+            num_translations, best_algo = valid_algos[0]
+            return best_algo
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
         valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
         if not valid_algos:
             raise TypeError(
-                f'No concrete algorithm for "{algo_name}" can be found matching argument type signature'
+                f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs'
             )
         else:
             # choose the solutions requiring the fewest translations
@@ -474,3 +559,60 @@ class Dispatcher:
 
     def __call__(self, *args, **kwargs):
         return self._resolver.call_algorithm(self._algo_name, *args, **kwargs)
+
+    @property
+    def signatures(self):
+        print("Signature:")
+        print(f"\t{self.__signature__}")
+        print("Implementations:")
+        for ca in self._resolver.concrete_algorithms[self._algo_name]:
+            print(f"\t{ca.func.__annotations__}")
+
+
+class Planner:
+    """
+    Mimics the resolver, but instead of performing real work, it prints the steps that would
+    be taken by the resolver when translating or calling algorithms
+    """
+
+    def __init__(self, resolver):
+        self._resolver = resolver
+        self.algo = Namespace()
+
+    def translate(self, value, dst_type, **props):
+        """
+        Print the steps taken to go from type of value to dst_type
+        """
+        try:
+            translator = self._resolver.find_translator(
+                value, dst_type, planning_only=True
+            )
+            translator(value, **props)
+        except ResolveFailureError as e:
+            print(e)
+
+    def call_algorithm(self, algo_name: str, *args, **kwargs):
+        valid_algos = self._resolver.find_algorithm_solutions(
+            algo_name, *args, __mg__planning_only=True, **kwargs
+        )
+        if not valid_algos:
+            abstract_algo = self._resolver.abstract_algorithms[algo_name]
+            sig = abstract_algo.__signature__
+            bound_args = sig.bind(*args, **kwargs)
+            bound_args.apply_defaults()
+            print(
+                f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs'
+            )
+            for key, val in bound_args.arguments.items():
+                print(f"{key} : {val.__class__.__name__}")
+            print("-" * len(abstract_algo.__name__))
+            print(abstract_algo.__name__)
+            Dispatcher(self._resolver, algo_name).signatures
+        else:
+            # choose the solutions requiring the fewest translations
+            algo = valid_algos[0][-1]
+            return algo(*args, **kwargs)
+
+    @property
+    def abstract_algorithms(self):
+        return self._resolver.abstract_algorithms

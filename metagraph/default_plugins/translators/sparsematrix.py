@@ -1,13 +1,12 @@
 from ... import translator
-from ..wrappers.scipy import ScipySparseMatrixType
-from ..wrappers.numpy import NumpySparseMatrix, dtype_np_to_mg
-from ..wrappers.graphblas import GrblasMatrixType, dtype_mg_to_grblas
 from .. import numpy, scipy, grblas
 
 
 if scipy and numpy:
     ss = scipy.sparse
     np = numpy
+    from ..wrappers.scipy import ScipySparseMatrixType
+    from ..wrappers.numpy import NumpySparseMatrix, dtype_np_to_mg
 
     @translator
     def translate_sparsematrix_sci2np(
@@ -39,6 +38,8 @@ if scipy and numpy:
 
 if scipy and grblas:
     ss = scipy.sparse
+    from ..wrappers.scipy import ScipySparseMatrixType
+    from ..wrappers.graphblas import GrblasMatrixType, dtype_mg_to_grblas
 
     @translator
     def translate_sparsematrix_sci2grb(

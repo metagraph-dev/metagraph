@@ -68,12 +68,12 @@ class PluginRegistry:
 
     def __init__(self):
         self.plugins = {
-            "abstract_types": [],
-            "concrete_types": [],
-            "wrappers": [],
-            "translators": [],
-            "abstract_algorithms": [],
-            "concrete_algorithms": [],
+            "abstract_types": set(),
+            "concrete_types": set(),
+            "wrappers": set(),
+            "translators": set(),
+            "abstract_algorithms": set(),
+            "concrete_algorithms": set(),
         }
 
     def register(self, obj):
@@ -83,20 +83,20 @@ class PluginRegistry:
         unknown = False
         if type(obj) is type:
             if issubclass(obj, AbstractType):
-                self.plugins["abstract_types"].append(obj)
+                self.plugins["abstract_types"].add(obj)
             elif issubclass(obj, ConcreteType):
-                self.plugins["concrete_types"].append(obj)
+                self.plugins["concrete_types"].add(obj)
             elif issubclass(obj, Wrapper):
-                self.plugins["wrappers"].append(obj)
+                self.plugins["wrappers"].add(obj)
             else:
                 unknown = True
         else:
             if isinstance(obj, Translator):
-                self.plugins["translators"].append(obj)
+                self.plugins["translators"].add(obj)
             elif isinstance(obj, AbstractAlgorithm):
-                self.plugins["abstract_algorithms"].append(obj)
+                self.plugins["abstract_algorithms"].add(obj)
             elif isinstance(obj, ConcreteAlgorithm):
-                self.plugins["concrete_algorithms"].append(obj)
+                self.plugins["concrete_algorithms"].add(obj)
             else:
                 unknown = True
 
@@ -131,7 +131,10 @@ class PluginRegistry:
                 if isinstance(val, type):
                     if (
                         issubclass(val, (Wrapper, ConcreteType, AbstractType))
-                        and val.__module__.startswith(base_name)
+                        and (
+                            val.__module__ == base_name
+                            or val.__module__.startswith(base_name + ".")
+                        )
                         and val not in {Wrapper, ConcreteType, AbstractType}
                     ):
                         self.register(val)

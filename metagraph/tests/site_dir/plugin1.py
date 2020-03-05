@@ -52,10 +52,10 @@ def gpu_supercluster(hg: GPUHyperGraph) -> GPUHyperGraph:  # pragma: no cover
 
 def find_plugins():
     return {
-        "abstract_types": [HyperGraphType],
-        "concrete_types": [CPUHyperGraphType],
-        "wrappers": [GPUHyperGraph],
-        "translators": [cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph],
-        "abstract_algorithms": [supercluster],
-        "concrete_algorithms": [cpu_supercluster, gpu_supercluster],
+        "abstract_types": {HyperGraphType},
+        "concrete_types": {CPUHyperGraphType},
+        "wrappers": {GPUHyperGraph},
+        "translators": {cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph},
+        "abstract_algorithms": {supercluster},
+        "concrete_algorithms": {cpu_supercluster, gpu_supercluster},
     }

@@ -10,6 +10,6 @@ setup(
     packages=find_packages(include=["metagraph", "metagraph.*"]),
     install_requires=["importlib_metadata", "numpy"],
     entry_points={
-        "metagraph.plugins": "plugins = metagraph.default_plugins:find_plugins"
+        "metagraph.plugins": "plugins=metagraph.default_plugins:find_plugins"
     },
 )
