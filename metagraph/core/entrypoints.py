@@ -22,7 +22,7 @@ Allowable keys in the plugins dict:
  - concrete_algorithms
 """
 
-from typing import List, Dict, Callable
+from typing import Set, Dict, Callable
 import importlib_metadata
 
 
@@ -30,7 +30,7 @@ class EntryPointsError(Exception):
     pass
 
 
-def load_plugins() -> Dict[str, List]:
+def load_plugins() -> Dict[str, Set]:
     """Return a list of plugins of particular kind.
 
     See find_plugin_loaders() for valid kind values.
@@ -45,6 +45,7 @@ def load_plugins() -> Dict[str, List]:
             )
         elif pl not in seen:
             plugin_loader = pl.load()
+
             plugin_items = plugin_loader()
             for key, vals in plugin_items.items():
                 if key not in plugins:

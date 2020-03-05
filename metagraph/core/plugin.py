@@ -122,6 +122,7 @@ class Wrapper:
             f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
         )
         cls.Type.__module__ = cls.__module__
+        cls.Type.__doc__ = cls.__doc__
         cls.Type.value_type = cls
         cls.Type.allowed_props = cls.allowed_props
         cls.Type.target = cls.target
