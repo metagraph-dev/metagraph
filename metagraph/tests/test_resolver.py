@@ -310,7 +310,7 @@ def test_call_algorithm(example_resolver):
     assert example_resolver.call_algorithm("power", p=2, x=3) == 9
     with pytest.raises(
         TypeError,
-        match='No concrete algorithm for "power" can be found matching argument type signature',
+        match='No concrete algorithm for "power" can be satisfied for the given inputs',
     ):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
@@ -326,6 +326,6 @@ def test_algo_attribute(example_resolver):
     assert example_resolver.algo.power(p=2, x=3) == 9
     with pytest.raises(
         TypeError,
-        match='No concrete algorithm for "power" can be found matching argument type signature',
+        match='No concrete algorithm for "power" can be satisfied for the given inputs',
     ):
         example_resolver.algo.power(1, "4")

@@ -10,6 +10,10 @@ if pandas is not None:
         value_type = pd.DataFrame
 
     class PandasEdgeList(Wrapper, abstract=Graph):
+        """
+        Graph represented as a pandas DataFrame with edges indicated by source and destination columns
+        """
+
         def __init__(self, df, src_label="source", dest_label="destination"):
             self.value = df
             self.src_label = src_label
