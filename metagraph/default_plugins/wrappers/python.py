@@ -15,7 +15,7 @@ class PythonSparseVector(Wrapper, abstract=SparseVector):
         super().__init__()
         self.value = data
         if size is None:
-            size = max(data.keys())
+            size = max(data.keys()) + 1
         self.size = size
         self._dtype = None
         self._assert_instance(data, dict)
