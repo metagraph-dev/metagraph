@@ -8,7 +8,7 @@ setup(
     description="Graph algorithm solver across multiple hardware backends",
     author="Anaconda, Inc.",
     packages=find_packages(include=["metagraph", "metagraph.*"]),
-    install_requires=["importlib_metadata"],
+    install_requires=["importlib_metadata", "numpy"],
     entry_points={
         "metagraph.plugins": "plugins=metagraph.default_plugins:find_plugins"
     },

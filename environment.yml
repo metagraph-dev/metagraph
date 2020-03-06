@@ -10,3 +10,4 @@ dependencies:
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata
+  - numpy
