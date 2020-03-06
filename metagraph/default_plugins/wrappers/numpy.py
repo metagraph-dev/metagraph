@@ -6,22 +6,10 @@ from .. import numpy
 if numpy is not None:
     np = numpy
 
-    dtype_np_to_mg = {
-        np.bool_: dtypes.BOOL,
-        np.int8: dtypes.INT8,
-        np.int16: dtypes.INT16,
-        np.int32: dtypes.INT32,
-        np.int64: dtypes.INT64,
-        np.uint8: dtypes.UINT8,
-        np.uint16: dtypes.UINT16,
-        np.uint32: dtypes.UINT32,
-        np.uint64: dtypes.UINT64,
-        np.float32: dtypes.FLOAT32,
-        np.float64: dtypes.FLOAT64,
-        np.longlong: dtypes.INT64,
-        np.ulonglong: dtypes.UINT64,
-    }
-    dtype_mg_to_np = {v: k for k, v in dtype_np_to_mg.items()}
+    def dtype_mg_to_np(dtype):
+        return dtypes.dtype(dtype)
+
+    dtype_np_to_mg = dtype_mg_to_np
 
     class NumpyVector(Wrapper, abstract=DenseVector):
         def __init__(self, data):
@@ -35,7 +23,7 @@ if numpy is not None:
 
         @property
         def dtype(self):
-            return dtype_np_to_mg[self.value.dtype.type]
+            return dtype_np_to_mg(self.value.dtype)
 
     class NumpySparseVector(NumpyVector, abstract=SparseVector):
         def __init__(self, data, missing_value=np.nan):
@@ -73,7 +61,7 @@ if numpy is not None:
 
         @property
         def dtype(self):
-            return dtype_np_to_mg[self.value.dtype.type]
+            return dtype_np_to_mg(self.value.dtype)
 
     class NumpySparseMatrix(NumpyMatrix, abstract=SparseMatrix):
         def __init__(self, data, missing_value=np.nan):

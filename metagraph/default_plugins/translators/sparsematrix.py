@@ -47,7 +47,7 @@ if scipy and grblas:
     ) -> GrblasMatrixType:
         x = x.tocoo()
         nrows, ncols = x.shape
-        dtype = dtype_np_to_mg[x.dtype.type]
+        dtype = dtype_np_to_mg(x.dtype)
         vec = grblas.Matrix.new_from_values(
             x.row,
             x.col,

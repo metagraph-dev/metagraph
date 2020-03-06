@@ -57,3 +57,10 @@ def test_scipy(default_plugin_resolver):
     z = dpr.translate(gbm, ScipySparseMatrixType)
     assert isinstance(z, ss.spmatrix)
     assert (x != z).nnz == 0
+
+    a = ss.csr_matrix([[1, 0], [0, 0]])  # np.longlong by default
+    b = dpr.translate(a, GrblasMatrixType)
+    assert isinstance(b, grblas.Matrix)
+    c = dpr.translate(b, ScipySparseMatrixType)
+    assert (a != c).nnz == 0
+    assert a.dtype == c.dtype

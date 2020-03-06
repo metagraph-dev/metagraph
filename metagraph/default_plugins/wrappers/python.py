@@ -2,7 +2,7 @@ from ... import Wrapper, dtypes
 from ..abstract_types import SparseVector
 
 
-_dtype_mapper = {bool: dtypes.BOOL, int: dtypes.INT64, float: dtypes.FLOAT64}
+_dtype_mapper = {bool: dtypes.bool, int: dtypes.int64, float: dtypes.float64}
 
 
 class PythonSparseVector(Wrapper, abstract=SparseVector):
