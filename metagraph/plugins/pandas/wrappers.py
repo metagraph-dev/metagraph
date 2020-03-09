@@ -1,10 +1,10 @@
-from ... import ConcreteType, Wrapper
-from ..abstract_types import DataFrame, Graph, WeightedGraph
-from .. import pandas
+from metagraph import ConcreteType, Wrapper
+from metagraph.types import DataFrame, Graph, WeightedGraph
+from metagraph.plugins import has_pandas
 
 
-if pandas is not None:
-    pd = pandas
+if has_pandas:
+    import pandas as pd
 
     class PandasDataFrameType(ConcreteType, abstract=DataFrame):
         value_type = pd.DataFrame

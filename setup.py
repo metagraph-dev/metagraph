@@ -9,7 +9,5 @@ setup(
     author="Anaconda, Inc.",
     packages=find_packages(include=["metagraph", "metagraph.*"]),
     install_requires=["importlib_metadata", "numpy"],
-    entry_points={
-        "metagraph.plugins": "plugins=metagraph.default_plugins:find_plugins"
-    },
+    entry_points={"metagraph.plugins": "plugins=metagraph.plugins:find_plugins"},
 )
