@@ -4,7 +4,7 @@ from metagraph.plugins import has_networkx
 
 if has_networkx:
     import networkx as nx
-    from ..python.wrappers import PythonSparseVector
+    from ..python.types import PythonSparseVector
 
     @concrete_algorithm("link_analysis.pagerank")
     def pagerank(

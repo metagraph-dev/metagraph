@@ -1,8 +1,8 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas
-from .wrappers import PythonSparseVector
-from ..numpy.wrappers import NumpySparseVector
+from .types import PythonSparseVector
+from ..numpy.types import NumpySparseVector
 
 
 @translator
@@ -16,7 +16,7 @@ def sparsevector_from_numpy(x: NumpySparseVector, **props) -> PythonSparseVector
 
 
 if has_grblas:
-    from ..graphblas.wrappers import GrblasVectorType, dtype_mg_to_grblas
+    from ..graphblas.types import GrblasVectorType, dtype_mg_to_grblas
 
     @translator
     def sparsevector_from_graphblas(x: GrblasVectorType, **props) -> PythonSparseVector:

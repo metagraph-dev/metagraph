@@ -1,6 +1,6 @@
-from metagraph.plugins.python.wrappers import PythonSparseVector
-from metagraph.plugins.numpy.wrappers import NumpySparseVector
-from metagraph.plugins.graphblas.wrappers import GrblasVectorType
+from metagraph.plugins.python.types import PythonSparseVector
+from metagraph.plugins.numpy.types import NumpySparseVector
+from metagraph.plugins.graphblas.types import GrblasVectorType
 import grblas
 
 

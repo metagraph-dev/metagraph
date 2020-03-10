@@ -3,11 +3,11 @@ from metagraph.plugins import has_pandas, has_networkx
 
 if has_networkx:
     import networkx as nx
-    from .wrappers import NetworkXGraphType
+    from .types import NetworkXGraphType
 
 
 if has_networkx and has_pandas:
-    from ..pandas.wrappers import PandasEdgeList
+    from ..pandas.types import PandasEdgeList
 
     @translator
     def graph_from_pandas(x: PandasEdgeList, **props) -> NetworkXGraphType:
