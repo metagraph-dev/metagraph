@@ -1,7 +1,7 @@
 import pytest
-from metagraph.default_plugins.wrappers.numpy import NumpySparseMatrix
-from metagraph.default_plugins.wrappers.graphblas import GrblasMatrixType
-from metagraph.default_plugins.wrappers.scipy import ScipySparseMatrixType
+from metagraph.plugins.numpy.types import NumpySparseMatrix
+from metagraph.plugins.graphblas.types import GrblasMatrixType
+from metagraph.plugins.scipy.types import ScipySparseMatrixType
 import numpy as np
 import grblas
 import scipy.sparse as ss

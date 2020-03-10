@@ -1,9 +1,11 @@
-from ... import ConcreteType, Wrapper, dtypes
-from ..abstract_types import SparseVector, SparseMatrix, Graph, WeightedGraph
-from .. import grblas
+from metagraph import ConcreteType, Wrapper, dtypes
+from metagraph.types import SparseVector, SparseMatrix, Graph, WeightedGraph
+from metagraph.plugins import has_grblas
 
 
-if grblas is not None:
+if has_grblas:
+    import grblas
+
     dtype_grblas_to_mg = {
         grblas.dtypes.BOOL: dtypes.bool,
         grblas.dtypes.INT8: dtypes.int8,

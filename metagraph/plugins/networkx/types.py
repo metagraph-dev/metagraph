@@ -1,10 +1,10 @@
-from ... import ConcreteType, Wrapper
-from ..abstract_types import Graph, WeightedGraph
-from .. import networkx
+from metagraph import ConcreteType, Wrapper
+from metagraph.types import Graph, WeightedGraph
+from metagraph.plugins import has_networkx
 
 
-if networkx is not None:
-    nx = networkx
+if has_networkx:
+    import networkx as nx
 
     class NetworkXGraphType(ConcreteType, abstract=Graph):
         value_type = nx.DiGraph

@@ -1,5 +1,5 @@
-from ... import Wrapper, dtypes
-from ..abstract_types import SparseVector
+from metagraph import Wrapper, dtypes
+from metagraph.types import SparseVector
 
 
 _dtype_mapper = {bool: dtypes.bool, int: dtypes.int64, float: dtypes.float64}
