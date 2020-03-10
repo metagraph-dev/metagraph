@@ -1,31 +1,42 @@
-{% set name = "metagraph" %}
-{% set version = "0.0.1" %}
+# conda build -c jim22k --python 3.7 recipe/
 
 package:
-  name: "{{ name }}"
-  version: "{{ version }}"
+  name: metagraph
+  version: {{ GIT_DESCRIBE_TAG }}
 
 source:
-#  url: https://github.com/ContinuumIO/{{ name }}/archive/v{{ version }}.tar.gz
-#  sha256: --- FILL THIS IN ---
-  path: ../
+  path: ..
 
 build:
-#  noarch: python
-  number: 0
+  number: {{ GIT_DESCRIBE_NUMBER|int }}
+  string: py{{ PY_VER }}h{{ PKG_HASH }}_{{GIT_DESCRIBE_HASH}}_{{ GIT_DESCRIBE_NUMBER }}
 
 requirements:
-  build:
-    - python ==3.7
+  host:
+    - python
+    - setuptools
     - importlib_metadata
     - numpy
     - scipy
 
   run:
-    - python >=3.7
+    - python
+    - setuptools
     - importlib_metadata
     - numpy
     - scipy
+
+test:
+  requires:
+    - pytest
+    - networkx
+    - grblas
+#    - pytest-cov
+#    - coverage
+#    - black
+
+  commands:
+    - pytest --pyargs metagraph.tests
 
 about:
   home: https://github.com/ContinuumIO/metagraph
