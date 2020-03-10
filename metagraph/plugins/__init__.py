@@ -1,8 +1,7 @@
 import metagraph
-from ..core.plugin_registry import PluginRegistry
 
 # Use this as the entry_point object
-registry = PluginRegistry()
+registry = metagraph.PluginRegistry()
 
 
 def find_plugins():

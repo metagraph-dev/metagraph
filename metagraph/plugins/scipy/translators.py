@@ -3,8 +3,8 @@ from metagraph.plugins import has_scipy, has_networkx, has_grblas
 
 if has_scipy:
     import scipy.sparse as ss
-    from .wrappers import ScipyAdjacencyMatrix, ScipySparseMatrixType
-    from ..numpy.wrappers import NumpySparseMatrix
+    from .types import ScipyAdjacencyMatrix, ScipySparseMatrixType
+    from ..numpy.types import NumpySparseMatrix
 
     @translator
     def sparsematrix_from_numpy(x: NumpySparseMatrix, **props) -> ScipySparseMatrixType:
@@ -19,7 +19,7 @@ if has_scipy:
 
 if has_scipy and has_networkx:
     import networkx as nx
-    from ..networkx.wrappers import NetworkXGraphType
+    from ..networkx.types import NetworkXGraphType
 
     @translator
     def graph_from_networkx(x: NetworkXGraphType, **props) -> ScipyAdjacencyMatrix:
@@ -29,7 +29,7 @@ if has_scipy and has_networkx:
 
 
 if has_scipy and has_grblas:
-    from ..graphblas.wrappers import GrblasMatrixType
+    from ..graphblas.types import GrblasMatrixType
 
     @translator
     def sparsematrix_from_graphblas(

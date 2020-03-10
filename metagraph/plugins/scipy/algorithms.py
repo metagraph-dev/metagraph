@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm
 from metagraph.plugins import has_scipy
-from .wrappers import ScipyAdjacencyMatrix
+from .types import ScipyAdjacencyMatrix
 
 
 if has_scipy:

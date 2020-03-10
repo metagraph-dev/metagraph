@@ -1,7 +1,7 @@
 import numpy as np
 from typing import Any
 from metagraph import concrete_algorithm
-from .wrappers import (
+from .types import (
     NumpyVector,
     NumpySparseVector,
     NumpyMatrix,

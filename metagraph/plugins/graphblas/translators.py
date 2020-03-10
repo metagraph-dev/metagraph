@@ -3,14 +3,14 @@ from metagraph.plugins import has_grblas, has_scipy
 
 if has_grblas:
     import grblas
-    from .wrappers import (
+    from .types import (
         GrblasAdjacencyMatrix,
         GrblasMatrixType,
         GrblasVectorType,
         dtype_mg_to_grblas,
     )
-    from ..numpy.wrappers import NumpySparseVector
-    from ..python.wrappers import PythonSparseVector
+    from ..numpy.types import NumpySparseVector
+    from ..python.types import PythonSparseVector
 
     @translator
     def sparsevector_from_python(x: PythonSparseVector, **props) -> GrblasVectorType:
@@ -34,8 +34,8 @@ if has_grblas:
 
 if has_grblas and has_scipy:
     import scipy.sparse as ss
-    from ..scipy.wrappers import ScipyAdjacencyMatrix, ScipySparseMatrixType
-    from ..numpy.wrappers import dtype_np_to_mg
+    from ..scipy.types import ScipyAdjacencyMatrix, ScipySparseMatrixType
+    from ..numpy.types import dtype_np_to_mg
 
     @translator
     def graph_from_scipy(x: ScipyAdjacencyMatrix, **props) -> GrblasAdjacencyMatrix:
