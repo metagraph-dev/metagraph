@@ -2,3 +2,5 @@ include MANIFEST.in
 include README.md setup.py versioneer.py
 include versioneer.py
 include metagraph/_version.py
+
+include metagraph/tests/site_dir/plugin1-1.0.0.dist-info/entry_points.txt
