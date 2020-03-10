@@ -1,5 +1,4 @@
 import numpy as np
-from metagraph.default_plugins.algorithms import dense_sparse
 
 
 def test_vector_dense_to_sparse(default_plugin_resolver):

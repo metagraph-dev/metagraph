@@ -1,10 +1,10 @@
-from ... import ConcreteType, Wrapper
-from ..abstract_types import SparseMatrix, Graph, WeightedGraph
-from .. import scipy
+from metagraph import ConcreteType, Wrapper
+from metagraph.types import SparseMatrix, Graph, WeightedGraph
+from metagraph.plugins import has_scipy
 
 
-if scipy is not None:
-    ss = scipy.sparse
+if has_scipy:
+    import scipy.sparse as ss
 
     class ScipySparseMatrixType(ConcreteType, abstract=SparseMatrix):
         value_type = ss.spmatrix

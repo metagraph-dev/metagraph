@@ -1,4 +1,4 @@
-from .. import AbstractType
+from . import AbstractType
 
 
 class DenseVector(AbstractType):
