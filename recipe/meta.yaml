@@ -29,6 +29,8 @@ requirements:
 test:
   requires:
     - pytest
+    - numpy
+    - scipy
     - networkx
     - grblas
 #    - pytest-cov
