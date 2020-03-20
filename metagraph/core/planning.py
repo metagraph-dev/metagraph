@@ -25,6 +25,8 @@ class MultiStepTranslator:
         self.dst_types.append(dst_type)
 
     def __call__(self, src, **props):
+        if not self.translators:
+            return src
         for translator in self.translators[:-1]:
             src = translator(src)
         # Finish by reaching destination along with required properties
@@ -32,6 +34,8 @@ class MultiStepTranslator:
         return dst
 
     def display(self):
+        if len(self) == 0:
+            print("No translation required")
         if len(self) > 1:
             print("[Multi-step Translation]")
             print(f"(start)  {self.src_type.__name__}")
@@ -97,15 +101,13 @@ class MultiStepTranslator:
             return None
         # Path exists; use predecessor matrix to build up required transformations
         mst = MultiStepTranslator(src_type)
-        while True:
+        while sidx != didx:
             parent_idx = predecessors[sidx, didx]
             next_translator = resolver.translators[
                 (concrete_list[parent_idx], concrete_list[didx])
             ]
             next_dst_type = concrete_list[didx]
             mst.add_before(next_translator, next_dst_type)
-            if parent_idx == sidx:
-                break
             didx = parent_idx
 
         return mst
@@ -149,10 +151,11 @@ class AlgorithmPlan:
         cls, resolver, concrete_algorithm, *args, **kwargs
     ) -> Optional["AlgorithmPlan"]:
         required_translations = {}
+        sig = concrete_algorithm.__signature__
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+
         try:
-            sig = concrete_algorithm.__signature__
-            bound_args = sig.bind(*args, **kwargs)
-            bound_args.apply_defaults()
             parameters = bound_args.signature.parameters
             for arg_name, arg_value in bound_args.arguments.items():
                 param_type = parameters[arg_name].annotation
@@ -170,7 +173,7 @@ class AlgorithmPlan:
                     required_translations[arg_name] = translator
             return AlgorithmPlan(concrete_algorithm, required_translations)
         except TypeError:
-            raise
+            return
 
     @staticmethod
     def _check_arg_type(arg_value, param_type) -> bool:

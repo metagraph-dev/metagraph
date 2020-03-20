@@ -8,6 +8,7 @@ from metagraph import (
     concrete_algorithm,
 )
 from metagraph.core.resolver import Resolver, Namespace, Dispatcher
+from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 
 from .util import site_dir, example_resolver
 
@@ -220,8 +221,8 @@ def test_python_types_as_concrete_substitutes(example_resolver):
         pass
 
     example_resolver.register(concrete_algorithms=[correct_python_type])
-    algo = example_resolver.find_algorithm("testing.python_types", 3, 4)
-    assert algo == correct_python_type
+    algo_plan = example_resolver.find_algorithm("testing.python_types", 3, 4)
+    assert algo_plan.algo == correct_python_type
 
 
 def test_typeof(example_resolver):
@@ -240,12 +241,19 @@ def test_typeof(example_resolver):
 def test_find_translator(example_resolver):
     from .util import StrType, IntType, OtherType, int_to_str, str_to_int
 
-    assert example_resolver.find_translator(4, StrType) == int_to_str
-    assert example_resolver.find_translator("4", IntType) == str_to_int
-    assert example_resolver.find_translator(4, OtherType) is None
-    assert (
-        example_resolver.find_translator(4, IntType) is None
-    )  # no self-translator registered
+    def find_translator(value, dst_type):
+        src_type = example_resolver.typeof(value).__class__
+        trns = MultiStepTranslator.find_translation(
+            example_resolver, src_type, dst_type, exact=True
+        )
+        if trns is not None:
+            assert len(trns.translators) == 1
+            return trns.translators[0]
+
+    assert find_translator(4, StrType) == int_to_str
+    assert find_translator("4", IntType) == str_to_int
+    assert find_translator(4, OtherType) is None
+    assert find_translator(4, IntType) is None  # no self-translator registered
 
 
 def test_translate(example_resolver):
@@ -273,10 +281,10 @@ def test_find_algorithm(example_resolver):
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.find_algorithm("does_not_exist", 1, thing=2)
 
-    assert example_resolver.find_algorithm("power", 1, 3) == int_power
-    assert example_resolver.find_algorithm("power", p=1, x=3) == int_power
+    assert example_resolver.find_algorithm("power", 1, 3).algo == int_power
+    assert example_resolver.find_algorithm("power", p=1, x=3).algo == int_power
     assert example_resolver.find_algorithm("power", 1, "4") is None
-    assert example_resolver.find_algorithm("power", 1, p=2) == int_power
+    assert example_resolver.find_algorithm("power", 1, p=2).algo == int_power
 
     with pytest.raises(TypeError, match="too many positional arguments"):
         example_resolver.find_algorithm("power", 1, 2, 3)
@@ -295,8 +303,8 @@ def test_find_algorithm(example_resolver):
     example_resolver.register(
         abstract_algorithms=[python_type], concrete_algorithms=[correct_python_type]
     )
-    algo = example_resolver.find_algorithm("testing.match_python_type", 2)
-    assert algo == correct_python_type
+    plan = example_resolver.find_algorithm("testing.match_python_type", 2)
+    assert plan.algo == correct_python_type
     assert example_resolver.find_algorithm("testing.match_python_type", set()) is None
 
 
