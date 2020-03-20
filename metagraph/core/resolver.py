@@ -205,6 +205,9 @@ class Resolver:
                 self.types._register(path, ct)
 
         if translators is not None:
+            # Wipe out existing translation matrices (if any)
+            self.translation_matrices = {}
+
             for tr in translators:
                 signature = inspect.signature(tr.func)
                 src_type = next(iter(signature.parameters.values())).annotation
