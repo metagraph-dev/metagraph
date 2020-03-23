@@ -8,12 +8,38 @@ from typing import Callable
 class AbstractType:
     """Equivalence class of concrete types."""
 
-    # all instances of an abstract type are equivalent!
+    # Properties must be a list of values from most general to most narrow
+    properties = {}
+
+    def __init_subclass__(cls, **kwargs):
+        # Check properties are lists
+        for key, val in cls.properties.items():
+            if not isinstance(val, (list, tuple)):
+                raise KeyError(
+                    f"{key} is an invalid property; must be of type list, not {type(val)}"
+                )
+            cls.properties[key] = tuple(val)
+
+    def __init__(self, **props):
+        # Start with all properties at the most general level
+        prop_idx = {key: 0 for key in self.properties}
+        for key, val in props.items():
+            if key not in self.properties:
+                raise KeyError(f"{key} not a valid property of {self.__class__}")
+            try:
+                idx = self.properties[key].index(val)
+                prop_idx[key] = idx
+            except ValueError:
+                raise ValueError(
+                    f"Invalid setting for {key} property: '{val}'; must be one of {self.properties[key]}"
+                )
+        self.prop_idx = prop_idx
+
     def __eq__(self, other):
-        return self.__class__ == other.__class__
+        return self.__class__ == other.__class__ and self.prop_idx == other.prop_idx
 
     def __hash__(self):
-        return hash(self.__class__)
+        return hash((self.__class__, tuple(self.prop_idx.items())))
 
 
 class ConcreteType:
@@ -36,11 +62,28 @@ class ConcreteType:
     # Most subclasses only need to set these class attributes
     value_type = None  # override this for fast path type identification
     allowed_props = {}  # default is no props
+    abstract_property_specificity_limits = (
+        {}
+    )  # highest specificity supported for abstract properties
     target = "cpu"  # key may be used in future to guide dispatch
 
     # Override these methods only if necessary
     def __init__(self, **props):
-        """Set required properties of for this type with keyword arguments"""
+        """
+        Used in two ways:
+        1. As a requirements indicator
+           Specify concrete properties which are required for the algorithm
+        2. As a descriptor of a concrete type instance
+           Includes both concrete and abstract properties which describe the instance
+        """
+        # Separate abstract properties from concrete properties
+        abstract_keys = props.keys() & self.abstract.properties.keys()
+        abstract_props = {key: props.pop(key) for key in abstract_keys}
+        if abstract_props:
+            self.abstract_instance = self.abstract(**abstract_props)
+        else:
+            self.abstract_instance = None
+        # Handle concrete properties
         for key in props:
             if key not in self.allowed_props:
                 raise KeyError(f"{key} not allowed property of {self.__class__}")
@@ -99,11 +142,18 @@ class ConcreteType:
     @classmethod
     def get_type(cls, obj):
         """Get an instance of this type class that describes obj"""
-        assert len(cls.allowed_props) == 0  # must override if there are properties
+        # Must override if there are properties
+        if cls.allowed_props:
+            raise NotImplementedError(
+                "Must override `get_type` if type has concrete properties"
+            )
+
         if isinstance(obj, cls.value_type):
-            return cls()  # no properties to specialize on
+            ret_val = cls()  # no properties to specialize on
+            ret_val.abstract_instance = cls.abstract()
+            return ret_val
         else:
-            raise TypeError(f"object not of type {cls.__class__}")
+            raise TypeError(f"object not of type {cls.__name__}")
 
 
 class Wrapper:
@@ -115,6 +165,9 @@ class Wrapper:
 
     # These class attributes will be passed on to the created ConcreteType
     allowed_props = {}  # default is no props
+    abstract_property_specificity_limits = (
+        {}
+    )  # highest specificity supported for abstract properties
     target = "cpu"  # key may be used in future to guide dispatch
 
     def __init_subclass__(cls, *, abstract=None):
@@ -123,9 +176,25 @@ class Wrapper:
         )
         cls.Type.__module__ = cls.__module__
         cls.Type.__doc__ = cls.__doc__
+        # Copy objects and methods from wrapper to Type class
         cls.Type.value_type = cls
         cls.Type.allowed_props = cls.allowed_props
+        cls.Type.abstract_property_specificity_limits = (
+            cls.abstract_property_specificity_limits
+        )
         cls.Type.target = cls.target
+        for funcname in ["is_satisfied_by", "is_satisfied_by_value"]:
+            if hasattr(cls, funcname):
+                func = getattr(cls, funcname)
+                setattr(cls.Type, funcname, func)
+        for methodname in ["is_typeof", "get_type"]:
+            if hasattr(cls, methodname):
+                func = getattr(cls, methodname).__func__
+                setattr(cls.Type, methodname, classmethod(func))
+        for sfuncname in []:
+            if hasattr(cls, sfuncname):
+                func = getattr(cls, sfuncname)
+                setattr(cls.Type, sfuncname, staticmethod(func))
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):

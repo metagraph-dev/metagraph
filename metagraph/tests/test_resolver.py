@@ -3,6 +3,7 @@ import pytest
 from metagraph import (
     AbstractType,
     ConcreteType,
+    Wrapper,
     translator,
     abstract_algorithm,
     concrete_algorithm,
@@ -124,7 +125,7 @@ def test_register_errors():
 
 
 def test_incorrect_signature_errors(example_resolver):
-    from .util import IntType
+    from .util import IntType, FloatType
 
     class Abstract1(AbstractType):
         pass
@@ -162,12 +163,21 @@ def test_incorrect_signature_errors(example_resolver):
     with pytest.raises(TypeError, match='"X" does not match name of parameter'):
         example_resolver.register(concrete_algorithms=[wrong_arg_name])
 
+    @concrete_algorithm("ln")
+    def specifies_abstract_property(x: FloatType(positivity=">=0")) -> FloatType:
+        pass
+
+    with pytest.raises(TypeError, match="specifies abstract properties"):
+        example_resolver.register(concrete_algorithms=[specifies_abstract_property])
+
 
 def test_python_types_in_signature(example_resolver):
-    from .util import IntType, MyAbstractType
+    from .util import IntType, MyNumericAbstractType
 
     @abstract_algorithm("testing.python_types")
-    def python_types(x: MyAbstractType, p: int) -> MyAbstractType:  # pragma: no cover
+    def python_types(
+        x: MyNumericAbstractType, p: int
+    ) -> MyNumericAbstractType:  # pragma: no cover
         pass
 
     example_resolver.register(abstract_algorithms=[python_types])
@@ -186,14 +196,14 @@ def test_python_types_in_signature(example_resolver):
         example_resolver.register(concrete_algorithms=[wrong_python_type])
 
     @concrete_algorithm("testing.python_types")
-    def wrong_return_type(x: IntType, p: int) -> float:  # pragma: no cover
+    def wrong_return_type(x: IntType, p: int) -> complex:  # pragma: no cover
         pass
 
     with pytest.raises(TypeError, match="is not a concrete type of"):
         example_resolver.register(concrete_algorithms=[wrong_return_type])
 
     @abstract_algorithm("testing.return_type")
-    def return_type(x: MyAbstractType) -> int:  # pragma: nocover
+    def return_type(x: MyNumericAbstractType) -> int:  # pragma: nocover
         pass
 
     @concrete_algorithm("testing.return_type")
@@ -208,10 +218,12 @@ def test_python_types_in_signature(example_resolver):
 
 
 def test_python_types_as_concrete_substitutes(example_resolver):
-    from .util import IntType, MyAbstractType
+    from .util import IntType, MyNumericAbstractType
 
     @abstract_algorithm("testing.python_types")
-    def python_types(x: MyAbstractType, p: int) -> MyAbstractType:  # pragma: no cover
+    def python_types(
+        x: MyNumericAbstractType, p: int
+    ) -> MyNumericAbstractType:  # pragma: no cover
         pass
 
     example_resolver.register(abstract_algorithms=[python_types])
@@ -221,7 +233,7 @@ def test_python_types_as_concrete_substitutes(example_resolver):
         pass
 
     example_resolver.register(concrete_algorithms=[correct_python_type])
-    algo_plan = example_resolver.find_algorithm("testing.python_types", 3, 4)
+    algo_plan = example_resolver.find_algorithm_exact("testing.python_types", 3, 4)
     assert algo_plan.algo == correct_python_type
 
 
@@ -239,7 +251,7 @@ def test_typeof(example_resolver):
 
 
 def test_find_translator(example_resolver):
-    from .util import StrType, IntType, OtherType, int_to_str, str_to_int
+    from .util import StrNum, IntType, OtherType, int_to_str, str_to_int
 
     def find_translator(value, dst_type):
         src_type = example_resolver.typeof(value).__class__
@@ -250,21 +262,21 @@ def test_find_translator(example_resolver):
             assert len(trns.translators) == 1
             return trns.translators[0]
 
-    assert find_translator(4, StrType) == int_to_str
-    assert find_translator("4", IntType) == str_to_int
+    assert find_translator(4, StrNum.Type) == int_to_str
+    assert find_translator(StrNum("4"), IntType) == str_to_int
     assert find_translator(4, OtherType) is None
     assert find_translator(4, IntType) is None  # no self-translator registered
 
 
 def test_translate(example_resolver):
-    from .util import StrType, IntType, OtherType
+    from .util import StrNum, IntType, OtherType
 
-    assert example_resolver.translate(4, StrType) == "4"
-    assert example_resolver.translate("4", IntType) == 4
+    assert example_resolver.translate(4, StrNum.Type) == StrNum("4")
+    assert example_resolver.translate(StrNum("4"), IntType) == 4
     with pytest.raises(TypeError, match="Cannot convert"):
         example_resolver.translate(4, OtherType)
     with pytest.raises(TypeError, match="does not have a registered type"):
-        example_resolver.translate(set(), StrType)
+        example_resolver.translate(set(), StrNum.Type)
 
     # Check registration of translator with Python types works
     @translator
@@ -276,7 +288,7 @@ def test_translate(example_resolver):
 
 
 def test_find_algorithm(example_resolver):
-    from .util import int_power, MyAbstractType
+    from .util import int_power, MyNumericAbstractType
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.find_algorithm("does_not_exist", 1, thing=2)
@@ -293,7 +305,7 @@ def test_find_algorithm(example_resolver):
         example_resolver.find_algorithm("power", x=1, q=2)
 
     @abstract_algorithm("testing.match_python_type")
-    def python_type(x: MyAbstractType) -> int:  # pragma: no cover
+    def python_type(x: MyNumericAbstractType) -> int:  # pragma: no cover
         pass
 
     @concrete_algorithm("testing.match_python_type")
@@ -318,7 +330,7 @@ def test_call_algorithm(example_resolver):
     assert example_resolver.call_algorithm("power", p=2, x=3) == 9
     with pytest.raises(
         TypeError,
-        match='No concrete algorithm for "power" can be satisfied for the given inputs',
+        match="p must be of type MyNumericAbstractType, not MyAbstractType::StrType",
     ):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
@@ -334,6 +346,39 @@ def test_algo_attribute(example_resolver):
     assert example_resolver.algo.power(p=2, x=3) == 9
     with pytest.raises(
         TypeError,
-        match='No concrete algorithm for "power" can be satisfied for the given inputs',
+        match="p must be of type MyNumericAbstractType, not MyAbstractType::StrType",
     ):
         example_resolver.algo.power(1, "4")
+
+
+def test_concrete_algorithm_with_properties(example_resolver):
+    val = example_resolver.algo.ln(100.0)
+    assert abs(val - 4.605170185988092) < 1e-6
+
+    with pytest.raises(ValueError, match="does not meet the specificity requirement"):
+        example_resolver.algo.ln(-1.1)
+
+
+def test_concrete_algorithm_insufficient_specificity(example_resolver):
+    from .util import MyNumericAbstractType, FloatType
+
+    class RandomFloatType(Wrapper, abstract=MyNumericAbstractType):
+        abstract_property_specificity_limits = {"positivity": "any"}
+
+        def __init__(self):
+            import random
+
+            self.value = (random.random() - 0.5) * 100
+
+    example_resolver.register(wrappers=[RandomFloatType])
+
+    @concrete_algorithm("ln")
+    def insufficient_ln_function(x: RandomFloatType) -> FloatType:
+        import math
+
+        return math.log(x.value)
+
+    # RandomFloatType cannot be restricted to positivity=">0", while the
+    # abstract algorithm definition requires such specificity
+    with pytest.raises(TypeError, match="insufficient specificity"):
+        example_resolver.register(concrete_algorithms=[insufficient_ln_function])
