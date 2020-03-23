@@ -3,11 +3,15 @@ import pytest
 
 from .util import (
     MyAbstractType,
+    MyNumericAbstractType,
     StrType,
     IntType,
+    FloatType,
     int_to_str,
     abstract_power,
     int_power,
+    abstract_ln,
+    float_ln,
 )
 
 
@@ -16,6 +20,23 @@ def test_abstract_type():
     assert MyAbstractType() == MyAbstractType()
     # is hashable
     assert hash(MyAbstractType())
+
+    # invalid properties
+    with pytest.raises(KeyError, match="not a valid property"):
+        MyAbstractType(foo=17)
+
+    # abstract with properties checks
+    assert MyNumericAbstractType(divisible_by_two=True) == MyNumericAbstractType(
+        divisible_by_two=True
+    )
+    assert MyNumericAbstractType(divisible_by_two=True) != MyNumericAbstractType(
+        divisible_by_two=False
+    )
+    assert hash(MyNumericAbstractType(divisible_by_two=False, positivity=">=0"))
+
+    # property index calculation
+    at = MyNumericAbstractType(positivity=">=0")
+    assert at.prop_idx == {"positivity": 1, "divisible_by_two": 0}
 
 
 def test_concrete_type():
@@ -70,7 +91,7 @@ def test_translator():
     assert isinstance(int_to_str, plugin.Translator)
     assert int_to_str.__name__ == "int_to_str"
     assert "Convert int to str" in int_to_str.__doc__
-    assert int_to_str(4) == "4"
+    assert int_to_str(4).value == "4"
 
 
 def test_abstract_algorithm():
@@ -84,3 +105,15 @@ def test_concrete_algorithm():
     assert isinstance(int_power, plugin.ConcreteAlgorithm)
     assert int_power.abstract_name == "power"
     assert int_power(2, 3) == 8
+
+
+def test_abstract_algorithm_with_properties():
+    assert isinstance(abstract_ln, plugin.AbstractAlgorithm)
+    assert abstract_ln.__name__ == "abstract_ln"
+    assert abstract_ln.name == "ln"
+
+
+def test_concrete_algorithm_with_properties():
+    assert isinstance(float_ln, plugin.ConcreteAlgorithm)
+    assert float_ln.abstract_name == "ln"
+    assert abs(float_ln(100.0) - 4.605170185988092) < 1e-6
