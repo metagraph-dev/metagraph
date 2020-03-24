@@ -380,5 +380,7 @@ def test_concrete_algorithm_insufficient_specificity(example_resolver):
 
     # RandomFloatType cannot be restricted to positivity=">0", while the
     # abstract algorithm definition requires such specificity
-    with pytest.raises(TypeError, match="insufficient specificity"):
+    with pytest.raises(
+        TypeError, match='"positivity" has specificity limits which are incompatible'
+    ):
         example_resolver.register(concrete_algorithms=[insufficient_ln_function])

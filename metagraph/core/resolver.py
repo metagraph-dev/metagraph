@@ -237,7 +237,6 @@ class Resolver:
                     raise ValueError(
                         f"concrete algorithm {ca.__class__.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
                     )
-                abstract = self.abstract_algorithms[ca.abstract_name]
                 self._normalize_concrete_algorithm_signature(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].append(ca)
 
@@ -340,6 +339,22 @@ class Resolver:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
                     )
+                # If concrete type has specificity limits, make sure they are
+                # adequate for the abstract signature's required minimums
+                if conc_type.abstract_property_specificity_limits:
+                    for key, required_minimum in abst_type.prop_idx.items():
+                        if key in conc_type.abstract_property_specificity_limits:
+                            max_specificity_str = conc_type.abstract_property_specificity_limits[
+                                key
+                            ]
+                            max_specificity_int = abst_type.properties[key].index(
+                                max_specificity_str
+                            )
+                            if max_specificity_int < required_minimum:
+                                raise TypeError(
+                                    f'{concrete.func.__qualname__} argument "{key}" has specificity limits which are '
+                                    f"incompatible with the abstract signature"
+                                )
 
         # Check return type
         abst_ret = self._normalize_abstract_type(abst_sig.return_annotation)
@@ -429,7 +444,7 @@ class Resolver:
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
-        # Validate abstract properties
+        # Validate types meeting minimum specificity required by abstract properties
         abstract_algo = self.abstract_algorithms[algo_name]
         sig = abstract_algo.__signature__
         bound_args = sig.bind(*args, **kwargs)
