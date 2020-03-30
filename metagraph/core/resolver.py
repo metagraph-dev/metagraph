@@ -235,7 +235,7 @@ class Resolver:
                 abstract = self.abstract_algorithms.get(ca.abstract_name, None)
                 if abstract is None:
                     raise ValueError(
-                        f"concrete algorithm {ca.__class__.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
                     )
                 self._normalize_concrete_algorithm_signature(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].append(ca)
@@ -470,14 +470,25 @@ class Resolver:
                         f"{arg_name} must be of type {type(param_type).__name__}, "
                         f"not {this_type.abstract.__name__}::{type(this_type).__name__}"
                     )
+                unsatisfied_requirements = []
                 for abst_prop, min_value in param_type.prop_idx.items():
                     this_val = this_type.abstract_instance.prop_idx[abst_prop]
                     if this_val < min_value:
-                        raise ValueError(
-                            f"{arg_name} does not meet the specificity requirement:\n"
-                            f" -> must be at least '{param_type.properties[abst_prop][min_value]}'\n"
-                            f" -> but is only '{param_type.properties[abst_prop][this_val]}'"
-                        )
+                        min_val_obj = param_type.properties[abst_prop][min_value]
+                        if type(min_val_obj) is bool:
+                            unsatisfied_requirements.append(
+                                f" -> `{abst_prop}` must be {min_val_obj}"
+                            )
+                        else:
+                            unsatisfied_requirements.append(
+                                f' -> `{abst_prop}` must be at least "{min_val_obj}"'
+                            )
+                if unsatisfied_requirements:
+                    raise ValueError(
+                        f'"{arg_name}" with properties\n{this_type.abstract_instance.prop_val}\n'
+                        + f"does not meet the specificity requirements:\n"
+                        + "\n".join(unsatisfied_requirements)
+                    )
 
         valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
         if not valid_algos:

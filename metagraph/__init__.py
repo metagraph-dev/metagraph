@@ -14,6 +14,7 @@ from .core.plugin import (
 )
 from .core import dtypes
 from .core.plugin_registry import PluginRegistry
+from .core.labeled_index import LabeledIndex, SequentialIndex
 from . import types, algorithms
 
 _SPECIAL_ATTRS = ["resolver", "algo", "translate", "typeof"]
