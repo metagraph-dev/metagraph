@@ -96,7 +96,7 @@ if has_networkx:
                     e_attrs = edge[-1]
                     if "weight" not in e_attrs:
                         weights = "unweighted"
-                        dtype = bool
+                        dtype = "bool"
                         break
                     else:
                         value = e_attrs["weight"]
@@ -141,7 +141,7 @@ if has_networkx:
                     e_attrs = edge[-1]
                     if "weight" not in e_attrs:
                         weights = "unweighted"
-                        dtype = bool
+                        dtype = "bool"
                         break
                     else:
                         value = e_attrs["weight"]

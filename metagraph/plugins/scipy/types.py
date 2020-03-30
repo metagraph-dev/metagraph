@@ -19,8 +19,8 @@ if has_scipy:
                 ret_val = cls()
                 nrows, ncols = obj.shape
                 is_square = nrows == ncols
-                is_symmetric = (obj.T != obj).nnz == 0
-                dtype = dtypes.dtypes_simplified[obj.value.dtype]
+                is_symmetric = is_square and (obj.T != obj).nnz == 0
+                dtype = dtypes.dtypes_simplified[obj.dtype]
                 ret_val.abstract_instance = Matrix(
                     dtype=dtype, is_square=is_square, is_symmetric=is_symmetric
                 )

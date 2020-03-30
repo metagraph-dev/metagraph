@@ -155,7 +155,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     def __init__(self, data, missing_value=_NONE_SPECIFIED, is_symmetric=None):
         if type(data) is np.matrix:
             data = np.array(data, copy=False)
-        self.data = data
+        self.value = data
         self.missing_value = missing_value
         nrows, ncols = data.shape
         self._is_square = nrows == ncols
@@ -179,8 +179,9 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         else:
             return self.value == self.missing_value
 
+    @property
     def shape(self):
-        return self.data.shape
+        return self.value.shape
 
     @classmethod
     def get_type(cls, obj):
