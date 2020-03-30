@@ -26,10 +26,10 @@ def nodes_from_numpy(x: NumpyNodes, **props) -> PythonNodes:
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasNodeType
+    from ..graphblas.types import GrblasNodes
 
     @translator
-    def nodes_from_graphblas(x: GrblasNodeType, **props) -> PythonNodes:
+    def nodes_from_graphblas(x: GrblasNodes, **props) -> PythonNodes:
         idx, vals = x.to_values()
         data = {k: v for k, v in zip(idx, vals)}
         return PythonNodes(data)

@@ -119,7 +119,7 @@ if has_grblas:
                 ret_val = cls()
                 is_square = obj.nrows == obj.ncols
                 is_symmetric = obj == obj.T.new()
-                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.value.dtype]]
+                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype]]
                 ret_val.abstract_instance = Matrix(
                     dtype=dtype, is_square=is_square, is_symmetric=is_symmetric
                 )
