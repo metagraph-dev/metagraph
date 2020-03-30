@@ -3,11 +3,11 @@ from metagraph.plugins import has_scipy, has_networkx, has_grblas
 
 if has_scipy:
     import scipy.sparse as ss
-    from .types import ScipyAdjacencyMatrix, ScipySparseMatrixType
-    from ..numpy.types import NumpySparseMatrix
+    from .types import ScipyAdjacencyMatrix, ScipyMatrixType
+    from ..numpy.types import NumpyMatrix
 
     @translator
-    def sparsematrix_from_numpy(x: NumpySparseMatrix, **props) -> ScipySparseMatrixType:
+    def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
         # scipy.sparse assumes zero mean empty
         # To work around this limitation, we use a mask
         # and directly set .data after construction
@@ -19,22 +19,26 @@ if has_scipy:
 
 if has_scipy and has_networkx:
     import networkx as nx
-    from ..networkx.types import NetworkXGraphType
+    from ..networkx.types import NetworkXGraph
 
     @translator
-    def graph_from_networkx(x: NetworkXGraphType, **props) -> ScipyAdjacencyMatrix:
+    def graph_from_networkx(x: NetworkXGraph, **props) -> ScipyAdjacencyMatrix:
         # WARNING: This assumes the nxGraph has nodes in sequential order
-        m = nx.convert_matrix.to_scipy_sparse_matrix(x, nodelist=range(len(x)))
-        return ScipyAdjacencyMatrix(m)
+        m = nx.convert_matrix.to_scipy_sparse_matrix(
+            x.value, nodelist=range(len(x.value))
+        )
+        return ScipyAdjacencyMatrix(
+            m, weights=x._weights, is_directed=x.value.is_directed()
+        )
 
 
 if has_scipy and has_grblas:
+    import scipy.sparse as ss
+    from .types import ScipyMatrixType, ScipyAdjacencyMatrix
     from ..graphblas.types import GrblasMatrixType
 
     @translator
-    def sparsematrix_from_graphblas(
-        x: GrblasMatrixType, **props
-    ) -> ScipySparseMatrixType:
+    def matrix_from_graphblas(x: GrblasMatrixType, **props) -> ScipyMatrixType:
         rows, cols, vals = x.to_values()
-        mat = ss.coo_matrix((tuple(vals), (tuple(rows), tuple(cols))), x.shape)
+        mat = ss.coo_matrix((vals, (rows, cols)), x.shape)
         return mat

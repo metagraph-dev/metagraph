@@ -23,17 +23,20 @@ class AbstractType:
     def __init__(self, **props):
         # Start with all properties at the most general level
         prop_idx = {key: 0 for key in self.properties}
+        prop_val = {key: self.properties[key][0] for key in self.properties}
         for key, val in props.items():
             if key not in self.properties:
                 raise KeyError(f"{key} not a valid property of {self.__class__}")
             try:
                 idx = self.properties[key].index(val)
                 prop_idx[key] = idx
+                prop_val[key] = val
             except ValueError:
                 raise ValueError(
                     f"Invalid setting for {key} property: '{val}'; must be one of {self.properties[key]}"
                 )
         self.prop_idx = prop_idx
+        self.prop_val = prop_val
 
     def __eq__(self, other):
         return self.__class__ == other.__class__ and self.prop_idx == other.prop_idx

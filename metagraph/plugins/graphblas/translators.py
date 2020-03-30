@@ -1,5 +1,8 @@
+import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas, has_scipy
+from ..numpy.types import NumpyVector, NumpyNodes
+
 
 if has_grblas:
     import grblas
@@ -7,56 +10,51 @@ if has_grblas:
         GrblasAdjacencyMatrix,
         GrblasMatrixType,
         GrblasVectorType,
+        GrblasNodes,
         dtype_mg_to_grblas,
     )
-    from ..numpy.types import NumpySparseVector
-    from ..python.types import PythonSparseVector
 
     @translator
-    def sparsevector_from_python(x: PythonSparseVector, **props) -> GrblasVectorType:
-        idx, vals = zip(*x.value.items())
+    def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
+        idx = np.arange(len(x))[x.get_missing_mask()]
+        vals = x.value[idx]
         vec = grblas.Vector.new_from_values(
-            idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.dtype]
+            idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
         return vec
 
     @translator
-    def sparsevector_from_numpy(x: NumpySparseVector, **props) -> GrblasVectorType:
-        idx = [
-            idx for idx, is_missing in enumerate(x.get_missing_mask()) if not is_missing
-        ]
-        vals = [x.value[i] for i in idx]
+    def nodes_from_numpy(x: NumpyNodes, **props) -> GrblasNodes:
+        idx = np.arange(len(x.value))[x.get_missing_mask()]
+        vals = x.value[idx]
         vec = grblas.Vector.new_from_values(
-            idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.dtype]
+            idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
-        return vec
+        return GrblasNodes(vec, node_labels=x.node_labels, weights=x._weights)
 
 
 if has_grblas and has_scipy:
-    import scipy.sparse as ss
-    from ..scipy.types import ScipyAdjacencyMatrix, ScipySparseMatrixType
-    from ..numpy.types import dtype_np_to_mg
+    from ..scipy.types import ScipyAdjacencyMatrix, ScipyMatrixType
+    from .types import dtype_mg_to_grblas
 
     @translator
     def graph_from_scipy(x: ScipyAdjacencyMatrix, **props) -> GrblasAdjacencyMatrix:
         m = x.value.tocoo()
         nrows, ncols = m.shape
+        dtype = dtype_mg_to_grblas[x.value.dtype]
         out = grblas.Matrix.new_from_values(
-            m.row, m.col, m.data, nrows=nrows, ncols=ncols, dtype=grblas.dtypes.INT64
+            m.row, m.col, m.data, nrows=nrows, ncols=ncols, dtype=dtype
         )
-        return GrblasAdjacencyMatrix(out, transposed=x.transposed)
+        return GrblasAdjacencyMatrix(
+            out, transposed=x.transposed, weights=x._weights, is_directed=x._is_directed
+        )
 
     @translator
-    def sparsematrix_from_scipy(x: ScipySparseMatrixType, **props) -> GrblasMatrixType:
+    def matrix_from_scipy(x: ScipyMatrixType, **props) -> GrblasMatrixType:
         x = x.tocoo()
         nrows, ncols = x.shape
-        dtype = dtype_np_to_mg(x.dtype)
+        dtype = dtype_mg_to_grblas[x.dtype]
         vec = grblas.Matrix.new_from_values(
-            x.row,
-            x.col,
-            x.data,
-            nrows=nrows,
-            ncols=ncols,
-            dtype=dtype_mg_to_grblas[dtype],
+            x.row, x.col, x.data, nrows=nrows, ncols=ncols, dtype=dtype,
         )
         return vec

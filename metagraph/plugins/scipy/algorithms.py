@@ -14,8 +14,4 @@ if has_scipy:
         """
         L = ss.tril(graph.value, k=-1).tocsr()
         U = ss.triu(graph.value, k=1).tocsc()
-        # Check for inequality, which indicates non-symmetry
-        if (L != U.T).nnz > 0:
-            raise ValueError("adjacency matrix must be symmetric for triangle count")
-        # https://www.sandia.gov/~srajama/publications/Tricount-HPEC.pdf
         return int((L @ U.T).multiply(L).sum())
