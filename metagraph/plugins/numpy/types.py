@@ -1,5 +1,5 @@
 import numpy as np
-from metagraph import Wrapper, dtypes, LabeledIndex
+from metagraph import Wrapper, dtypes, SequentialNodes
 from metagraph.types import Vector, Nodes, NodeMapping, Matrix, WEIGHT_CHOICES
 
 
@@ -45,26 +45,19 @@ class NumpyVector(Wrapper, abstract=Vector):
 
 class NumpyNodes(Wrapper, abstract=Nodes):
     def __init__(
-        self, data, node_labels=None, weights=None, missing_value=_NONE_SPECIFIED
+        self, data, *, weights=None, missing_value=_NONE_SPECIFIED, node_index=None
     ):
         self.value = data
         self._assert_instance(data, np.ndarray)
         self.missing_value = missing_value
-        if node_labels:
-            if not isinstance(node_labels, LabeledIndex):
-                node_labels = LabeledIndex(node_labels)
-            self._assert(
-                len(node_labels) == len(data),
-                "Node labels must be the same length as data",
-            )
-        self.node_labels = node_labels
         self._dtype = dtypes.dtypes_simplified[data.dtype]
         self._weights = self._determine_weights(weights)
+        self._node_index = node_index
 
     def __getitem__(self, label):
-        if self.node_labels is None:
+        if self._node_index is None:
             return self.value[label]
-        return self.value[self.node_labels.bylabel[label]]
+        return self.value[self._node_index.bylabel(label)]
 
     def _determine_weights(self, weights=None):
         if weights is not None:
@@ -103,6 +96,12 @@ class NumpyNodes(Wrapper, abstract=Nodes):
         else:
             return self.value == self.missing_value
 
+    @property
+    def node_index(self):
+        if self._node_index is None:
+            self._node_index = SequentialNodes(len(self.value))
+        return self._node_index
+
     @classmethod
     def get_type(cls, obj):
         """Get an instance of this type class that describes obj"""
@@ -126,14 +125,6 @@ class NumpyNodeMapping(Wrapper, abstract=NodeMapping):
     ):
         self.value = data
         self.missing_value = missing_value
-        if src_node_labels is not None and not isinstance(
-            src_node_labels, LabeledIndex
-        ):
-            src_node_labels = LabeledIndex(src_node_labels)
-        if dst_node_labels is not None and not isinstance(
-            dst_node_labels, LabeledIndex
-        ):
-            dst_node_labels = LabeledIndex(dst_node_labels)
         self.src_node_labels = src_node_labels
         self.dst_node_labels = dst_node_labels
 

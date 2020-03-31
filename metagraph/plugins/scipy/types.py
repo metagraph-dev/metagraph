@@ -1,4 +1,4 @@
-from metagraph import ConcreteType, Wrapper, dtypes
+from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
 from metagraph.types import Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_scipy
 
@@ -29,13 +29,24 @@ if has_scipy:
                 raise TypeError(f"object not of type {cls.__name__}")
 
     class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
-        def __init__(self, data, transposed=False, *, weights=None, is_directed=None):
+        def __init__(
+            self,
+            data,
+            transposed=False,
+            *,
+            weights=None,
+            is_directed=None,
+            node_index=None,
+        ):
+            self._assert_instance(data, ss.spmatrix)
+            nrows, ncols = data.shape
+            self._assert(nrows == ncols, "Adjacency Matrix must be square")
             self.value = data
             self.transposed = transposed
-            self._assert_instance(data, ss.spmatrix)
             self._dtype = dtypes.dtypes_simplified[data.dtype]
             self._weights = self._determine_weights(weights)
             self._is_directed = self._determine_is_directed(is_directed)
+            self._node_index = node_index
 
         def _determine_weights(self, weights):
             if weights is not None:
@@ -66,6 +77,12 @@ if has_scipy:
                 return is_directed
 
             return (self.value.T != self.value).nnz > 0
+
+        @property
+        def node_index(self):
+            if self._node_index is None:
+                self._node_index = SequentialNodes(self.value.shape[0])
+            return self._node_index
 
         @property
         def format(self):

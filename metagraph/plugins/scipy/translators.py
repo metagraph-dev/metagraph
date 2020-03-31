@@ -23,12 +23,13 @@ if has_scipy and has_networkx:
 
     @translator
     def graph_from_networkx(x: NetworkXGraph, **props) -> ScipyAdjacencyMatrix:
-        # WARNING: This assumes the nxGraph has nodes in sequential order
-        m = nx.convert_matrix.to_scipy_sparse_matrix(
-            x.value, nodelist=range(len(x.value))
-        )
+        node_index = x.node_index
+        m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=node_index)
         return ScipyAdjacencyMatrix(
-            m, weights=x._weights, is_directed=x.value.is_directed()
+            m,
+            weights=x._weights,
+            is_directed=x.value.is_directed(),
+            node_index=node_index,
         )
 
 

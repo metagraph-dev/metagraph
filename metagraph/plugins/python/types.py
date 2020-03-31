@@ -1,4 +1,4 @@
-from metagraph import Wrapper, LabeledIndex
+from metagraph import Wrapper, IndexedNodes
 from metagraph.types import Nodes, NodeMapping, WEIGHT_CHOICES, DTYPE_CHOICES
 
 
@@ -11,7 +11,7 @@ dtype_casting = {
 
 
 class PythonNodes(Wrapper, abstract=Nodes):
-    def __init__(self, data, dtype=None, weights=None, *, labeled_index=None):
+    def __init__(self, data, *, dtype=None, weights=None, node_index=None):
         """
         data: dict of node: weight
         """
@@ -19,9 +19,7 @@ class PythonNodes(Wrapper, abstract=Nodes):
         self.value = data
         self._dtype = self._determine_dtype(dtype)
         self._weights = self._determine_weights(weights)
-        if labeled_index is None:
-            labeled_index = LabeledIndex(data.keys())
-        self.index = labeled_index
+        self._node_index = node_index
 
     def __getitem__(self, label):
         return self.value[label]
@@ -62,6 +60,15 @@ class PythonNodes(Wrapper, abstract=Nodes):
                     return "unweighted"
                 return "positive"
 
+    @property
+    def node_index(self):
+        if self._node_index is None:
+            nodes = tuple(self.value.keys())
+            if type(nodes[0]) == int:
+                nodes = sorted(nodes)
+            self._node_index = IndexedNodes(nodes)
+        return self._node_index
+
     @classmethod
     def get_type(cls, obj):
         """Get an instance of this type class that describes obj"""
@@ -77,9 +84,5 @@ class PythonNodeMapping(Wrapper, abstract=NodeMapping):
     def __init__(self, data, src_labeled_index=None, dst_labeled_index=None):
         self._assert_instance(data, dict)
         self.data = data
-        if src_labeled_index is None:
-            src_labeled_index = LabeledIndex(data.keys())
-        if dst_labeled_index is None:
-            dst_labeled_index = LabeledIndex(set(data.values()))
         self.src_index = src_labeled_index
         self.dst_index = dst_labeled_index

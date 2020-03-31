@@ -1,5 +1,5 @@
 import numpy as np
-from metagraph import translator, LabeledIndex
+from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
 from .types import NumpyMatrix, NumpyVector, NumpyNodes
 from ..python.types import PythonNodes
@@ -9,9 +9,9 @@ from ..python.types import PythonNodes
 def nodes_from_python(x: PythonNodes, **props) -> NumpyNodes:
     np_dtype = x._dtype if x._dtype != "str" else "object"
     data = np.empty((len(x.value),), dtype=np_dtype)
-    for idx, label in enumerate(x.index):
+    for idx, label in enumerate(x.node_index):
         data[idx] = x.value[label]
-    return NumpyNodes(data, node_labels=x.index, weights=x._weights)
+    return NumpyNodes(data, weights=x._weights, node_index=x.node_index)
 
 
 if has_scipy:

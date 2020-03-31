@@ -44,6 +44,9 @@ class AbstractType:
     def __hash__(self):
         return hash((self.__class__, tuple(self.prop_idx.items())))
 
+    def __getitem__(self, key):
+        return self.prop_val[key]
+
 
 class ConcreteType:
     """A specific data type in a particular memory space recognized by metagraph.
@@ -133,6 +136,11 @@ class ConcreteType:
     def __hash__(self):
         return hash((self.__class__, tuple(self.props.items())))
 
+    def __getitem__(self, key):
+        if key in self.abstract.properties:
+            return self.abstract_instance[key]
+        return self.props[key]
+
     @classmethod
     def is_typeof(cls, obj):
         """Is obj described by this type?"""
@@ -190,14 +198,17 @@ class Wrapper:
             if hasattr(cls, funcname):
                 func = getattr(cls, funcname)
                 setattr(cls.Type, funcname, func)
+                delattr(cls, funcname)
         for methodname in ["is_typeof", "get_type"]:
             if hasattr(cls, methodname):
                 func = getattr(cls, methodname).__func__
                 setattr(cls.Type, methodname, classmethod(func))
+                delattr(cls, methodname)
         for sfuncname in []:
             if hasattr(cls, sfuncname):
                 func = getattr(cls, sfuncname)
                 setattr(cls.Type, sfuncname, staticmethod(func))
+                delattr(cls, sfuncname)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):

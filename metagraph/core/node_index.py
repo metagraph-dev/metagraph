@@ -1,7 +1,7 @@
 import numpy as np
 
 
-class LabeledIndex:
+class IndexedNodes:
     def __init__(self, labels):
         if isinstance(labels, np.ndarray):
             if len(labels.shape) != 1:
@@ -25,7 +25,7 @@ class LabeledIndex:
         return label
 
 
-class SequentialIndex(LabeledIndex):
+class SequentialNodes(IndexedNodes):
     def __init__(self, size):
         self._size = size
 

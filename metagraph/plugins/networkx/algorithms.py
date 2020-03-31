@@ -17,7 +17,9 @@ if has_networkx:
         pagerank = nx.pagerank(
             graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
         )
-        return PythonNodes(pagerank)
+        return PythonNodes(
+            pagerank, dtype="float", weights="positive", node_index=graph.node_index
+        )
 
     @concrete_algorithm("cluster.triangle_count")
     def nx_triangle_count(graph: NetworkXGraph) -> int:
