@@ -30,7 +30,7 @@ if has_grblas:
         vec = grblas.Vector.new_from_values(
             idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
-        return GrblasNodes(vec, node_labels=x.node_labels, weights=x._weights)
+        return GrblasNodes(vec, weights=x._weights, node_index=x.node_index)
 
 
 if has_grblas and has_scipy:
@@ -46,7 +46,11 @@ if has_grblas and has_scipy:
             m.row, m.col, m.data, nrows=nrows, ncols=ncols, dtype=dtype
         )
         return GrblasAdjacencyMatrix(
-            out, transposed=x.transposed, weights=x._weights, is_directed=x._is_directed
+            out,
+            transposed=x.transposed,
+            weights=x._weights,
+            is_directed=x._is_directed,
+            node_index=x.node_index,
         )
 
     @translator

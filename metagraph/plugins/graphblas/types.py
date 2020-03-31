@@ -1,4 +1,4 @@
-from metagraph import ConcreteType, Wrapper, dtypes, LabeledIndex
+from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
 from metagraph.types import Vector, Nodes, NodeMapping, Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_grblas
 
@@ -37,24 +37,17 @@ if has_grblas:
                 raise TypeError(f"object not of type {cls.__name__}")
 
     class GrblasNodes(Wrapper, abstract=Nodes):
-        def __init__(self, data, node_labels=None, weights=None):
+        def __init__(self, data, *, weights=None, node_index=None):
             self._assert_instance(data, grblas.Vector)
             self.value = data
-            if node_labels:
-                if not isinstance(node_labels, LabeledIndex):
-                    node_labels = LabeledIndex(node_labels)
-                self._assert(
-                    len(node_labels) == len(data),
-                    "Node labels must be the same length as data",
-                )
-            self.node_labels = node_labels
             self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype]]
             self._weights = self._determine_weights(weights)
+            self._node_index = node_index
 
         def __getitem__(self, label):
-            if self.node_labels is None:
-                return self.value[label]
-            return self.value[self.node_labels.bylabel[label]].value
+            if self._node_index is None:
+                return self.value[label].value
+            return self.value[self._node_index.bylabel(label)].value
 
         def _determine_weights(self, weights=None):
             if weights is not None:
@@ -80,6 +73,12 @@ if has_grblas:
                         return "unweighted"
                     return "positive"
 
+        @property
+        def node_index(self):
+            if self._node_index is None:
+                self._node_index = SequentialNodes(self.value.size)
+            return self._node_index
+
         @classmethod
         def get_type(cls, obj):
             """Get an instance of this type class that describes obj"""
@@ -95,14 +94,6 @@ if has_grblas:
     class GrblasNodeMapping(Wrapper, abstract=NodeMapping):
         def __init__(self, data, src_node_labels=None, dst_node_labels=None):
             self.value = data
-            if src_node_labels is not None and not isinstance(
-                src_node_labels, LabeledIndex
-            ):
-                src_node_labels = LabeledIndex(src_node_labels)
-            if dst_node_labels is not None and not isinstance(
-                dst_node_labels, LabeledIndex
-            ):
-                dst_node_labels = LabeledIndex(dst_node_labels)
             self.src_node_labels = src_node_labels
             self.dst_node_labels = dst_node_labels
 
@@ -128,10 +119,20 @@ if has_grblas:
                 raise TypeError(f"object not of type {cls.__name__}")
 
     class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
-        def __init__(self, data, transposed=False, *, weights=None, is_directed=None):
+        def __init__(
+            self,
+            data,
+            transposed=False,
+            *,
+            weights=None,
+            is_directed=None,
+            node_index=None,
+        ):
             self._assert_instance(data, grblas.Matrix)
+            self._assert(data.nrows == data.ncols, "Adjacency Matrix must be square")
             self.value = data
             self.transposed = transposed
+            self._node_index = node_index
             self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype]]
             self._weights = self._determine_weights(weights)
             self._is_directed = self._determine_is_directed(is_directed)
@@ -171,6 +172,12 @@ if has_grblas:
 
         def show(self):
             return self.value.show()
+
+        @property
+        def node_index(self):
+            if self._node_index is None:
+                self._node_index = SequentialNodes(self.value.nrows)
+            return self._node_index
 
         @classmethod
         def get_type(cls, obj):

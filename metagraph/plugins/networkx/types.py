@@ -1,4 +1,4 @@
-from metagraph import ConcreteType, Wrapper
+from metagraph import ConcreteType, Wrapper, IndexedNodes
 from metagraph.types import Graph, DTYPE_CHOICES, WEIGHT_CHOICES
 from metagraph.plugins import has_networkx
 
@@ -7,9 +7,18 @@ if has_networkx:
     import networkx as nx
 
     class NetworkXGraph(Wrapper, abstract=Graph):
-        def __init__(self, nx_graph, weight_label=None, *, weights=None, dtype=None):
+        def __init__(
+            self,
+            nx_graph,
+            weight_label=None,
+            *,
+            weights=None,
+            dtype=None,
+            node_index=None,
+        ):
             self.value = nx_graph
             self.weight_label = weight_label
+            self._node_index = node_index
             self._assert_instance(nx_graph, nx.Graph)
             if weight_label is None:
                 self._dtype = "bool"
@@ -58,6 +67,15 @@ if has_networkx:
                     if self._dtype == "int" and all_values == {1}:
                         return "unweighted"
                     return "positive"
+
+        @property
+        def node_index(self):
+            if self._node_index is None:
+                nodes = tuple(self.value.nodes())
+                if type(nodes[0]) == int:
+                    nodes = sorted(nodes)
+                self._node_index = IndexedNodes(nodes)
+            return self._node_index
 
         @classmethod
         def get_type(cls, obj):
