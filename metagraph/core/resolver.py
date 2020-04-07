@@ -225,6 +225,7 @@ class Resolver:
             for aa in abstract_algorithms:
                 if aa.name in self.abstract_algorithms:
                     raise ValueError(f"abstract algorithm {aa.name} already exists")
+                aa = self._normalize_abstract_type(aa)
                 self.abstract_algorithms[aa.name] = aa
                 self.algo._register(aa.name, Dispatcher(self, aa.name))
                 self.plan.algo._register(aa.name, Dispatcher(self.plan, aa.name))
@@ -234,75 +235,140 @@ class Resolver:
                 abstract = self.abstract_algorithms.get(ca.abstract_name, None)
                 if abstract is None:
                     raise ValueError(
-                        f"concrete algorithm {ca.__class__.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
                     )
-                abstract = self.abstract_algorithms[ca.abstract_name]
-                self._raise_if_concrete_algorithm_signature_invalid(abstract, ca)
+                self._normalize_concrete_algorithm_signature(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].append(ca)
 
-    def _normalize_conc_type(self, conc_type, abs_type: AbstractType):
+    def _normalize_abstract_type(self, abst_type):
+        if type(abst_type) is type and issubclass(abst_type, AbstractType):
+            abst_type = abst_type()
+        return abst_type
+
+    def _normalize_concrete_type(self, conc_type, abst_type: AbstractType):
         # handle Python classes used as concrete types
-        if abs_type is Any:
+        if abst_type is Any:
             return conc_type
-        if issubclass(abs_type, AbstractType) and not isinstance(
+        if isinstance(abst_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
         ):
             if conc_type in self.class_to_concrete:
                 return self.class_to_concrete[conc_type]()
             else:
-                raise TypeError(f"'{conc_type}' is not a concrete type of '{abs_type}'")
+                raise TypeError(
+                    f"'{conc_type}' is not a concrete type of '{abst_type}'"
+                )
         else:
             return conc_type
 
-    def _raise_if_concrete_algorithm_signature_invalid(
+    def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
+        """
+        Convert all AbstractType to a no-arg instance
+        Leave all Python types alone
+        Guard against instances of anything other than AbstractType
+        """
+        abs_sig = abst_algo.__signature__
+        params = abs_sig.parameters
+        ret = abs_sig.return_annotation
+        changed = False
+        for pname, p in params.items():
+            if type(p.annotation) == type:
+                if issubclass(p.annotation, AbstractType):
+                    params[pname] = p.replace(annotation=p.annotation())
+                    changed = True
+            elif not isinstance(p.annotation, AbstractType):
+                raise TypeError(
+                    f'{abst_algo.func.__qualname__} argument "{pname}" may not be an instance of type {type(p.annotation)}'
+                )
+        if type(ret) == type:
+            if issubclass(ret, AbstractType):
+                ret = ret()
+                changed = True
+        elif not isinstance(ret, AbstractType):
+            raise TypeError(
+                f"{abst_algo.func.__qualname__} return type may not be an instance of type {type(ret)}"
+            )
+
+        if changed:
+            abs_sig = abs_sig.replace(parameters=params, return_annotation=ret)
+            abst_algo.__signature__ = abs_sig
+
+    def _normalize_concrete_algorithm_signature(
         self, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
     ):
-        abs_sig = abstract.__signature__
+        """
+        Convert all ConcreteType to a no-arg instance
+        Leave all Python types alone
+        Guard against instances of anything other than ConcreteType
+        Guard against mismatched signatures vs the abstract signature
+        """
+        # TODO: update this
+        abst_sig = abstract.__signature__
         conc_sig = concrete.__signature__
 
         # Check parameters
-        abs_params = list(abs_sig.parameters.values())
+        abst_params = list(abst_sig.parameters.values())
         conc_params = list(conc_sig.parameters.values())
-        if len(abs_params) != len(conc_params):
+        if len(abst_params) != len(conc_params):
             raise TypeError(
                 f"number of parameters does not match between {abstract.func.__qualname__} and {concrete.func.__qualname__}"
             )
-        for abs_param, conc_param in zip(abs_params, conc_params):
-            abs_type = abs_param.annotation
-            conc_type = self._normalize_conc_type(
-                conc_type=conc_param.annotation, abs_type=abs_type
+        for abst_param, conc_param in zip(abst_params, conc_params):
+            abst_type = self._normalize_abstract_type(abst_param.annotation)
+            conc_type = self._normalize_concrete_type(
+                conc_type=conc_param.annotation, abst_type=abst_type
             )
 
-            if abs_param.name != conc_param.name:
+            if abst_param.name != conc_param.name:
                 raise TypeError(
                     f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
                 )
 
             if not isinstance(conc_type, ConcreteType):
                 # regular Python types need to match exactly
-                if abs_type != conc_type:
+                if abst_type != conc_type:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
                     )
             else:
-                if not issubclass(conc_type.abstract, abs_type):
+                if not issubclass(conc_type.abstract, abst_type.__class__):
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
                     )
+                if conc_type.abstract_instance is not None:
+                    raise TypeError(
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
+                    )
+                # If concrete type has specificity limits, make sure they are
+                # adequate for the abstract signature's required minimums
+                if conc_type.abstract_property_specificity_limits:
+                    for key, required_minimum in abst_type.prop_idx.items():
+                        if key in conc_type.abstract_property_specificity_limits:
+                            max_specificity_str = conc_type.abstract_property_specificity_limits[
+                                key
+                            ]
+                            max_specificity_int = abst_type.properties[key].index(
+                                max_specificity_str
+                            )
+                            if max_specificity_int < required_minimum:
+                                raise TypeError(
+                                    f'{concrete.func.__qualname__} argument "{key}" has specificity limits which are '
+                                    f"incompatible with the abstract signature"
+                                )
 
         # Check return type
-        abs_ret = abs_sig.return_annotation
-        conc_ret = self._normalize_conc_type(
-            conc_type=conc_sig.return_annotation, abs_type=abs_ret
+        abst_ret = self._normalize_abstract_type(abst_sig.return_annotation)
+        conc_ret = self._normalize_concrete_type(
+            conc_type=conc_sig.return_annotation, abst_type=abst_ret
         )
         if not isinstance(conc_ret, ConcreteType):
             # regular Python types need to match exactly
-            if abs_ret != conc_ret:
+            if abst_ret != conc_ret:
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type does not match abstract function signature"
                 )
         else:
-            if not issubclass(conc_ret.abstract, abs_ret):
+            if not issubclass(conc_ret.abstract, abst_ret.__class__):
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
                 )
@@ -375,6 +441,55 @@ class Resolver:
             return best_algo
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
+        if algo_name not in self.abstract_algorithms:
+            raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
+
+        # Validate types meeting minimum specificity required by abstract properties
+        abstract_algo = self.abstract_algorithms[algo_name]
+        sig = abstract_algo.__signature__
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        parameters = bound_args.signature.parameters
+        for arg_name, arg_value in bound_args.arguments.items():
+            param_type = parameters[arg_name].annotation
+            if param_type is Any:
+                continue
+            if type(param_type) is type:
+                if issubclass(param_type, AbstractType):
+                    param_type = param_type()
+                else:
+                    if not isinstance(arg_value, param_type):
+                        raise TypeError(
+                            f"{arg_name} must be of type {param_type.__name__}, "
+                            f"not {type(arg_value).__name__}"
+                        )
+            if isinstance(param_type, AbstractType):
+                this_type = self.typeof(arg_value)
+                if this_type.abstract != type(param_type):
+                    raise TypeError(
+                        f"{arg_name} must be of type {type(param_type).__name__}, "
+                        f"not {this_type.abstract.__name__}::{type(this_type).__name__}"
+                    )
+                unsatisfied_requirements = []
+                for abst_prop, min_value in param_type.prop_idx.items():
+                    this_val = this_type.abstract_instance.prop_idx[abst_prop]
+                    if this_val < min_value:
+                        min_val_obj = param_type.properties[abst_prop][min_value]
+                        if type(min_val_obj) is bool:
+                            unsatisfied_requirements.append(
+                                f" -> `{abst_prop}` must be {min_val_obj}"
+                            )
+                        else:
+                            unsatisfied_requirements.append(
+                                f' -> `{abst_prop}` must be at least "{min_val_obj}"'
+                            )
+                if unsatisfied_requirements:
+                    raise ValueError(
+                        f'"{arg_name}" with properties\n{this_type.abstract_instance.prop_val}\n'
+                        + f"does not meet the specificity requirements:\n"
+                        + "\n".join(unsatisfied_requirements)
+                    )
+
         valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
         if not valid_algos:
             raise TypeError(

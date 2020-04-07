@@ -61,3 +61,24 @@ def dtype(datatype):
             f"dtype not understood by metagraph: {datatype!r} converted to {typ!r}"
         )
     return _dtypes[typ]  # return the exact metagraph dtype
+
+
+dtypes_simplified = {
+    bool: "bool",
+    int8: "int",
+    int16: "int",
+    int32: "int",
+    int64: "int",
+    uint8: "int",
+    uint16: "int",
+    uint32: "int",
+    uint64: "int",
+    float16: "float",
+    float32: "float",
+    float64: "float",
+    complex64: "str",
+    complex128: "str",
+    datetime64: "str",
+    timedelta64: "str",
+    object: "str",
+}
