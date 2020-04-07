@@ -1,25 +1,31 @@
-import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas
-from .types import PythonSparseVector
-from ..numpy.types import NumpySparseVector
+from .types import PythonNodes, dtype_casting
+from ..numpy.types import NumpyNodes
 
 
 @translator
-def sparsevector_from_numpy(x: NumpySparseVector, **props) -> PythonSparseVector:
+def nodes_from_numpy(x: NumpyNodes, **props) -> PythonNodes:
+    cast = dtype_casting[x._dtype]
+    idx2label = x.node_index.byindex
     data = {
-        idx: x.value[idx]
+        idx2label(idx): cast(x.value[idx])
         for idx, is_missing in enumerate(x.get_missing_mask())
         if not is_missing
     }
-    return PythonSparseVector(data, size=len(x))
+    return PythonNodes(
+        data, dtype=x._dtype, weights=x._weights, node_index=x.node_index
+    )
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasVectorType, dtype_mg_to_grblas
+    from ..graphblas.types import GrblasNodes
 
     @translator
-    def sparsevector_from_graphblas(x: GrblasVectorType, **props) -> PythonSparseVector:
-        idx, vals = x.to_values()
-        data = {k: v for k, v in zip(idx, vals)}
-        return PythonSparseVector(data, size=x.size)
+    def nodes_from_graphblas(x: GrblasNodes, **props) -> PythonNodes:
+        idx, vals = x.value.to_values()
+        idx2label = x.node_index.byindex
+        data = {idx2label(k): v for k, v in zip(idx, vals)}
+        return PythonNodes(
+            data, dtype=x._dtype, weights=x._weights, node_index=x.node_index
+        )

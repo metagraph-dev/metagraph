@@ -4,26 +4,32 @@ from metagraph.plugins import has_networkx
 
 if has_networkx:
     import networkx as nx
-    from ..python.types import PythonSparseVector
+    from .types import NetworkXGraph
+    from ..python.types import PythonNodes
 
     @concrete_algorithm("link_analysis.pagerank")
-    def pagerank(
-        graph: nx.DiGraph,
+    def nx_pagerank(
+        graph: NetworkXGraph,
         damping: float = 0.85,
         maxiter: int = 50,
         tolerance: float = 1e-05,
-    ) -> PythonSparseVector:
+    ) -> PythonNodes:
         pagerank = nx.pagerank(
-            graph, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
+            graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
         )
-        return PythonSparseVector(pagerank)
+        return PythonNodes(
+            pagerank, dtype="float", weights="positive", node_index=graph.node_index
+        )
 
     @concrete_algorithm("cluster.triangle_count")
-    def triangle_count(graph: nx.DiGraph) -> int:
-        # NetworkX's algorithm only works on undirected graphs
-        ugraph = graph.to_undirected()
-        triangles = nx.triangles(ugraph)
+    def nx_triangle_count(graph: NetworkXGraph) -> int:
+        triangles = nx.triangles(graph.value)
         # Sum up triangles from each node
-        # Divide by 3 becuase each triangle is counted 3 times
+        # Divide by 3 because each triangle is counted 3 times
         total_triangles = sum(triangles.values()) // 3
         return total_triangles
+
+    @concrete_algorithm("cluster.triangle_count_by_node")
+    def nx_triangle_count_by_node(graph: NetworkXGraph) -> PythonNodes:
+        triangles = nx.triangles(graph.value)
+        return PythonNodes(triangles)
