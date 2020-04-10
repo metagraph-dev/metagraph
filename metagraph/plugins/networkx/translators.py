@@ -1,46 +1,10 @@
 from metagraph import translator
 from metagraph.plugins import has_pandas, has_networkx
 
-if has_networkx:
-    import networkx as nx
-    from .types import NetworkXGraph, AutoNetworkXDiGraphType, AutoNetworkXGraphType
-
-    @translator
-    def nxundirected_from_nxgraph(x: NetworkXGraph, **props) -> AutoNetworkXGraphType:
-        # TODO: update all graph dicts if weight_label != "weight" ???
-        # TODO: what should the behavior be if x is directed?
-        return x.value
-
-    @translator
-    def nxdirected_from_nxgraph(x: NetworkXGraph, **props) -> AutoNetworkXDiGraphType:
-        # TODO: update all graph dicts if weight_label != "weight" ???
-        if x.value.is_directed():
-            return x.value
-        else:
-            return x.value.to_directed()
-
-    @translator
-    def nxgraph_from_nxundirected(x: AutoNetworkXGraphType, **props) -> NetworkXGraph:
-        type_info = AutoNetworkXGraphType.get_type(x)
-        weights = type_info["weights"]
-        if weights == "unweighted":
-            return NetworkXGraph(x)
-        else:
-            dtype = type_info["dtype"]
-            return NetworkXGraph(x, weight_label="weight", weights=weights, dtype=dtype)
-
-    @translator
-    def nxgraph_from_nxdirected(x: AutoNetworkXDiGraphType, **props) -> NetworkXGraph:
-        type_info = AutoNetworkXDiGraphType.get_type(x)
-        weights = type_info["weights"]
-        if weights == "unweighted":
-            return NetworkXGraph(x)
-        else:
-            dtype = type_info["dtype"]
-            return NetworkXGraph(x, weight_label="weight", weights=weights, dtype=dtype)
-
 
 if has_networkx and has_pandas:
+    import networkx as nx
+    from .types import NetworkXGraph
     from ..pandas.types import PandasEdgeList
 
     @translator
