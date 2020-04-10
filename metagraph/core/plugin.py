@@ -166,6 +166,11 @@ class ConcreteType:
         else:
             raise TypeError(f"object not of type {cls.__name__}")
 
+    @classmethod
+    def compare_objects(cls, obj1, obj2) -> bool:
+        """Compare whether obj1 and obj2 are equal"""
+        raise NotImplementedError()
+
 
 class Wrapper:
     """Helper class for creating wrappers around data objects
@@ -199,7 +204,7 @@ class Wrapper:
                 func = getattr(cls, funcname)
                 setattr(cls.Type, funcname, func)
                 delattr(cls, funcname)
-        for methodname in ["is_typeof", "get_type"]:
+        for methodname in ["is_typeof", "get_type", "compare_objects"]:
             if hasattr(cls, methodname):
                 func = getattr(cls, methodname).__func__
                 setattr(cls.Type, methodname, classmethod(func))
