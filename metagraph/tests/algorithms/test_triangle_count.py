@@ -1,5 +1,5 @@
 import networkx as nx
-from . import apply_all, verify_all
+from . import MultiVerify
 
 # Simple graph with 5 triangles
 # 0 - 1    5 - 6
@@ -28,5 +28,4 @@ def test_triangle_count(default_plugin_resolver):
     # Convert to wrapper
     graph = dpr.wrapper.Graph.NetworkXGraph(simple_graph)
 
-    algo_results = apply_all(dpr, "cluster.triangle_count", graph)
-    verify_all(dpr, 5, algo_results)
+    MultiVerify(dpr, "cluster.triangle_count", graph).assert_equals(5)
