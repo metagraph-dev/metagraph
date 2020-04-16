@@ -43,6 +43,7 @@ class MultiVerify:
                 missing_algos = missing_algos[0]
             else:
                 missing_algos = f"[{', '.join(missing_algos)}]"
+
             raise UnsatisfiableAlgorithmError(f"No plan found for {missing_algos}")
 
         self.plans = plans
