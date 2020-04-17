@@ -1,6 +1,6 @@
 from metagraph import abstract_algorithm
 from metagraph.types import Graph, Nodes
-from typing import Tuple
+from typing import Any, Tuple
 
 
 @abstract_algorithm("traversal.bellman_ford")
