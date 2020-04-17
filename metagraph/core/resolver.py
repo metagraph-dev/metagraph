@@ -315,10 +315,11 @@ class Resolver:
             )
         for abst_param, conc_param in zip(abst_params, conc_params):
             abst_type = self._normalize_abstract_type(abst_param.annotation)
+            if abst_type is Any:
+                continue
             conc_type = self._normalize_concrete_type(
                 conc_type=conc_param.annotation, abst_type=abst_type
             )
-
             if abst_param.name != conc_param.name:
                 raise TypeError(
                     f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'

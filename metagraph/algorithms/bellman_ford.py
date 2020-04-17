@@ -4,5 +4,7 @@ from typing import Tuple
 
 
 @abstract_algorithm("traversal.bellman_ford")
-def bellman_ford(graph: Graph(is_directed=True), source_node) -> Tuple[Nodes, Nodes]:
+def bellman_ford(
+    graph: Graph(is_directed=True), source_node: Any
+) -> Tuple[Nodes, Nodes]:
     pass
