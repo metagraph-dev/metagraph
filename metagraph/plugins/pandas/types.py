@@ -10,6 +10,17 @@ if has_pandas:
     class PandasDataFrameType(ConcreteType, abstract=DataFrame):
         value_type = pd.DataFrame
 
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be pandas DataFrames")
+
+            try:
+                pd.testing.assert_frame_equal(obj1, obj2, check_like=True)
+                return True
+            except AssertionError:
+                return False
+
     class PandasEdgeList(Wrapper, Graph.Mixins, abstract=Graph):
         """
         Graph represented as a pandas DataFrame with edges indicated by source and destination columns

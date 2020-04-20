@@ -38,6 +38,8 @@ if has_scipy:
 
             if obj1.dtype != obj2.dtype:
                 return False
+            if obj1.shape != obj2.shape:
+                return False
             if issubclass(obj1.dtype.type, np.floating):
                 d1 = obj1.tocsr()
                 d2 = obj2.tocsr()
