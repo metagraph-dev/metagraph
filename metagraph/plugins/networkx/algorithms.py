@@ -58,23 +58,31 @@ if has_networkx:
             weights="non-negative",
         )
 
-    # @concrete_algorithm("traversal.bellman_ford")
-    # def nx_bellman_ford(graph: NetworkXGraph, source_node: int) -> Tuple[PythonNodes, PythonNodes]:
-    #     predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(graph.value, source_node)
-    #     single_parent_map = {child: parents[0] if len(predecessors_map)>0 else source_node for child, parents in predecessors_map.items()}
-    #     return (
-    #         PythonNodes(
-    #             single_parent_map,
-    #             node_index=graph.node_index,
-    #             dtype="int",
-    #             weights="non-negative",
-    #         ),
-    #         PythonNodes(
-    #             distance_map,
-    #             node_index=graph.node_index,
-    #             dtype="int",
-    #             weights="non-negative",
-    #         ))
+    @concrete_algorithm("traversal.bellman_ford")
+    def nx_bellman_ford(
+        graph: NetworkXGraph, source_node: int
+    ) -> Tuple[PythonNodes, PythonNodes]:
+        predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(
+            graph.value, source_node
+        )
+        single_parent_map = {
+            child: parents[0] if len(parents) > 0 else source_node
+            for child, parents in predecessors_map.items()
+        }
+        return (
+            PythonNodes(
+                single_parent_map,
+                node_index=graph.node_index,
+                dtype="int",
+                weights="non-negative",
+            ),
+            PythonNodes(
+                distance_map,
+                node_index=graph.node_index,
+                dtype="int",
+                weights="non-negative",
+            ),
+        )
 
     @concrete_algorithm("vertex_ranking.betweenness_centrality")
     def nx_betweenness_centrality(
