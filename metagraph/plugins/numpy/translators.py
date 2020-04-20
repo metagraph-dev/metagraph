@@ -22,27 +22,27 @@ if has_scipy:
         # This is trickier than simply calling .toarray() because
         # scipy.sparse assumes empty means zero
         # Mask is required To properly handle any non-empty zeros
-        x = x.copy().astype(float)  # don't modify original
+        existing = x.copy().astype(bool)  # don't modify original
         data = x.toarray()
-        # Modify x to be a 1/0 mask array
-        x.data = np.ones_like(x.data)
-        mask = x.toarray()
-        data[mask == 0] = np.nan  # default missing value
-        return NumpyMatrix(data, missing_value=np.nan)
+        existing.data = np.ones_like(existing.data)
+        existing_mask = existing.toarray()
+        return NumpyMatrix(data, missing_mask=~existing_mask)
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasVectorType
+    from ..graphblas.types import GrblasVectorType, dtype_grblas_to_mg
 
     @translator
     def vector_from_graphblas(x: GrblasVectorType, **props) -> NumpyVector:
         inds, vals = x.to_values()
-        data = np.empty((x.size,))
-        data[:] = np.nan  # default missing value
-        for idx, val in zip(inds, vals):
-            data[idx] = val
+        data = np.empty((x.size,), dtype=dtype_grblas_to_mg[x.dtype])
         if len(vals) == len(data):
-            # This will register as dense
+            for idx, val in zip(inds, vals):
+                data[idx] = val
             return NumpyVector(data)
         else:
-            return NumpyVector(data, missing_value=np.nan)
+            missing_mask = np.ones_like(data, dtype=bool)
+            for idx, val in zip(inds, vals):
+                data[idx] = val
+                missing_mask[idx] = False
+            return NumpyVector(data, missing_mask=missing_mask)

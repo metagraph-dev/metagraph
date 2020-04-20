@@ -1,3 +1,4 @@
+import math
 from metagraph import Wrapper, IndexedNodes
 from metagraph.types import Nodes, NodeMapping, WEIGHT_CHOICES, DTYPE_CHOICES
 
@@ -10,7 +11,7 @@ dtype_casting = {
 }
 
 
-class PythonNodes(Wrapper, abstract=Nodes):
+class PythonNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
     def __init__(self, data, *, dtype=None, weights=None, node_index=None):
         """
         data: dict of node: weight
@@ -61,6 +62,12 @@ class PythonNodes(Wrapper, abstract=Nodes):
                 return "positive"
 
     @property
+    def num_nodes(self):
+        if self._node_index is None:
+            return len(self.value)
+        return len(self._node_index)
+
+    @property
     def node_index(self):
         if self._node_index is None:
             nodes = tuple(self.value.keys())
@@ -78,6 +85,21 @@ class PythonNodes(Wrapper, abstract=Nodes):
             return ret_val
         else:
             raise TypeError(f"object not of type {cls.__name__}")
+
+    @classmethod
+    def compare_objects(cls, obj1, obj2):
+        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+            raise TypeError("objects must be PythonNodes")
+
+        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+            return False
+        d1, d2 = obj1.value, obj2.value
+        if obj1._dtype == "float":
+            if d1.keys() ^ d2.keys():
+                return False
+            return all(math.isclose(d1[key], d2[key]) for key in d1)
+        else:
+            return d1 == d2
 
 
 class PythonNodeMapping(Wrapper, abstract=NodeMapping):

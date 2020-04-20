@@ -11,9 +11,14 @@ if has_scipy:
         # scipy.sparse assumes zero mean empty
         # To work around this limitation, we use a mask
         # and directly set .data after construction
-        non_mask = ~x.get_missing_mask()
-        mat = ss.coo_matrix(non_mask)
-        mat.data = x.value[non_mask]
+        if x.missing_mask is None:
+            mat = ss.coo_matrix(x)
+            nrows, ncols = mat.shape
+            if mat.nnz != nrows * ncols:
+                mat.data = x.value.flatten()
+        else:
+            mat = ss.coo_matrix(~x.missing_mask)
+            mat.data = x.value[~x.missing_mask]
         return mat
 
 

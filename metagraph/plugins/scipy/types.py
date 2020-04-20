@@ -1,6 +1,7 @@
 from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
 from metagraph.types import Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_scipy
+import numpy as np
 
 
 if has_scipy:
@@ -28,7 +29,27 @@ if has_scipy:
             else:
                 raise TypeError(f"object not of type {cls.__name__}")
 
-    class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if not isinstance(obj1, cls.value_type) or not isinstance(
+                obj2, cls.value_type
+            ):
+                raise TypeError("objects must be scipy.spmatrix")
+
+            if obj1.dtype != obj2.dtype:
+                return False
+            if issubclass(obj1.dtype.type, np.floating):
+                d1 = obj1.tocsr()
+                d2 = obj2.tocsr()
+                if not (d1.indptr == d2.indptr).all():
+                    return False
+                if not (d1.indices == d2.indices).all():
+                    return False
+                return np.isclose(d1.data, d2.data).all()
+            else:
+                return (obj1 != obj2).nnz == 0
+
+    class ScipyAdjacencyMatrix(Wrapper, Graph.Mixins, abstract=Graph):
         def __init__(
             self,
             data,
