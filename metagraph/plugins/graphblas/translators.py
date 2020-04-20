@@ -16,7 +16,9 @@ if has_grblas:
 
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
-        idx = np.arange(len(x))[~x.get_missing_mask()]
+        idx = np.arange(len(x))
+        if x.missing_mask is not None:
+            idx = idx[~x.missing_mask]
         vals = x.value[idx]
         vec = grblas.Vector.new_from_values(
             idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.value.dtype]
@@ -25,7 +27,9 @@ if has_grblas:
 
     @translator
     def nodes_from_numpy(x: NumpyNodes, **props) -> GrblasNodes:
-        idx = np.arange(len(x.value))[~x.get_missing_mask()]
+        idx = np.arange(len(x.value))
+        if x.missing_mask is not None:
+            idx = idx[~x.missing_mask]
         vals = x.value[idx]
         vec = grblas.Vector.new_from_values(
             idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]

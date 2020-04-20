@@ -10,7 +10,7 @@ if has_pandas:
     class PandasDataFrameType(ConcreteType, abstract=DataFrame):
         value_type = pd.DataFrame
 
-    class PandasEdgeList(Wrapper, abstract=Graph):
+    class PandasEdgeList(Wrapper, Graph.Mixins, abstract=Graph):
         """
         Graph represented as a pandas DataFrame with edges indicated by source and destination columns
         """

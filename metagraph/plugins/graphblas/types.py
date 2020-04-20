@@ -36,7 +36,17 @@ if has_grblas:
             else:
                 raise TypeError(f"object not of type {cls.__name__}")
 
-    class GrblasNodes(Wrapper, abstract=Nodes):
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be grblas.Vector")
+
+            if obj1.dtype in {"FP32", "FP64"}:
+                return obj1.isclose(obj2, check_dtype=True)
+            else:
+                return obj1.isequal(obj2, check_dtype=True)
+
+    class GrblasNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
         def __init__(self, data, *, weights=None, node_index=None):
             self._assert_instance(data, grblas.Vector)
             self.value = data
@@ -74,10 +84,31 @@ if has_grblas:
                     return "positive"
 
         @property
+        def num_nodes(self):
+            return self.value.size
+
+        @property
         def node_index(self):
             if self._node_index is None:
-                self._node_index = SequentialNodes(self.value.size)
+                self._node_index = SequentialNodes(self.num_nodes)
             return self._node_index
+
+        def rebuild_for_node_index(self, node_index):
+            """
+            Returns a new instance based on `node_index`
+            """
+            if self.num_nodes != len(node_index):
+                raise ValueError(
+                    f"Size of node_index ({len(node_index)}) must match num_nodes ({self.num_nodes})"
+                )
+
+            data = self.value
+            if node_index != self.node_index:
+                my_node_index = self.node_index
+                my_node_index._verify_valid_conversion(node_index)
+                index_converter = [my_node_index.bylabel(label) for label in node_index]
+                data = data[index_converter].new()
+            return GrblasNodes(data, weights=self._weights, node_index=node_index)
 
         @classmethod
         def get_type(cls, obj):
@@ -90,6 +121,26 @@ if has_grblas:
                 return ret_val
             else:
                 raise TypeError(f"object not of type {cls.__name__}")
+
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be GrblasNodes")
+
+            if obj1.num_nodes != obj2.num_nodes:
+                return False
+            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+                return False
+            # Convert to a common node indexing scheme
+            try:
+                obj2 = obj2.rebuild_for_node_index(obj1.node_index)
+            except ValueError:
+                return False
+            # Compare
+            if obj1._dtype == "float":
+                return obj1.value.isclose(obj2.value)
+            else:
+                return obj1.value.isequal(obj2.value)
 
     class GrblasNodeMapping(Wrapper, abstract=NodeMapping):
         def __init__(self, data, src_node_labels=None, dst_node_labels=None):
@@ -118,7 +169,17 @@ if has_grblas:
             else:
                 raise TypeError(f"object not of type {cls.__name__}")
 
-    class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be grblas.Matrix")
+
+            if obj1.dtype in {"FP32", "FP64"}:
+                return obj1.isclose(obj2, check_dtype=True)
+            else:
+                return obj1.isequal(obj2, check_dtype=True)
+
+    class GrblasAdjacencyMatrix(Wrapper, Graph.Mixins, abstract=Graph):
         def __init__(
             self,
             data,

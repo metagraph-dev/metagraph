@@ -214,6 +214,13 @@ class Wrapper:
                 func = getattr(cls, sfuncname)
                 setattr(cls.Type, sfuncname, staticmethod(func))
                 delattr(cls, sfuncname)
+        # Verify mixins
+        if hasattr(abstract, "Mixins"):
+            mixin_class = getattr(abstract, "Mixins")
+            if not issubclass(cls, mixin_class):
+                raise ValueError(
+                    f"Must subclass both Wrapper and {abstract.__name__}.Mixins when abstract={abstract.__name__}"
+                )
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):

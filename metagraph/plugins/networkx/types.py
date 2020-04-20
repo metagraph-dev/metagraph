@@ -6,7 +6,7 @@ from metagraph.plugins import has_networkx
 if has_networkx:
     import networkx as nx
 
-    class NetworkXGraph(Wrapper, abstract=Graph):
+    class NetworkXGraph(Wrapper, Graph.Mixins, abstract=Graph):
         def __init__(
             self,
             nx_graph,

@@ -18,6 +18,18 @@ class Nodes(AbstractType):
         "weights": WEIGHT_CHOICES,
     }
 
+    class Mixins:
+        def __getitem__(self, label):
+            raise NotImplementedError()
+
+        @property
+        def num_nodes(self):
+            raise NotImplementedError()
+
+        @property
+        def node_index(self):
+            raise NotImplementedError()
+
 
 class NodeMapping(AbstractType):
     pass
@@ -42,3 +54,12 @@ class Graph(AbstractType):
         "dtype": DTYPE_CHOICES,
         "weights": WEIGHT_CHOICES,
     }
+
+    class Mixins:
+        @property
+        def num_nodes(self):
+            raise NotImplementedError()
+
+        @property
+        def node_index(self):
+            raise NotImplementedError()
