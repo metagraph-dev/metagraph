@@ -38,11 +38,17 @@ class NumpyVector(Wrapper, abstract=Vector):
 
         if obj1.value.dtype != obj2.value.dtype:
             return False
+        if obj1.value.shape != obj2.value.shape:
+            return False
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
         if d1.shape != d2.shape:
             return False
+        # Check for alignment of missing masks
+        if obj1.missing_mask is not None:
+            if not (obj1.missing_mask == obj2.missing_mask).all():
+                return False
         # Compare
         if issubclass(d1.dtype.type, np.floating):
             return np.isclose(d1, d2).all()
@@ -316,7 +322,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         nrows, ncols = data.shape
         self._is_square = nrows == ncols
         if is_symmetric is None:
-            is_symmetric = (data.T == data).all().all()
+            is_symmetric = nrows == ncols and (data.T == data).all().all()
         self._is_symmetric = is_symmetric
         self.missing_mask = missing_mask
         if missing_mask is not None:
@@ -353,14 +359,25 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
 
         if obj1.value.dtype != obj2.value.dtype:
             return False
+        if obj1.value.shape != obj2.value.shape:
+            return False
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
         if d1.shape != d2.shape:
             return False
-        # Compare
-        if issubclass(d1.dtype.type, np.floating):
-            return np.isclose(d1, d2).all()
+        # Check for alignment of missing masks
+        if obj1.missing_mask is not None:
+            if not (obj1.missing_mask == obj2.missing_mask).all().all():
+                return False
+            # Compare 1-D
+            if issubclass(d1.dtype.type, np.floating):
+                return np.isclose(d1, d2).all()
+            else:
+                return (d1 == d2).all()
         else:
-            return (d1 == d2).all()
-        # np.testing.assert_equal(x2.value, np.where(mat == 3, x2.missing_value, mat))
+            # Compare 2-D
+            if issubclass(d1.dtype.type, np.floating):
+                return np.isclose(d1, d2).all().all()
+            else:
+                return (d1 == d2).all().all()
