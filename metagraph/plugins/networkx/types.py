@@ -1,6 +1,8 @@
 from metagraph import ConcreteType, Wrapper, IndexedNodes
 from metagraph.types import Graph, DTYPE_CHOICES, WEIGHT_CHOICES
 from metagraph.plugins import has_networkx
+import operator
+import math
 
 
 if has_networkx:
@@ -69,6 +71,10 @@ if has_networkx:
                     return "positive"
 
         @property
+        def num_nodes(self):
+            return self.value.number_of_nodes()
+
+        @property
         def node_index(self):
             if self._node_index is None:
                 nodes = tuple(self.value.nodes())
@@ -90,3 +96,30 @@ if has_networkx:
                 return ret_val
             else:
                 raise TypeError(f"object not of type {cls.__name__}")
+
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be NetworkXGraph")
+
+            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+                return False
+            g1 = obj1.value
+            g2 = obj2.value
+            if g1.is_directed() != g2.is_directed():
+                return False
+            # Compare
+            if g1.nodes() != g2.nodes():
+                return False
+            if g1.edges() != g2.edges():
+                return False
+            if obj1._dtype == "float":
+                comp = math.isclose
+            else:
+                comp = operator.eq
+            if obj1._weights != "unweighted":
+                for e1, e2, d1 in g1.edges(data=True):
+                    d2 = g2.edges[(e1, e2)]
+                    if not comp(d1[obj1.weight_label], d2[obj2.weight_label]):
+                        return False
+            return True

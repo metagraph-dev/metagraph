@@ -286,6 +286,8 @@ if has_grblas:
 
             if obj1.num_nodes != obj2.num_nodes:
                 return False
+            if obj1.value.nvals != obj2.value.nvals:
+                return False
             if (
                 obj1._dtype != obj2._dtype
                 or obj1._weights != obj2._weights
@@ -301,7 +303,12 @@ if has_grblas:
             d1 = obj1.value.T if obj1.transposed else obj1.value
             d2 = obj2.value.T if obj2.transposed else obj2.value
             # Compare
-            if obj1._dtype == "float":
-                return d1.isclose(d2)
+            if obj1._weights != "unweighted":
+                if obj1._dtype == "float":
+                    return d1.isclose(d2)
+                else:
+                    return d1.isequal(d2)
             else:
-                return d1.isequal(d2)
+                # Unweighted -- only check matching edges, not weights
+                matches = d1.ewise_mult(d2, grblas.binary.any).new()
+                return matches.nvals == d1.nvals
