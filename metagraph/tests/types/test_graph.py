@@ -198,10 +198,10 @@ def test_graphblas_adj():
     # [1 2  ]
     # [  0 3]
     # [  3  ]
-    g_int = grblas.Matrix.new_from_values(
+    g_int = grblas.Matrix.from_values(
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], dtype=grblas.dtypes.INT64
     )
-    g_float = grblas.Matrix.new_from_values(
+    g_float = grblas.Matrix.from_values(
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], dtype=grblas.dtypes.FP64
     )
     assert GrblasAdjacencyMatrix.Type.compare_objects(
@@ -212,7 +212,7 @@ def test_graphblas_adj():
     assert GrblasAdjacencyMatrix.Type.compare_objects(
         GrblasAdjacencyMatrix(g_close), GrblasAdjacencyMatrix(g_float),
     )
-    g_diff = grblas.Matrix.new_from_values(
+    g_diff = grblas.Matrix.from_values(
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 3, 0, 3, 3]
     )  # change is here                     ^^^
     assert not GrblasAdjacencyMatrix.Type.compare_objects(
@@ -226,7 +226,7 @@ def test_graphblas_adj():
     assert not GrblasAdjacencyMatrix.Type.compare_objects(
         GrblasAdjacencyMatrix(g_int),
         GrblasAdjacencyMatrix(
-            grblas.Matrix.new_from_values(
+            grblas.Matrix.from_values(
                 [0, 0, 1, 1, 2], [0, 1, 1, 2, 0], [1, 2, 0, 3, 3]
             )  # change is here              ^^^
         ),
@@ -234,7 +234,7 @@ def test_graphblas_adj():
     assert not GrblasAdjacencyMatrix.Type.compare_objects(
         GrblasAdjacencyMatrix(g_int),
         GrblasAdjacencyMatrix(
-            grblas.Matrix.new_from_values(
+            grblas.Matrix.from_values(
                 [0, 0, 1, 1, 2, 2], [0, 1, 1, 2, 1, 2], [1, 2, 0, 3, 3, 0]
             )  # extra element ^^^                 ^^^                 ^^^
         ),
@@ -247,7 +247,7 @@ def test_graphblas_adj():
     assert GrblasAdjacencyMatrix.Type.compare_objects(
         GrblasAdjacencyMatrix(g_int, node_index=IndexedNodes("ABC")),
         GrblasAdjacencyMatrix(
-            grblas.Matrix.new_from_values(
+            grblas.Matrix.from_values(
                 [0, 0, 1, 2, 2], [0, 1, 0, 0, 2], [0, 3, 3, 2, 1]
             ),
             node_index=IndexedNodes("BCA"),
@@ -257,7 +257,7 @@ def test_graphblas_adj():
     assert GrblasAdjacencyMatrix.Type.compare_objects(
         GrblasAdjacencyMatrix(g_int),
         GrblasAdjacencyMatrix(
-            grblas.Matrix.new_from_values(
+            grblas.Matrix.from_values(
                 [0, 1, 1, 1, 2], [0, 0, 1, 2, 1], [1, 2, 0, 3, 3]
             ),
             transposed=True,
@@ -266,9 +266,7 @@ def test_graphblas_adj():
     assert GrblasAdjacencyMatrix.Type.compare_objects(
         GrblasAdjacencyMatrix(g_int, transposed=True),
         GrblasAdjacencyMatrix(
-            grblas.Matrix.new_from_values(
-                [0, 1, 1, 1, 2], [0, 0, 1, 2, 1], [1, 2, 0, 3, 3]
-            )
+            grblas.Matrix.from_values([0, 1, 1, 1, 2], [0, 0, 1, 2, 1], [1, 2, 0, 3, 3])
         ),
     )
     assert GrblasAdjacencyMatrix.Type.compare_objects(

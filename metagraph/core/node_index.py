@@ -26,6 +26,9 @@ class IndexedNodes:
         ret_val._bylabel = labels_to_index.copy()
         return ret_val
 
+    def __repr__(self):
+        return f"IndexedNodes: {self._byindex!r}"
+
     def __len__(self):
         return len(self._byindex)
 
@@ -64,6 +67,9 @@ class SequentialNodes(IndexedNodes):
     def __init__(self, size):
         self._size = size
 
+    def __repr__(self):
+        return f"SequentialNodes: range({self._size})"
+
     def __len__(self):
         return self._size
 
@@ -76,10 +82,14 @@ class SequentialNodes(IndexedNodes):
         return self._size == other._size
 
     def bylabel(self, label):
-        return label
+        if 0 <= label < self._size:
+            return label
+        raise KeyError(label)
 
     def byindex(self, index):
-        return index
+        if 0 <= index < self._size:
+            return index
+        raise KeyError(index)
 
     def labels(self):
         return set(iter(self))

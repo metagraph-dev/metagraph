@@ -11,9 +11,7 @@ def test_numpy_2_graphblas(default_plugin_resolver):
     x = NumpyVector(dense_array, missing_mask=missing_mask)
     assert len(x) == 8
     # Convert numpy -> grblas vector
-    intermediate = grblas.Vector.new_from_values(
-        [1, 4, 5, 6], [1.1, 4.4, 5.5, 6.6], size=8
-    )
+    intermediate = grblas.Vector.from_values([1, 4, 5, 6], [1.1, 4.4, 5.5, 6.6], size=8)
     y = dpr.translate(x, GrblasVectorType)
     assert GrblasVectorType.compare_objects(y, intermediate)
     # Convert numpy <- grblas vector

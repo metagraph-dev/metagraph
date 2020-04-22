@@ -20,7 +20,7 @@ if has_grblas:
         if x.missing_mask is not None:
             idx = idx[~x.missing_mask]
         vals = x.value[idx]
-        vec = grblas.Vector.new_from_values(
+        vec = grblas.Vector.from_values(
             idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
         return vec
@@ -46,7 +46,7 @@ if has_grblas and has_scipy:
         m = x.value.tocoo()
         nrows, ncols = m.shape
         dtype = dtype_mg_to_grblas[x.value.dtype]
-        out = grblas.Matrix.new_from_values(
+        out = grblas.Matrix.from_values(
             m.row, m.col, m.data, nrows=nrows, ncols=ncols, dtype=dtype
         )
         return GrblasAdjacencyMatrix(
@@ -62,7 +62,7 @@ if has_grblas and has_scipy:
         x = x.tocoo()
         nrows, ncols = x.shape
         dtype = dtype_mg_to_grblas[x.dtype]
-        vec = grblas.Matrix.new_from_values(
+        vec = grblas.Matrix.from_values(
             x.row, x.col, x.data, nrows=nrows, ncols=ncols, dtype=dtype,
         )
         return vec

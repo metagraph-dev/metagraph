@@ -121,40 +121,38 @@ def test_numpy_compact():
 
 def test_graphblas():
     assert GrblasNodes.Type.compare_objects(
-        GrblasNodes(Vector.new_from_values([0, 1, 3, 4], [1, 2, 3, 4])),
-        GrblasNodes(Vector.new_from_values([0, 1, 3, 4], [1, 2, 3, 4])),
+        GrblasNodes(Vector.from_values([0, 1, 3, 4], [1, 2, 3, 4])),
+        GrblasNodes(Vector.from_values([0, 1, 3, 4], [1, 2, 3, 4])),
     )
     assert GrblasNodes.Type.compare_objects(
         GrblasNodes(
-            Vector.new_from_values([0, 1, 3, 4], [1.0, 2.0, 3.333333333333333333, 4.0])
+            Vector.from_values([0, 1, 3, 4], [1.0, 2.0, 3.333333333333333333, 4.0])
         ),
         GrblasNodes(
-            Vector.new_from_values(
-                [0, 1, 3, 4], [1.0, 2.0, 3.333333333333333334, 4 + 1e-9]
-            )
+            Vector.from_values([0, 1, 3, 4], [1.0, 2.0, 3.333333333333333334, 4 + 1e-9])
         ),
     )
     assert not GrblasNodes.Type.compare_objects(
-        GrblasNodes(Vector.new_from_values([0, 1, 3, 4], [1, 2, 3, 4])),
-        GrblasNodes(Vector.new_from_values([0, 1, 2, 4], [1, 2, 3, 4])),
+        GrblasNodes(Vector.from_values([0, 1, 3, 4], [1, 2, 3, 4])),
+        GrblasNodes(Vector.from_values([0, 1, 2, 4], [1, 2, 3, 4])),
     )
     assert not GrblasNodes.Type.compare_objects(
-        GrblasNodes(Vector.new_from_values([0, 1, 2], [1, 2, 3])),
-        GrblasNodes(Vector.new_from_values([0, 1, 2, 3], [1, 2, 3, 4])),
+        GrblasNodes(Vector.from_values([0, 1, 2], [1, 2, 3])),
+        GrblasNodes(Vector.from_values([0, 1, 2, 3], [1, 2, 3, 4])),
     )
     # weights don't match, so we take the fast path and declare them not equal
     assert not GrblasNodes.Type.compare_objects(
-        GrblasNodes(Vector.new_from_values([0, 1], [1, 2])),
-        GrblasNodes(Vector.new_from_values([0, 1], [1, 2]), weights="any"),
+        GrblasNodes(Vector.from_values([0, 1], [1, 2])),
+        GrblasNodes(Vector.from_values([0, 1], [1, 2]), weights="any"),
     )
     # Node index affects comparison
     assert GrblasNodes.Type.compare_objects(
         GrblasNodes(
-            Vector.new_from_values([0, 1, 4], [1, 2, 3], size=5),
+            Vector.from_values([0, 1, 4], [1, 2, 3], size=5),
             node_index=IndexedNodes("ABCDE"),
         ),
         GrblasNodes(
-            Vector.new_from_values([0, 2, 3], [2, 3, 1], size=5),
+            Vector.from_values([0, 2, 3], [2, 3, 1], size=5),
             node_index=IndexedNodes("BDEAC"),
         ),
     )
