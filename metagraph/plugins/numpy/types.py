@@ -59,7 +59,7 @@ class NumpyVector(Wrapper, abstract=Vector):
 class NumpyNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
     """
     NumpyNodes stores data in verbose format with an entry in the array for every node
-    If ndoes are empty, a boolean missing_mask is provided
+    If nodes are empty, a boolean missing_mask is provided
     """
 
     def __init__(self, data, *, weights=None, missing_mask=None, node_index=None):
@@ -175,6 +175,8 @@ class NumpyNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
+        if len(d1) != len(d2):
+            return False
         # Compare
         if obj1._dtype == "float":
             return np.isclose(d1, d2).all()
@@ -284,6 +286,8 @@ class CompactNumpyNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
         if obj1.num_nodes != obj2.num_nodes:
             return False
         if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+            return False
+        if len(obj1.value) != len(obj2.value):
             return False
         # Convert to a common node ordering
         try:
