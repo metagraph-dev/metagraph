@@ -31,7 +31,7 @@ if has_grblas:
         if x.missing_mask is not None:
             idx = idx[~x.missing_mask]
         vals = x.value[idx]
-        vec = grblas.Vector.new_from_values(
+        vec = grblas.Vector.from_values(
             idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
         return GrblasNodes(vec, weights=x._weights, node_index=x.node_index)
