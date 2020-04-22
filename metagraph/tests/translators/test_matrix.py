@@ -26,7 +26,7 @@ def test_numpy_2_scipy(default_plugin_resolver):
 
 def test_grblas_2_scipy(default_plugin_resolver):
     dpr = default_plugin_resolver
-    x = grblas.Matrix.new_from_values(
+    x = grblas.Matrix.from_values(
         [0, 0, 1, 2],
         [0, 1, 2, 1],
         [1, 2, 9, 0],

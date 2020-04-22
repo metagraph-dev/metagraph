@@ -57,39 +57,39 @@ def test_numpy():
 
 def test_graphblas():
     assert GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 1, 2], [1, 2, 3]),
-        grblas.Vector.new_from_values([0, 1, 2], [1, 2, 3]),
+        grblas.Vector.from_values([0, 1, 2], [1, 2, 3]),
+        grblas.Vector.from_values([0, 1, 2], [1, 2, 3]),
     )
     assert GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 1, 2], [1.1, 2.2, 3.333333333333333333]),
-        grblas.Vector.new_from_values(
+        grblas.Vector.from_values([0, 1, 2], [1.1, 2.2, 3.333333333333333333]),
+        grblas.Vector.from_values(
             [0, 1, 2], [1.1, 2.19999999999999999, 3.333333333333333334]
         ),
     )
     # Different size
     assert not GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 1, 2], [1, 2, 3]),
-        grblas.Vector.new_from_values([0, 1, 2, 3], [1, 2, 3, 4]),
+        grblas.Vector.from_values([0, 1, 2], [1, 2, 3]),
+        grblas.Vector.from_values([0, 1, 2, 3], [1, 2, 3, 4]),
     )
     # Different dtypes are not equal
     assert not GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 1, 2], [1, 2, 3], dtype=grblas.dtypes.INT16),
-        grblas.Vector.new_from_values([0, 1, 2], [1, 2, 3], dtype=grblas.dtypes.INT32),
+        grblas.Vector.from_values([0, 1, 2], [1, 2, 3], dtype=grblas.dtypes.INT16),
+        grblas.Vector.from_values([0, 1, 2], [1, 2, 3], dtype=grblas.dtypes.INT32),
     )
     # Sparse vector
     assert GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 2], [1, 3], size=4),
-        grblas.Vector.new_from_values([0, 2], [1, 3], size=4),
+        grblas.Vector.from_values([0, 2], [1, 3], size=4),
+        grblas.Vector.from_values([0, 2], [1, 3], size=4),
     )
     # Different missing values
     assert not GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 1, 3], [1, 2, 4], size=4),
-        grblas.Vector.new_from_values([0, 1, 2, 3], [1, 2, 3, 4], size=4),
+        grblas.Vector.from_values([0, 1, 3], [1, 2, 4], size=4),
+        grblas.Vector.from_values([0, 1, 2, 3], [1, 2, 3, 4], size=4),
     )
     # Coincidental equality of non-missing values is not equality
     assert not GrblasVectorType.compare_objects(
-        grblas.Vector.new_from_values([0, 2], [1, 3], size=4),
-        grblas.Vector.new_from_values([0, 3], [1, 3], size=4),
+        grblas.Vector.from_values([0, 2], [1, 3], size=4),
+        grblas.Vector.from_values([0, 3], [1, 3], size=4),
     )
     with pytest.raises(TypeError):
         GrblasVectorType.compare_objects(5, 5)
