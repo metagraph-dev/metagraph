@@ -2,7 +2,7 @@
 """
 import types
 import inspect
-from typing import Callable
+from typing import Callable, List, Dict, Any
 
 
 class AbstractType:
@@ -142,26 +142,71 @@ class ConcreteType:
         return self.props[key]
 
     @classmethod
-    def is_typeof(cls, obj):
-        """Is obj described by this type?"""
-        try:
-            cls.get_type(obj)
-            return True
-        except TypeError:
-            return False
+    def is_typeclass_of(cls, obj):
+        """Is obj described by this type class?"""
+
+        # check fastpath
+        if cls.value_type is not None:
+            return isinstance(obj, cls.value_type)
+        else:
+            raise NotImplementedError(
+                "Must override `is_typeclass_of` if type has abstract properties"
+            )
+
+    @classmethod
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        """Return a dictionary with a subset of abstract properties for this object.
+
+        At a minimum, only the requested properties will be computed, although
+        this method may return additional keys if they can be computed with
+        minimal additional cost.  The return value from this method should be
+        cached by the caller to avoid recomputing properties repeatedly.
+        """
+        if len(cls.abstract.properties) > 0:
+            raise NotImplementedError(
+                "Must override `compute_abstract_properties` if type has abstract properties"
+            )
+        if len(props) > 0:
+            raise TypeError("This type has no abstract properties")
+        else:
+            return {}
+
+    @classmethod
+    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        """Return a dictionary with a subset of concrete properties for this object.
+
+        At a minimum, only the requested properties will be computed, although
+        this method may return additional keys if they can be computed with
+        minimal additional cost.  The return value from this method should be
+        cached by the caller to avoid recomputing properties repeatedly.
+        """
+        if len(cls.allowed_props) > 0:
+            raise NotImplementedError(
+                "Must override `compute_concrete_properties` if type has concrete properties"
+            )
+        if len(props) > 0:
+            raise TypeError("This type has no concrete properties")
+        else:
+            return {}
 
     @classmethod
     def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        # Must override if there are properties
-        if cls.allowed_props:
-            raise NotImplementedError(
-                "Must override `get_type` if type has concrete properties"
+        """Get an instance of this type class that fully describes obj
+
+        Note that this will completely specialize the type and may require
+        non-trivial computation to determinal all properties of obj. Prefer to
+        use is_typeclass_of(), compute_abstract_properties(), and
+        compute_concrete_properties() instead of this method when possible.
+        """
+        if cls.is_typeclass_of(obj):
+            abstract_props = cls.compute_abstract_properties(
+                obj, cls.abstract.properties.keys()
+            )
+            concrete_props = cls.compute_concrete_properties(
+                obj, cls.allowed_properties.keys()
             )
 
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()  # no properties to specialize on
-            ret_val.abstract_instance = cls.abstract()
+            ret_val = cls(**abstract_props, **concrete_props)
             return ret_val
         else:
             raise TypeError(f"object not of type {cls.__name__}")

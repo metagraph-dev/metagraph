@@ -16,6 +16,7 @@ from .plugin import (
 )
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
+from .typecache import TypeCache
 import numpy as np
 
 
@@ -69,7 +70,7 @@ class PlanNamespace:
         """
         Print the steps taken to go from type of value to dst_type
         """
-        src_type = self._resolver.typeof(value).__class__
+        src_type = self._resolver.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(
             self._resolver, src_type, dst_type
         )
@@ -118,6 +119,8 @@ class Resolver:
         self.abstract_types: Set[AbstractType] = set()
         self.concrete_types: Set[ConcreteType] = set()
         self.translators: Dict[Tuple[ConcreteType, ConcreteType], Translator] = {}
+
+        self.typecache = TypeCache()
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
@@ -378,23 +381,35 @@ class Resolver:
         plugins = load_plugins()
         self.register(**plugins)
 
-    def typeof(self, value):
-        """Return the concrete type corresponding to a value"""
+    def typeclass_of(self, value):
+        """Return the concrete typeclass corresponding to a value"""
+
+        # Check for direct lookup
         concrete_type = self.class_to_concrete.get(type(value))
         if concrete_type is not None:
-            return concrete_type.get_type(value)
+            return concrete_type
 
-        for ct in self.concrete_types:
-            try:
-                return ct.get_type(value)
-            except TypeError:
-                pass
+        # Check cache:
+        if value in self.typecache:
+            typeinfo = self.typecache[value]
+            return typeinfo.concrete_typeclass
+        else:
+            for ct in self.concrete_types:
+                if ct.is_typeclass_of(value):
+                    typeinfo = TypeInfo(
+                        abstract_typeclass=ct.abstract,
+                        known_abstract_props={},
+                        concrete_typeclass=ct,
+                        known_concrete_props={},
+                    )
+                    self.typecache = typeinfo
+                    return ct
 
         raise TypeError(f"Class {value.__class__} does not have a registered type")
 
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""
-        src_type = self.typeof(value).__class__
+        src_type = self.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator is None:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
@@ -464,6 +479,7 @@ class Resolver:
                             f"not {type(arg_value).__name__}"
                         )
             if isinstance(param_type, AbstractType):
+                ### FIXME: chnage this to use partial typing
                 this_type = self.typeof(arg_value)
                 if this_type.abstract != type(param_type):
                     raise TypeError(
