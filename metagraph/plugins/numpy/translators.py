@@ -77,7 +77,7 @@ if has_grblas:
     @translator
     def vector_from_graphblas(x: GrblasVectorType, **props) -> NumpyVector:
         inds, vals = x.to_values()
-        data = np.empty((x.size,), dtype=dtype_grblas_to_mg[x.dtype])
+        data = np.empty((x.size,), dtype=dtype_grblas_to_mg[x.dtype.name])
         if len(vals) == len(data):
             for idx, val in zip(inds, vals):
                 data[idx] = val

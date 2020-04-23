@@ -6,20 +6,21 @@ from metagraph.plugins import has_grblas
 if has_grblas:
     import grblas
 
-    dtype_grblas_to_mg = {
-        grblas.dtypes.BOOL: dtypes.bool,
-        grblas.dtypes.INT8: dtypes.int8,
-        grblas.dtypes.INT16: dtypes.int16,
-        grblas.dtypes.INT32: dtypes.int32,
-        grblas.dtypes.INT64: dtypes.int64,
-        grblas.dtypes.UINT8: dtypes.uint8,
-        grblas.dtypes.UINT16: dtypes.uint16,
-        grblas.dtypes.UINT32: dtypes.uint32,
-        grblas.dtypes.UINT64: dtypes.uint64,
-        grblas.dtypes.FP32: dtypes.float32,
-        grblas.dtypes.FP64: dtypes.float64,
+    dtype_mg_to_grblas = {
+        dtypes.bool: grblas.dtypes.BOOL,
+        dtypes.int8: grblas.dtypes.INT8,
+        dtypes.int16: grblas.dtypes.INT16,
+        dtypes.int32: grblas.dtypes.INT32,
+        dtypes.int64: grblas.dtypes.INT64,
+        dtypes.uint8: grblas.dtypes.UINT8,
+        dtypes.uint16: grblas.dtypes.UINT16,
+        dtypes.uint32: grblas.dtypes.UINT32,
+        dtypes.uint64: grblas.dtypes.UINT64,
+        dtypes.float32: grblas.dtypes.FP32,
+        dtypes.float64: grblas.dtypes.FP64,
     }
-    dtype_mg_to_grblas = {v: k for k, v in dtype_grblas_to_mg.items()}
+
+    dtype_grblas_to_mg = {v.name: k for k, v in dtype_mg_to_grblas.items()}
 
     class GrblasVectorType(ConcreteType, abstract=Vector):
         value_type = grblas.Vector
@@ -30,7 +31,7 @@ if has_grblas:
             if isinstance(obj, cls.value_type):
                 ret_val = cls()
                 is_dense = obj.nvals == obj.size
-                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype]]
+                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
                 ret_val.abstract_instance = cls.abstract(is_dense=is_dense, dtype=dtype)
                 return ret_val
             else:
@@ -41,7 +42,7 @@ if has_grblas:
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be grblas.Vector")
 
-            if obj1.dtype in {"FP32", "FP64"}:
+            if obj1.dtype.name in {"FP32", "FP64"}:
                 return obj1.isclose(obj2, check_dtype=True)
             else:
                 return obj1.isequal(obj2, check_dtype=True)
@@ -50,7 +51,7 @@ if has_grblas:
         def __init__(self, data, *, weights=None, node_index=None):
             self._assert_instance(data, grblas.Vector)
             self.value = data
-            self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype]]
+            self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype.name]]
             self._weights = self._determine_weights(weights)
             self._node_index = node_index
 
@@ -161,7 +162,7 @@ if has_grblas:
                 ret_val = cls()
                 is_square = obj.nrows == obj.ncols
                 is_symmetric = obj == obj.T.new()
-                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype]]
+                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
                 ret_val.abstract_instance = Matrix(
                     dtype=dtype, is_square=is_square, is_symmetric=is_symmetric
                 )
@@ -174,7 +175,7 @@ if has_grblas:
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be grblas.Matrix")
 
-            if obj1.dtype in {"FP32", "FP64"}:
+            if obj1.dtype.name in {"FP32", "FP64"}:
                 return obj1.isclose(obj2, check_dtype=True)
             else:
                 return obj1.isequal(obj2, check_dtype=True)
@@ -194,7 +195,7 @@ if has_grblas:
             self.value = data
             self.transposed = transposed
             self._node_index = node_index
-            self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype]]
+            self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype.name]]
             self._weights = self._determine_weights(weights)
             self._is_directed = self._determine_is_directed(is_directed)
 
@@ -229,7 +230,7 @@ if has_grblas:
             return self.value != self.value.T.new()
 
         def dtype(self):
-            return dtype_grblas_to_mg[self.value.dtype]
+            return dtype_grblas_to_mg[self.value.dtype.name]
 
         def show(self):
             return self.value.show()
