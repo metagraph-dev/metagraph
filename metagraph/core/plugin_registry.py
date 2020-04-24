@@ -81,7 +81,7 @@ class PluginRegistry:
         Decorate classes and functions to include them in the registry
         """
         unknown = False
-        if type(obj) is type:
+        if isinstance(obj, type):
             if issubclass(obj, AbstractType):
                 self.plugins["abstract_types"].add(obj)
             elif issubclass(obj, ConcreteType):

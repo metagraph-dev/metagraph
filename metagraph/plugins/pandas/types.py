@@ -23,7 +23,7 @@ if has_pandas:
             except AssertionError:
                 return False
 
-    class PandasEdgeList(Wrapper, Graph.Mixins, abstract=Graph):
+    class PandasEdgeList(Wrapper, abstract=Graph):
         """
         Graph represented as a pandas DataFrame with edges indicated by source and destination columns
         """

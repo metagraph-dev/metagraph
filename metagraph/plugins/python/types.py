@@ -11,7 +11,7 @@ dtype_casting = {
 }
 
 
-class PythonNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
+class PythonNodes(Wrapper, abstract=Nodes):
     def __init__(self, data, *, dtype=None, weights=None, node_index=None):
         """
         data: dict of node: weight

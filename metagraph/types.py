@@ -1,4 +1,4 @@
-from . import AbstractType
+from . import AbstractType, Wrapper
 
 
 DTYPE_CHOICES = ["str", "float", "int", "bool"]
@@ -18,17 +18,17 @@ class Nodes(AbstractType):
         "weights": WEIGHT_CHOICES,
     }
 
-    class Mixins:
-        def __getitem__(self, label):
-            raise NotImplementedError()
+    @Wrapper.required_method
+    def __getitem__(self, label):
+        raise NotImplementedError()
 
-        @property
-        def num_nodes(self):
-            raise NotImplementedError()
+    @Wrapper.required_property
+    def num_nodes(self):
+        raise NotImplementedError()
 
-        @property
-        def node_index(self):
-            raise NotImplementedError()
+    @Wrapper.required_property
+    def node_index(self):
+        raise NotImplementedError()
 
 
 class NodeMapping(AbstractType):
@@ -55,11 +55,13 @@ class Graph(AbstractType):
         "weights": WEIGHT_CHOICES,
     }
 
-    class Mixins:
-        @property
-        def num_nodes(self):
-            raise NotImplementedError()
+    @Wrapper.required_property
+    def num_nodes(self):
+        raise NotImplementedError()
 
-        @property
-        def node_index(self):
-            raise NotImplementedError()
+    @Wrapper.required_property
+    def node_index(self):
+        raise NotImplementedError()
+
+
+del AbstractType, Wrapper

@@ -56,7 +56,7 @@ class NumpyVector(Wrapper, abstract=Vector):
             return (d1 == d2).all()
 
 
-class NumpyNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
+class NumpyNodes(Wrapper, abstract=Nodes):
     """
     NumpyNodes stores data in verbose format with an entry in the array for every node
     If nodes are empty, a boolean missing_mask is provided
@@ -184,7 +184,7 @@ class NumpyNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
             return (d1 == d2).all()
 
 
-class CompactNumpyNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
+class CompactNumpyNodes(Wrapper, abstract=Nodes):
     """
     CompactNumpyNodes only stores data for non-empty nodes
     num_nodes is determined by node_index, which must have an entry for all possible nodes, not just non-empty ones
