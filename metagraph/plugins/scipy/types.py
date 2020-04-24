@@ -51,7 +51,7 @@ if has_scipy:
             else:
                 return (obj1 != obj2).nnz == 0
 
-    class ScipyAdjacencyMatrix(Wrapper, Graph.Mixins, abstract=Graph):
+    class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(
             self,
             data,

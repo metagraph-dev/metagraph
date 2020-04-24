@@ -8,7 +8,7 @@ import math
 if has_networkx:
     import networkx as nx
 
-    class NetworkXGraph(Wrapper, Graph.Mixins, abstract=Graph):
+    class NetworkXGraph(Wrapper, abstract=Graph):
         def __init__(
             self,
             nx_graph,

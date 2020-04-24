@@ -47,7 +47,7 @@ if has_grblas:
             else:
                 return obj1.isequal(obj2, check_dtype=True)
 
-    class GrblasNodes(Wrapper, Nodes.Mixins, abstract=Nodes):
+    class GrblasNodes(Wrapper, abstract=Nodes):
         def __init__(self, data, *, weights=None, node_index=None):
             self._assert_instance(data, grblas.Vector)
             self.value = data
@@ -180,7 +180,7 @@ if has_grblas:
             else:
                 return obj1.isequal(obj2, check_dtype=True)
 
-    class GrblasAdjacencyMatrix(Wrapper, Graph.Mixins, abstract=Graph):
+    class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(
             self,
             data,
