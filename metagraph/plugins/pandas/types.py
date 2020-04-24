@@ -146,8 +146,8 @@ if has_pandas:
             if len(obj1.index & obj2.index) < len(obj1.index):
                 return False
             # Ensure dataframes are indexed the same
-            if not (g1.index == g2.index).all():
-                g2 = g2.set_index(g2.index).reindex(g1.index).reset_index(drop=True)
+            if not (obj1.index == obj2.index).all():
+                g2 = g2.set_index(obj2.index).reindex(obj1.index).reset_index(drop=True)
             # Compare
             if obj1._weights != "unweighted":
                 v1 = g1[obj1.weight_label]
