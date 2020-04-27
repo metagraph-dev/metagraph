@@ -60,7 +60,7 @@ def test_strongly_connected_components(default_plugin_resolver):
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(networkx_graph_data, weight="weight")
     graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
-    expected_answer_unwrapped = {0: 0, 2: 0, 1: 1, 3: 2}
+    expected_answer_unwrapped = {0: 0, 1: 0, 2: 0, 3: 1}
     expected_answer = dpr.wrapper.Nodes.PythonNodes(expected_answer_unwrapped)
     MultiVerify(dpr, "clustering.strongly_connected_components", graph).assert_equals(
         expected_answer
