@@ -42,7 +42,9 @@ v        v /        v
         7: 0.0,
         6: 11.0,
     }
-    expected_answer = dpr.wrapper.Nodes.PythonNodes(expected_answer_unwrapped)
+    expected_answer = dpr.wrapper.Nodes.PythonNodes(
+        expected_answer_unwrapped, dtype="int"
+    )
     MultiVerify(
         dpr,
         "vertex_ranking.betweenness_centrality",
