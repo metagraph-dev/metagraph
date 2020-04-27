@@ -2,6 +2,8 @@ import numpy as np
 from metagraph import ConcreteType, Wrapper, dtypes, IndexedNodes
 from metagraph.types import DataFrame, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_pandas
+import operator
+import math
 
 
 if has_pandas:
@@ -9,6 +11,17 @@ if has_pandas:
 
     class PandasDataFrameType(ConcreteType, abstract=DataFrame):
         value_type = pd.DataFrame
+
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be pandas DataFrames")
+
+            try:
+                pd.testing.assert_frame_equal(obj1, obj2, check_like=True)
+                return True
+            except AssertionError:
+                return False
 
     class PandasEdgeList(Wrapper, abstract=Graph):
         """
@@ -53,6 +66,8 @@ if has_pandas:
                 )
             self._dtype = self._determine_dtype()
             self._weights = self._determine_weights(weights)
+            # Build the MultiIndex representing the edges
+            self.index = df.set_index([src_label, dst_label]).index
 
         def _determine_dtype(self):
             if self.weight_label is None:
@@ -88,6 +103,11 @@ if has_pandas:
                     return "positive"
 
         @property
+        def num_nodes(self):
+            src_nodes, dst_nodes = self.index.levels
+            return len(src_nodes | dst_nodes)
+
+        @property
         def node_index(self):
             if self._node_index is None:
                 src_col = self.value[self.src_label]
@@ -109,3 +129,31 @@ if has_pandas:
                 return ret_val
             else:
                 raise TypeError(f"object not of type {cls.__name__}")
+
+        @classmethod
+        def compare_objects(cls, obj1, obj2):
+            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
+                raise TypeError("objects must be PandasEdgeList")
+
+            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+                return False
+            if obj1.is_directed != obj2.is_directed:
+                return False
+            g1 = obj1.value
+            g2 = obj2.value
+            if len(g1) != len(g2):
+                return False
+            if len(obj1.index & obj2.index) < len(obj1.index):
+                return False
+            # Ensure dataframes are indexed the same
+            if not (obj1.index == obj2.index).all():
+                g2 = g2.set_index(obj2.index).reindex(obj1.index).reset_index(drop=True)
+            # Compare
+            if obj1._weights != "unweighted":
+                v1 = g1[obj1.weight_label]
+                v2 = g2[obj2.weight_label]
+                if issubclass(v1.dtype.type, np.floating):
+                    return np.isclose(v1, v2).all()
+                else:
+                    return (v1 == v2).all()
+            return True

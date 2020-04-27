@@ -25,7 +25,7 @@ if has_networkx and has_pandas:
             return NetworkXGraph(
                 out,
                 weight_label="weight",
-                weights=type_info.prop_val["weights"],
-                dtype=type_info.prop_val["dtype"],
+                weights=type_info["weights"],
+                dtype=type_info["dtype"],
                 node_index=x.node_index,
             )

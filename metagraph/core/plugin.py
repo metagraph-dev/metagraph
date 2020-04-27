@@ -172,7 +172,32 @@ class ConcreteType:
         raise NotImplementedError()
 
 
-class Wrapper:
+class MetaWrapper(type):
+    def __new__(mcls, name, bases, dict_, abstract=None):
+        kwargs = {} if abstract is None else {"abstract": abstract}
+        cls = type.__new__(mcls, name, bases, dict_, **kwargs)
+        if abstract:
+            # Check for required methods defined on abstract
+            for name, val in abstract.__dict__.items():
+                if getattr(val, "_is_required_method", False):
+                    if name not in cls.__dict__:
+                        raise TypeError(
+                            f"{cls.__name__} is missing required wrapper method '{name}'"
+                        )
+                if getattr(val, "_is_required_property", False):
+                    if name not in cls.__dict__:
+                        raise TypeError(
+                            f"{cls.__name__} is missing required wrapper property '{name}'"
+                        )
+                    prop = getattr(cls, name)
+                    if type(prop) is not property:
+                        raise TypeError(
+                            f"{cls.__name__}.{name} must be a property, not {type(prop)}"
+                        )
+        return cls
+
+
+class Wrapper(metaclass=MetaWrapper):
     """Helper class for creating wrappers around data objects
 
     A ConcreteType will be automatically created with its `value_type` set to this class.
@@ -227,6 +252,16 @@ class Wrapper:
     def _assert(cond, err_msg):
         if not cond:
             raise TypeError(err_msg)
+
+    @staticmethod
+    def required_method(func):
+        func._is_required_method = True
+        return func
+
+    @staticmethod
+    def required_property(func):
+        func._is_required_property = True
+        return func
 
 
 class Translator:
