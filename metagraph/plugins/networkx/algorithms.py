@@ -106,4 +106,4 @@ if has_networkx:
         bfs_ordered_node_array = np.array(
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
         )
-        return NumpyVector(bfs_ordered_node_array, missing_value=np.nan)
+        return NumpyVector(bfs_ordered_node_array)

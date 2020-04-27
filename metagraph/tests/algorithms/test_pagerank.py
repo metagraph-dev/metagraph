@@ -26,9 +26,9 @@ def test_pagerank(default_plugin_resolver):
     ]
     networkx_graph = nx.DiGraph()
     networkx_graph.add_edges_from(networkx_graph_data)
-    networkx_pagerank = nx.pagerank(networkx_graph)
+    networkx_pagerank = nx.pagerank(networkx_graph, alpha=0.85, max_iter=50, tol=1e-05)
     networkx_pagerank_wrapped = dpr.wrapper.Nodes.PythonNodes(networkx_pagerank)
-    graph = dpr.wrapper.Graph.NetworkXGraph(networkx_graph)
+    graph = dpr.wrapper.Graph.NetworkXGraph(networkx_graph, dtype="int")
     MultiVerify(dpr, "link_analysis.pagerank", graph).assert_equals(
         networkx_pagerank_wrapped
     )
