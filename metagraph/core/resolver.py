@@ -356,9 +356,27 @@ class Resolver:
                                     f'{concrete.func.__qualname__} argument "{key}" has specificity limits which are '
                                     f"incompatible with the abstract signature"
                                 )
-        self._check_concrete_algorithm_return_signature(
-            concrete, conc_sig.return_annotation, abst_sig.return_annotation
+        abst_ret = self._normalize_abstract_type(abst_sig.return_annotation)
+        conc_ret = self._normalize_concrete_type(
+            conc_type=conc_sig.return_annotation, abst_type=abst_ret
         )
+        if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
+            abst_ret_sub_types = abst_ret.__args__
+            conc_ret_sub_types = conc_ret.__args__
+            if len(abst_ret_sub_types) != len(conc_ret_sub_types):
+                raise TypeError(
+                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                )
+            for conc_ret_sub_type, abst_ret_sub_type in zip(
+                conc_ret_sub_types, abst_ret_sub_types
+            ):
+                self._check_concrete_algorithm_return_signature(
+                    concrete, conc_ret_sub_type, abst_ret_sub_type
+                )
+        else:
+            self._check_concrete_algorithm_return_signature(
+                concrete, conc_sig.return_annotation, abst_sig.return_annotation
+            )
 
     def _check_concrete_algorithm_return_signature(
         self, concrete, conc_sig_return_type, abst_sig_return_type
@@ -371,19 +389,6 @@ class Resolver:
             if not issubclass(conc_ret.abstract, abst_ret.__class__):
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
-                )
-        elif hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
-            abst_ret_sub_types = abst_ret.__args__
-            conc_ret_sub_types = conc_ret.__args__
-            if len(abst_ret_sub_types) != len(conc_ret_sub_types):
-                raise TypeError(
-                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
-                )
-            for conc_ret_sub_type, abst_ret_sub_type in zip(
-                conc_ret_sub_types, abst_ret_sub_types
-            ):
-                self._check_concrete_algorithm_return_signature(
-                    concrete, conc_ret_sub_type, abst_ret_sub_type
                 )
         else:
             # regular Python types need to match exactly
