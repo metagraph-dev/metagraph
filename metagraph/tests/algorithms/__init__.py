@@ -57,10 +57,7 @@ class MultiVerify:
         for plan in self.plans:
             algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
             ret_val = plan(*self._args, **self._kwargs)
-            expected_type = self.resolver.class_to_concrete.get(
-                type(expected_val), type(expected_val)
-            )
-            if expected_type != tuple:
+            if type(expected_val) != tuple:
                 self._compare_values(expected_val, ret_val, algo_path)
             else:
                 assert len(expected_val) == len(
