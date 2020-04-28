@@ -1,11 +1,14 @@
 from metagraph import concrete_algorithm
 from metagraph.plugins import has_networkx
+from typing import Tuple
 
 
 if has_networkx:
     import networkx as nx
+    import numpy as np
     from .types import NetworkXGraph
     from ..python.types import PythonNodes
+    from ..numpy.types import NumpyVector
 
     @concrete_algorithm("link_analysis.pagerank")
     def nx_pagerank(
@@ -29,7 +32,78 @@ if has_networkx:
         total_triangles = sum(triangles.values()) // 3
         return total_triangles
 
-    @concrete_algorithm("cluster.triangle_count_by_node")
-    def nx_triangle_count_by_node(graph: NetworkXGraph) -> PythonNodes:
-        triangles = nx.triangles(graph.value)
-        return PythonNodes(triangles)
+    @concrete_algorithm("clustering.connected_components")
+    def nx_connected_components(graph: NetworkXGraph) -> PythonNodes:
+        index_to_label = dict()
+        for i, nodes in enumerate(nx.connected_components(graph.value)):
+            for node in nodes:
+                index_to_label[node] = i
+        return PythonNodes(
+            index_to_label,
+            node_index=graph.node_index,
+            dtype="int",
+            weights="non-negative",
+        )
+
+    @concrete_algorithm("clustering.strongly_connected_components")
+    def nx_strongly_connected_components(graph: NetworkXGraph) -> PythonNodes:
+        index_to_label = dict()
+        for i, nodes in enumerate(nx.strongly_connected_components(graph.value)):
+            for node in nodes:
+                index_to_label[node] = i
+        return PythonNodes(
+            index_to_label,
+            node_index=graph.node_index,
+            dtype="int",
+            weights="non-negative",
+        )
+
+    @concrete_algorithm("traversal.bellman_ford")
+    def nx_bellman_ford(
+        graph: NetworkXGraph, source_node: int
+    ) -> Tuple[PythonNodes, PythonNodes]:
+        predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(
+            graph.value, source_node
+        )
+        single_parent_map = {
+            child: parents[0] if len(parents) > 0 else source_node
+            for child, parents in predecessors_map.items()
+        }
+        return (
+            PythonNodes(
+                single_parent_map,
+                node_index=graph.node_index,
+                dtype="int",
+                weights="non-negative",
+            ),
+            PythonNodes(
+                distance_map,
+                node_index=graph.node_index,
+                dtype="int",
+                weights="non-negative",
+            ),
+        )
+
+    @concrete_algorithm("vertex_ranking.betweenness_centrality")
+    def nx_betweenness_centrality(
+        graph: NetworkXGraph,
+        k: int,
+        enable_normalization: bool,
+        include_endpoints: bool,
+    ) -> PythonNodes:
+        node_to_score_map = nx.betweenness_centrality(
+            graph.value, k, enable_normalization, include_endpoints
+        )
+        return PythonNodes(
+            node_to_score_map,
+            node_index=graph.node_index,
+            dtype="int",
+            weights="non-negative",
+        )
+
+    @concrete_algorithm("traversal.breadth_first_search")
+    def nx_breadth_first_search(graph: NetworkXGraph, source_node: int) -> NumpyVector:
+        bfs_ordered_node_array = np.array(
+            nx.breadth_first_search.bfs_tree(graph.value, source_node)
+        )
+        return NumpyVector(bfs_ordered_node_array)
