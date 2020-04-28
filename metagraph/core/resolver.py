@@ -370,21 +370,21 @@ class Resolver:
             for conc_ret_sub_type, abst_ret_sub_type in zip(
                 conc_ret_sub_types, abst_ret_sub_types
             ):
+                abst_ret_sub_type_normalized = self._normalize_abstract_type(
+                    abst_ret_sub_type
+                )
+                conc_ret_sub_type_normalized = self._normalize_concrete_type(
+                    conc_type=conc_ret_sub_type, abst_type=abst_ret_sub_type_normalized
+                )
                 self._check_concrete_algorithm_return_signature(
-                    concrete, conc_ret_sub_type, abst_ret_sub_type
+                    concrete, conc_ret_sub_type_normalized, abst_ret_sub_type_normalized
                 )
         else:
             self._check_concrete_algorithm_return_signature(
-                concrete, conc_sig.return_annotation, abst_sig.return_annotation
+                concrete, conc_ret, abst_ret
             )
 
-    def _check_concrete_algorithm_return_signature(
-        self, concrete, conc_sig_return_type, abst_sig_return_type
-    ):
-        abst_ret = self._normalize_abstract_type(abst_sig_return_type)
-        conc_ret = self._normalize_concrete_type(
-            conc_type=conc_sig_return_type, abst_type=abst_ret
-        )
+    def _check_concrete_algorithm_return_signature(self, concrete, conc_ret, abst_ret):
         if isinstance(conc_ret, ConcreteType):
             if not issubclass(conc_ret.abstract, abst_ret.__class__):
                 raise TypeError(
