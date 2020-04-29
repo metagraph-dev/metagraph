@@ -56,15 +56,19 @@ class MultiVerify:
         """
         for plan in self.plans:
             algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
-            ret_val = plan(*self._args, **self._kwargs)
-            if type(expected_val) != tuple:
-                self._compare_values(expected_val, ret_val, algo_path)
-            else:
-                assert len(expected_val) == len(
-                    ret_val
-                ), f"[{algo_path}] {ret_val} is not the same length as {expected_val}"
-                for expected_val_elem, ret_val_elem in zip(expected_val, ret_val):
-                    self._compare_values(expected_val_elem, ret_val_elem, algo_path)
+            try:
+                ret_val = plan(*self._args, **self._kwargs)
+                if type(expected_val) != tuple:
+                    self._compare_values(expected_val, ret_val, algo_path)
+                else:
+                    assert len(expected_val) == len(
+                        ret_val
+                    ), f"[{algo_path}] {ret_val} is not the same length as {expected_val}"
+                    for expected_val_elem, ret_val_elem in zip(expected_val, ret_val):
+                        self._compare_values(expected_val_elem, ret_val_elem, algo_path)
+            except Exception:
+                print(f"Failed for {algo_path}")
+                raise
 
     def _compare_values(self, expected_val, ret_val, algo_path):
         expected_type = self.resolver.class_to_concrete.get(
@@ -73,9 +77,12 @@ class MultiVerify:
         if issubclass(expected_type, ConcreteType):
             try:
                 compare_val = self.resolver.translate(ret_val, type(expected_val))
-                assert expected_type.compare_objects(
-                    compare_val, expected_val
-                ), f"{algo_path} failed comparison check"
+                if not expected_type.compare_objects(compare_val, expected_val):
+                    print(compare_val)
+                    print(compare_val.value)
+                    print(expected_val)
+                    print(expected_val.value)
+                    raise AssertionError(f"{algo_path} failed comparison check")
             except TypeError:
                 raise UnsatisfiableAlgorithmError(
                     f"[{algo_path}] Unable to convert returned type {type(ret_val)} "

@@ -97,7 +97,7 @@ if has_networkx:
         return PythonNodes(
             node_to_score_map,
             node_index=graph.node_index,
-            dtype="int",
+            dtype="float",
             weights="non-negative",
         )
 
