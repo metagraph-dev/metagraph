@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm
 from metagraph.plugins import has_networkx
-from typing import Tuple
+from typing import Tuple, Iterable, Any
 
 
 if has_networkx:
@@ -54,6 +54,13 @@ if has_networkx:
             dtype="int",
             weights="non-negative",
         )
+
+    @concrete_algorithm("subgraph.extract_subgraph")
+    def nx_extract_subgraph(
+        graph: NetworkXGraph, nodes: Iterable[Any]
+    ) -> NetworkXGraph:
+        subgraph = graph.value.subgraph(nodes)
+        return NetworkXGraph(subgraph, weight_label=graph.weight_label,)
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
