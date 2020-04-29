@@ -43,7 +43,7 @@ v        v /        v
         6: 11.0,
     }
     expected_answer = dpr.wrapper.Nodes.PythonNodes(
-        expected_answer_unwrapped, dtype="int"
+        expected_answer_unwrapped, dtype="float"
     )
     MultiVerify(
         dpr,

@@ -4,5 +4,6 @@ from . import (
     bfs,
     connected_components,
     pagerank,
+    subgraph,
     triangle_count,
 )
