@@ -59,6 +59,6 @@ if has_grblas and has_scipy:
         nrows, ncols = x.shape
         dtype = dtype_mg_to_grblas[x.dtype]
         vec = grblas.Matrix.new_from_values(
-            x.row, x.col, x.data, nrows=nrows, ncols=ncols, dtype=dtype,
+            x.row, x.col, x.data, nrows=nrows, ncols=ncols, dtype=dtype
         )
         return vec

@@ -2,12 +2,7 @@ from metagraph import Wrapper, IndexedNodes
 from metagraph.types import Nodes, NodeMapping, WEIGHT_CHOICES, DTYPE_CHOICES
 
 
-dtype_casting = {
-    "str": str,
-    "float": float,
-    "int": int,
-    "bool": bool,
-}
+dtype_casting = {"str": str, "float": float, "int": int, "bool": bool}
 
 
 class PythonNodes(Wrapper, abstract=Nodes):

@@ -117,12 +117,18 @@ class ConcreteType:
             for k in self.props:
                 if k not in other_type.props or self.props[k] != other_type.props[k]:
                     return False
+        else:
+            return False
         return True
 
     def is_satisfied_by_value(self, obj):
         """Is the type associated with this object compatible with this type?
 
         (self must be equivalent or less specific than the type of obj)
+
+        Note that this is potentially slow because it uses get_type() and
+        therefore computes all properties.  Prefer is_satisfied_by() with a
+        partially specified type instance.
         """
         try:
             t = self.get_type(obj)
@@ -150,8 +156,24 @@ class ConcreteType:
             return isinstance(obj, cls.value_type)
         else:
             raise NotImplementedError(
-                "Must override `is_typeclass_of` if type has abstract properties"
+                "Must override `is_typeclass_of` if cls.value_type not set"
             )
+
+    @classmethod
+    def _validate_abstract_props(cls, props: List[str]) -> bool:
+        for propname in props:
+            if propname not in cls.abstract.properties:
+                raise KeyError(
+                    f"{propname} is not an abstract property of {cls.abstract.__name__}"
+                )
+
+    @classmethod
+    def _validate_concrete_props(cls, props: List[str]) -> bool:
+        for propname in props:
+            if propname not in cls.allowed_props:
+                raise KeyError(
+                    f"{propname} is not an concrete property of {cls.__name__}"
+                )
 
     @classmethod
     def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
@@ -203,7 +225,7 @@ class ConcreteType:
                 obj, cls.abstract.properties.keys()
             )
             concrete_props = cls.compute_concrete_properties(
-                obj, cls.allowed_properties.keys()
+                obj, cls.allowed_props.keys()
             )
 
             ret_val = cls(**abstract_props, **concrete_props)
@@ -249,7 +271,13 @@ class Wrapper:
                 func = getattr(cls, funcname)
                 setattr(cls.Type, funcname, func)
                 delattr(cls, funcname)
-        for methodname in ["is_typeof", "get_type", "compare_objects"]:
+        for methodname in [
+            "is_typeclass_of",
+            "compute_abstract_properties",
+            "compute_concrete_properties",
+            "get_type",
+            "compare_objects",
+        ]:
             if hasattr(cls, methodname):
                 func = getattr(cls, methodname).__func__
                 setattr(cls.Type, methodname, classmethod(func))

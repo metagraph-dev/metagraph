@@ -143,7 +143,7 @@ class AlgorithmPlan:
                 self.required_translations[varname].display()
             else:
                 print(f"** {varname} **")
-                print(f"{sig.parameters[varname].annotation.__name__}")
+                print(f"{sig.parameters[varname].annotation.__class__.__name__}")
         print("---------------------")
 
     @classmethod
@@ -163,8 +163,8 @@ class AlgorithmPlan:
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
                 #   If no translator is found, return None to indicate failure
-                if not cls._check_arg_type(arg_value, param_type):
-                    src_type = resolver.typeof(arg_value).__class__
+                if not cls._check_arg_type(resolver, arg_value, param_type):
+                    src_type = resolver.typeclass_of(arg_value)
                     translator = MultiStepTranslator.find_translation(
                         resolver, src_type, param_type
                     )
@@ -176,13 +176,34 @@ class AlgorithmPlan:
             return
 
     @staticmethod
-    def _check_arg_type(arg_value, param_type) -> bool:
+    def _check_arg_type(resolver, arg_value, param_type) -> bool:
         if param_type is Any:
             return True
         elif isinstance(param_type, ConcreteType):
-            if not param_type.is_satisfied_by_value(arg_value):
+            arg_typeclass = resolver.typeclass_of(arg_value)
+            # The above line should ensure the typeinfo cache is populated
+            arg_typeinfo = resolver.typecache[arg_value]
+
+            # Update cache with required properties
+            requested_properties = set(param_type.props.keys())
+            known_properties = arg_typeinfo.known_concrete_props
+            unknown_properties = set(known_properties.keys()) - requested_properties
+
+            new_properties = arg_typeclass.compute_concrete_properties(
+                arg_value, unknown_properties
+            )
+            known_properties.update(
+                new_properties
+            )  # this dict is still in the cache too
+            # Instantiate this with the properties we now know
+            arg_type = arg_typeclass(**known_properties)
+
+            if not param_type.is_satisfied_by(arg_type):
                 return False
         else:
             if not isinstance(arg_value, param_type):
                 return False
         return True
+
+    def __repr__(self):
+        return f"AlgorithmPlan({self.algo.__name__}, {self.required_translations})"
