@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
 from metagraph.types import Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_scipy
@@ -12,20 +13,20 @@ if has_scipy:
         abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                nrows, ncols = obj.shape
-                is_square = nrows == ncols
-                is_symmetric = is_square and (obj.T != obj).nnz == 0
-                dtype = dtypes.dtypes_simplified[obj.dtype]
-                ret_val.abstract_instance = Matrix(
-                    dtype=dtype, is_square=is_square, is_symmetric=is_symmetric
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            nrows, ncols = obj.shape
+            is_square = nrows == ncols
+            dtype = dtypes.dtypes_simplified[obj.dtype]
+
+            ret = dict(dtype=dtype, is_square=is_square)
+
+            # slow properties, only compute if asked
+            for propname in prop:
+                if propname == "is_symmetric":
+                    ret["is_symmetric"] = is_square and (obj.T != obj).nnz == 0
+
+            return ret
 
         @classmethod
         def compare_objects(cls, obj1, obj2):
@@ -138,16 +139,11 @@ if has_scipy:
             )
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = Graph(
-                    dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
+            )
 
         @classmethod
         def compare_objects(cls, obj1, obj2):

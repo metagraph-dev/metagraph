@@ -2,6 +2,8 @@ from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
 from metagraph.types import Vector, Nodes, NodeMapping, Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_grblas
 
+from typing import List, Dict, Any
+
 
 if has_grblas:
     import grblas
@@ -26,16 +28,11 @@ if has_grblas:
         value_type = grblas.Vector
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                is_dense = obj.nvals == obj.size
-                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
-                ret_val.abstract_instance = cls.abstract(is_dense=is_dense, dtype=dtype)
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            is_dense = obj.nvals == obj.size
+            dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
+            return dict(is_dense=is_dense, dtype=dtype)
 
         @classmethod
         def compare_objects(cls, obj1, obj2):
@@ -112,16 +109,9 @@ if has_grblas:
             return GrblasNodes(data, weights=self._weights, node_index=node_index)
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = cls.abstract(
-                    dtype=obj._dtype, weights=obj._weights
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(dtype=obj._dtype, weights=obj._weights)
 
         @classmethod
         def compare_objects(cls, obj1, obj2):
@@ -154,19 +144,20 @@ if has_grblas:
         abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                is_square = obj.nrows == obj.ncols
-                is_symmetric = obj == obj.T.new()
-                dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
-                ret_val.abstract_instance = Matrix(
-                    dtype=dtype, is_square=is_square, is_symmetric=is_symmetric
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            # fast properties
+            ret = {
+                "is_square": obj.nrows == obj.ncols,
+                "dtype": dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]],
+            }
+
+            # slow properties, only compute if asked
+            for propname in prop:
+                if propname == "is_symmetric":
+                    ret["is_symmetric"] = obj == obj.T.new()
+
+            return ret
 
         @classmethod
         def compare_objects(cls, obj1, obj2):
@@ -267,16 +258,11 @@ if has_grblas:
             )
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = Graph(
-                    dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
+            )
 
         @classmethod
         def compare_objects(cls, obj1, obj2):

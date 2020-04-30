@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 import math
 from metagraph import Wrapper, IndexedNodes
 from metagraph.types import Nodes, NodeMapping, WEIGHT_CHOICES, DTYPE_CHOICES
@@ -72,14 +73,9 @@ class PythonNodes(Wrapper, abstract=Nodes):
         return self._node_index
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            ret_val.abstract_instance = Nodes(dtype=obj._dtype, weights=obj._weights)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
     def compare_objects(cls, obj1, obj2):
