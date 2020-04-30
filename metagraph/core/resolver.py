@@ -318,10 +318,11 @@ class Resolver:
             )
         for abst_param, conc_param in zip(abst_params, conc_params):
             abst_type = self._normalize_abstract_type(abst_param.annotation)
+            if abst_type is Any:
+                continue
             conc_type = self._normalize_concrete_type(
                 conc_type=conc_param.annotation, abst_type=abst_type
             )
-
             if abst_param.name != conc_param.name:
                 raise TypeError(
                     f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
@@ -358,22 +359,45 @@ class Resolver:
                                     f'{concrete.func.__qualname__} argument "{key}" has specificity limits which are '
                                     f"incompatible with the abstract signature"
                                 )
-
-        # Check return type
         abst_ret = self._normalize_abstract_type(abst_sig.return_annotation)
         conc_ret = self._normalize_concrete_type(
             conc_type=conc_sig.return_annotation, abst_type=abst_ret
         )
-        if not isinstance(conc_ret, ConcreteType):
+        if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
+            abst_ret_sub_types = abst_ret.__args__
+            conc_ret_sub_types = conc_ret.__args__
+            if len(abst_ret_sub_types) != len(conc_ret_sub_types):
+                raise TypeError(
+                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                )
+            for conc_ret_sub_type, abst_ret_sub_type in zip(
+                conc_ret_sub_types, abst_ret_sub_types
+            ):
+                abst_ret_sub_type_normalized = self._normalize_abstract_type(
+                    abst_ret_sub_type
+                )
+                conc_ret_sub_type_normalized = self._normalize_concrete_type(
+                    conc_type=conc_ret_sub_type, abst_type=abst_ret_sub_type_normalized
+                )
+                self._check_concrete_algorithm_return_signature(
+                    concrete, conc_ret_sub_type_normalized, abst_ret_sub_type_normalized
+                )
+        else:
+            self._check_concrete_algorithm_return_signature(
+                concrete, conc_ret, abst_ret
+            )
+
+    def _check_concrete_algorithm_return_signature(self, concrete, conc_ret, abst_ret):
+        if isinstance(conc_ret, ConcreteType):
+            if not issubclass(conc_ret.abstract, abst_ret.__class__):
+                raise TypeError(
+                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                )
+        else:
             # regular Python types need to match exactly
             if abst_ret != conc_ret:
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type does not match abstract function signature"
-                )
-        else:
-            if not issubclass(conc_ret.abstract, abst_ret.__class__):
-                raise TypeError(
-                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
                 )
 
     def load_plugins_from_environment(self):

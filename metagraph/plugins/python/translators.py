@@ -1,18 +1,15 @@
 from metagraph import translator
 from metagraph.plugins import has_grblas
 from .types import PythonNodes, dtype_casting
-from ..numpy.types import NumpyNodes
+from ..numpy.types import CompactNumpyNodes
 
 
 @translator
-def nodes_from_numpy(x: NumpyNodes, **props) -> PythonNodes:
+def nodes_from_compactnumpy(x: CompactNumpyNodes, **props) -> PythonNodes:
     cast = dtype_casting[x._dtype]
-    idx2label = x.node_index.byindex
-    data = {
-        idx2label(idx): cast(x.value[idx])
-        for idx, is_missing in enumerate(x.get_missing_mask())
-        if not is_missing
-    }
+    npdata = x.value
+    nplookup = x.lookup
+    data = {label: cast(npdata[idx]) for label, idx in nplookup.items()}
     return PythonNodes(
         data, dtype=x._dtype, weights=x._weights, node_index=x.node_index
     )
