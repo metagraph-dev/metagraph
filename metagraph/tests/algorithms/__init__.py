@@ -43,6 +43,7 @@ class MultiVerify:
                 missing_algos = missing_algos[0]
             else:
                 missing_algos = f"[{', '.join(missing_algos)}]"
+
             raise UnsatisfiableAlgorithmError(f"No plan found for {missing_algos}")
 
         self.plans = plans
@@ -53,30 +54,40 @@ class MultiVerify:
 
         :param expected_val: ConcreteType
         """
-        expected_type = self.resolver.class_to_concrete.get(
-            type(expected_val), type(expected_val)
-        )
         for plan in self.plans:
             algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
             ret_val = plan(*self._args, **self._kwargs)
-            if issubclass(expected_type, ConcreteType):
-                try:
-                    compare_val = self.resolver.translate(ret_val, type(expected_val))
-                    assert expected_type.compare_objects(
-                        compare_val, expected_val
-                    ), f"{algo_path} failed comparison check"
-                except TypeError:
-                    raise UnsatisfiableAlgorithmError(
-                        f"[{algo_path}] Unable to convert returned type {type(ret_val)} "
-                        f"into type {type(expected_val)} for comparison"
-                    )
+            if type(expected_val) != tuple:
+                self._compare_values(expected_val, ret_val, algo_path)
             else:
-                # Normal Python type
-                if expected_type is float:
-                    assert math.isclose(
-                        ret_val, expected_val
-                    ), f"[{algo_path}] {ret_val} is not close to {expected_val}"
-                else:
-                    assert (
-                        ret_val == expected_val
-                    ), f"[{algo_path}] {ret_val} != {expected_val}"
+                assert len(expected_val) == len(
+                    ret_val
+                ), f"[{algo_path}] {ret_val} is not the same length as {expected_val}"
+                for expected_val_elem, ret_val_elem in zip(expected_val, ret_val):
+                    self._compare_values(expected_val_elem, ret_val_elem, algo_path)
+
+    def _compare_values(self, expected_val, ret_val, algo_path):
+        expected_type = self.resolver.class_to_concrete.get(
+            type(expected_val), type(expected_val)
+        )
+        if issubclass(expected_type, ConcreteType):
+            try:
+                compare_val = self.resolver.translate(ret_val, type(expected_val))
+                assert expected_type.compare_objects(
+                    compare_val, expected_val
+                ), f"{algo_path} failed comparison check"
+            except TypeError:
+                raise UnsatisfiableAlgorithmError(
+                    f"[{algo_path}] Unable to convert returned type {type(ret_val)} "
+                    f"into type {type(expected_val)} for comparison"
+                )
+        else:
+            # Normal Python type
+            if expected_type is float:
+                assert math.isclose(
+                    ret_val, expected_val
+                ), f"[{algo_path}] {ret_val} is not close to {expected_val}"
+            else:
+                assert (
+                    ret_val == expected_val
+                ), f"[{algo_path}] {ret_val} != {expected_val}"
