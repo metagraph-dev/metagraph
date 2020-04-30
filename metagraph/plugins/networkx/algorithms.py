@@ -65,6 +65,11 @@ if has_networkx:
         subgraph = graph.value.subgraph(nodes)
         return NetworkXGraph(subgraph, weight_label=graph.weight_label,)
 
+    @concrete_algorithm("subgraph.k_core")
+    def nx_k_core(graph: NetworkXGraph, k: int) -> NetworkXGraph:
+        k_core_graph = nx.k_core(graph.value, k)
+        return NetworkXGraph(k_core_graph, weight_label=graph.weight_label,)
+
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
         graph: NetworkXGraph, source_node: int
