@@ -8,9 +8,7 @@ if has_scipy:
 
     class ScipyMatrixType(ConcreteType, abstract=Matrix):
         value_type = ss.spmatrix
-        abstract_property_specificity_limits = {
-            "is_dense": False,
-        }
+        abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
         def get_type(cls, obj):

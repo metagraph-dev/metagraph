@@ -237,24 +237,24 @@ def test_python_types_as_concrete_substitutes(example_resolver):
     assert algo_plan.algo == correct_python_type
 
 
-def test_typeof(example_resolver):
+def test_type_of(example_resolver):
     empty_res = Resolver()
     with pytest.raises(TypeError, match="registered type"):
-        t = empty_res.typeof(4)
+        t = empty_res.type_of(4)
 
     from .util import StrType, IntType, OtherType
 
-    assert example_resolver.typeof(4) == IntType()
-    assert example_resolver.typeof("python") == StrType(lowercase=True)
-    assert example_resolver.typeof("Python") == StrType(lowercase=False)
-    assert StrType().is_satisfied_by(example_resolver.typeof("python"))
+    assert example_resolver.type_of(4) == IntType()
+    assert example_resolver.type_of("python") == StrType(lowercase=True)
+    assert example_resolver.type_of("Python") == StrType(lowercase=False)
+    assert StrType().is_satisfied_by(example_resolver.type_of("python"))
 
 
 def test_find_translator(example_resolver):
     from .util import StrNum, IntType, OtherType, int_to_str, str_to_int
 
     def find_translator(value, dst_type):
-        src_type = example_resolver.typeof(value).__class__
+        src_type = example_resolver.typeclass_of(value)
         trns = MultiStepTranslator.find_translation(
             example_resolver, src_type, dst_type, exact=True
         )

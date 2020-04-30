@@ -99,9 +99,7 @@ if has_grblas:
 
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix
-        abstract_property_specificity_limits = {
-            "is_dense": False,
-        }
+        abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
         def get_type(cls, obj):

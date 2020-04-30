@@ -2,6 +2,7 @@ import os
 import sys
 import math
 import pytest
+from typing import List, Dict, Any
 
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
@@ -28,19 +29,17 @@ class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     target = "pdp11"
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, int):
-            ret_val = cls()
-            kwargs = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
-            if obj > 0:
-                kwargs["positivity"] = ">0"
-            elif obj == 0:
-                kwargs["positivity"] = ">=0"
-            ret_val.abstract_instance = MyNumericAbstractType(**kwargs)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        # return all properties regardless of what was requested, as
+        # is permitted by the interface
+        ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
+        if obj > 0:
+            ret["positivity"] = ">0"
+        elif obj == 0:
+            ret["positivity"] = ">=0"
+
+        return ret
 
 
 class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
@@ -48,19 +47,17 @@ class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     target = "pdp11"
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, float):
-            ret_val = cls()
-            positivity = "any"
-            if obj > 0:
-                positivity = ">0"
-            elif obj == 0:
-                positivity = ">=0"
-            ret_val.abstract_instance = MyNumericAbstractType(positivity=positivity)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        # return all properties regardless of what was requested, as
+        # is permitted by the interface
+        ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
+        if obj > 0:
+            ret["positivity"] = ">0"
+        elif obj == 0:
+            ret["positivity"] = ">=0"
+
+        return ret
 
 
 class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
@@ -74,20 +71,24 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
         return self.value == other.value
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, StrNum):
-            value = obj.value
-            ret_val = cls()
-            positivity = ">0"
-            if value.startswith("-"):
-                positivity = "any"
-            elif value == "0":
-                positivity = ">=0"
-            ret_val.abstract_instance = MyNumericAbstractType(positivity=positivity)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+
+        value = obj.value
+        # only compute properties that were requested
+        ret = {}
+        for propname in props:
+            if propname == "positivity":
+                if value.startswith("-"):
+                    positivity = "any"
+                elif value == "0":
+                    positivity = ">=0"
+                else:
+                    positivity = ">0"
+                ret["positivity"] = positivity
+            elif propname == "divisible_by_two":
+                ret["divisible_by_two"] = int(value) % 2 == 0
+        return ret
 
 
 class StrType(plugin.ConcreteType, abstract=MyAbstractType):
@@ -96,16 +97,23 @@ class StrType(plugin.ConcreteType, abstract=MyAbstractType):
     target = "pdp11"
 
     @classmethod
-    def get_type(cls, obj):
-        if isinstance(obj, cls.value_type):
-            is_lower = obj.lower() == obj
-            return cls(lowercase=is_lower)
-        else:
-            raise TypeError(f"object not of type {cls.__class__}")
+    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_concrete_props(props)
+
+        # only compute properties that were requested
+        ret = {}
+        for propname in props:
+            if propname == "lowercase":
+                ret["lowercase"] = obj.lower() == obj
+        return ret
 
 
 class OtherType(plugin.ConcreteType, abstract=MyAbstractType):
     target = "pdp11"
+
+    @classmethod
+    def is_typeclass_of(cls, obj):
+        return False  # this type class matches nothing
 
 
 @plugin.translator
