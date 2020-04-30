@@ -12,10 +12,7 @@ if has_networkx:
 
     @concrete_algorithm("link_analysis.pagerank")
     def nx_pagerank(
-        graph: NetworkXGraph,
-        damping: float = 0.85,
-        maxiter: int = 50,
-        tolerance: float = 1e-05,
+        graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float,
     ) -> PythonNodes:
         pagerank = nx.pagerank(
             graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
