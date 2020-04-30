@@ -90,7 +90,7 @@ if has_networkx:
 
     @concrete_algorithm("traversal.dijkstra")
     def dijkstra(
-        graph: NetworkXGraph, source_node: int, max_path_length: float
+        graph: NetworkXGraph, source_node: Any, max_path_length: float
     ) -> Tuple[PythonNodes, PythonNodes]:
         predecessors_map, distance_map = nx.dijkstra_predecessor_and_distance(
             graph.value, source_node, cutoff=max_path_length,
