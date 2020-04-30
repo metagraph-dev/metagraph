@@ -6,3 +6,8 @@ from typing import Iterable, Any
 @abstract_algorithm("subgraph.extract_subgraph")
 def extract_subgraph(graph: Graph, nodes: Iterable[Any]) -> Graph:
     pass
+
+
+@abstract_algorithm("subgraph.k_core")
+def k_core(graph: Graph, k: int) -> Graph:
+    pass
