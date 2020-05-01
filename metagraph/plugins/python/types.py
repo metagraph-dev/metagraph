@@ -87,19 +87,27 @@ class PythonNodes(Wrapper, abstract=Nodes):
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
+    def compare_objects(
+        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+    ):
         if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
             raise TypeError("objects must be PythonNodes")
 
-        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-            return False
-        d1, d2 = obj1.value, obj2.value
-        if obj1._dtype == "float":
-            if d1.keys() ^ d2.keys():
+        if check_values:
+            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
                 return False
-            return all(math.isclose(d1[key], d2[key]) for key in d1)
+            d1, d2 = obj1.value, obj2.value
+            if obj1._dtype == "float":
+                if d1.keys() ^ d2.keys():
+                    return False
+                return all(
+                    math.isclose(d1[key], d2[key], rel_tol=rel_tol, abs_tol=abs_tol)
+                    for key in d1
+                )
+            else:
+                return d1 == d2
         else:
-            return d1 == d2
+            return len(obj1.value) == len(obj2.value)
 
 
 class PythonNodeMapping(Wrapper, abstract=NodeMapping):

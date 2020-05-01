@@ -167,8 +167,16 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(cls, obj1, obj2) -> bool:
-        """Compare whether obj1 and obj2 are equal"""
+    def compare_objects(
+        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+    ) -> bool:
+        """
+        Compare whether obj1 and obj2 are equal
+        rel_tol and abs_tol should be used when comparing floating point numbers
+        If check_values is False, check the type and shape but ignore the values.
+            The reason for this setting is to allow isomorphic checks to be done outside this method
+            once the initial type and shape checks pass.
+        """
         raise NotImplementedError()
 
 
