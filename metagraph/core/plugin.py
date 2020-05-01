@@ -234,15 +234,16 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(
+    def assert_equal(
         cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
     ) -> bool:
         """
-        Compare whether obj1 and obj2 are equal
+        Compare whether obj1 and obj2 are equal, raising an AssertionError if not
         rel_tol and abs_tol should be used when comparing floating point numbers
         If check_values is False, check the type and shape but ignore the values.
-            The reason for this setting is to allow isomorphic checks to be done outside this method
-            once the initial type and shape checks pass.
+            The reason for this setting is to allow custom compare functions to utilize
+            this method for type and shape checking without worrying about values which
+            might differ for valid reasons.
         """
         raise NotImplementedError()
 
@@ -309,7 +310,7 @@ class Wrapper(metaclass=MetaWrapper):
             "compute_abstract_properties",
             "compute_concrete_properties",
             "get_type",
-            "compare_objects",
+            "assert_equal",
         ]:
             if hasattr(cls, methodname):
                 func = getattr(cls, methodname).__func__

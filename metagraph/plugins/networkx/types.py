@@ -95,33 +95,39 @@ if has_networkx:
             )
 
         @classmethod
-        def compare_objects(
+        def assert_equal(
             cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
         ):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be NetworkXGraph")
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be NetworkXGraph, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be NetworkXGraph, not {type(obj2)}"
 
-            if check_values and (
-                obj1._dtype != obj2._dtype or obj1._weights != obj2._weights
-            ):
-                return False
+            if check_values:
+                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+                assert (
+                    obj1._weights == obj2._weights
+                ), f"{obj1._weights} != {obj2._weights}"
             g1 = obj1.value
             g2 = obj2.value
-            if g1.is_directed() != g2.is_directed():
-                return False
+            assert (
+                g1.is_directed() == g2.is_directed()
+            ), f"{g1.is_directed()} != {g2.is_directed()}"
             # Compare
-            if g1.nodes() != g2.nodes():
-                return False
-            if g1.edges() != g2.edges():
-                return False
+            assert g1.nodes() == g2.nodes(), f"{g1.nodes()} != {g2.nodes()}"
+            assert g1.edges() == g2.edges(), f"{g1.edges()} != {g2.edges()}"
             if check_values and obj1._weights != "unweighted":
                 if obj1._dtype == "float":
                     comp = partial(math.isclose, rel_tol=rel_tol, abs_tol=abs_tol)
+                    compstr = "close to"
                 else:
                     comp = operator.eq
+                    compstr = "equal to"
 
                 for e1, e2, d1 in g1.edges(data=True):
                     d2 = g2.edges[(e1, e2)]
-                    if not comp(d1[obj1.weight_label], d2[obj2.weight_label]):
-                        return False
-            return True
+                    val1 = d1[obj1.weight_label]
+                    val2 = d2[obj2.weight_label]
+                    assert comp(val1, val2), f"{(e1, e2)} {val1} not {compstr} {val2}"
