@@ -62,13 +62,7 @@ def test_strongly_connected_components(default_plugin_resolver):
 +-+  -8->  +-+        +-+
 """
     dpr = default_plugin_resolver
-    networkx_graph_data = [
-        (0, 1, 9),
-        (0, 2, 8),
-        (2, 0, 7),
-        (1, 2, 6),
-        (3, 2, 5),
-    ]
+    networkx_graph_data = [(0, 1, 9), (0, 2, 8), (2, 0, 7), (1, 2, 6), (3, 2, 5)]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(networkx_graph_data, weight="weight")
     graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)

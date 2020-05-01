@@ -16,6 +16,7 @@ from .plugin import (
 )
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
+from .typecache import TypeCache, TypeInfo
 import numpy as np
 
 
@@ -69,7 +70,7 @@ class PlanNamespace:
         """
         Print the steps taken to go from type of value to dst_type
         """
-        src_type = self._resolver.typeof(value).__class__
+        src_type = self._resolver.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(
             self._resolver, src_type, dst_type
         )
@@ -118,6 +119,8 @@ class Resolver:
         self.abstract_types: Set[AbstractType] = set()
         self.concrete_types: Set[ConcreteType] = set()
         self.translators: Dict[Tuple[ConcreteType, ConcreteType], Translator] = {}
+
+        self.typecache = TypeCache()
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
@@ -408,23 +411,42 @@ class Resolver:
         plugins = load_plugins()
         self.register(**plugins)
 
-    def typeof(self, value):
-        """Return the concrete type corresponding to a value"""
-        concrete_type = self.class_to_concrete.get(type(value))
-        if concrete_type is not None:
-            return concrete_type.get_type(value)
+    def typeclass_of(self, value):
+        """Return the concrete typeclass corresponding to a value"""
+        if value in self.typecache:
+            typeinfo = self.typecache[value]
+            return typeinfo.concrete_typeclass
+        else:
+            # Check for direct lookup
+            concrete_type = self.class_to_concrete.get(type(value))
+            if concrete_type is None:
+                for ct in self.concrete_types:
+                    if ct.is_typeclass_of(value):
+                        concrete_type = ct
 
-        for ct in self.concrete_types:
-            try:
-                return ct.get_type(value)
-            except TypeError:
-                pass
+            if concrete_type is not None:
+                typeinfo = TypeInfo(
+                    abstract_typeclass=concrete_type.abstract,
+                    known_abstract_props={},
+                    concrete_typeclass=concrete_type,
+                    known_concrete_props={},
+                )
+                self.typecache[value] = typeinfo
+                return concrete_type
 
         raise TypeError(f"Class {value.__class__} does not have a registered type")
 
+    def type_of(self, value):
+        """Return the fully specified type for this value.
+
+        This may require potentially slow computation of properties.  Only use
+        this for debugging.
+        """
+        return self.typeclass_of(value).get_type(value)
+
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""
-        src_type = self.typeof(value).__class__
+        src_type = self.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator is None:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
@@ -494,16 +516,33 @@ class Resolver:
                             f"not {type(arg_value).__name__}"
                         )
             if isinstance(param_type, AbstractType):
-                this_type = self.typeof(arg_value)
-                if this_type.abstract != type(param_type):
+                this_typeclass = self.typeclass_of(arg_value)
+                # The above line should ensure the typeinfo cache is populated
+                this_typeinfo = self.typecache[arg_value]
+
+                # Check if arg_value has the right abstract type
+                if this_typeclass.abstract != type(param_type):
                     raise TypeError(
                         f"{arg_name} must be of type {type(param_type).__name__}, "
-                        f"not {this_type.abstract.__name__}::{type(this_type).__name__}"
+                        f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
                     )
+
+                # Update cache with required properties
+                requested_properties = set(param_type.prop_idx.keys())
+                known_properties = this_typeinfo.known_abstract_props
+                unknown_properties = set(known_properties.keys()) - requested_properties
+
+                new_properties = this_typeclass.compute_abstract_properties(
+                    arg_value, unknown_properties
+                )
+                known_properties.update(
+                    new_properties
+                )  # this dict is still in the cache too
+                this_abs_type = this_typeclass.abstract(**known_properties)
+
                 unsatisfied_requirements = []
                 for abst_prop, min_value in param_type.prop_idx.items():
-                    this_val = this_type.abstract_instance.prop_idx[abst_prop]
-                    if this_val < min_value:
+                    if this_abs_type.prop_idx[abst_prop] < min_value:
                         min_val_obj = param_type.properties[abst_prop][min_value]
                         if type(min_val_obj) is bool:
                             unsatisfied_requirements.append(
@@ -515,7 +554,7 @@ class Resolver:
                             )
                 if unsatisfied_requirements:
                     raise ValueError(
-                        f'"{arg_name}" with properties\n{this_type.abstract_instance.prop_val}\n'
+                        f'"{arg_name}" with properties\n{this_abs_type.prop_val}\n'
                         + f"does not meet the specificity requirements:\n"
                         + "\n".join(unsatisfied_requirements)
                     )
