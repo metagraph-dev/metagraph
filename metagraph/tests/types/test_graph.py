@@ -205,18 +205,18 @@ def test_graphblas_adj():
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], dtype=grblas.dtypes.FP64
     )
     assert GrblasAdjacencyMatrix.Type.compare_objects(
-        GrblasAdjacencyMatrix(g_int), GrblasAdjacencyMatrix(g_int.dup()),
+        GrblasAdjacencyMatrix(g_int), GrblasAdjacencyMatrix(g_int.dup())
     )
     g_close = g_float.dup()
     g_close[0, 0] = 1.0000000000001
     assert GrblasAdjacencyMatrix.Type.compare_objects(
-        GrblasAdjacencyMatrix(g_close), GrblasAdjacencyMatrix(g_float),
+        GrblasAdjacencyMatrix(g_close), GrblasAdjacencyMatrix(g_float)
     )
     g_diff = grblas.Matrix.from_values(
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 3, 0, 3, 3]
     )  # change is here                     ^^^
     assert not GrblasAdjacencyMatrix.Type.compare_objects(
-        GrblasAdjacencyMatrix(g_int), GrblasAdjacencyMatrix(g_diff),
+        GrblasAdjacencyMatrix(g_int), GrblasAdjacencyMatrix(g_diff)
     )
     # Ignore weights if unweighted
     assert GrblasAdjacencyMatrix.Type.compare_objects(
@@ -241,7 +241,7 @@ def test_graphblas_adj():
     )
     # weights don't match, so we take the fast path and declare them not equal
     assert not GrblasAdjacencyMatrix.Type.compare_objects(
-        GrblasAdjacencyMatrix(g_int), GrblasAdjacencyMatrix(g_int, weights="any"),
+        GrblasAdjacencyMatrix(g_int), GrblasAdjacencyMatrix(g_int, weights="any")
     )
     # Node index affects comparison
     assert GrblasAdjacencyMatrix.Type.compare_objects(
@@ -288,18 +288,18 @@ def test_scipy_adj():
         ([1, 2, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 1])), dtype=np.float64
     )
     assert ScipyAdjacencyMatrix.Type.compare_objects(
-        ScipyAdjacencyMatrix(g_int), ScipyAdjacencyMatrix(g_int.copy().tocsr()),
+        ScipyAdjacencyMatrix(g_int), ScipyAdjacencyMatrix(g_int.copy().tocsr())
     )
     g_close = g_float.tocsr()
     g_close[0, 0] = 1.0000000000001
     assert ScipyAdjacencyMatrix.Type.compare_objects(
-        ScipyAdjacencyMatrix(g_close), ScipyAdjacencyMatrix(g_float),
+        ScipyAdjacencyMatrix(g_close), ScipyAdjacencyMatrix(g_float)
     )
     g_diff = ss.coo_matrix(
         ([1, 3, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 1]))
     )  # -  ^^^ changed
     assert not ScipyAdjacencyMatrix.Type.compare_objects(
-        ScipyAdjacencyMatrix(g_int), ScipyAdjacencyMatrix(g_diff),
+        ScipyAdjacencyMatrix(g_int), ScipyAdjacencyMatrix(g_diff)
     )
     # Ignore weights if unweighted
     assert ScipyAdjacencyMatrix.Type.compare_objects(
@@ -310,7 +310,7 @@ def test_scipy_adj():
         ScipyAdjacencyMatrix(g_int),
         ScipyAdjacencyMatrix(
             ss.coo_matrix(
-                ([1, 2, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 0])),
+                ([1, 2, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 0]))
             )  # change is here                                 ^^^
         ),
     )
@@ -318,19 +318,19 @@ def test_scipy_adj():
         ScipyAdjacencyMatrix(g_int),
         ScipyAdjacencyMatrix(
             ss.coo_matrix(
-                ([1, 2, 0, 3, 3, 0], ([0, 0, 1, 1, 2, 2], [0, 1, 1, 2, 1, 2])),
+                ([1, 2, 0, 3, 3, 0], ([0, 0, 1, 1, 2, 2], [0, 1, 1, 2, 1, 2]))
             )  # extra element  ^^^                  ^^^                 ^^^
         ),
     )
     # weights don't match, so we take the fast path and declare them not equal
     assert not ScipyAdjacencyMatrix.Type.compare_objects(
-        ScipyAdjacencyMatrix(g_int), ScipyAdjacencyMatrix(g_int, weights="any"),
+        ScipyAdjacencyMatrix(g_int), ScipyAdjacencyMatrix(g_int, weights="any")
     )
     # Node index affects comparison
     assert ScipyAdjacencyMatrix.Type.compare_objects(
         ScipyAdjacencyMatrix(g_int, node_index=IndexedNodes("ABC")),
         ScipyAdjacencyMatrix(
-            ss.coo_matrix(([0, 3, 3, 2, 1], ([0, 0, 1, 2, 2], [0, 1, 0, 0, 2])),),
+            ss.coo_matrix(([0, 3, 3, 2, 1], ([0, 0, 1, 2, 2], [0, 1, 0, 0, 2]))),
             node_index=IndexedNodes("BCA"),
         ),
     )
@@ -338,14 +338,14 @@ def test_scipy_adj():
     assert ScipyAdjacencyMatrix.Type.compare_objects(
         ScipyAdjacencyMatrix(g_int),
         ScipyAdjacencyMatrix(
-            ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1])),),
+            ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1]))),
             transposed=True,
         ),
     )
     assert ScipyAdjacencyMatrix.Type.compare_objects(
         ScipyAdjacencyMatrix(g_int, transposed=True),
         ScipyAdjacencyMatrix(
-            ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1])),)
+            ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1])))
         ),
     )
     assert ScipyAdjacencyMatrix.Type.compare_objects(
