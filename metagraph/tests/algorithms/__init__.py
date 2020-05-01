@@ -1,4 +1,4 @@
-from typing import Union, AnyStr, Callable
+from typing import Union, AnyStr, Callable, Tuple
 import math
 from metagraph import ConcreteType
 from metagraph.core.resolver import Resolver, Dispatcher
@@ -101,7 +101,12 @@ class MultiVerify:
                 print(f"Failed for {algo_path}")
                 raise
 
-    def assert_equals(self, expected_val: ConcreteType, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equals(
+        self,
+        expected_val: Union[ConcreteType, Tuple[ConcreteType]],
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
         """
         Verifies that each concrete algorithm's output matches expected_val, once translated to the correct type
 
@@ -111,11 +116,7 @@ class MultiVerify:
             algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
             try:
                 ret_val = plan(*self._args, **self._kwargs)
-                if type(expected_val) != tuple:
-                    self._compare_values(
-                        expected_val, ret_val, algo_path, rel_tol, abs_tol
-                    )
-                else:
+                if type(expected_val) is tuple:
                     assert len(expected_val) == len(
                         ret_val
                     ), f"[{algo_path}] {ret_val} is not the same length as {expected_val}"
@@ -123,6 +124,10 @@ class MultiVerify:
                         self._compare_values(
                             expected_val_elem, ret_val_elem, algo_path, rel_tol, abs_tol
                         )
+                else:
+                    self._compare_values(
+                        expected_val, ret_val, algo_path, rel_tol, abs_tol
+                    )
             except Exception:
                 print(f"Failed for {algo_path}")
                 raise
@@ -134,14 +139,16 @@ class MultiVerify:
         if issubclass(expected_type, ConcreteType):
             try:
                 compare_val = self.resolver.translate(ret_val, type(expected_val))
-                if not expected_type.compare_objects(
-                    compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
-                ):
+                try:
+                    expected_type.assert_equal(
+                        compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
+                    )
+                except AssertionError:
                     print(compare_val)
                     print(compare_val.value)
                     print(expected_val)
                     print(expected_val.value)
-                    raise AssertionError(f"{algo_path} failed comparison check")
+                    raise
             except TypeError:
                 raise UnsatisfiableAlgorithmError(
                     f"[{algo_path}] Unable to convert returned type {type(ret_val)} "

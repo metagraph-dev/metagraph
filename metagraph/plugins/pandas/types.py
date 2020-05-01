@@ -14,23 +14,23 @@ if has_pandas:
         value_type = pd.DataFrame
 
         @classmethod
-        def compare_objects(
+        def assert_equal(
             cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
         ):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be pandas DataFrames")
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be pandas.DataFrame, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be pandas.DataFrame, not {type(obj2)}"
 
             if check_values:
-                try:
-                    digits_precision = round(-math.log(rel_tol, 10))
-                    pd.testing.assert_frame_equal(
-                        obj1, obj2, check_like=True, check_less_precise=digits_precision
-                    )
-                    return True
-                except AssertionError:
-                    return False
+                digits_precision = round(-math.log(rel_tol, 10))
+                pd.testing.assert_frame_equal(
+                    obj1, obj2, check_like=True, check_less_precise=digits_precision
+                )
             else:
-                return obj1.shape == obj2.shape
+                assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
 
     class PandasEdgeList(Wrapper, abstract=Graph):
         """
@@ -135,24 +135,30 @@ if has_pandas:
             )
 
         @classmethod
-        def compare_objects(
+        def assert_equal(
             cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
         ):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be PandasEdgeList")
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be PandasEdgeList, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be PandasEdgeList, not {type(obj2)}"
 
-            if check_values and (
-                obj1._dtype != obj2._dtype or obj1._weights != obj2._weights
-            ):
-                return False
-            if obj1.is_directed != obj2.is_directed:
-                return False
+            if check_values:
+                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+                assert (
+                    obj1._weights == obj2._weights
+                ), f"{obj1._weights} != {obj2._weights}"
+            assert (
+                obj1.is_directed == obj2.is_directed
+            ), f"{obj1.is_directed} != {obj2.is_directed}"
             g1 = obj1.value
             g2 = obj2.value
-            if len(g1) != len(g2):
-                return False
-            if len(obj1.index & obj2.index) < len(obj1.index):
-                return False
+            assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
+            assert len(obj1.index & obj2.index) == len(
+                obj1.index
+            ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
             # Ensure dataframes are indexed the same
             if not (obj1.index == obj2.index).all():
                 g2 = g2.set_index(obj2.index).reindex(obj1.index).reset_index(drop=True)
@@ -161,7 +167,6 @@ if has_pandas:
                 v1 = g1[obj1.weight_label]
                 v2 = g2[obj2.weight_label]
                 if issubclass(v1.dtype.type, np.floating):
-                    return np.isclose(v1, v2, rtol=rel_tol, atol=abs_tol).all()
+                    assert np.isclose(v1, v2, rtol=rel_tol, atol=abs_tol).all()
                 else:
-                    return (v1 == v2).all()
-            return True
+                    assert (v1 == v2).all()

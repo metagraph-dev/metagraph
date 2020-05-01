@@ -78,27 +78,32 @@ class PythonNodes(Wrapper, abstract=Nodes):
         return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
-    def compare_objects(
-        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-    ):
-        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-            raise TypeError("objects must be PythonNodes")
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
+        assert (
+            type(obj1) is cls.value_type
+        ), f"obj1 must be PythonNodes, not {type(obj1)}"
+        assert (
+            type(obj2) is cls.value_type
+        ), f"obj2 must be PythonNodes, not {type(obj2)}"
 
         if check_values:
-            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-                return False
+            assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+            assert obj1._weights == obj2._weights, f"{obj1._weights} != {obj2._weights}"
             d1, d2 = obj1.value, obj2.value
             if obj1._dtype == "float":
-                if d1.keys() ^ d2.keys():
-                    return False
-                return all(
+                assert (
+                    not d1.keys() ^ d2.keys()
+                ), f"Mismatched keys: {d1.keys() ^ d2.keys()}"
+                assert all(
                     math.isclose(d1[key], d2[key], rel_tol=rel_tol, abs_tol=abs_tol)
                     for key in d1
                 )
             else:
-                return d1 == d2
+                assert d1 == d2
         else:
-            return len(obj1.value) == len(obj2.value)
+            assert len(obj1.value) == len(
+                obj2.value
+            ), f"{len(obj1.value)} != {len(obj2.value)}"
 
 
 class PythonNodeMapping(Wrapper, abstract=NodeMapping):
