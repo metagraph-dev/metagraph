@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 from metagraph import ConcreteType, Wrapper, IndexedNodes
 from metagraph.types import Graph, DTYPE_CHOICES, WEIGHT_CHOICES
 from metagraph.plugins import has_networkx
@@ -85,18 +86,13 @@ if has_networkx:
             return self._node_index
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = cls.abstract(
-                    is_directed=obj.value.is_directed(),
-                    dtype=obj._dtype,
-                    weights=obj._weights,
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                is_directed=obj.value.is_directed(),
+                dtype=obj._dtype,
+                weights=obj._weights,
+            )
 
         @classmethod
         def compare_objects(

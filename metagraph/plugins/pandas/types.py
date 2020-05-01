@@ -1,4 +1,5 @@
 import numpy as np
+from typing import List, Dict, Any
 from metagraph import ConcreteType, Wrapper, dtypes, IndexedNodes
 from metagraph.types import DataFrame, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_pandas
@@ -127,16 +128,11 @@ if has_pandas:
             return self._node_index
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = Graph(
-                    dtype=obj._dtype, weights=obj._weights, is_directed=obj.is_directed
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                dtype=obj._dtype, weights=obj._weights, is_directed=obj.is_directed
+            )
 
         @classmethod
         def compare_objects(

@@ -6,17 +6,11 @@ WEIGHT_CHOICES = ["any", "non-negative", "positive", "unweighted"]
 
 
 class Vector(AbstractType):
-    properties = {
-        "is_dense": [False, True],
-        "dtype": DTYPE_CHOICES,
-    }
+    properties = {"is_dense": [False, True], "dtype": DTYPE_CHOICES}
 
 
 class Nodes(AbstractType):
-    properties = {
-        "dtype": DTYPE_CHOICES,
-        "weights": WEIGHT_CHOICES,
-    }
+    properties = {"dtype": DTYPE_CHOICES, "weights": WEIGHT_CHOICES}
 
     @Wrapper.required_method
     def __getitem__(self, label):
