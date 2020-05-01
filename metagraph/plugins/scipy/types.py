@@ -30,24 +30,31 @@ if has_scipy:
                 raise TypeError(f"object not of type {cls.__name__}")
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
+        def compare_objects(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
             if not isinstance(obj1, cls.value_type) or not isinstance(
                 obj2, cls.value_type
             ):
                 raise TypeError("objects must be scipy.spmatrix")
 
-            if obj1.dtype != obj2.dtype:
+            if check_values and obj1.dtype != obj2.dtype:
                 return False
             if obj1.shape != obj2.shape:
                 return False
-            if issubclass(obj1.dtype.type, np.floating):
+            if issubclass(obj1.dtype.type, np.floating) or not check_values:
                 d1 = obj1.tocsr()
                 d2 = obj2.tocsr()
                 if not (d1.indptr == d2.indptr).all():
                     return False
                 if not (d1.indices == d2.indices).all():
                     return False
-                return np.isclose(d1.data, d2.data).all()
+                if check_values:
+                    return np.isclose(
+                        d1.data, d2.data, rtol=rel_tol, atol=abs_tol
+                    ).all()
+                else:
+                    return True
             else:
                 return (obj1 != obj2).nnz == 0
 
@@ -152,7 +159,9 @@ if has_scipy:
                 raise TypeError(f"object not of type {cls.__name__}")
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
+        def compare_objects(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be ScipyAdjacencyMatrix")
 
@@ -160,7 +169,7 @@ if has_scipy:
                 return False
             if obj1.value.nnz != obj2.value.nnz:
                 return False
-            if (
+            if check_values and (
                 obj1._dtype != obj2._dtype
                 or obj1._weights != obj2._weights
                 or obj1._is_directed != obj2._is_directed
@@ -184,9 +193,11 @@ if has_scipy:
             d2.sort_indices()
             if not (d1.indices == d2.indices).all():
                 return False
-            if obj1._weights != "unweighted":
+            if check_values and obj1._weights != "unweighted":
                 if issubclass(d1.dtype.type, np.floating):
-                    return np.isclose(d1.data, d2.data).all()
+                    return np.isclose(
+                        d1.data, d2.data, rtol=rel_tol, atol=abs_tol
+                    ).all()
                 else:
                     return (d1.data == d2.data).all()
             return True

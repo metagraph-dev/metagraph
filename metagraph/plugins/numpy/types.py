@@ -32,11 +32,13 @@ class NumpyVector(Wrapper, abstract=Vector):
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
+    def compare_objects(
+        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+    ):
         if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
             raise TypeError("objects must be NumpyVector")
 
-        if obj1.value.dtype != obj2.value.dtype:
+        if check_values and obj1.value.dtype != obj2.value.dtype:
             return False
         if obj1.value.shape != obj2.value.shape:
             return False
@@ -50,10 +52,13 @@ class NumpyVector(Wrapper, abstract=Vector):
             if not (obj1.missing_mask == obj2.missing_mask).all():
                 return False
         # Compare
-        if issubclass(d1.dtype.type, np.floating):
-            return np.isclose(d1, d2).all()
+        if check_values:
+            if issubclass(d1.dtype.type, np.floating):
+                return np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+            else:
+                return (d1 == d2).all()
         else:
-            return (d1 == d2).all()
+            return True
 
 
 class NumpyNodes(Wrapper, abstract=Nodes):
@@ -159,13 +164,17 @@ class NumpyNodes(Wrapper, abstract=Nodes):
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
+    def compare_objects(
+        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+    ):
         if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
             raise TypeError("objects must be NumpyNodes")
 
         if obj1.num_nodes != obj2.num_nodes:
             return False
-        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+        if check_values and (
+            obj1._dtype != obj2._dtype or obj1._weights != obj2._weights
+        ):
             return False
         # Convert to a common node indexing scheme
         try:
@@ -178,10 +187,13 @@ class NumpyNodes(Wrapper, abstract=Nodes):
         if len(d1) != len(d2):
             return False
         # Compare
-        if obj1._dtype == "float":
-            return np.isclose(d1, d2).all()
+        if check_values:
+            if obj1._dtype == "float":
+                return np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+            else:
+                return (d1 == d2).all()
         else:
-            return (d1 == d2).all()
+            return True
 
 
 class CompactNumpyNodes(Wrapper, abstract=Nodes):
@@ -279,13 +291,17 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
+    def compare_objects(
+        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+    ):
         if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
             raise TypeError("objects must be CompactNumpyNodes")
 
         if obj1.num_nodes != obj2.num_nodes:
             return False
-        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+        if check_values and (
+            obj1._dtype != obj2._dtype or obj1._weights != obj2._weights
+        ):
             return False
         if len(obj1.value) != len(obj2.value):
             return False
@@ -295,10 +311,15 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
         except ValueError:
             return False
         # Compare
-        if obj1._dtype == "float":
-            return np.isclose(obj1.value, obj2.value).all()
+        if check_values:
+            if obj1._dtype == "float":
+                return np.isclose(
+                    obj1.value, obj2.value, rtol=rel_tol, atol=abs_tol
+                ).all()
+            else:
+                return (obj1.value == obj2.value).all()
         else:
-            return (obj1.value == obj2.value).all()
+            return True
 
 
 class NumpyNodeMapping(Wrapper, abstract=NodeMapping):
@@ -357,11 +378,13 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
+    def compare_objects(
+        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+    ):
         if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
             raise TypeError("objects must be NumpyMatrix")
 
-        if obj1.value.dtype != obj2.value.dtype:
+        if check_values and obj1.value.dtype != obj2.value.dtype:
             return False
         if obj1.value.shape != obj2.value.shape:
             return False
@@ -375,13 +398,16 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
             if not (obj1.missing_mask == obj2.missing_mask).all().all():
                 return False
             # Compare 1-D
-            if issubclass(d1.dtype.type, np.floating):
-                return np.isclose(d1, d2).all()
-            else:
-                return (d1 == d2).all()
+            if check_values:
+                if issubclass(d1.dtype.type, np.floating):
+                    return np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+                else:
+                    return (d1 == d2).all()
         else:
             # Compare 2-D
-            if issubclass(d1.dtype.type, np.floating):
-                return np.isclose(d1, d2).all().all()
-            else:
-                return (d1 == d2).all().all()
+            if check_values:
+                if issubclass(d1.dtype.type, np.floating):
+                    return np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
+                else:
+                    return (d1 == d2).all().all()
+        return True

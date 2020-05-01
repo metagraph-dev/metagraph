@@ -38,14 +38,24 @@ if has_grblas:
                 raise TypeError(f"object not of type {cls.__name__}")
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
+        def compare_objects(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be grblas.Vector")
 
-            if obj1.dtype.name in {"FP32", "FP64"}:
-                return obj1.isclose(obj2, check_dtype=True)
+            if check_values:
+                if obj1.dtype.name in {"FP32", "FP64"}:
+                    return obj1.isclose(
+                        obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
+                    )
+                else:
+                    return obj1.isequal(obj2, check_dtype=True)
             else:
-                return obj1.isequal(obj2, check_dtype=True)
+                if obj1.size != obj2.size or obj1.nvals != obj2.nvals:
+                    return False
+                shape_match = obj1.ewise_mult(obj2, grblas.binary.pair).new()
+                return shape_match.nvals == obj1.nvals
 
     class GrblasNodes(Wrapper, abstract=Nodes):
         def __init__(self, data, *, weights=None, node_index=None):
@@ -124,13 +134,17 @@ if has_grblas:
                 raise TypeError(f"object not of type {cls.__name__}")
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
+        def compare_objects(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be GrblasNodes")
 
             if obj1.num_nodes != obj2.num_nodes:
                 return False
-            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
+            if check_values and (
+                obj1._dtype != obj2._dtype or obj1._weights != obj2._weights
+            ):
                 return False
             # Convert to a common node indexing scheme
             try:
@@ -138,10 +152,18 @@ if has_grblas:
             except ValueError:
                 return False
             # Compare
-            if obj1._dtype == "float":
-                return obj1.value.isclose(obj2.value)
+            if check_values:
+                if obj1._dtype == "float":
+                    return obj1.value.isclose(
+                        obj2.value, rel_tol=rel_tol, abs_tol=abs_tol
+                    )
+                else:
+                    return obj1.value.isequal(obj2.value)
             else:
-                return obj1.value.isequal(obj2.value)
+                shape_match = obj1.value.ewise_mult(
+                    obj2.value, grblas.binary.pair
+                ).new()
+                return shape_match.nvals == obj1.value.nvals
 
     class GrblasNodeMapping(Wrapper, abstract=NodeMapping):
         def __init__(self, data, src_node_labels=None, dst_node_labels=None):
@@ -171,14 +193,28 @@ if has_grblas:
                 raise TypeError(f"object not of type {cls.__name__}")
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
+        def compare_objects(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be grblas.Matrix")
 
-            if obj1.dtype.name in {"FP32", "FP64"}:
-                return obj1.isclose(obj2, check_dtype=True)
+            if check_values:
+                if obj1.dtype.name in {"FP32", "FP64"}:
+                    return obj1.isclose(
+                        obj2, rel_tol=1e-9, abs_tol=0.0, check_dtype=True
+                    )
+                else:
+                    return obj1.isequal(obj2, check_dtype=True)
             else:
-                return obj1.isequal(obj2, check_dtype=True)
+                if (
+                    obj1.nrows != obj2.nrows
+                    or obj1.ncols != obj2.ncols
+                    or obj1.nvals != obj2.nvals
+                ):
+                    return False
+                shape_match = obj1.ewise_mult(obj2, grblas.binary.pair).new()
+                return shape_match.nvals == obj1.nvals
 
     class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(
@@ -281,7 +317,9 @@ if has_grblas:
                 raise TypeError(f"object not of type {cls.__name__}")
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
+        def compare_objects(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
             if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
                 raise TypeError("objects must be GrblasAdjacencyMatrix")
 
@@ -289,7 +327,7 @@ if has_grblas:
                 return False
             if obj1.value.nvals != obj2.value.nvals:
                 return False
-            if (
+            if check_values and (
                 obj1._dtype != obj2._dtype
                 or obj1._weights != obj2._weights
                 or obj1._is_directed != obj2._is_directed
@@ -304,12 +342,12 @@ if has_grblas:
             d1 = obj1.value.T if obj1.transposed else obj1.value
             d2 = obj2.value.T if obj2.transposed else obj2.value
             # Compare
-            if obj1._weights != "unweighted":
+            if check_values and obj1._weights != "unweighted":
                 if obj1._dtype == "float":
-                    return d1.isclose(d2)
+                    return d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
                 else:
                     return d1.isequal(d2)
             else:
-                # Unweighted -- only check matching edges, not weights
+                # Only check matching edges, not weights
                 matches = d1.ewise_mult(d2, grblas.binary.any).new()
                 return matches.nvals == d1.nvals
