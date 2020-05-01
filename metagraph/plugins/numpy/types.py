@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 import numpy as np
 from metagraph import Wrapper, dtypes, SequentialNodes, IndexedNodes
 from metagraph.types import Vector, Nodes, NodeMapping, Matrix, WEIGHT_CHOICES
@@ -20,16 +21,11 @@ class NumpyVector(Wrapper, abstract=Vector):
         return len(self.value)
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            is_dense = obj.missing_mask is None
-            dtype = dtypes.dtypes_simplified[obj.value.dtype]
-            ret_val.abstract_instance = cls.abstract(is_dense=is_dense, dtype=dtype)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        is_dense = obj.missing_mask is None
+        dtype = dtypes.dtypes_simplified[obj.value.dtype]
+        return dict(is_dense=is_dense, dtype=dtype)
 
     @classmethod
     def compare_objects(cls, obj1, obj2):
@@ -147,16 +143,9 @@ class NumpyNodes(Wrapper, abstract=Nodes):
         )
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            ret_val.abstract_instance = cls.abstract(
-                dtype=obj._dtype, weights=obj._weights
-            )
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
     def compare_objects(cls, obj1, obj2):
@@ -267,16 +256,9 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
         )
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            ret_val.abstract_instance = cls.abstract(
-                dtype=obj._dtype, weights=obj._weights
-            )
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
     def compare_objects(cls, obj1, obj2):
@@ -340,21 +322,16 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         return self.value.shape
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            is_dense = obj.missing_mask is None
-            dtype = dtypes.dtypes_simplified[obj.value.dtype]
-            ret_val.abstract_instance = cls.abstract(
-                is_dense=is_dense,
-                is_square=obj._is_square,
-                is_symmetric=obj._is_symmetric,
-                dtype=dtype,
-            )
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        is_dense = obj.missing_mask is None
+        dtype = dtypes.dtypes_simplified[obj.value.dtype]
+        return dict(
+            is_dense=is_dense,
+            is_square=obj._is_square,
+            is_symmetric=obj._is_symmetric,
+            dtype=dtype,
+        )
 
     @classmethod
     def compare_objects(cls, obj1, obj2):

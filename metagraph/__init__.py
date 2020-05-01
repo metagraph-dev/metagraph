@@ -17,7 +17,7 @@ from .core.plugin_registry import PluginRegistry
 from .core.node_index import IndexedNodes, SequentialNodes
 from . import types, algorithms
 
-_SPECIAL_ATTRS = ["resolver", "algo", "translate", "typeof"]
+_SPECIAL_ATTRS = ["resolver", "algo", "translate", "type_of", "typeclass_of"]
 
 
 def __getattr__(name):
@@ -31,7 +31,8 @@ def __getattr__(name):
         globals()["resolver"] = res
         globals()["algo"] = res.algo
         globals()["translate"] = res.translate
-        globals()["typeof"] = res.typeof
+        globals()["type_of"] = res.type_of
+        globals()["typeclass_of"] = res.typeclass_of
 
         return globals()[name]
     else:

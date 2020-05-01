@@ -17,13 +17,7 @@ def test_pagerank(default_plugin_resolver):
 +-+  -->  +-+       +-+
 """
     dpr = default_plugin_resolver
-    networkx_graph_data = [
-        (0, 1),
-        (0, 2),
-        (2, 0),
-        (1, 2),
-        (3, 2),
-    ]
+    networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
     networkx_graph = nx.DiGraph()
     networkx_graph.add_edges_from(networkx_graph_data)
     networkx_pagerank = nx.pagerank(networkx_graph, alpha=0.85, max_iter=50, tol=1e-05)
