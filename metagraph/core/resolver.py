@@ -554,17 +554,24 @@ class Resolver:
                         + "\n".join(unsatisfied_requirements)
                     )
 
-        valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
-        if not valid_algos:
-            raise TypeError(
-                f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs'
-            )
-        else:
+        if config.get("core.dispatch.allow_translation"):
+            valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
+            if not valid_algos:
+                raise TypeError(
+                    f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs'
+                )
             # choose the solutions requiring the fewest translations
             algo = valid_algos[0]
-            if config.get("core.logging.plans"):
-                algo.display()
-            return algo(*args, **kwargs)
+        else:
+            algo = self.find_algorithm_exact(algo_name, *args, **kwargs)
+            if not algo:
+                raise TypeError(
+                    f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs and automatic translation is disabled'
+                )
+
+        if config.get("core.logging.plans"):
+            algo.display()
+        return algo(*args, **kwargs)
 
 
 class Dispatcher:
