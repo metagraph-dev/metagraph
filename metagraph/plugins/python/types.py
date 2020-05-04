@@ -1,14 +1,10 @@
+from typing import List, Dict, Any
 import math
 from metagraph import Wrapper, IndexedNodes
 from metagraph.types import Nodes, NodeMapping, WEIGHT_CHOICES, DTYPE_CHOICES
 
 
-dtype_casting = {
-    "str": str,
-    "float": float,
-    "int": int,
-    "bool": bool,
-}
+dtype_casting = {"str": str, "float": float, "int": int, "bool": bool}
 
 
 class PythonNodes(Wrapper, abstract=Nodes):
@@ -77,29 +73,37 @@ class PythonNodes(Wrapper, abstract=Nodes):
         return self._node_index
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            ret_val.abstract_instance = Nodes(dtype=obj._dtype, weights=obj._weights)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
-        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-            raise TypeError("objects must be PythonNodes")
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
+        assert (
+            type(obj1) is cls.value_type
+        ), f"obj1 must be PythonNodes, not {type(obj1)}"
+        assert (
+            type(obj2) is cls.value_type
+        ), f"obj2 must be PythonNodes, not {type(obj2)}"
 
-        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-            return False
-        d1, d2 = obj1.value, obj2.value
-        if obj1._dtype == "float":
-            if d1.keys() ^ d2.keys():
-                return False
-            return all(math.isclose(d1[key], d2[key]) for key in d1)
+        if check_values:
+            assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+            assert obj1._weights == obj2._weights, f"{obj1._weights} != {obj2._weights}"
+            d1, d2 = obj1.value, obj2.value
+            if obj1._dtype == "float":
+                assert (
+                    not d1.keys() ^ d2.keys()
+                ), f"Mismatched keys: {d1.keys() ^ d2.keys()}"
+                assert all(
+                    math.isclose(d1[key], d2[key], rel_tol=rel_tol, abs_tol=abs_tol)
+                    for key in d1
+                )
+            else:
+                assert d1 == d2
         else:
-            return d1 == d2
+            assert len(obj1.value) == len(
+                obj2.value
+            ), f"{len(obj1.value)} != {len(obj2.value)}"
 
 
 class PythonNodeMapping(Wrapper, abstract=NodeMapping):

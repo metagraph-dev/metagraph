@@ -1,6 +1,8 @@
+from typing import List, Dict, Any
 from metagraph import ConcreteType, Wrapper, IndexedNodes
 from metagraph.types import Graph, DTYPE_CHOICES, WEIGHT_CHOICES
 from metagraph.plugins import has_networkx
+from functools import partial
 import operator
 import math
 
@@ -84,42 +86,48 @@ if has_networkx:
             return self._node_index
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = cls.abstract(
-                    is_directed=obj.value.is_directed(),
-                    dtype=obj._dtype,
-                    weights=obj._weights,
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                is_directed=obj.value.is_directed(),
+                dtype=obj._dtype,
+                weights=obj._weights,
+            )
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be NetworkXGraph")
+        def assert_equal(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be NetworkXGraph, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be NetworkXGraph, not {type(obj2)}"
 
-            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-                return False
+            if check_values:
+                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+                assert (
+                    obj1._weights == obj2._weights
+                ), f"{obj1._weights} != {obj2._weights}"
             g1 = obj1.value
             g2 = obj2.value
-            if g1.is_directed() != g2.is_directed():
-                return False
+            assert (
+                g1.is_directed() == g2.is_directed()
+            ), f"{g1.is_directed()} != {g2.is_directed()}"
             # Compare
-            if g1.nodes() != g2.nodes():
-                return False
-            if g1.edges() != g2.edges():
-                return False
-            if obj1._dtype == "float":
-                comp = math.isclose
-            else:
-                comp = operator.eq
-            if obj1._weights != "unweighted":
+            assert g1.nodes() == g2.nodes(), f"{g1.nodes()} != {g2.nodes()}"
+            assert g1.edges() == g2.edges(), f"{g1.edges()} != {g2.edges()}"
+            if check_values and obj1._weights != "unweighted":
+                if obj1._dtype == "float":
+                    comp = partial(math.isclose, rel_tol=rel_tol, abs_tol=abs_tol)
+                    compstr = "close to"
+                else:
+                    comp = operator.eq
+                    compstr = "equal to"
+
                 for e1, e2, d1 in g1.edges(data=True):
                     d2 = g2.edges[(e1, e2)]
-                    if not comp(d1[obj1.weight_label], d2[obj2.weight_label]):
-                        return False
-            return True
+                    val1 = d1[obj1.weight_label]
+                    val2 = d2[obj2.weight_label]
+                    assert comp(val1, val2), f"{(e1, e2)} {val1} not {compstr} {val2}"

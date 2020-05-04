@@ -20,6 +20,7 @@ v        v /        v
         (1, 4, 3),
         (2, 4, 4),
         (2, 5, 5),
+        (2, 7, 6),
         (3, 4, 8),
         (4, 5, 9),
         (5, 6, 10),
@@ -28,7 +29,7 @@ v        v /        v
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
-    correct_answer = dpr.wrapper.Vector.NumpyVector(np.array([0, 3, 4, 5, 6, 2]))
+    correct_answer = dpr.wrapper.Vector.NumpyVector(np.array([0, 3, 4, 5, 6, 2, 7]))
     MultiVerify(dpr, "traversal.breadth_first_search", graph, 0).assert_equals(
         correct_answer
     )

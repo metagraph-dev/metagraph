@@ -61,14 +61,14 @@ def test_concrete_type():
     assert ct_lower.is_satisfied_by_value("python")
     assert not ct_lower.is_satisfied_by_value("Python")
 
-    # default typeof
+    # default get_type
     assert IntType.get_type(10) == IntType()
     with pytest.raises(TypeError, match="not of type"):
         IntType.get_type(set())
 
-    # custom typeof
-    assert ct.is_typeof("python")
-    assert not ct.is_typeof(set())
+    # custom typeclass_of
+    assert ct.is_typeclass_of("python")
+    assert not ct.is_typeclass_of(set())
     assert StrType.get_type("python") == ct_lower
     assert StrType.get_type("PYTHon") != ct_lower
     with pytest.raises(TypeError, match="not of type"):

@@ -1,4 +1,5 @@
 import numpy as np
+from typing import List, Dict, Any
 from metagraph import ConcreteType, Wrapper, dtypes, IndexedNodes
 from metagraph.types import DataFrame, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_pandas
@@ -13,15 +14,23 @@ if has_pandas:
         value_type = pd.DataFrame
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be pandas DataFrames")
+        def assert_equal(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be pandas.DataFrame, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be pandas.DataFrame, not {type(obj2)}"
 
-            try:
-                pd.testing.assert_frame_equal(obj1, obj2, check_like=True)
-                return True
-            except AssertionError:
-                return False
+            if check_values:
+                digits_precision = round(-math.log(rel_tol, 10))
+                pd.testing.assert_frame_equal(
+                    obj1, obj2, check_like=True, check_less_precise=digits_precision
+                )
+            else:
+                assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
 
     class PandasEdgeList(Wrapper, abstract=Graph):
         """
@@ -119,41 +128,45 @@ if has_pandas:
             return self._node_index
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = Graph(
-                    dtype=obj._dtype, weights=obj._weights, is_directed=obj.is_directed
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                dtype=obj._dtype, weights=obj._weights, is_directed=obj.is_directed
+            )
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be PandasEdgeList")
+        def assert_equal(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be PandasEdgeList, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be PandasEdgeList, not {type(obj2)}"
 
-            if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-                return False
-            if obj1.is_directed != obj2.is_directed:
-                return False
+            if check_values:
+                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+                assert (
+                    obj1._weights == obj2._weights
+                ), f"{obj1._weights} != {obj2._weights}"
+            assert (
+                obj1.is_directed == obj2.is_directed
+            ), f"{obj1.is_directed} != {obj2.is_directed}"
             g1 = obj1.value
             g2 = obj2.value
-            if len(g1) != len(g2):
-                return False
-            if len(obj1.index & obj2.index) < len(obj1.index):
-                return False
+            assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
+            assert len(obj1.index & obj2.index) == len(
+                obj1.index
+            ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
             # Ensure dataframes are indexed the same
             if not (obj1.index == obj2.index).all():
                 g2 = g2.set_index(obj2.index).reindex(obj1.index).reset_index(drop=True)
             # Compare
-            if obj1._weights != "unweighted":
+            if check_values and obj1._weights != "unweighted":
                 v1 = g1[obj1.weight_label]
                 v2 = g2[obj2.weight_label]
                 if issubclass(v1.dtype.type, np.floating):
-                    return np.isclose(v1, v2).all()
+                    assert np.isclose(v1, v2, rtol=rel_tol, atol=abs_tol).all()
                 else:
-                    return (v1 == v2).all()
-            return True
+                    assert (v1 == v2).all()
