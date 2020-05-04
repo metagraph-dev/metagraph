@@ -116,12 +116,23 @@ class MultiStepTranslator:
 
 class AlgorithmPlan:
     def __init__(
-        self, concrete_algorithm, required_translations: Dict[str, MultiStepTranslator]
+        self,
+        resolver,
+        concrete_algorithm,
+        required_translations: Dict[str, MultiStepTranslator],
     ):
+        self.resolver = resolver
         self.algo = concrete_algorithm
         self.required_translations = required_translations
 
+    def __repr__(self):
+        return f"AlgorithmPlan({self.algo.__name__}, {self.required_translations})"
+
     def __call__(self, *args, **kwargs):
+        # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
+        args, kwargs = self.apply_abstract_defaults(
+            self.resolver, self.algo.abstract_name, *args, **kwargs
+        )
         sig = self.algo.__signature__
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
@@ -144,13 +155,17 @@ class AlgorithmPlan:
                 self.required_translations[varname].display()
             else:
                 print(f"** {varname} **")
-                print(f"{sig.parameters[varname].annotation.__name__}")
+                print(f"{sig.parameters[varname].annotation.__class__.__name__}")
         print("---------------------")
 
     @classmethod
     def build(
         cls, resolver, concrete_algorithm, *args, **kwargs
     ) -> Optional["AlgorithmPlan"]:
+        # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
+        args, kwargs = cls.apply_abstract_defaults(
+            resolver, concrete_algorithm.abstract_name, *args, **kwargs
+        )
         required_translations = {}
         sig = concrete_algorithm.__signature__
         bound_args = sig.bind(*args, **kwargs)
@@ -164,24 +179,42 @@ class AlgorithmPlan:
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
                 #   If no translator is found, return None to indicate failure
-                if not cls._check_arg_type(arg_value, param_type):
-                    src_type = resolver.typeof(arg_value).__class__
+                if not cls._check_arg_type(resolver, arg_value, param_type):
+                    src_type = resolver.typeclass_of(arg_value)
                     translator = MultiStepTranslator.find_translation(
                         resolver, src_type, param_type
                     )
                     if translator is None:
                         return
                     required_translations[arg_name] = translator
-            return AlgorithmPlan(concrete_algorithm, required_translations)
+            return AlgorithmPlan(resolver, concrete_algorithm, required_translations)
         except TypeError:
             return
 
     @staticmethod
-    def _check_arg_type(arg_value, param_type) -> bool:
+    def _check_arg_type(resolver, arg_value, param_type) -> bool:
         if param_type is Any:
             return True
         elif isinstance(param_type, ConcreteType):
-            if not param_type.is_satisfied_by_value(arg_value):
+            arg_typeclass = resolver.typeclass_of(arg_value)
+            # The above line should ensure the typeinfo cache is populated
+            arg_typeinfo = resolver.typecache[arg_value]
+
+            # Update cache with required properties
+            requested_properties = set(param_type.props.keys())
+            known_properties = arg_typeinfo.known_concrete_props
+            unknown_properties = set(known_properties.keys()) - requested_properties
+
+            new_properties = arg_typeclass.compute_concrete_properties(
+                arg_value, unknown_properties
+            )
+            known_properties.update(
+                new_properties
+            )  # this dict is still in the cache too
+            # Instantiate this with the properties we now know
+            arg_type = arg_typeclass(**known_properties)
+
+            if not param_type.is_satisfied_by(arg_type):
                 return False
         elif (
             hasattr(param_type, "__origin__")
@@ -200,3 +233,15 @@ class AlgorithmPlan:
             if not isinstance(arg_value, param_type):
                 return False
         return True
+
+    @staticmethod
+    def apply_abstract_defaults(resolver, algo_name, *args, **kwargs):
+        """
+        Returns new args and kwargs with defaults applied based on default defined by the abstract algorithm.
+        These new args and kwargs are suitable to use when calling concrete algorithms.
+        """
+        abstract_algo = resolver.abstract_algorithms[algo_name]
+        sig = abstract_algo.__signature__
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        return bound_args.args, bound_args.kwargs

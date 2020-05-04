@@ -34,13 +34,13 @@ v        v /        v
     include_endpoints = False
     expected_answer_unwrapped = {
         0: 1.0,
-        3: 6.0,
         1: 1.0,
-        4: 12.0,
         2: 9.0,
+        3: 6.0,
+        4: 12.0,
         5: 13.0,
-        7: 0.0,
         6: 11.0,
+        7: 0.0,
     }
     expected_answer = dpr.wrapper.Nodes.PythonNodes(
         expected_answer_unwrapped, dtype="float"

@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 import numpy as np
 from metagraph import Wrapper, dtypes, SequentialNodes, IndexedNodes
 from metagraph.types import Vector, Nodes, NodeMapping, Matrix, WEIGHT_CHOICES
@@ -20,40 +21,42 @@ class NumpyVector(Wrapper, abstract=Vector):
         return len(self.value)
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            is_dense = obj.missing_mask is None
-            dtype = dtypes.dtypes_simplified[obj.value.dtype]
-            ret_val.abstract_instance = cls.abstract(is_dense=is_dense, dtype=dtype)
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        is_dense = obj.missing_mask is None
+        dtype = dtypes.dtypes_simplified[obj.value.dtype]
+        return dict(is_dense=is_dense, dtype=dtype)
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
-        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-            raise TypeError("objects must be NumpyVector")
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
+        assert (
+            type(obj1) is cls.value_type
+        ), f"obj1 must be NumpyVector, not {type(obj1)}"
+        assert (
+            type(obj2) is cls.value_type
+        ), f"obj2 must be NumpyVector, not {type(obj2)}"
 
-        if obj1.value.dtype != obj2.value.dtype:
-            return False
-        if obj1.value.shape != obj2.value.shape:
-            return False
+        if check_values:
+            assert (
+                obj1.value.dtype == obj2.value.dtype
+            ), f"{obj1.value.dtype} != {obj2.value.dtype}"
+        assert (
+            obj1.value.shape == obj2.value.shape
+        ), f"{obj1.value.shape} != {obj2.value.shape}"
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
-        if d1.shape != d2.shape:
-            return False
+        assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
         # Check for alignment of missing masks
         if obj1.missing_mask is not None:
-            if not (obj1.missing_mask == obj2.missing_mask).all():
-                return False
+            mask_alignment = obj1.missing_mask == obj2.missing_mask
+            assert mask_alignment.all(), f"{mask_alignment}"
         # Compare
-        if issubclass(d1.dtype.type, np.floating):
-            return np.isclose(d1, d2).all()
-        else:
-            return (d1 == d2).all()
+        if check_values:
+            if issubclass(d1.dtype.type, np.floating):
+                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+            else:
+                assert (d1 == d2).all()
 
 
 class NumpyNodes(Wrapper, abstract=Nodes):
@@ -147,41 +150,35 @@ class NumpyNodes(Wrapper, abstract=Nodes):
         )
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            ret_val.abstract_instance = cls.abstract(
-                dtype=obj._dtype, weights=obj._weights
-            )
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
-        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-            raise TypeError("objects must be NumpyNodes")
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
+        assert (
+            type(obj1) is cls.value_type
+        ), f"obj1 must be NumpyNodes, not {type(obj1)}"
+        assert (
+            type(obj2) is cls.value_type
+        ), f"obj2 must be NumpyNodes, not {type(obj2)}"
 
-        if obj1.num_nodes != obj2.num_nodes:
-            return False
-        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-            return False
+        assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
+        if check_values:
+            assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+            assert obj1._weights == obj2._weights, f"{obj1._weights} != {obj2._weights}"
         # Convert to a common node indexing scheme
-        try:
-            obj2 = obj2.rebuild_for_node_index(obj1.node_index)
-        except ValueError:
-            return False
+        obj2 = obj2.rebuild_for_node_index(obj1.node_index)
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
-        if len(d1) != len(d2):
-            return False
+        assert len(d1) == len(d2), f"{len(d1)} != {len(d2)}"
         # Compare
-        if obj1._dtype == "float":
-            return np.isclose(d1, d2).all()
-        else:
-            return (d1 == d2).all()
+        if check_values:
+            if obj1._dtype == "float":
+                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+            else:
+                assert (d1 == d2).all()
 
 
 class CompactNumpyNodes(Wrapper, abstract=Nodes):
@@ -267,38 +264,36 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
         )
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            ret_val.abstract_instance = cls.abstract(
-                dtype=obj._dtype, weights=obj._weights
-            )
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        return dict(dtype=obj._dtype, weights=obj._weights)
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
-        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-            raise TypeError("objects must be CompactNumpyNodes")
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
+        assert (
+            type(obj1) is cls.value_type
+        ), f"obj1 must be CompactNumpyNodes, not {type(obj1)}"
+        assert (
+            type(obj2) is cls.value_type
+        ), f"obj2 must be CompactNumpyNodes, not {type(obj2)}"
 
-        if obj1.num_nodes != obj2.num_nodes:
-            return False
-        if obj1._dtype != obj2._dtype or obj1._weights != obj2._weights:
-            return False
-        if len(obj1.value) != len(obj2.value):
-            return False
+        assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
+        if check_values:
+            assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+            assert obj1._weights == obj2._weights, f"{obj1._weights} != {obj2._weights}"
+        assert len(obj1.value) == len(
+            obj2.value
+        ), f"{len(obj1.value)} != {len(obj2.value)}"
         # Convert to a common node ordering
-        try:
-            obj2 = obj2.rebuild_for_lookup(obj1.lookup)
-        except ValueError:
-            return False
+        obj2 = obj2.rebuild_for_lookup(obj1.lookup)
         # Compare
-        if obj1._dtype == "float":
-            return np.isclose(obj1.value, obj2.value).all()
-        else:
-            return (obj1.value == obj2.value).all()
+        if check_values:
+            if obj1._dtype == "float":
+                assert np.isclose(
+                    obj1.value, obj2.value, rtol=rel_tol, atol=abs_tol
+                ).all()
+            else:
+                assert (obj1.value == obj2.value).all()
 
 
 class NumpyNodeMapping(Wrapper, abstract=NodeMapping):
@@ -340,48 +335,51 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         return self.value.shape
 
     @classmethod
-    def get_type(cls, obj):
-        """Get an instance of this type class that describes obj"""
-        if isinstance(obj, cls.value_type):
-            ret_val = cls()
-            is_dense = obj.missing_mask is None
-            dtype = dtypes.dtypes_simplified[obj.value.dtype]
-            ret_val.abstract_instance = cls.abstract(
-                is_dense=is_dense,
-                is_square=obj._is_square,
-                is_symmetric=obj._is_symmetric,
-                dtype=dtype,
-            )
-            return ret_val
-        else:
-            raise TypeError(f"object not of type {cls.__name__}")
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        cls._validate_abstract_props(props)
+        is_dense = obj.missing_mask is None
+        dtype = dtypes.dtypes_simplified[obj.value.dtype]
+        return dict(
+            is_dense=is_dense,
+            is_square=obj._is_square,
+            is_symmetric=obj._is_symmetric,
+            dtype=dtype,
+        )
 
     @classmethod
-    def compare_objects(cls, obj1, obj2):
-        if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-            raise TypeError("objects must be NumpyMatrix")
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
+        assert (
+            type(obj1) is cls.value_type
+        ), f"obj1 must be NumpyMatrix, not {type(obj1)}"
+        assert (
+            type(obj2) is cls.value_type
+        ), f"obj2 must be NumpyMatrix, not {type(obj2)}"
 
-        if obj1.value.dtype != obj2.value.dtype:
-            return False
-        if obj1.value.shape != obj2.value.shape:
-            return False
+        if check_values:
+            assert (
+                obj1.value.dtype == obj2.value.dtype
+            ), f"{obj1.value.dtype} != {obj2.value.dtype}"
+        assert (
+            obj1.value.shape == obj2.value.shape
+        ), f"{obj1.value.shape} != {obj2.value.shape}"
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
-        if d1.shape != d2.shape:
-            return False
+        assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
         # Check for alignment of missing masks
         if obj1.missing_mask is not None:
-            if not (obj1.missing_mask == obj2.missing_mask).all().all():
-                return False
+            mask_alignment = obj1.missing_mask == obj2.missing_mask
+            assert mask_alignment.all().all(), f"{mask_alignment}"
             # Compare 1-D
-            if issubclass(d1.dtype.type, np.floating):
-                return np.isclose(d1, d2).all()
-            else:
-                return (d1 == d2).all()
+            if check_values:
+                if issubclass(d1.dtype.type, np.floating):
+                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+                else:
+                    assert (d1 == d2).all()
         else:
             # Compare 2-D
-            if issubclass(d1.dtype.type, np.floating):
-                return np.isclose(d1, d2).all().all()
-            else:
-                return (d1 == d2).all().all()
+            if check_values:
+                if issubclass(d1.dtype.type, np.floating):
+                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
+                else:
+                    assert (d1 == d2).all().all()

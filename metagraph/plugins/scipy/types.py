@@ -1,3 +1,4 @@
+from typing import List, Dict, Any
 from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
 from metagraph.types import Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_scipy
@@ -9,47 +10,51 @@ if has_scipy:
 
     class ScipyMatrixType(ConcreteType, abstract=Matrix):
         value_type = ss.spmatrix
-        abstract_property_specificity_limits = {
-            "is_dense": False,
-        }
+        abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                nrows, ncols = obj.shape
-                is_square = nrows == ncols
-                is_symmetric = is_square and (obj.T != obj).nnz == 0
-                dtype = dtypes.dtypes_simplified[obj.dtype]
-                ret_val.abstract_instance = Matrix(
-                    dtype=dtype, is_square=is_square, is_symmetric=is_symmetric
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            nrows, ncols = obj.shape
+            is_square = nrows == ncols
+            dtype = dtypes.dtypes_simplified[obj.dtype]
+
+            ret = dict(dtype=dtype, is_square=is_square)
+
+            # slow properties, only compute if asked
+            for propname in prop:
+                if propname == "is_symmetric":
+                    ret["is_symmetric"] = is_square and (obj.T != obj).nnz == 0
+
+            return ret
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
-            if not isinstance(obj1, cls.value_type) or not isinstance(
+        def assert_equal(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
+            assert isinstance(
+                obj1, cls.value_type
+            ), f"obj1 must be scipy.spmatrix, not {type(obj1)}"
+            assert isinstance(
                 obj2, cls.value_type
-            ):
-                raise TypeError("objects must be scipy.spmatrix")
+            ), f"obj2 must be scipy.spmatrix, not {type(obj2)}"
 
-            if obj1.dtype != obj2.dtype:
-                return False
-            if obj1.shape != obj2.shape:
-                return False
-            if issubclass(obj1.dtype.type, np.floating):
+            if check_values:
+                assert obj1.dtype == obj2.dtype, f"{obj1.dtype} != {obj2.dtype}"
+            assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
+            if issubclass(obj1.dtype.type, np.floating) or not check_values:
                 d1 = obj1.tocsr()
                 d2 = obj2.tocsr()
-                if not (d1.indptr == d2.indptr).all():
-                    return False
-                if not (d1.indices == d2.indices).all():
-                    return False
-                return np.isclose(d1.data, d2.data).all()
+                # Check shape
+                assert (d1.indptr == d2.indptr).all(), f"{d1.indptr == d2.indptr}"
+                assert (d1.indices == d2.indices).all(), f"{d1.indices == d2.indices}"
+                if check_values:
+                    assert np.isclose(
+                        d1.data, d2.data, rtol=rel_tol, atol=abs_tol
+                    ).all()
             else:
-                return (obj1 != obj2).nnz == 0
+                # Recommended way to check for equality
+                assert (obj1 != obj2).nnz == 0, f"{(obj1 != obj2).toarray()}"
 
     class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(
@@ -140,53 +145,54 @@ if has_scipy:
             )
 
         @classmethod
-        def get_type(cls, obj):
-            """Get an instance of this type class that describes obj"""
-            if isinstance(obj, cls.value_type):
-                ret_val = cls()
-                ret_val.abstract_instance = Graph(
-                    dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
-                )
-                return ret_val
-            else:
-                raise TypeError(f"object not of type {cls.__name__}")
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
+            return dict(
+                dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
+            )
 
         @classmethod
-        def compare_objects(cls, obj1, obj2):
-            if type(obj1) is not cls.value_type or type(obj2) is not cls.value_type:
-                raise TypeError("objects must be ScipyAdjacencyMatrix")
+        def assert_equal(
+            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
+        ):
+            assert (
+                type(obj1) is cls.value_type
+            ), f"obj1 must be ScipyAdjacencyMatrix, not {type(obj1)}"
+            assert (
+                type(obj2) is cls.value_type
+            ), f"obj2 must be ScipyAdjacencyMatrix, not {type(obj2)}"
 
-            if obj1.num_nodes != obj2.num_nodes:
-                return False
-            if obj1.value.nnz != obj2.value.nnz:
-                return False
-            if (
-                obj1._dtype != obj2._dtype
-                or obj1._weights != obj2._weights
-                or obj1._is_directed != obj2._is_directed
-            ):
-                return False
+            assert (
+                obj1.num_nodes == obj2.num_nodes
+            ), f"{obj1.num_nodes} != {obj2.num_nodes}"
+            assert (
+                obj1.value.nnz == obj2.value.nnz
+            ), f"{obj1.value.nnz} != {obj2.value.nnz}"
+            if check_values:
+                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
+                assert (
+                    obj1._weights == obj2._weights
+                ), f"{obj1._weights} != {obj2._weights}"
+                assert (
+                    obj1._is_directed == obj2._is_directed
+                ), f"{obj1._is_directed} != {obj2._is_directed}"
             # Convert to a common node indexing scheme
-            try:
-                obj2 = obj2.rebuild_for_node_index(obj1.node_index)
-            except ValueError:
-                return False
+            obj2 = obj2.rebuild_for_node_index(obj1.node_index)
             # Handle transposed states
             d1 = obj1.value.T if obj1.transposed else obj1.value
             d2 = obj2.value.T if obj2.transposed else obj2.value
             # Compare
             d1 = d1.tocsr()
             d2 = d2.tocsr()
-            if not (d1.indptr == d2.indptr).all():
-                return False
+            assert (d1.indptr == d2.indptr).all(), f"{d1.indptr == d2.indptr}"
             # Ensure sorted indices for numpy matching to work
             d1.sort_indices()
             d2.sort_indices()
-            if not (d1.indices == d2.indices).all():
-                return False
-            if obj1._weights != "unweighted":
+            assert (d1.indices == d2.indices).all(), f"{d1.indices == d2.indices}"
+            if check_values and obj1._weights != "unweighted":
                 if issubclass(d1.dtype.type, np.floating):
-                    return np.isclose(d1.data, d2.data).all()
+                    assert np.isclose(
+                        d1.data, d2.data, rtol=rel_tol, atol=abs_tol
+                    ).all()
                 else:
-                    return (d1.data == d2.data).all()
-            return True
+                    assert (d1.data == d2.data).all()
