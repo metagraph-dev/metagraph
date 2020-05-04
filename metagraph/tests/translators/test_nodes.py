@@ -21,10 +21,10 @@ def test_python_2_compactnumpy(default_plugin_resolver):
         node_index=IndexedNodes(rev_letters),
     )
     y = dpr.translate(x, CompactNumpyNodes)
-    assert CompactNumpyNodes.Type.compare_objects(y, intermediate)
+    CompactNumpyNodes.Type.assert_equal(y, intermediate)
     # Convert python <- compactnumpy
     x2 = dpr.translate(y, PythonNodes)
-    assert PythonNodes.Type.compare_objects(x, x2)
+    PythonNodes.Type.assert_equal(x, x2)
 
 
 def test_compactnumpy_2_numpy(default_plugin_resolver):
@@ -45,10 +45,10 @@ def test_compactnumpy_2_numpy(default_plugin_resolver):
         data, missing_mask=missing_mask, node_index=IndexedNodes(rev_letters)
     )
     y = dpr.translate(x, NumpyNodes)
-    assert NumpyNodes.Type.compare_objects(y, intermediate)
+    NumpyNodes.Type.assert_equal(y, intermediate)
     # Convert compactnumpy <- numpy
     x2 = dpr.translate(y, CompactNumpyNodes)
-    assert CompactNumpyNodes.Type.compare_objects(x, x2)
+    CompactNumpyNodes.Type.assert_equal(x, x2)
 
 
 def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
@@ -61,10 +61,10 @@ def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
         data, {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}, node_index=SequentialNodes(5)
     )
     y = dpr.translate(x, CompactNumpyNodes)
-    assert CompactNumpyNodes.Type.compare_objects(y, intermediate)
+    CompactNumpyNodes.Type.assert_equal(y, intermediate)
     # Convert numpy <- compactnumpy
     x2 = dpr.translate(y, NumpyNodes)
-    assert NumpyNodes.Type.compare_objects(x, x2)
+    NumpyNodes.Type.assert_equal(x, x2)
 
 
 def test_graphblas_python(default_plugin_resolver):
@@ -80,7 +80,7 @@ def test_graphblas_python(default_plugin_resolver):
         {"A": 12.5, "B": 33.4, "Q": -1.2}, node_index=IndexedNodes(rev_letters)
     )
     y = dpr.translate(x, PythonNodes)
-    assert PythonNodes.Type.compare_objects(y, intermediate)
+    PythonNodes.Type.assert_equal(y, intermediate)
 
 
 def test_numpy_graphblas(default_plugin_resolver):
@@ -95,4 +95,4 @@ def test_numpy_graphblas(default_plugin_resolver):
         node_index=IndexedNodes("ABCDEFG"),
     )
     y = dpr.translate(x, GrblasNodes)
-    assert GrblasNodes.Type.compare_objects(y, intermediate)
+    GrblasNodes.Type.assert_equal(y, intermediate)

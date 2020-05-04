@@ -317,6 +317,12 @@ class Resolver:
                 f"number of parameters does not match between {abstract.func.__qualname__} and {concrete.func.__qualname__}"
             )
         for abst_param, conc_param in zip(abst_params, conc_params):
+            # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
+            if conc_param.default is not inspect._empty:
+                raise TypeError(
+                    f'{concrete.func.__qualname__} argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
+                )
+
             abst_type = self._normalize_abstract_type(abst_param.annotation)
             if abst_type is Any:
                 continue

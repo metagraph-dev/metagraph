@@ -115,12 +115,23 @@ class MultiStepTranslator:
 
 class AlgorithmPlan:
     def __init__(
-        self, concrete_algorithm, required_translations: Dict[str, MultiStepTranslator]
+        self,
+        resolver,
+        concrete_algorithm,
+        required_translations: Dict[str, MultiStepTranslator],
     ):
+        self.resolver = resolver
         self.algo = concrete_algorithm
         self.required_translations = required_translations
 
+    def __repr__(self):
+        return f"AlgorithmPlan({self.algo.__name__}, {self.required_translations})"
+
     def __call__(self, *args, **kwargs):
+        # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
+        args, kwargs = self.apply_abstract_defaults(
+            self.resolver, self.algo.abstract_name, *args, **kwargs
+        )
         sig = self.algo.__signature__
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
@@ -150,6 +161,10 @@ class AlgorithmPlan:
     def build(
         cls, resolver, concrete_algorithm, *args, **kwargs
     ) -> Optional["AlgorithmPlan"]:
+        # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
+        args, kwargs = cls.apply_abstract_defaults(
+            resolver, concrete_algorithm.abstract_name, *args, **kwargs
+        )
         required_translations = {}
         sig = concrete_algorithm.__signature__
         bound_args = sig.bind(*args, **kwargs)
@@ -171,7 +186,7 @@ class AlgorithmPlan:
                     if translator is None:
                         return
                     required_translations[arg_name] = translator
-            return AlgorithmPlan(concrete_algorithm, required_translations)
+            return AlgorithmPlan(resolver, concrete_algorithm, required_translations)
         except TypeError:
             return
 
@@ -205,5 +220,14 @@ class AlgorithmPlan:
                 return False
         return True
 
-    def __repr__(self):
-        return f"AlgorithmPlan({self.algo.__name__}, {self.required_translations})"
+    @staticmethod
+    def apply_abstract_defaults(resolver, algo_name, *args, **kwargs):
+        """
+        Returns new args and kwargs with defaults applied based on default defined by the abstract algorithm.
+        These new args and kwargs are suitable to use when calling concrete algorithms.
+        """
+        abstract_algo = resolver.abstract_algorithms[algo_name]
+        sig = abstract_algo.__signature__
+        bound_args = sig.bind(*args, **kwargs)
+        bound_args.apply_defaults()
+        return bound_args.args, bound_args.kwargs

@@ -27,10 +27,22 @@ def test_connected_components(default_plugin_resolver):
     nx_graph = nx.Graph()
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
-    expected_answer_unwrapped = {0: 0, 1: 0, 3: 0, 4: 0, 2: 1, 5: 1, 6: 1, 7: 1}
-    expected_answer = dpr.wrapper.Nodes.PythonNodes(expected_answer_unwrapped)
-    MultiVerify(dpr, "clustering.connected_components", graph).assert_equals(
-        expected_answer
+
+    def cmp_func(x):
+        # clusters should be:
+        # [0, 1, 3, 4]
+        # [2, 5, 6, 7]
+        assert x.num_nodes == 8, x.num_nodes
+        c1 = set(x[i] for i in (0, 1, 3, 4))
+        c2 = set(x[i] for i in (2, 5, 6, 7))
+        assert len(c1) == 1, c1
+        assert len(c2) == 1, c2
+        c1 = c1.pop()
+        c2 = c2.pop()
+        assert c1 != c2, f"{c1}, {c2}"
+
+    MultiVerify(dpr, "clustering.connected_components", graph).custom_compare(
+        cmp_func, dpr.types.Nodes.PythonNodesType
     )
 
 
@@ -54,8 +66,18 @@ def test_strongly_connected_components(default_plugin_resolver):
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(networkx_graph_data, weight="weight")
     graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
-    expected_answer_unwrapped = {0: 0, 1: 0, 2: 0, 3: 1}
-    expected_answer = dpr.wrapper.Nodes.PythonNodes(expected_answer_unwrapped)
-    MultiVerify(dpr, "clustering.strongly_connected_components", graph).assert_equals(
-        expected_answer
+
+    def cmp_func(x):
+        # clusters should be:
+        # [0, 1, 2]
+        # [3]
+        assert x.num_nodes == 4, x.num_nodes
+        c1 = set(x[i] for i in (0, 1, 2))
+        c2 = x[3]
+        assert len(c1) == 1, c1
+        c1 = c1.pop()
+        assert c1 != c2, f"{c1}, {c2}"
+
+    MultiVerify(dpr, "clustering.strongly_connected_components", graph).custom_compare(
+        cmp_func, dpr.types.Nodes.PythonNodesType
     )
