@@ -7,5 +7,6 @@ def default_plugin_resolver():
     from metagraph.plugins import find_plugins
 
     res = Resolver()
-    res.register(**find_plugins())
+    # res.register(**find_plugins())
+    res.load_plugins_from_environment()
     return res
