@@ -352,6 +352,14 @@ def test_call_algorithm_logging(example_resolver, capsys):
     assert "StrNumType -> IntType" in captured.out
 
 
+def test_disable_automatic_translation(example_resolver, capsys):
+    from .util import StrNum
+
+    with config.set({"core.dispatch.allow_translation": False}):
+        with pytest.raises(TypeError) as e:
+            example_resolver.call_algorithm("power", 2, StrNum("3"))
+
+
 def test_algo_attribute(example_resolver):
     with pytest.raises(
         AttributeError, match="'Namespace' object has no attribute 'does_not_exist'"
