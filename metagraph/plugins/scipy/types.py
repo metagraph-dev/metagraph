@@ -54,7 +54,7 @@ if has_scipy:
                     ).all()
             else:
                 # Recommended way to check for equality
-                assert (obj1 != obj2).nnz == 0, f"{obj1 != obj2.nnz}"
+                assert (obj1 != obj2).nnz == 0, f"{(obj1 != obj2).toarray()}"
 
     class ScipyAdjacencyMatrix(Wrapper, abstract=Graph):
         def __init__(
