@@ -65,7 +65,7 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
+    graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph, weight_label="weight")
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
     expected_answer = (
@@ -101,7 +101,7 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
+    graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph, weight_label="weight")
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
     expected_answer = (
