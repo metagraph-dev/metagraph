@@ -6,4 +6,4 @@ from metagraph.types import Graph, Nodes
 def betweenness_centrality(
     graph: Graph, k: int, enable_normalization: bool, include_endpoints: bool
 ) -> Nodes:
-    pass
+    pass  # pragma: no cover
