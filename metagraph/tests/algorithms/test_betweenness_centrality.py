@@ -28,7 +28,7 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph)
+    graph = dpr.wrapper.Graph.NetworkXGraph(nx_graph, weight_label="weight")
     k = 8
     enable_normalization = False
     include_endpoints = False
