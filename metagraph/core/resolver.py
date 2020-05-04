@@ -17,6 +17,7 @@ from .plugin import (
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
 from .typecache import TypeCache, TypeInfo
+from metagraph import config
 import numpy as np
 
 
@@ -561,6 +562,8 @@ class Resolver:
         else:
             # choose the solutions requiring the fewest translations
             algo = valid_algos[0]
+            if config.get("core.logging.plans"):
+                algo.display()
             return algo(*args, **kwargs)
 
 

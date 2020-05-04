@@ -2,6 +2,7 @@ from typing import Dict, Optional, Any
 from .plugin import ConcreteType
 import numpy as np
 import scipy.sparse as ss
+from metagraph import config
 
 
 class MultiStepTranslator:
@@ -27,6 +28,10 @@ class MultiStepTranslator:
     def __call__(self, src, **props):
         if not self.translators:
             return src
+
+        if config.get("core.logging.translations"):
+            self.display()
+
         for translator in self.translators[:-1]:
             src = translator(src)
         # Finish by reaching destination along with required properties
@@ -50,8 +55,11 @@ class MultiStepTranslator:
     def find_translation(
         cls, resolver, src_type, dst_type, *, exact=False
     ) -> Optional["MultiStepTranslator"]:
-        if not issubclass(dst_type, ConcreteType):
+        if isinstance(dst_type, type) and not issubclass(dst_type, ConcreteType):
             dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
+
+        if not isinstance(dst_type, type):
+            dst_type = dst_type.__class__
 
         if exact:
             trns = resolver.translators.get((src_type, dst_type), None)
@@ -89,6 +97,7 @@ class MultiStepTranslator:
                 sssp,
                 predecessors,
             )
+
         # Lookup shortest path from stored results
         packed_data = resolver.translation_matrices[abstract]
         concrete_list, concrete_lookup, sssp, predecessors = packed_data
