@@ -29,7 +29,7 @@ def test_networkx_scipy(default_plugin_resolver):
     )
     intermediate = ScipyAdjacencyMatrix(m, node_index=nidx)
     y = dpr.translate(x, ScipyAdjacencyMatrix)
-    assert ScipyAdjacencyMatrix.Type.compare_objects(y, intermediate)
+    ScipyAdjacencyMatrix.Type.assert_equal(y, intermediate)
 
 
 def test_scipy_graphblas(default_plugin_resolver):
@@ -49,7 +49,7 @@ def test_scipy_graphblas(default_plugin_resolver):
     )
     intermediate = GrblasAdjacencyMatrix(m, node_index=nidx)
     y = dpr.translate(x, GrblasAdjacencyMatrix)
-    assert GrblasAdjacencyMatrix.Type.compare_objects(y, intermediate)
+    GrblasAdjacencyMatrix.Type.assert_equal(y, intermediate)
 
 
 def test_networkx_2_pandas(default_plugin_resolver):
@@ -70,7 +70,7 @@ def test_networkx_2_pandas(default_plugin_resolver):
     )
     intermediate = PandasEdgeList(df, weight_label="weight", node_index=nidx)
     y = dpr.translate(x, PandasEdgeList)
-    assert PandasEdgeList.Type.compare_objects(y, intermediate)
+    PandasEdgeList.Type.assert_equal(y, intermediate)
     # Convert networkx <- pandas edge list
     x2 = dpr.translate(y, NetworkXGraph)
-    assert NetworkXGraph.Type.compare_objects(x, x2)
+    NetworkXGraph.Type.assert_equal(x, x2)
