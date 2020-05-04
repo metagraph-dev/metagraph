@@ -7,4 +7,4 @@ from typing import Any, Tuple
 def bellman_ford(
     graph: Graph(is_directed=True), source_node: Any
 ) -> Tuple[Nodes, Nodes]:
-    pass
+    pass  # pragma: no cover

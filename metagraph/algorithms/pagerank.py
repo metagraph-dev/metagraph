@@ -6,4 +6,4 @@ from metagraph.types import Graph, Nodes
 def pagerank(
     graph: Graph, damping: float = 0.85, maxiter: int = 50, tolerance: float = 1e-05
 ) -> Nodes:
-    pass
+    pass  # pragma: no cover
