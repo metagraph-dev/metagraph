@@ -1,0 +1,11 @@
+core:
+    logging:
+        # Print dispatch plan before abstract algorithm is executed
+        plans: false
+
+        # Print every translation step as it is performed  
+        translations: false
+
+    dispatch:
+        # permit data to be translated during dispatch, otherwise raise TypeError
+        allow_translation: true
