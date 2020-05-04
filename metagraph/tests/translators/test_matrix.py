@@ -18,10 +18,10 @@ def test_numpy_2_scipy(default_plugin_resolver):
         ([1, 2, 9, 0], ([0, 0, 1, 2], [0, 1, 2, 1])), shape=(3, 3)
     )
     y = dpr.translate(x, ss.spmatrix)
-    assert ScipyMatrixType.compare_objects(y, intermediate)
+    ScipyMatrixType.assert_equal(y, intermediate)
     # Convert numpy <- scipy.sparse
     x2 = dpr.translate(y, NumpyMatrix)
-    assert NumpyMatrix.Type.compare_objects(x, x2)
+    NumpyMatrix.Type.assert_equal(x, x2)
 
 
 def test_grblas_2_scipy(default_plugin_resolver):
@@ -41,7 +41,7 @@ def test_grblas_2_scipy(default_plugin_resolver):
         ([1, 2, 9, 0], ([0, 0, 1, 2], [0, 1, 2, 1])), shape=(3, 4), dtype=np.float64
     )
     y = dpr.translate(x, ss.spmatrix)
-    assert ScipyMatrixType.compare_objects(y, intermediate)
+    ScipyMatrixType.assert_equal(y, intermediate)
     # Convert grblas matrix <- scipy.sparse
     x2 = dpr.translate(y, grblas.Matrix)
-    assert GrblasMatrixType.compare_objects(x, x2)
+    GrblasMatrixType.assert_equal(x, x2)
