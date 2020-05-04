@@ -13,4 +13,5 @@ dependencies:
   - numpy
   - networkx
   - scipy
-  - jim22k::grblas
+  - conda-forge::donfig
+  - conda-forge::grblas
