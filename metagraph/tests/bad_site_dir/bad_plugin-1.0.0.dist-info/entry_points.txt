@@ -1,0 +1,2 @@
+[metagraph.plugins]
+incorrect_name = plugin1:find_plugins
