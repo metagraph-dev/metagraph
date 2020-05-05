@@ -376,11 +376,19 @@ def test_algo_attribute(example_resolver):
 
 
 def test_concrete_algorithm_with_properties(example_resolver):
+    from .util import StrNum
+
     val = example_resolver.algo.ln(100.0)
     assert abs(val - 4.605170185988092) < 1e-6
 
     with pytest.raises(ValueError, match="does not meet the specificity requirement"):
         example_resolver.algo.ln(-1.1)
+
+    with pytest.raises(ValueError, match="does not meet the specificity requirement"):
+        example_resolver.algo.ln(0.0)
+
+    with pytest.raises(ValueError, match="does not meet the specificity requirement"):
+        example_resolver.algo.ln(StrNum("0"))
 
 
 def test_concrete_algorithm_insufficient_specificity(example_resolver):
