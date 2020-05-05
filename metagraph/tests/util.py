@@ -171,3 +171,15 @@ def make_example_resolver():
 @pytest.fixture
 def example_resolver():
     return make_example_resolver()
+
+
+@pytest.fixture(scope="session")
+def default_plugin_resolver(request):
+    res = Resolver()
+    if request.config.getoption("--no-plugins", default=False):
+        from metagraph.plugins import find_plugins
+
+        res.register(**find_plugins())
+    else:
+        res.load_plugins_from_environment()
+    return res

@@ -1,3 +1,4 @@
+from metagraph.tests.util import default_plugin_resolver
 from . import MultiVerify
 import networkx as nx
 import numpy as np
