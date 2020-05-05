@@ -1,3 +1,4 @@
+from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.numpy.types import NumpyVector
 from metagraph.plugins.graphblas.types import GrblasVectorType
 import grblas
