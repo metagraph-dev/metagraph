@@ -17,6 +17,27 @@ from .core.plugin_registry import PluginRegistry
 from .core.node_index import IndexedNodes, SequentialNodes
 from . import types, algorithms
 
+### Initiaize configuration and defaults
+
+import donfig
+import yaml
+import os.path
+
+config = donfig.Config("metagraph")
+defaults_fn = os.path.join(os.path.dirname(__file__), "metagraph.yaml")
+with open(defaults_fn) as f:
+    defaults = yaml.safe_load(f)
+
+config.update_defaults(defaults)
+config.ensure_file(source=defaults_fn, comment=True)
+
+del f
+del defaults
+del defaults_fn
+
+
+### Lazy loading of special attributes that require loading plugins
+
 _SPECIAL_ATTRS = ["resolver", "algo", "translate", "type_of", "typeclass_of"]
 
 
