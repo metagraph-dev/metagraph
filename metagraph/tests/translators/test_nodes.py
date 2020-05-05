@@ -1,4 +1,5 @@
 import pytest
+from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.python.types import PythonNodes
 from metagraph.plugins.numpy.types import NumpyNodes, CompactNumpyNodes
 from metagraph.plugins.graphblas.types import GrblasNodes
