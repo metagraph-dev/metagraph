@@ -1,4 +1,5 @@
 import pytest
+from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.numpy.types import NumpyMatrix
 from metagraph.plugins.graphblas.types import GrblasMatrixType
 from metagraph.plugins.scipy.types import ScipyMatrixType
