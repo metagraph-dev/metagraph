@@ -17,6 +17,7 @@ from .plugin import (
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
 from .typecache import TypeCache, TypeInfo
+from metagraph import config
 import numpy as np
 
 
@@ -559,15 +560,19 @@ class Resolver:
                         + "\n".join(unsatisfied_requirements)
                     )
 
-        valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
-        if not valid_algos:
+        if config.get("core.dispatch.allow_translation"):
+            algo = self.find_algorithm(algo_name, *args, **kwargs)
+        else:
+            algo = self.find_algorithm_exact(algo_name, *args, **kwargs)
+
+        if not algo:
             raise TypeError(
                 f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs'
             )
-        else:
-            # choose the solutions requiring the fewest translations
-            algo = valid_algos[0]
-            return algo(*args, **kwargs)
+
+        if config.get("core.logging.plans"):
+            algo.display()
+        return algo(*args, **kwargs)
 
 
 class Dispatcher:

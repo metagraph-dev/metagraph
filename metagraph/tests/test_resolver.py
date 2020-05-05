@@ -10,6 +10,7 @@ from metagraph import (
 )
 from metagraph.core.resolver import Resolver, Namespace, Dispatcher
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
+from metagraph import config
 
 from .util import site_dir, example_resolver
 
@@ -321,7 +322,7 @@ def test_find_algorithm(example_resolver):
 
 
 def test_call_algorithm(example_resolver):
-    from .util import int_power
+    from .util import int_power, StrNum
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.call_algorithm("does_not_exist", 1, thing=2)
@@ -334,6 +335,29 @@ def test_call_algorithm(example_resolver):
     ):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
+    assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
+
+
+def test_call_algorithm_logging(example_resolver, capsys):
+    from .util import StrNum
+
+    with config.set({"core.logging.plans": True}):
+        assert example_resolver.call_algorithm("power", 2, 3) == 8
+    captured = capsys.readouterr()
+    assert "int_power" in captured.out
+
+    with config.set({"core.logging.translations": True}):
+        assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
+    captured = capsys.readouterr()
+    assert "StrNumType -> IntType" in captured.out
+
+
+def test_disable_automatic_translation(example_resolver, capsys):
+    from .util import StrNum
+
+    with config.set({"core.dispatch.allow_translation": False}):
+        with pytest.raises(TypeError) as e:
+            example_resolver.call_algorithm("power", 2, StrNum("3"))
 
 
 def test_algo_attribute(example_resolver):
