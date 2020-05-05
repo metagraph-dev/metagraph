@@ -89,7 +89,7 @@ class PluginRegistry:
             elif issubclass(obj, Wrapper):
                 self.plugins["wrappers"].add(obj)
             else:
-                unknown = True
+                raise PluginRegistryError(f"Invalid type for plugin registry: {obj}")
         else:
             if isinstance(obj, Translator):
                 self.plugins["translators"].add(obj)
@@ -98,12 +98,10 @@ class PluginRegistry:
             elif isinstance(obj, ConcreteAlgorithm):
                 self.plugins["concrete_algorithms"].add(obj)
             else:
-                unknown = True
+                raise PluginRegistryError(
+                    f"Invalid object for plugin registry: {type(obj)}"
+                )
 
-        if unknown:
-            raise PluginRegistryError(
-                f"Invalid object for plugin registry: {type(obj)}"
-            )
         return obj
 
     def register_from_modules(self, *modules, recurse=True):
