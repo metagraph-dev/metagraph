@@ -1,4 +1,5 @@
 import pytest
+from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.scipy.types import ScipyAdjacencyMatrix
 from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.graphblas.types import GrblasAdjacencyMatrix
