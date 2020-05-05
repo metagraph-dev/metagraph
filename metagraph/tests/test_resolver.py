@@ -165,7 +165,9 @@ def test_incorrect_signature_errors(example_resolver):
         example_resolver.register(concrete_algorithms=[wrong_arg_name])
 
     @concrete_algorithm("ln")
-    def specifies_abstract_property(x: FloatType(positivity=">=0")) -> FloatType:
+    def specifies_abstract_property(
+        x: FloatType(positivity=">=0"),
+    ) -> FloatType:  # pragma: no cover
         pass
 
     with pytest.raises(TypeError, match="specifies abstract properties"):
@@ -397,7 +399,7 @@ def test_concrete_algorithm_insufficient_specificity(example_resolver):
     class RandomFloatType(Wrapper, abstract=MyNumericAbstractType):
         abstract_property_specificity_limits = {"positivity": "any"}
 
-        def __init__(self):
+        def __init__(self):  # pragma: no cover
             import random
 
             self.value = (random.random() - 0.5) * 100
@@ -405,7 +407,7 @@ def test_concrete_algorithm_insufficient_specificity(example_resolver):
     example_resolver.register(wrappers=[RandomFloatType])
 
     @concrete_algorithm("ln")
-    def insufficient_ln_function(x: RandomFloatType) -> FloatType:
+    def insufficient_ln_function(x: RandomFloatType) -> FloatType:  # pragma: no cover
         import math
 
         return math.log(x.value)
