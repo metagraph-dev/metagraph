@@ -20,21 +20,21 @@ try:
     import scipy.sparse as _
 
     has_scipy = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_scipy = False
 
 try:
     import networkx as _
 
     has_networkx = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_networkx = False
 
 try:
     import pandas as _
 
     has_pandas = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_pandas = False
 
 try:
@@ -42,7 +42,7 @@ try:
 
     _grblas.init("suitesparse")
     has_grblas = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_grblas = False
 
 from . import graphblas, networkx, numpy, pandas, python, scipy
