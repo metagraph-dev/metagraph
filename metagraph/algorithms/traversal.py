@@ -4,14 +4,17 @@ from typing import Any, Tuple
 
 
 @abstract_algorithm("traversal.bellman_ford")
-def bellman_ford(
-    graph: Graph(is_directed=True), source_node: Any
-) -> Tuple[Nodes, Nodes]:
+def bellman_ford(graph: Graph, source_node: Any) -> Tuple[Nodes, Nodes]:
+    pass
+
+
+@abstract_algorithm("traversal.all_shortest_paths")
+def all_shortest_paths(graph: Graph) -> Tuple[Graph, Graph]:
     pass
 
 
 @abstract_algorithm("traversal.breadth_first_search")
-def breadth_first_search(graph: Graph(is_directed=True), source_node: Any) -> Vector:
+def breadth_first_search(graph: Graph, source_node: Any) -> Vector:
     pass
 
 
