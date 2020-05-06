@@ -1,5 +1,6 @@
-from typing import Dict, Optional, Any
+from typing import Dict, Optional, Any, Iterable
 from .plugin import ConcreteType
+import collections
 import numpy as np
 import scipy.sparse as ss
 from metagraph import config
@@ -224,6 +225,19 @@ class AlgorithmPlan:
 
             if not param_type.is_satisfied_by(arg_type):
                 return False
+        elif (
+            hasattr(param_type, "__origin__")
+            and param_type.__origin__ == collections.abc.Iterable
+        ):
+            if not isinstance(arg_value, collections.abc.Iterable):
+                return False
+            if hasattr(arg_value, "__len__") and len(arg_value) == 0:
+                return True
+            if param_type.__args__ == Iterable.__args__:
+                return True
+            if param_type.__args__[0] == Any:
+                return True
+            return isinstance(arg_value[0], param_type.__args__[0])
         else:
             if not isinstance(arg_value, param_type):
                 return False
