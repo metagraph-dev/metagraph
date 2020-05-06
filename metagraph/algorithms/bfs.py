@@ -5,4 +5,4 @@ from typing import Any
 
 @abstract_algorithm("traversal.breadth_first_search")
 def breadth_first_search(graph: Graph(is_directed=True), source_node: Any) -> Vector:
-    pass
+    pass  # pragma: no cover

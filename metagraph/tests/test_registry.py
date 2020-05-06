@@ -1,6 +1,7 @@
 import pytest
 import metagraph as mg
 from metagraph import PluginRegistry
+from metagraph.core.plugin_registry import PluginRegistryError
 from .site_dir import plugin1
 
 
@@ -29,3 +30,19 @@ def test_registry_modules():
         match="Expected one or more modules.  Got a type <class 'int'> instead",
     ):
         reg2.register_from_modules(7)
+
+
+def test_registry_failures():
+    reg = PluginRegistry()
+
+    with pytest.raises(PluginRegistryError, match="Invalid type for plugin registry"):
+
+        @reg.register
+        class NotValid:
+            pass
+
+    with pytest.raises(PluginRegistryError, match="Invalid object for plugin registry"):
+
+        @reg.register
+        def not_valid():  # pragma: no cover
+            pass

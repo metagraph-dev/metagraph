@@ -12,7 +12,8 @@ from metagraph.core.plugin import (
     Wrapper,
 )
 
-from .util import site_dir
+
+from .util import site_dir, bad_site_dir
 
 
 KINDS = {
@@ -32,3 +33,8 @@ def test_load_plugins(site_dir):
         assert len(kind_plugins) > 0
         for obj in kind_plugins:
             assert test_func(obj, kind_class)
+
+
+def test_load_failure(bad_site_dir):
+    with pytest.raises(metagraph.core.entrypoints.EntryPointsError):
+        plugins = metagraph.core.entrypoints.load_plugins()
