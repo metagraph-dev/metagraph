@@ -110,3 +110,15 @@ def test_numpy_graphblas(default_plugin_resolver):
     )
     y = dpr.translate(x, GrblasNodes)
     GrblasNodes.Type.assert_equal(y, intermediate)
+
+
+def test_numpy_rebuild_for_node_index(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    data = np.array([1, 3, 5, 7, 9])
+    nodes = NumpyNodes(data, node_index=SequentialNodes(5))
+    nodes.rebuild_for_node_index(IndexedNodes({i: i for i in range(5)}))
+    with pytest.raises(ValueError):
+        nodes.rebuild_for_node_index(IndexedNodes({i + 1: i for i in range(5)}))
+    with pytest.raises(ValueError):
+        seq_nodes = SequentialNodes(3)
+        seq_nodes._verify_valid_conversion(SequentialNodes(1))
