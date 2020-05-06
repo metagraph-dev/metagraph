@@ -52,6 +52,20 @@ def test_compactnumpy_2_numpy(default_plugin_resolver):
     CompactNumpyNodes.Type.assert_equal(x, x2)
 
 
+def test_compactnumpy_default_index_2_numpy(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    x = CompactNumpyNodes(np.array([11.1, 33.3, -22.2]), {"A": 0, "B": 2, "C": 1},)
+    assert x.num_nodes == 3
+    # Convert compactnumpy -> numpy
+    data = np.array([11.1, 33.3, -22.2])
+    intermediate = NumpyNodes(data, node_index=IndexedNodes("ACB"))
+    y = dpr.translate(x, NumpyNodes)
+    NumpyNodes.Type.assert_equal(y, intermediate)
+    # # Convert compactnumpy <- numpy
+    x2 = dpr.translate(y, CompactNumpyNodes)
+    CompactNumpyNodes.Type.assert_equal(x, x2)
+
+
 def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
     dpr = default_plugin_resolver
     data = np.array([1, 3, 5, 7, 9])
