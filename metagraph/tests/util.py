@@ -8,12 +8,21 @@ from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
 
 
-@pytest.fixture
-def site_dir():
-    test_site_dir = os.path.join(os.path.dirname(__file__), "site_dir")
+def make_site_dir_fixture(site_dir):
+    test_site_dir = os.path.join(os.path.dirname(__file__), site_dir)
     sys.path.insert(0, test_site_dir)
     yield test_site_dir
     sys.path.remove(test_site_dir)
+
+
+@pytest.fixture
+def site_dir():
+    yield from make_site_dir_fixture("site_dir")
+
+
+@pytest.fixture
+def bad_site_dir():
+    yield from make_site_dir_fixture("bad_site_dir")
 
 
 class MyAbstractType(plugin.AbstractType):
@@ -174,7 +183,7 @@ def example_resolver():
 
 
 @pytest.fixture(scope="session")
-def default_plugin_resolver(request):
+def default_plugin_resolver(request):  # pragma: no cover
     res = Resolver()
     if request.config.getoption("--no-plugins", default=False):
         from metagraph.plugins import find_plugins

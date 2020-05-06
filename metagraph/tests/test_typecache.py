@@ -22,8 +22,26 @@ def test_typecache_basic(example_resolver):
     props = dict(a=1)
     typecache[obj] = props
 
+    # automatic removal
     assert typecache[obj] == props
     assert len(typecache) == 1
     assert obj in typecache
     del obj
     assert len(typecache) == 0
+
+    # del
+    obj = np.zeros(2)
+    typecache[obj] = props
+    assert len(typecache) == 1
+    del typecache[obj]
+    assert len(typecache) == 0
+    with pytest.raises(KeyError):
+        del typecache[obj]
+
+    # expire
+    typecache[obj] = props
+    assert len(typecache) == 1
+    typecache.expire(obj)
+    assert len(typecache) == 0
+    # this should not raise an exception
+    typecache.expire(obj)
