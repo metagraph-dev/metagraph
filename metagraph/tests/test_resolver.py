@@ -8,9 +8,11 @@ from metagraph import (
     abstract_algorithm,
     concrete_algorithm,
 )
-from metagraph.core.resolver import Resolver, Namespace, Dispatcher
+from metagraph.core.resolver import Resolver, Namespace, Dispatcher, NamespaceError
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
+from typing import Tuple, List, Any
+from collections import OrderedDict
 
 from .util import site_dir, example_resolver
 
@@ -36,6 +38,9 @@ def test_namespace():
 
     with pytest.raises(AttributeError, match="foo"):
         ns.foo.does_not_exist
+
+    with pytest.raises(NamespaceError, match="Name already registered"):
+        ns._register("A.B.c", 4)
 
 
 def test_dispatcher(example_resolver):
@@ -108,6 +113,29 @@ def test_register_errors():
     with pytest.raises(ValueError, match="already exists"):
         res.register(abstract_algorithms=[my_algo2])
 
+    @abstract_algorithm("testing.bad_input_type")
+    def my_algo_bad_input_type(a: List) -> Resolver:  # pragma: no cover
+        pass
+
+    @abstract_algorithm("testing.bad_output_type")
+    def my_algo_bad_output_type(a: Abstract1) -> res:  # pragma: no cover
+        pass
+
+    @abstract_algorithm("testing.bad_compound_output_type")
+    def my_algo_bad_compound_output_type(
+        a: Abstract1,
+    ) -> Tuple[List, List]:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match='argument "a" may not be typing.List'):
+        res.register(abstract_algorithms=[my_algo_bad_input_type])
+
+    with pytest.raises(TypeError, match="return type may not be an instance of"):
+        res.register(abstract_algorithms=[my_algo_bad_output_type])
+
+    with pytest.raises(TypeError, match="return type may not be typing.List"):
+        res.register(abstract_algorithms=[my_algo_bad_compound_output_type])
+
     @concrete_algorithm("testing.does_not_exist")
     def my_algo3(a: Abstract1) -> Abstract2:  # pragma: no cover
         pass
@@ -123,6 +151,43 @@ def test_register_errors():
 
     with pytest.raises(ValueError, match="already has a registered concrete type"):
         res.register(abstract_types=[Abstract1], concrete_types=[Concrete3, Concrete4])
+
+    @concrete_algorithm("testing.myalgo")
+    def conc_algo_with_defaults(a: Concrete1 = 17) -> Concrete2:  # pragma: no cover
+        return a
+
+    with pytest.raises(TypeError, match='argument "a" declares a default value'):
+        res.register(concrete_algorithms=[conc_algo_with_defaults])
+
+    @abstract_algorithm("testing.multi_ret")
+    def my_multi_ret_algo() -> Tuple[int, int, int]:  # pragma: no cover
+        pass
+
+    @concrete_algorithm("testing.multi_ret")
+    def conc_algo_wrong_output_nums() -> Tuple[int, int]:  # pragma: no cover
+        return (0, 100)
+
+    with pytest.raises(
+        TypeError,
+        match="return type is not compatible with abstract function signature",
+    ):
+        res.register(
+            abstract_algorithms=[my_multi_ret_algo],
+            concrete_algorithms=[conc_algo_wrong_output_nums],
+        )
+
+    @abstract_algorithm("testing.any")
+    def abstract_any(x: Any) -> int:  # pragma: no cover
+        pass
+
+    @concrete_algorithm("testing.any")
+    def my_any(x: int) -> int:  # pragma: no cover
+        return 12
+
+    with pytest.raises(
+        TypeError, match='argument "x" does not match abstract function signature'
+    ):
+        res.register(abstract_algorithms=[abstract_any], concrete_algorithms=[my_any])
 
 
 def test_incorrect_signature_errors(example_resolver):
@@ -290,6 +355,18 @@ def test_translate(example_resolver):
     assert example_resolver.translate(4, int) == 4
 
 
+def test_translate_plan(example_resolver, capsys):
+    from .util import StrNum, OtherType
+
+    capsys.readouterr()
+    example_resolver.plan.translate(4, StrNum.Type)
+    captured = capsys.readouterr()
+    assert captured.out == "[Direct Translation]\nIntType -> StrNumType\n"
+    example_resolver.plan.translate(4, OtherType)
+    captured = capsys.readouterr()
+    assert captured.out == "No translation path found for IntType -> OtherType\n"
+
+
 def test_find_algorithm(example_resolver):
     from .util import int_power, MyNumericAbstractType
 
@@ -324,7 +401,7 @@ def test_find_algorithm(example_resolver):
 
 
 def test_call_algorithm(example_resolver):
-    from .util import int_power, StrNum
+    from .util import StrNum
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.call_algorithm("does_not_exist", 1, thing=2)
@@ -338,6 +415,28 @@ def test_call_algorithm(example_resolver):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
     assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
+    assert example_resolver.call_algorithm("echo", 14) == 14
+
+    od1 = OrderedDict([("a", 1), ("b", 2), ("c", 3)])
+    od2 = OrderedDict([("c", 3), ("b", 2), ("a", 1)])
+    assert example_resolver.algo.odict_rev(od1) == od2
+
+    with pytest.raises(TypeError, match="x must be of type"):
+        example_resolver.algo.odict_rev(14)
+
+
+def test_call_algorithm_plan(example_resolver, capsys):
+    capsys.readouterr()
+    example_resolver.plan.call_algorithm("power", 2, 3)
+    captured = capsys.readouterr()
+    assert "int_power" in captured.out
+    assert "Argument Translations" in captured.out
+    example_resolver.plan.call_algorithm("power", 2, "4")
+    captured = capsys.readouterr()
+    assert (
+        'No concrete algorithm for "power" can be satisfied for the given inputs'
+        in captured.out
+    )
 
 
 def test_call_algorithm_logging(example_resolver, capsys):
