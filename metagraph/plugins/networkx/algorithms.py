@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm
 from metagraph.plugins import has_networkx
-from typing import Tuple
+from typing import Tuple, Any
 
 
 if has_networkx:
@@ -57,7 +57,7 @@ if has_networkx:
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
-        graph: NetworkXGraph, source_node: int
+        graph: NetworkXGraph, source_node: Any
     ) -> Tuple[PythonNodes, PythonNodes]:
         predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(
             graph.value, source_node
@@ -99,7 +99,7 @@ if has_networkx:
         )
 
     @concrete_algorithm("traversal.breadth_first_search")
-    def nx_breadth_first_search(graph: NetworkXGraph, source_node: int) -> NumpyVector:
+    def nx_breadth_first_search(graph: NetworkXGraph, source_node: Any) -> NumpyVector:
         bfs_ordered_node_array = np.array(
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
         )
