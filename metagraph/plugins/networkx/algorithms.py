@@ -56,10 +56,8 @@ if has_networkx:
         )
 
     @concrete_algorithm("subgraph.extract_subgraph")
-    def nx_extract_subgraph(
-        graph: NetworkXGraph, nodes: Iterable[Any]
-    ) -> NetworkXGraph:
-        subgraph = graph.value.subgraph(nodes)
+    def nx_extract_subgraph(graph: NetworkXGraph, nodes: NumpyVector) -> NetworkXGraph:
+        subgraph = graph.value.subgraph(nodes.value)
         return NetworkXGraph(subgraph, weight_label=graph.weight_label,)
 
     @concrete_algorithm("subgraph.k_core")

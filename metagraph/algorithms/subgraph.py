@@ -1,10 +1,9 @@
 from metagraph import abstract_algorithm
-from metagraph.types import Graph
-from typing import Iterable, Any
+from metagraph.types import Graph, Vector
 
 
 @abstract_algorithm("subgraph.extract_subgraph")
-def extract_subgraph(graph: Graph, nodes: Iterable[Any]) -> Graph:
+def extract_subgraph(graph: Graph, nodes: Vector) -> Graph:
     pass
 
 
