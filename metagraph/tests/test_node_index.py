@@ -4,6 +4,11 @@ import pytest
 from metagraph.core.node_index import IndexedNodes, SequentialNodes
 
 
+def test_repr_methods():
+    assert isinstance(repr(IndexedNodes(np.array([1, 3, 5]))), str)
+    assert isinstance(repr(SequentialNodes(5)), str)
+
+
 def test_indexed_nodes():
     with pytest.raises(TypeError):
         IndexedNodes(np.array([[1, 2,], [3, 4]]))
