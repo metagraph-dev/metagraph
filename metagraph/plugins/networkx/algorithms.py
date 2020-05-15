@@ -35,7 +35,7 @@ if has_networkx:
             beta=immediate_neighbor_weight,
             max_iter=maxiter,
             tol=tolerance,
-            weight=None,
+            weight=graph.weight_label,
         )
         return PythonNodes(
             katz_centrality_scores,
