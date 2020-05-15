@@ -31,6 +31,13 @@ except ImportError:  # pragma: no cover
     has_networkx = False
 
 try:
+    import community as _
+
+    has_community = True
+except ImportError:  # pragma: no cover
+    has_community = False
+
+try:
     import pandas as _
 
     has_pandas = True
