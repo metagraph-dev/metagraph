@@ -43,7 +43,7 @@ v        v /        v
         6: 11.0,
         7: 0.0,
     }
-    expected_answer = dpr.wrapper.Nodes.PythonNodes(
+    expected_answer = dpr.wrapper.NodeMap.PythonNodeMap(
         expected_answer_unwrapped, dtype="float"
     )
     MultiVerify(

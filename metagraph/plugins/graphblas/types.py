@@ -1,5 +1,5 @@
 from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
-from metagraph.types import Vector, Nodes, NodeMapping, Matrix, Graph, WEIGHT_CHOICES
+from metagraph.types import Vector, NodeMap, Matrix, Graph, WEIGHT_CHOICES
 from metagraph.plugins import has_grblas
 
 from typing import List, Dict, Any
@@ -60,7 +60,7 @@ if has_grblas:
                     shape_match.nvals == obj1.nvals
                 ), f"{shape_match.nvals} != {obj1.nvals}"
 
-    class GrblasNodes(Wrapper, abstract=Nodes):
+    class GrblasNodeMap(Wrapper, abstract=NodeMap):
         def __init__(self, data, *, weights=None, node_index=None):
             self._assert_instance(data, grblas.Vector)
             self.value = data
@@ -122,7 +122,7 @@ if has_grblas:
                 my_node_index._verify_valid_conversion(node_index)
                 index_converter = [my_node_index.bylabel(label) for label in node_index]
                 data = data[index_converter].new()
-            return GrblasNodes(data, weights=self._weights, node_index=node_index)
+            return GrblasNodeMap(data, weights=self._weights, node_index=node_index)
 
         @classmethod
         def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
@@ -135,10 +135,10 @@ if has_grblas:
         ):
             assert (
                 type(obj1) is cls.value_type
-            ), f"obj1 must be GrblasNodes, not {type(obj1)}"
+            ), f"obj1 must be GrblasNodeMap, not {type(obj1)}"
             assert (
                 type(obj2) is cls.value_type
-            ), f"obj2 must be GrblasNodes, not {type(obj2)}"
+            ), f"obj2 must be GrblasNodeMap, not {type(obj2)}"
 
             assert (
                 obj1.num_nodes == obj2.num_nodes
@@ -165,12 +165,6 @@ if has_grblas:
                 assert (
                     shape_match.nvals == obj1.value.nvals
                 ), f"{shape_match.nvals} != {obj1.value.nvals}"
-
-    class GrblasNodeMapping(Wrapper, abstract=NodeMapping):
-        def __init__(self, data, src_node_labels=None, dst_node_labels=None):
-            self.value = data
-            self.src_node_labels = src_node_labels
-            self.dst_node_labels = dst_node_labels
 
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix

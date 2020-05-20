@@ -1,13 +1,13 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
-from .types import NumpyMatrix, NumpyVector, NumpyNodes, CompactNumpyNodes
-from ..python.types import PythonNodes
+from .types import NumpyMatrix, NumpyVector, NumpyNodeMap, CompactNumpyNodeMap
+from ..python.types import PythonNodeMap
 from metagraph import SequentialNodes
 
 
 @translator
-def nodes_from_compactnodes(x: CompactNumpyNodes, **props) -> NumpyNodes:
+def nodes_from_compactnodes(x: CompactNumpyNodeMap, **props) -> NumpyNodeMap:
     data = np.empty((len(x.node_index),), dtype=x.value.dtype)
     indexer = np.empty((len(x.lookup),), dtype=np.int32)
     nidx = x.node_index
@@ -23,13 +23,13 @@ def nodes_from_compactnodes(x: CompactNumpyNodes, **props) -> NumpyNodes:
         missing = np.ones_like(data, dtype=bool)
         missing[indexer] = False
 
-    return NumpyNodes(
+    return NumpyNodeMap(
         data, missing_mask=missing, weights=x._weights, node_index=x.node_index
     )
 
 
 @translator
-def compactnodes_from_nodes(x: NumpyNodes, **props) -> CompactNumpyNodes:
+def compactnodes_from_nodes(x: NumpyNodeMap, **props) -> CompactNumpyNodeMap:
     nidx = x.node_index
     if x.missing_mask is None:
         data = x.value
@@ -41,11 +41,13 @@ def compactnodes_from_nodes(x: NumpyNodes, **props) -> CompactNumpyNodes:
         data = x.value[~x.missing_mask]
         indexes = np.arange(x.num_nodes)[~x.missing_mask]
         lookup = {nidx.byindex(idx): pos for pos, idx in enumerate(indexes)}
-    return CompactNumpyNodes(data, lookup, weights=x._weights, node_index=x.node_index)
+    return CompactNumpyNodeMap(
+        data, lookup, weights=x._weights, node_index=x.node_index
+    )
 
 
 @translator
-def compactnodes_from_python(x: PythonNodes, **props) -> CompactNumpyNodes:
+def compactnodes_from_python(x: PythonNodeMap, **props) -> CompactNumpyNodeMap:
     np_dtype = x._dtype if x._dtype != "str" else "object"
     data = np.empty((len(x.value),), dtype=np_dtype)
     lookup = {}
@@ -53,7 +55,9 @@ def compactnodes_from_python(x: PythonNodes, **props) -> CompactNumpyNodes:
     for idx, label in enumerate(pyvals):
         data[idx] = pyvals[label]
         lookup[label] = idx
-    return CompactNumpyNodes(data, lookup, weights=x._weights, node_index=x.node_index)
+    return CompactNumpyNodeMap(
+        data, lookup, weights=x._weights, node_index=x.node_index
+    )
 
 
 if has_scipy:

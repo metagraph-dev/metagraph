@@ -1,5 +1,5 @@
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, Nodes
+from metagraph.types import Graph, NodeMap
 
 
 @abstract_algorithm("cluster.triangle_count")

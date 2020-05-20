@@ -164,7 +164,7 @@ class AlgorithmPlan:
                 self.required_translations[varname].display()
             else:
                 print(f"** {varname} **")
-                print(f"{sig.parameters[varname].annotation.__class__.__name__}")
+                print(f"{sig.parameters[varname].annotation.__name__}")
         print("---------------------")
 
     @classmethod
