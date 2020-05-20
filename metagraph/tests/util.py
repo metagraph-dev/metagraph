@@ -3,6 +3,7 @@ import sys
 import math
 import pytest
 from typing import List, Dict, Any
+from collections import OrderedDict
 
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
@@ -163,6 +164,29 @@ def float_ln(x: FloatType) -> FloatType:
     return math.log(x)
 
 
+@plugin.abstract_algorithm("echo")
+def abstract_echo(x: Any) -> Any:  # pragma: no cover
+    pass
+
+
+@plugin.concrete_algorithm("echo")
+def simple_echo(x: Any) -> Any:  # pragma: no cover
+    return x
+
+
+@plugin.abstract_algorithm("odict_rev")
+def odict_reverse(x: OrderedDict) -> OrderedDict:  # pragma: no cover
+    pass
+
+
+@plugin.concrete_algorithm("odict_rev")
+def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
+    d = OrderedDict()
+    for k in reversed(x):
+        d[k] = x[k]
+    return d
+
+
 # Handy for manual testing
 def make_example_resolver():
     res = Resolver()
@@ -171,8 +195,8 @@ def make_example_resolver():
         concrete_types={StrType, IntType, FloatType, OtherType},
         wrappers={StrNum},
         translators={int_to_str, str_to_int},
-        abstract_algorithms={abstract_power, abstract_ln},
-        concrete_algorithms={int_power, float_ln},
+        abstract_algorithms={abstract_power, abstract_ln, abstract_echo, odict_reverse},
+        concrete_algorithms={int_power, float_ln, simple_echo, simple_odict_rev},
     )
     return res
 
