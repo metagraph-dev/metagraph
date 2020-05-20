@@ -229,7 +229,7 @@ class Resolver:
             for aa in abstract_algorithms:
                 if aa.name in self.abstract_algorithms:
                     raise ValueError(f"abstract algorithm {aa.name} already exists")
-                aa = self._normalize_abstract_type(aa)
+                aa = self._normalize_abstract_algorithm_signature(aa)
                 self.abstract_algorithms[aa.name] = aa
                 self.algo._register(aa.name, Dispatcher(self, aa.name))
                 self.plan.algo._register(aa.name, Dispatcher(self.plan, aa.name))
@@ -244,15 +244,63 @@ class Resolver:
                 self._normalize_concrete_algorithm_signature(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].append(ca)
 
-    def _normalize_abstract_type(self, abst_type):
-        if type(abst_type) is type and issubclass(abst_type, AbstractType):
-            abst_type = abst_type()
-        return abst_type
+    def _check_abstract_type(self, abst_algo, obj, msg):
+        if obj is Any:
+            return obj, False
+        if type(obj) is type:
+            if issubclass(obj, AbstractType):
+                return obj(), True
+        elif not isinstance(obj, AbstractType):
+            wrong_type_str = f"an instance of type {type(obj)}"
+            # Improve messaging for typing module objects
+            if hasattr(obj, "__origin__") and hasattr(obj, "_name"):
+                wrong_type_str = f"typing.{obj._name}"
+            raise TypeError(
+                f"{abst_algo.func.__qualname__} {msg} may not be {wrong_type_str}"
+            )
+        return obj, False
+
+    def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
+        """
+        Convert all AbstractType to a no-arg instance
+        Leave all Python types alone
+        Guard against instances of anything other than AbstractType
+        """
+        abs_sig = abst_algo.__signature__
+        params = abs_sig.parameters
+        ret = abs_sig.return_annotation
+        params_modified = []
+        any_changed = False
+        for pname, p in params.items():
+            pmod, changed = self._check_abstract_type(
+                abst_algo, p.annotation, f'argument "{pname}"'
+            )
+            if changed:
+                p = p.replace(annotation=pmod)
+                any_changed = True
+            params_modified.append(p)
+        # Normalize return type, which might be a tuple
+        if hasattr(ret, "__origin__") and ret.__origin__ == tuple:
+            ret_modified = []
+            for ret_sub in ret.__args__:
+                ret_sub, changed = self._check_abstract_type(
+                    abst_algo, ret_sub, "return type"
+                )
+                any_changed |= changed
+                ret_modified.append(ret_sub)
+            ret.__args__ = tuple(ret_modified)
+        else:
+            ret, changed = self._check_abstract_type(abst_algo, ret, "return type")
+            any_changed |= changed
+
+        if any_changed:
+            abs_sig = abs_sig.replace(parameters=params_modified, return_annotation=ret)
+            abst_algo.__signature__ = abs_sig
+
+        return abst_algo
 
     def _normalize_concrete_type(self, conc_type, abst_type: AbstractType):
         # handle Python classes used as concrete types
-        if abst_type is Any:
-            return conc_type
         if isinstance(abst_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
         ):
@@ -264,38 +312,6 @@ class Resolver:
                 )
         else:
             return conc_type
-
-    def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
-        """
-        Convert all AbstractType to a no-arg instance
-        Leave all Python types alone
-        Guard against instances of anything other than AbstractType
-        """
-        abs_sig = abst_algo.__signature__
-        params = abs_sig.parameters
-        ret = abs_sig.return_annotation
-        changed = False
-        for pname, p in params.items():
-            if type(p.annotation) == type:
-                if issubclass(p.annotation, AbstractType):
-                    params[pname] = p.replace(annotation=p.annotation())
-                    changed = True
-            elif not isinstance(p.annotation, AbstractType):
-                raise TypeError(
-                    f'{abst_algo.func.__qualname__} argument "{pname}" may not be an instance of type {type(p.annotation)}'
-                )
-        if type(ret) == type:
-            if issubclass(ret, AbstractType):
-                ret = ret()
-                changed = True
-        elif not isinstance(ret, AbstractType):
-            raise TypeError(
-                f"{abst_algo.func.__qualname__} return type may not be an instance of type {type(ret)}"
-            )
-
-        if changed:
-            abs_sig = abs_sig.replace(parameters=params, return_annotation=ret)
-            abst_algo.__signature__ = abs_sig
 
     def _normalize_concrete_algorithm_signature(
         self, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
@@ -324,9 +340,7 @@ class Resolver:
                     f'{concrete.func.__qualname__} argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
                 )
 
-            abst_type = self._normalize_abstract_type(abst_param.annotation)
-            if abst_type is Any:
-                continue
+            abst_type = abst_param.annotation
             conc_type = self._normalize_concrete_type(
                 conc_type=conc_param.annotation, abst_type=abst_type
             )
@@ -366,28 +380,24 @@ class Resolver:
                                     f'{concrete.func.__qualname__} argument "{key}" has specificity limits which are '
                                     f"incompatible with the abstract signature"
                                 )
-        abst_ret = self._normalize_abstract_type(abst_sig.return_annotation)
+        abst_ret = abst_sig.return_annotation
         conc_ret = self._normalize_concrete_type(
             conc_type=conc_sig.return_annotation, abst_type=abst_ret
         )
+        # Normalize return type, which might be a tuple
         if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
-            abst_ret_sub_types = abst_ret.__args__
-            conc_ret_sub_types = conc_ret.__args__
-            if len(abst_ret_sub_types) != len(conc_ret_sub_types):
+            if len(abst_ret.__args__) != len(conc_ret.__args__):
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
                 )
             for conc_ret_sub_type, abst_ret_sub_type in zip(
-                conc_ret_sub_types, abst_ret_sub_types
+                conc_ret.__args__, abst_ret.__args__
             ):
-                abst_ret_sub_type_normalized = self._normalize_abstract_type(
-                    abst_ret_sub_type
-                )
                 conc_ret_sub_type_normalized = self._normalize_concrete_type(
-                    conc_type=conc_ret_sub_type, abst_type=abst_ret_sub_type_normalized
+                    conc_type=conc_ret_sub_type, abst_type=abst_ret_sub_type
                 )
                 self._check_concrete_algorithm_return_signature(
-                    concrete, conc_ret_sub_type_normalized, abst_ret_sub_type_normalized
+                    concrete, conc_ret_sub_type_normalized, abst_ret_sub_type
                 )
         else:
             self._check_concrete_algorithm_return_signature(
@@ -508,14 +518,11 @@ class Resolver:
             if param_type is Any:
                 continue
             if type(param_type) is type:
-                if issubclass(param_type, AbstractType):
-                    param_type = param_type()
-                else:
-                    if not isinstance(arg_value, param_type):
-                        raise TypeError(
-                            f"{arg_name} must be of type {param_type.__name__}, "
-                            f"not {type(arg_value).__name__}"
-                        )
+                if not isinstance(arg_value, param_type):
+                    raise TypeError(
+                        f"{arg_name} must be of type {param_type.__name__}, "
+                        f"not {type(arg_value).__name__}"
+                    )
             if isinstance(param_type, AbstractType):
                 this_typeclass = self.typeclass_of(arg_value)
                 # The above line should ensure the typeinfo cache is populated
@@ -545,14 +552,9 @@ class Resolver:
                 for abst_prop, min_value in param_type.prop_idx.items():
                     if this_abs_type.prop_idx[abst_prop] < min_value:
                         min_val_obj = param_type.properties[abst_prop][min_value]
-                        if type(min_val_obj) is bool:
-                            unsatisfied_requirements.append(
-                                f" -> `{abst_prop}` must be {min_val_obj}"
-                            )
-                        else:
-                            unsatisfied_requirements.append(
-                                f' -> `{abst_prop}` must be at least "{min_val_obj}"'
-                            )
+                        unsatisfied_requirements.append(
+                            f' -> `{abst_prop}` must be at least "{min_val_obj}"'
+                        )
                 if unsatisfied_requirements:
                     raise ValueError(
                         f'"{arg_name}" with properties\n{this_abs_type.prop_val}\n'
