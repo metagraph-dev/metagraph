@@ -1,13 +1,13 @@
 from typing import List, Dict, Any
 import math
 from metagraph import Wrapper, IndexedNodes
-from metagraph.types import Nodes, NodeMapping, WEIGHT_CHOICES, DTYPE_CHOICES
+from metagraph.types import NodeMap, WEIGHT_CHOICES, DTYPE_CHOICES
 
 
 dtype_casting = {"str": str, "float": float, "int": int, "bool": bool}
 
 
-class PythonNodes(Wrapper, abstract=Nodes):
+class PythonNodeMap(Wrapper, abstract=NodeMap):
     def __init__(self, data, *, dtype=None, weights=None, node_index=None):
         """
         data: dict of node: weight
@@ -81,10 +81,10 @@ class PythonNodes(Wrapper, abstract=Nodes):
     def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
         assert (
             type(obj1) is cls.value_type
-        ), f"obj1 must be PythonNodes, not {type(obj1)}"
+        ), f"obj1 must be PythonNodeMap, not {type(obj1)}"
         assert (
             type(obj2) is cls.value_type
-        ), f"obj2 must be PythonNodes, not {type(obj2)}"
+        ), f"obj2 must be PythonNodeMap, not {type(obj2)}"
 
         if check_values:
             assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
@@ -104,11 +104,3 @@ class PythonNodes(Wrapper, abstract=Nodes):
             assert len(obj1.value) == len(
                 obj2.value
             ), f"{len(obj1.value)} != {len(obj2.value)}"
-
-
-class PythonNodeMapping(Wrapper, abstract=NodeMapping):
-    def __init__(self, data, src_labeled_index=None, dst_labeled_index=None):
-        self._assert_instance(data, dict)
-        self.data = data
-        self.src_index = src_labeled_index
-        self.dst_index = dst_labeled_index

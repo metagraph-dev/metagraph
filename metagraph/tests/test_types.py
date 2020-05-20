@@ -3,17 +3,17 @@ import pytest
 from metagraph import types
 
 
-def test_nodes_not_implemented():
-    nodes = types.Nodes()
+def test_nodemap_not_implemented():
+    nodemap = types.NodeMap()
 
     with pytest.raises(NotImplementedError):
-        nodes[0]
+        nodemap[0]
 
     with pytest.raises(NotImplementedError):
-        nodes.num_nodes()
+        nodemap.num_nodes()
 
     with pytest.raises(NotImplementedError):
-        nodes.node_index()
+        nodemap.node_index()
 
 
 def test_graph_not_implemented():

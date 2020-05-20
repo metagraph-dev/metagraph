@@ -102,8 +102,8 @@ v        v /        v
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
     expected_answer = (
-        dpr.wrapper.Nodes.PythonNodes(node_to_parent_mapping, dtype="int"),
-        dpr.wrapper.Nodes.PythonNodes(node_to_length_mapping, dtype="float"),
+        dpr.wrapper.NodeMap.PythonNodeMap(node_to_parent_mapping, dtype="int"),
+        dpr.wrapper.NodeMap.PythonNodeMap(node_to_length_mapping, dtype="float"),
     )
     MultiVerify(dpr, "traversal.bellman_ford", graph, 0).assert_equals(expected_answer)
 
@@ -138,8 +138,8 @@ v        v /        v
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
     expected_answer = (
-        dpr.wrapper.Nodes.PythonNodes(node_to_parent_mapping, dtype="int"),
-        dpr.wrapper.Nodes.PythonNodes(node_to_length_mapping, dtype="float"),
+        dpr.wrapper.NodeMap.PythonNodeMap(node_to_parent_mapping, dtype="int"),
+        dpr.wrapper.NodeMap.PythonNodeMap(node_to_length_mapping, dtype="float"),
     )
     MultiVerify(dpr, "traversal.dijkstra", graph, 0, 100.0).assert_equals(
         expected_answer

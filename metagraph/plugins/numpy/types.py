@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 import numpy as np
 from metagraph import Wrapper, dtypes, SequentialNodes, IndexedNodes
-from metagraph.types import Vector, Nodes, NodeMapping, Matrix, WEIGHT_CHOICES
+from metagraph.types import Vector, NodeMap, Matrix, WEIGHT_CHOICES
 
 
 class NumpyVector(Wrapper, abstract=Vector):
@@ -59,9 +59,9 @@ class NumpyVector(Wrapper, abstract=Vector):
                 assert (d1 == d2).all()
 
 
-class NumpyNodes(Wrapper, abstract=Nodes):
+class NumpyNodeMap(Wrapper, abstract=NodeMap):
     """
-    NumpyNodes stores data in verbose format with an entry in the array for every node
+    NumpyNodeMap stores data in verbose format with an entry in the array for every node
     If nodes are empty, a boolean missing_mask is provided
     """
 
@@ -142,7 +142,7 @@ class NumpyNodes(Wrapper, abstract=Nodes):
             data = data[index_converter]
             if missing_mask is not None:
                 missing_mask = missing_mask[index_converter]
-        return NumpyNodes(
+        return NumpyNodeMap(
             data,
             weights=self._weights,
             missing_mask=missing_mask,
@@ -158,10 +158,10 @@ class NumpyNodes(Wrapper, abstract=Nodes):
     def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
         assert (
             type(obj1) is cls.value_type
-        ), f"obj1 must be NumpyNodes, not {type(obj1)}"
+        ), f"obj1 must be NumpyNodeMap, not {type(obj1)}"
         assert (
             type(obj2) is cls.value_type
-        ), f"obj2 must be NumpyNodes, not {type(obj2)}"
+        ), f"obj2 must be NumpyNodeMap, not {type(obj2)}"
 
         assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
         if check_values:
@@ -181,9 +181,9 @@ class NumpyNodes(Wrapper, abstract=Nodes):
                 assert (d1 == d2).all()
 
 
-class CompactNumpyNodes(Wrapper, abstract=Nodes):
+class CompactNumpyNodeMap(Wrapper, abstract=NodeMap):
     """
-    CompactNumpyNodes only stores data for non-empty nodes
+    CompactNumpyNodeMap only stores data for non-empty nodes
     num_nodes is determined by node_index, which must have an entry for all possible nodes, not just non-empty ones
     """
 
@@ -259,7 +259,7 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
                 index_converter[idx] = self.lookup[label]
             data = data[index_converter]
 
-        return CompactNumpyNodes(
+        return CompactNumpyNodeMap(
             data, lookup, weights=self._weights, node_index=self._node_index
         )
 
@@ -272,10 +272,10 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
     def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
         assert (
             type(obj1) is cls.value_type
-        ), f"obj1 must be CompactNumpyNodes, not {type(obj1)}"
+        ), f"obj1 must be CompactNumpyNodeMap, not {type(obj1)}"
         assert (
             type(obj2) is cls.value_type
-        ), f"obj2 must be CompactNumpyNodes, not {type(obj2)}"
+        ), f"obj2 must be CompactNumpyNodeMap, not {type(obj2)}"
 
         assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
         if check_values:
@@ -294,20 +294,6 @@ class CompactNumpyNodes(Wrapper, abstract=Nodes):
                 ).all()
             else:
                 assert (obj1.value == obj2.value).all()
-
-
-class NumpyNodeMapping(Wrapper, abstract=NodeMapping):
-    def __init__(
-        self,
-        data,
-        src_node_labels=None,
-        dst_node_labels=None,
-        # missing_value=_NONE_SPECIFIED,
-    ):
-        self.value = data
-        # self.missing_value = missing_value
-        self.src_node_labels = src_node_labels
-        self.dst_node_labels = dst_node_labels
 
 
 class NumpyMatrix(Wrapper, abstract=Matrix):

@@ -43,7 +43,7 @@ def test_connected_components(default_plugin_resolver):
         assert c1 != c2, f"{c1}, {c2}"
 
     MultiVerify(dpr, "clustering.connected_components", graph).custom_compare(
-        cmp_func, dpr.types.Nodes.PythonNodesType
+        cmp_func, dpr.types.NodeMap.PythonNodeMapType
     )
 
 
@@ -80,5 +80,5 @@ def test_strongly_connected_components(default_plugin_resolver):
         assert c1 != c2, f"{c1}, {c2}"
 
     MultiVerify(dpr, "clustering.strongly_connected_components", graph).custom_compare(
-        cmp_func, dpr.types.Nodes.PythonNodesType
+        cmp_func, dpr.types.NodeMap.PythonNodeMapType
     )

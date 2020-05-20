@@ -1,7 +1,7 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas, has_scipy
-from ..numpy.types import NumpyVector, NumpyNodes
+from ..numpy.types import NumpyVector, NumpyNodeMap
 
 
 if has_grblas:
@@ -10,7 +10,7 @@ if has_grblas:
         GrblasAdjacencyMatrix,
         GrblasMatrixType,
         GrblasVectorType,
-        GrblasNodes,
+        GrblasNodeMap,
         dtype_mg_to_grblas,
     )
 
@@ -26,7 +26,7 @@ if has_grblas:
         return vec
 
     @translator
-    def nodes_from_numpy(x: NumpyNodes, **props) -> GrblasNodes:
+    def nodes_from_numpy(x: NumpyNodeMap, **props) -> GrblasNodeMap:
         idx = np.arange(len(x.value))
         if x.missing_mask is not None:
             idx = idx[~x.missing_mask]
@@ -34,7 +34,7 @@ if has_grblas:
         vec = grblas.Vector.from_values(
             idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
-        return GrblasNodes(vec, weights=x._weights, node_index=x.node_index)
+        return GrblasNodeMap(vec, weights=x._weights, node_index=x.node_index)
 
 
 if has_grblas and has_scipy:

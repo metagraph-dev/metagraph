@@ -1,10 +1,10 @@
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, Vector, Nodes
+from metagraph.types import Graph, Vector, NodeMap
 from typing import Any, Tuple
 
 
 @abstract_algorithm("traversal.bellman_ford")
-def bellman_ford(graph: Graph, source_node: Any) -> Tuple[Nodes, Nodes]:
+def bellman_ford(graph: Graph, source_node: Any) -> Tuple[NodeMap, NodeMap]:
     pass
 
 
@@ -21,5 +21,5 @@ def breadth_first_search(graph: Graph, source_node: Any) -> Vector:
 @abstract_algorithm("traversal.dijkstra")
 def dijkstra(
     graph: Graph, source_node: Any, max_path_length: float
-) -> Tuple[Nodes, Nodes]:
+) -> Tuple[NodeMap, NodeMap]:
     pass

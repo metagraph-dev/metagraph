@@ -9,7 +9,7 @@ class Vector(AbstractType):
     properties = {"is_dense": [False, True], "dtype": DTYPE_CHOICES}
 
 
-class Nodes(AbstractType):
+class NodeMap(AbstractType):
     properties = {"dtype": DTYPE_CHOICES, "weights": WEIGHT_CHOICES}
 
     @Wrapper.required_method
@@ -23,10 +23,6 @@ class Nodes(AbstractType):
     @Wrapper.required_property
     def node_index(self):
         raise NotImplementedError()
-
-
-class NodeMapping(AbstractType):
-    pass
 
 
 class Matrix(AbstractType):
