@@ -1,9 +1,6 @@
 import os
 import sys
-import math
 import pytest
-from typing import List, Dict, Any
-from collections import OrderedDict
 
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
@@ -26,178 +23,19 @@ def bad_site_dir():
     yield from make_site_dir_fixture("bad_site_dir")
 
 
-class MyAbstractType(plugin.AbstractType):
-    pass
-
-
-class MyNumericAbstractType(plugin.AbstractType):
-    properties = {"positivity": ["any", ">=0", ">0"], "divisible_by_two": [False, True]}
-
-
-class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
-    value_type = int
-    target = "pdp11"
-
-    @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
-        # return all properties regardless of what was requested, as
-        # is permitted by the interface
-        ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
-        if obj > 0:
-            ret["positivity"] = ">0"
-        elif obj == 0:
-            ret["positivity"] = ">=0"
-
-        return ret
-
-
-class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
-    value_type = float
-    target = "pdp11"
-
-    @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
-        # return all properties regardless of what was requested, as
-        # is permitted by the interface
-        ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
-        if obj > 0:
-            ret["positivity"] = ">0"
-        elif obj == 0:
-            ret["positivity"] = ">=0"
-
-        return ret
-
-
-class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
-    def __init__(self, val):
-        self.value = val
-        assert isinstance(val, str)
-
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            return NotImplemented
-        return self.value == other.value
-
-    @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
-
-        value = obj.value
-        # only compute properties that were requested
-        ret = {}
-        for propname in props:
-            if propname == "positivity":
-                if value.startswith("-"):
-                    positivity = "any"
-                elif value == "0":
-                    positivity = ">=0"
-                else:
-                    positivity = ">0"
-                ret["positivity"] = positivity
-            elif propname == "divisible_by_two":
-                ret["divisible_by_two"] = int(value) % 2 == 0
-        return ret
-
-
-class StrType(plugin.ConcreteType, abstract=MyAbstractType):
-    value_type = str
-    allowed_props = dict(lowercase=bool)
-    target = "pdp11"
-
-    @classmethod
-    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_concrete_props(props)
-
-        # only compute properties that were requested
-        ret = {}
-        for propname in props:
-            if propname == "lowercase":
-                ret["lowercase"] = obj.lower() == obj
-        return ret
-
-
-class OtherType(plugin.ConcreteType, abstract=MyAbstractType):
-    target = "pdp11"
-
-    @classmethod
-    def is_typeclass_of(cls, obj):
-        return False  # this type class matches nothing
-
-
-@plugin.translator
-def int_to_str(src: IntType) -> StrNum:
-    """Convert int to str"""
-    return StrNum(str(src))
-
-
-@plugin.translator
-def str_to_int(src: StrNum) -> IntType:
-    """Convert str to int"""
-    return int(src.value)
-
-
-@plugin.abstract_algorithm("power")
-def abstract_power(
-    x: MyNumericAbstractType, p: MyNumericAbstractType
-) -> MyNumericAbstractType:  # pragma: no cover
-    """Raise x to the power of p"""
-    pass
-
-
-@plugin.concrete_algorithm("power")
-def int_power(x: IntType, p: IntType) -> IntType:
-    return x ** p
-
-
-@plugin.abstract_algorithm("ln")
-def abstract_ln(
-    x: MyNumericAbstractType(positivity=">0"),
-) -> MyNumericAbstractType:  # pragma: no cover
-    """Take the natural log"""
-    pass
-
-
-@plugin.concrete_algorithm("ln")
-def float_ln(x: FloatType) -> FloatType:
-    return math.log(x)
-
-
-@plugin.abstract_algorithm("echo")
-def abstract_echo(x: Any) -> Any:  # pragma: no cover
-    pass
-
-
-@plugin.concrete_algorithm("echo")
-def simple_echo(x: Any) -> Any:  # pragma: no cover
-    return x
-
-
-@plugin.abstract_algorithm("odict_rev")
-def odict_reverse(x: OrderedDict) -> OrderedDict:  # pragma: no cover
-    pass
-
-
-@plugin.concrete_algorithm("odict_rev")
-def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
-    d = OrderedDict()
-    for k in reversed(x):
-        d[k] = x[k]
-    return d
-
-
 # Handy for manual testing
 def make_example_resolver():
     res = Resolver()
-    res.register(
-        abstract_types={MyAbstractType, MyNumericAbstractType},
-        concrete_types={StrType, IntType, FloatType, OtherType},
-        wrappers={StrNum},
-        translators={int_to_str, str_to_int},
-        abstract_algorithms={abstract_power, abstract_ln, abstract_echo, odict_reverse},
-        concrete_algorithms={int_power, float_ln, simple_echo, simple_odict_rev},
+    import metagraph
+
+    registry = metagraph.PluginRegistry()
+    registry.register_from_modules(
+        "seeing_this_plugin_name_indicates_bug", [metagraph.types, metagraph.algorithms]
     )
+    from . import example_plugin_util
+
+    registry.register_from_modules("example_plugin", [example_plugin_util])
+    res.register(registry)
     return res
 
 
