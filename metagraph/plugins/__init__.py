@@ -51,16 +51,10 @@ registry = metagraph.PluginRegistry()
 def find_plugins():
     from . import graphblas, networkx, numpy, pandas, python, scipy
 
-    # TODO create & use PluginRegistry.register_abstract_from_modules to handle strictly
-    # abstract types and algorithms since metagraph.types and metagraph.algorithms
-    # only contain those and the plugin_name arg isn't used
-    # also rename PluginRegistry.register_from_modules -> PluginRegistry.register_concrete_from_modules
-    registry.register_from_modules(
-        "seeing_this_plugin_name_indicates_bug", [metagraph.types, metagraph.algorithms]
-    )
-
     # Default Plugins
-    registry.register_from_modules("graphblas_plugin", [graphblas])
+    registry.register_from_modules(
+        "graphblas_plugin", [graphblas, metagraph.types, metagraph.algorithms]
+    )
     registry.register_from_modules("networkx_plugin", [networkx])
     registry.register_from_modules("numpy_plugin", [numpy])
     registry.register_from_modules("pandas_plugin", [pandas])

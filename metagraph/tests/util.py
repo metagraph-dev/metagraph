@@ -29,12 +29,11 @@ def make_example_resolver():
     import metagraph
 
     registry = metagraph.PluginRegistry()
-    registry.register_from_modules(
-        "seeing_this_plugin_name_indicates_bug", [metagraph.types, metagraph.algorithms]
-    )
     from . import example_plugin_util
 
-    registry.register_from_modules("example_plugin", [example_plugin_util])
+    registry.register_from_modules(
+        "example_plugin", [example_plugin_util, metagraph.types, metagraph.algorithms]
+    )
     res.register(registry)
     return res
 
