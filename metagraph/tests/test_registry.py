@@ -7,9 +7,7 @@ from .site_dir import plugin1_util, plugin1
 
 def test_registry_modules():
     reg = PluginRegistry()
-    reg.register_from_modules(
-        "seeing_this_plugin_name_indicates_bug", [mg.types, mg.algorithms]
-    )
+    reg.register_from_modules(None, [mg.types, mg.algorithms])
     reg.register_from_modules("plugin1", [plugin1_util])
     plugins = plugin1.find_plugins()
     assert len(reg.abstract_types) == len(plugins.abstract_types)

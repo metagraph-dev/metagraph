@@ -9,6 +9,7 @@ from .plugin import (
 )
 from collections import defaultdict
 from functools import reduce
+from typing import Union
 
 
 class PluginRegistryError(Exception):
@@ -161,7 +162,9 @@ class PluginRegistry:
                 )
         return obj
 
-    def register_from_modules(self, plugin_name, modules, recurse=True):
+    def register_from_modules(
+        self, plugin_name: Union[str, None], modules, recurse=True
+    ):
         """
         Find and register all suitable objects within modules.
 
@@ -197,9 +200,15 @@ class PluginRegistry:
                         if val_is_abstract:
                             self.register_abstract(val)
                         elif val_is_concrete:
+                            if not isinstance(plugin_name, str):
+                                raise ValueError(
+                                    f"{plugin_name} is not a valid plugin name."
+                                )
                             self.register_concrete(plugin_name, val)
                 elif isinstance(val, (Translator, ConcreteAlgorithm)):
                     # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
+                    if not isinstance(plugin_name, str):
+                        raise ValueError(f"{plugin_name} is not a valid plugin name.")
                     self.register_concrete(plugin_name, val)
                 elif isinstance(val, (AbstractAlgorithm)):
                     # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
