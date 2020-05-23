@@ -1,61 +1,14 @@
-from metagraph import (
-    AbstractType,
-    ConcreteType,
-    Wrapper,
-    translator,
-    abstract_algorithm,
-    concrete_algorithm,
-)
+import metagraph
 
-
-class HyperGraphType(AbstractType):
-    pass
-
-
-class CPUHyperGraphType(ConcreteType, abstract=HyperGraphType):
-    pass
-
-
-class GPUHyperGraph(Wrapper, abstract=HyperGraphType):
-    pass
-
-
-@translator
-def cpu_to_gpu_hypergraph(
-    src: CPUHyperGraphType, **props
-) -> GPUHyperGraph:  # pragma: no cover
-    pass
-
-
-@translator
-def gpu_to_cpu_hypergraph(
-    src: GPUHyperGraph, **props
-) -> CPUHyperGraphType:  # pragma: no cover
-    pass
-
-
-@abstract_algorithm("hyperstuff.supercluster")
-def supercluster(hg: HyperGraphType) -> HyperGraphType:  # pragma: no cover
-    """Make a supercluster from a hypergraph"""
-    pass
-
-
-@concrete_algorithm("hyperstuff.supercluster")
-def cpu_supercluster(hg: CPUHyperGraphType) -> CPUHyperGraphType:  # pragma: no cover
-    pass
-
-
-@concrete_algorithm("hyperstuff.supercluster")
-def gpu_supercluster(hg: GPUHyperGraph) -> GPUHyperGraph:  # pragma: no cover
-    pass
+# Use this as the entry_point object
+registry = metagraph.PluginRegistry()
 
 
 def find_plugins():
-    return {
-        "abstract_types": {HyperGraphType},
-        "concrete_types": {CPUHyperGraphType},
-        "wrappers": {GPUHyperGraph},
-        "translators": {cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph},
-        "abstract_algorithms": {supercluster},
-        "concrete_algorithms": {cpu_supercluster, gpu_supercluster},
-    }
+    import plugin1_util
+
+    registry.register_from_modules(
+        "seeing_this_plugin_name_indicates_bug", [metagraph.types, metagraph.algorithms]
+    )
+    registry.register_from_modules("plugin1", [plugin1_util])
+    return registry

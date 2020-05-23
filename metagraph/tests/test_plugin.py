@@ -1,7 +1,7 @@
 from metagraph.core import plugin
 import pytest
 
-from .util import (
+from .example_plugin_util import (
     MyAbstractType,
     MyNumericAbstractType,
     StrType,
