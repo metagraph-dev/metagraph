@@ -142,6 +142,7 @@ def abstract_ln(
 def float_ln(x: FloatType) -> FloatType:
     return math.log(x)
 
+
 @plugin.abstract_algorithm("echo")
 def abstract_echo(x: Any) -> Any:  # pragma: no cover
     pass
