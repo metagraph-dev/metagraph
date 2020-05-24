@@ -187,7 +187,7 @@ class Resolver:
                 plugin_namespace._register("concrete_types", set())
                 plugin_namespace._register("translators", {})
                 plugin_namespace._register("abstract_algorithms", {})
-                plugin_namespace._register("concrete_algorithms", {})
+                plugin_namespace._register("concrete_algorithms", defaultdict(set))
                 plugin_namespace._register("class_to_concrete", {})
                 plugin_namespace._register("algos", Namespace())
                 plugin_namespace._register("wrappers", Namespace())
@@ -349,7 +349,10 @@ class Resolver:
                 self._normalize_concrete_algorithm_signature(abstract, ca)
                 self.concrete_algorithms[ca.abstract_name].add(ca)
                 plugin_namespace.concrete_algorithms[ca.abstract_name] = ca
-                setattr(abstract, plugin_name, ca)
+                dispatcher = self.algos
+                for name in abstract.name.split("."):
+                    dispatcher = getattr(dispatcher, name)
+                setattr(dispatcher, plugin_name, ca.func)
 
     def _check_abstract_type(self, abst_algo, obj, msg):
         if obj is Any:

@@ -581,3 +581,87 @@ def test_concrete_algorithm_insufficient_specificity(example_resolver):
         TypeError, match='"positivity" has specificity limits which are incompatible'
     ):
         example_resolver.register(registry)
+
+
+def test_plugin_specific_concrete_algorithms():
+    import metagraph as mg
+
+    r = mg.resolver
+    assert hasattr(r, "plugins")
+    assert hasattr(r.plugins, "networkx")
+    assert set(dir(r.plugins.networkx)).issubset(set(dir(r)))
+
+    def _assert_trees_subset(resolver_tree, plugin_tree, is_concrete=False) -> None:
+        assert type(resolver_tree) == type(resolver_tree)
+        if resolver_tree == plugin_tree:
+            pass
+        elif isinstance(resolver_tree, set):
+            assert plugin_tree.issubset(resolver_tree)
+        elif isinstance(resolver_tree, dict):
+            assert set(plugin_tree.keys()).issubset(set(resolver_tree.keys()))
+            for plugin_tree_key in plugin_tree.keys():
+                if is_concrete:
+                    assert (
+                        plugin_tree[plugin_tree_key] in resolver_tree[plugin_tree_key]
+                    )
+                else:
+                    assert (
+                        plugin_tree[plugin_tree_key] == resolver_tree[plugin_tree_key]
+                    )
+        elif isinstance(resolver_tree, Namespace):
+            resolver_tree_names = dir(resolver_tree)
+            plugin_tree_names = dir(plugin_tree)
+            assert set(plugin_tree_names).issubset(resolver_tree_names)
+            for plugin_tree_name in plugin_tree_names:
+                _assert_trees_subset(
+                    getattr(resolver_tree, plugin_tree_name),
+                    getattr(plugin_tree, plugin_tree_name),
+                    is_concrete=plugin_tree_name.startswith("concrete_"),
+                )
+        else:
+            raise ValueError(f"Unexpected type {type(resolver_tree)}")
+        return
+
+    tree_names = [
+        "abstract_algorithms",
+        "abstract_types",
+        "algos",
+        "class_to_concrete",
+        "concrete_algorithms",
+        "concrete_types",
+        "translators",
+        "types",
+        "wrappers",
+    ]
+    for tree_name in tree_names:
+        _assert_trees_subset(
+            getattr(r, tree_name),
+            getattr(r.plugins.networkx, tree_name),
+            is_concrete=tree_name.startswith("concrete_"),
+        )
+
+    import networkx as nx
+
+    # Simple graph with 5 triangles
+    # 0 - 1    5 - 6
+    # | X |    | /
+    # 3 - 4 -- 2 - 7
+    simple_graph_data = [
+        [0, 1],
+        [0, 3],
+        [0, 4],
+        [1, 3],
+        [1, 4],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [3, 4],
+        [5, 6],
+        [6, 7],
+    ]
+    simple_graph = nx.Graph()
+    simple_graph.add_edges_from(simple_graph_data)
+    graph = r.wrappers.Graph.NetworkXGraph(simple_graph)
+    assert r.algos.cluster.triangle_count(graph) == 5
+    assert r.plugins.networkx.algos.cluster.triangle_count(graph) == 5
+    assert r.algos.cluster.triangle_count.networkx(graph) == 5
