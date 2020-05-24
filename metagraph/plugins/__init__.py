@@ -53,12 +53,12 @@ def find_plugins():
 
     # Default Plugins
     registry.register_from_modules(
-        "graphblas_plugin", [graphblas, metagraph.types, metagraph.algorithms]
+        "graphblas", [graphblas, metagraph.types, metagraph.algorithms]
     )
-    registry.register_from_modules("networkx_plugin", [networkx])
-    registry.register_from_modules("numpy_plugin", [numpy])
-    registry.register_from_modules("pandas_plugin", [pandas])
-    registry.register_from_modules("python_plugin", [python])
-    registry.register_from_modules("scipy_plugin", [scipy])
+    registry.register_from_modules("networkx", [networkx])
+    registry.register_from_modules("numpy", [numpy])
+    registry.register_from_modules("pandas", [pandas])
+    registry.register_from_modules("python", [python])
+    registry.register_from_modules("scipy", [scipy])
 
     return registry
