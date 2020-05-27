@@ -19,30 +19,20 @@ from .util import site_dir, bad_site_dir
 ABSTRACT_KINDS = {
     "abstract_types": (issubclass, AbstractType),
     "abstract_algorithms": (isinstance, AbstractAlgorithm),
-}
-
-CONCRETE_KINDS = {
-    "plugin_name_to_concrete_types": (isinstance, ConcreteAlgorithm),
-    "plugin_name_to_concrete_types": (issubclass, ConcreteType),
-    "plugin_name_to_wrappers": (issubclass, Wrapper),
-    "plugin_name_to_translators": (isinstance, Translator),
+    "concrete_types": (isinstance, ConcreteAlgorithm),
+    "concrete_types": (issubclass, ConcreteType),
+    "wrappers": (issubclass, Wrapper),
+    "translators": (isinstance, Translator),
 }
 
 
 def test_load_registry(site_dir):
-    registry = metagraph.core.entrypoints.load_plugins()
+    plugins = metagraph.core.entrypoints.load_plugins()
     for kind, (test_func, kind_class) in ABSTRACT_KINDS.items():
-        registry_kind = getattr(registry, kind)
-        assert len(registry_kind) > 0
-        for obj in registry_kind:
+        plugin_kind = plugins["plugin1"][kind]
+        assert len(plugin_kind) > 0
+        for obj in plugin_kind:
             assert test_func(obj, kind_class)
-    for kind, (test_func, kind_class) in CONCRETE_KINDS.items():
-        registry_kind = getattr(registry, kind)
-        assert len(registry_kind) > 0
-        for plugin_name, plugin_values in registry_kind.items():
-            assert isinstance(plugin_name, str)
-            for obj in plugin_values:
-                assert test_func(obj, kind_class)
 
 
 def test_load_failure(bad_site_dir):

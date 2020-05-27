@@ -28,13 +28,16 @@ def make_example_resolver():
     res = Resolver()
     import metagraph
 
-    registry = metagraph.PluginRegistry()
+    registry = metagraph.PluginRegistry("example_registry_default_plugin_name")
     from . import example_plugin_util
 
     registry.register_from_modules(
-        "example_plugin", [example_plugin_util, metagraph.types, metagraph.algorithms]
+        example_plugin_util,
+        metagraph.types,
+        metagraph.algorithms,
+        name="example_plugin",
     )
-    res.register(registry)
+    res.register(registry.plugins)
     return res
 
 

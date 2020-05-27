@@ -23,9 +23,9 @@ class EntryPointsError(Exception):
     pass
 
 
-def load_plugins() -> PluginRegistry:
+def load_plugins():
     entry_points = importlib_metadata.entry_points().get("metagraph.plugins", [])
-    combined_registry = PluginRegistry()
+    plugins = dict()
     seen = set()
     for entry_point in entry_points:
         if entry_point.name != "plugins":
@@ -34,9 +34,12 @@ def load_plugins() -> PluginRegistry:
             )
         elif entry_point not in seen:
             plugin_loader = entry_point.load()
+            entry_point_plugins = plugin_loader()
 
-            current_registry = plugin_loader()
-            combined_registry.update(current_registry)
+            for entry_point_plugin_name in entry_point_plugins.keys():
+                if entry_point_plugin_name in plugins:
+                    raise ValueError(f"{entry_point_plugin_name} already registered.")
+            plugins.update(entry_point_plugins)
             seen.add(entry_point)
 
-    return combined_registry
+    return plugins
