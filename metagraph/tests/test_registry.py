@@ -6,57 +6,41 @@ from .site_dir import plugin1_util, plugin1
 
 
 def test_registry_modules():
-    reg = PluginRegistry()
-    reg.register_from_modules(None, [mg.types, mg.algorithms])
-    reg.register_from_modules("plugin1", [plugin1_util])
+    reg = PluginRegistry("test_registry_modules_default_plugin")
+    reg.register_from_modules(mg.types, mg.algorithms)
+    reg.register_from_modules(plugin1_util, name="plugin1")
     plugins = plugin1.find_plugins()
-    assert len(reg.abstract_types) == len(plugins.abstract_types)
-    assert len(reg.abstract_algorithms) == len(plugins.abstract_algorithms)
-    assert len(reg.concrete_types) == len(plugins.concrete_types)
-    assert len(reg.wrappers) == len(plugins.wrappers)
-    assert len(reg.translators) == len(plugins.translators)
-    assert len(reg.concrete_algorithms) == len(plugins.concrete_algorithms)
+    assert len(reg.plugins["abstract_types"]) == len(plugins["abstract_types"])
+    assert len(reg.plugins["abstract_algorithms"]) == len(
+        plugins["abstract_algorithms"]
+    )
+    assert len(reg.plugins["concrete_types"]) == len(plugins["concrete_types"])
+    assert len(reg.plugins["wrappers"]) == len(plugins["wrappers"])
+    assert len(reg.plugins["translators"]) == len(plugins["translators"])
+    assert len(reg.plugins["concrete_algorithms"]) == len(
+        plugins["concrete_algorithms"]
+    )
 
     with pytest.raises(
         TypeError,
         match="Expected one or more modules.  Got a type <class 'int'> instead",
     ):
-        reg.register_from_modules("bad_plugin", [7])
+        reg.register_from_modules([7], name="bad_plugin")
 
 
 def test_registry_failures():
-    reg = PluginRegistry()
+    reg = PluginRegistry("test_registry_failures_default_plugin")
 
-    with pytest.raises(
-        PluginRegistryError, match="Invalid abstract type for plugin registry"
-    ):
-
-        @reg.register_abstract
-        class NotValid:
-            pass
-
-    with pytest.raises(
-        PluginRegistryError, match="Invalid concrete type for plugin registry"
-    ):
+    with pytest.raises(PluginRegistryError, match="Invalid type for plugin registry"):
 
         class NotValid:
             pass
 
-        reg.register_concrete("bad_class_plugin", NotValid)
+        reg.register(NotValid, "invalid_plugin")
 
-    with pytest.raises(
-        PluginRegistryError, match="Invalid abstract object for plugin registry"
-    ):
-
-        @reg.register_abstract
-        def not_valid():  # pragma: no cover
-            pass
-
-    with pytest.raises(
-        PluginRegistryError, match="Invalid concrete object for plugin registry"
-    ):
+    with pytest.raises(PluginRegistryError, match="Invalid object for plugin registry"):
 
         def not_valid():  # pragma: no cover
             pass
 
-        reg.register_concrete("bad_func_plugin", not_valid)
+        reg.register(not_valid, "invalid_plugin")

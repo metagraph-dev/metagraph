@@ -70,100 +70,62 @@ class PluginRegistry:
         return results
     """
 
-    def __init__(self):
-        self.abstract_types = set()
-        self.abstract_algorithms = set()
-        self.plugin_name_to_concrete_types = defaultdict(set)
-        self.plugin_name_to_concrete_algorithms = defaultdict(set)
-        self.plugin_name_to_wrappers = defaultdict(set)
-        self.plugin_name_to_translators = defaultdict(set)
+    def __init__(self, default_name: Union[str, None]):
+        self.default_name = default_name
+        self.plugins = defaultdict(lambda: defaultdict(set))
 
     @property
     def plugin_names(self):
-        return (
-            self.plugin_name_to_concrete_types.keys()
-            | self.plugin_name_to_concrete_algorithms.keys()
-            | self.plugin_name_to_wrappers.keys()
-            | self.plugin_name_to_translators.keys()
-        )
+        return set(self.plugins.keys())
 
     @property
     def concrete_types(self):
-        return reduce(set.union, self.plugin_name_to_concrete_types.values())
+        return {plugin["concrete_types"] for plugin in self.plugins.values()}
 
     @property
     def wrappers(self):
-        return reduce(set.union, self.plugin_name_to_wrappers.values())
+        return {plugin["wrappers"] for plugin in self.plugins.values()}
 
     @property
     def translators(self):
-        return reduce(set.union, self.plugin_name_to_translators.values())
+        return {plugin["translators"] for plugin in self.plugins.values()}
 
     @property
-    def concrete_algorithms(self):
-        return reduce(set.union, self.plugin_name_to_concrete_algorithms.values())
+    def concrete_algorithms(self,):
+        return {plugin["concrete_algorithms"] for plugin in self.plugins.values()}
 
-    def update(self, other_registry) -> None:
-        self.abstract_types.update(other_registry.abstract_types)
-        self.abstract_algorithms.update(other_registry.abstract_algorithms)
-        self.plugin_name_to_concrete_types.update(
-            other_registry.plugin_name_to_concrete_types
-        )
-        self.plugin_name_to_concrete_algorithms.update(
-            other_registry.plugin_name_to_concrete_algorithms
-        )
-        self.plugin_name_to_wrappers.update(other_registry.plugin_name_to_wrappers)
-        self.plugin_name_to_translators.update(
-            other_registry.plugin_name_to_translators
-        )
-        return
-
-    def register_abstract(self, obj):
+    def register(self, obj, name: Union[str, None]):
         """
-        Decorate abstract classes and functions to include them in the registry
+        Decorate classes and functions to include them in the registry
         """
+        if name is None:
+            name = self.default_name
+        unknown = False
         if isinstance(obj, type):
             if issubclass(obj, AbstractType):
-                self.abstract_types.add(obj)
-            else:
-                raise PluginRegistryError(
-                    f"Invalid abstract type for plugin registry: {obj}"
-                )
-        else:
-            if isinstance(obj, AbstractAlgorithm):
-                self.abstract_algorithms.add(obj)
-            else:
-                raise PluginRegistryError(
-                    f"Invalid abstract object for plugin registry: {type(obj)}"
-                )
-        return obj
-
-    def register_concrete(self, plugin_name, obj):
-        """
-        Decorate concrete classes and functions to include them in the registry
-        """
-        if isinstance(obj, type):
-            if issubclass(obj, ConcreteType):
-                self.plugin_name_to_concrete_types[plugin_name].add(obj)
+                self.plugins[name]["abstract_types"].add(obj)
+            elif issubclass(obj, ConcreteType):
+                self.plugins[name]["concrete_types"].add(obj)
             elif issubclass(obj, Wrapper):
-                self.plugin_name_to_wrappers[plugin_name].add(obj)
+                self.plugins[name]["wrappers"].add(obj)
             else:
-                raise PluginRegistryError(
-                    f"Invalid concrete type for plugin registry: {obj}"
-                )
+                raise PluginRegistryError(f"Invalid type for plugin registry: {obj}")
         else:
             if isinstance(obj, Translator):
-                self.plugin_name_to_translators[plugin_name].add(obj)
+                self.plugins[name]["translators"].add(obj)
+            elif isinstance(obj, AbstractAlgorithm):
+                self.plugins[name]["abstract_algorithms"].add(obj)
             elif isinstance(obj, ConcreteAlgorithm):
-                self.plugin_name_to_concrete_algorithms[plugin_name].add(obj)
+                self.plugins[name]["concrete_algorithms"].add(obj)
             else:
                 raise PluginRegistryError(
-                    f"Invalid concrete object for plugin registry: {type(obj)}"
+                    f"Invalid object for plugin registry: {type(obj)}"
                 )
+
         return obj
 
     def register_from_modules(
-        self, plugin_name: Union[str, None], modules, recurse=True
+        self, *modules, name: Union[str, None] = None, recurse=True
     ):
         """
         Find and register all suitable objects within modules.
@@ -173,6 +135,8 @@ class PluginRegistry:
 
         If ``recurse`` is True, then also recurse into any submodule we find.
         """
+        if name is None:
+            name = self.default_name
         if len(modules) == 1 and isinstance(modules[0], (list, tuple)):
             modules = modules[0]
         for module in modules:
@@ -187,32 +151,20 @@ class PluginRegistry:
                 if key.startswith("_"):
                     continue
                 if isinstance(val, type):
-                    val_is_concrete = issubclass(val, (Wrapper, ConcreteType))
-                    val_is_abstract = issubclass(val, (AbstractType))
                     if (
-                        (val_is_abstract or val_is_concrete)
+                        issubclass(val, (Wrapper, ConcreteType, AbstractType))
                         and (
                             val.__module__ == base_name
                             or val.__module__.startswith(base_name + ".")
                         )
                         and val not in {Wrapper, ConcreteType, AbstractType}
                     ):
-                        if val_is_abstract:
-                            self.register_abstract(val)
-                        elif val_is_concrete:
-                            if not isinstance(plugin_name, str):
-                                raise ValueError(
-                                    f"{plugin_name} is not a valid plugin name."
-                                )
-                            self.register_concrete(plugin_name, val)
-                elif isinstance(val, (Translator, ConcreteAlgorithm)):
+                        self.register(val, name)
+                elif isinstance(
+                    val, (Translator, ConcreteAlgorithm, AbstractAlgorithm)
+                ):
                     # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
-                    if not isinstance(plugin_name, str):
-                        raise ValueError(f"{plugin_name} is not a valid plugin name.")
-                    self.register_concrete(plugin_name, val)
-                elif isinstance(val, (AbstractAlgorithm)):
-                    # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
-                    self.register_abstract(val)
+                    self.register(val, name)
                 elif (
                     recurse
                     and inspect.ismodule(val)
