@@ -9,7 +9,7 @@ from .plugin import (
 )
 from collections import defaultdict
 from functools import reduce
-from typing import Union
+from typing import Optional
 
 
 class PluginRegistryError(Exception):
@@ -70,7 +70,7 @@ class PluginRegistry:
         return results
     """
 
-    def __init__(self, default_name: Union[str, None]):
+    def __init__(self, default_name: str):
         self.default_name = default_name
         self.plugins = defaultdict(lambda: defaultdict(set))
 
@@ -94,7 +94,7 @@ class PluginRegistry:
     def concrete_algorithms(self,):
         return {plugin["concrete_algorithms"] for plugin in self.plugins.values()}
 
-    def register(self, obj, name: Union[str, None]):
+    def register(self, obj, name: Optional[str] = None):
         """
         Decorate classes and functions to include them in the registry
         """
@@ -124,9 +124,7 @@ class PluginRegistry:
 
         return obj
 
-    def register_from_modules(
-        self, *modules, name: Union[str, None] = None, recurse=True
-    ):
+    def register_from_modules(self, *modules, name: Optional[str] = None, recurse=True):
         """
         Find and register all suitable objects within modules.
 

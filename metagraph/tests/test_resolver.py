@@ -77,8 +77,8 @@ def test_register_errors():
     class Concrete1(ConcreteType, abstract=Abstract1):
         pass
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(Concrete1, "test_plugin")
+    registry = PluginRegistry("test_register_errors_default_plugin")
+    registry.register(Concrete1)
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(registry.plugins)
 
@@ -94,11 +94,11 @@ def test_register_errors():
     def c1_to_c2(src: Concrete1, **props) -> Concrete2:  # pragma: no cover
         pass
 
-    registry.register(c1_to_c2, "test_plugin")
+    registry.register(c1_to_c2)
     with pytest.raises(ValueError, match="has unregistered abstract type "):
         res.register(registry.plugins)
 
-    registry.register(Abstract1, "test_plugin")
+    registry.register(Abstract1)
     with pytest.raises(ValueError, match="convert between concrete types"):
         res.register(registry.plugins)
 
@@ -110,12 +110,12 @@ def test_register_errors():
     def my_algo2(a: Abstract1) -> Abstract2:  # pragma: no cover
         pass
 
-    my_algo_registry = PluginRegistry("test_default_plugin")
-    my_algo_registry.register(my_algo, "test_default_plugin")
+    my_algo_registry = PluginRegistry("test_register_errors_default_plugin")
+    my_algo_registry.register(my_algo)
     res.register(my_algo_registry.plugins)
     with pytest.raises(ValueError, match="already exists"):
-        my_algo2_registry = PluginRegistry("test_default_plugin")
-        my_algo2_registry.register(my_algo2, "test_default_plugin")
+        my_algo2_registry = PluginRegistry("test_register_errors_default_plugin")
+        my_algo2_registry.register(my_algo2)
         res.register(my_algo2_registry.plugins)
 
     @abstract_algorithm("testing.bad_input_type")
@@ -133,26 +133,26 @@ def test_register_errors():
         pass
 
     with pytest.raises(TypeError, match='argument "a" may not be typing.List'):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(my_algo_bad_input_type, "test_default_plugin")
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(my_algo_bad_input_type)
         res.register(registry.plugins)
 
     with pytest.raises(TypeError, match="return type may not be an instance of"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(my_algo_bad_output_type, "test_default_plugin")
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(my_algo_bad_output_type)
         res.register(registry.plugins)
 
     with pytest.raises(TypeError, match="return type may not be typing.List"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(my_algo_bad_compound_output_type, "test_default_plugin")
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(my_algo_bad_compound_output_type)
         res.register(registry.plugins)
 
     @concrete_algorithm("testing.does_not_exist")
     def my_algo3(a: Abstract1) -> Abstract2:  # pragma: no cover
         pass
 
-    my_algo3_registry = PluginRegistry("test_default_plugin")
-    my_algo3_registry.register(my_algo3, "test_plugin")
+    my_algo3_registry = PluginRegistry("test_register_errors_default_plugin")
+    my_algo3_registry.register(my_algo3)
     with pytest.raises(ValueError, match="unregistered abstract"):
         res.register(my_algo3_registry.plugins)
 
@@ -162,10 +162,10 @@ def test_register_errors():
     class Concrete4(ConcreteType, abstract=Abstract1):
         value_type = int
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(Concrete3, "test_plugin")
-    registry.register(Concrete4, "test_plugin")
-    registry.register(Abstract1, "test_plugin")
+    registry = PluginRegistry("test_register_errors_default_plugin")
+    registry.register(Concrete3)
+    registry.register(Concrete4)
+    registry.register(Abstract1)
     with pytest.raises(ValueError, match=r"abstract type .+ already exists"):
         res.register(registry.plugins)
 
@@ -174,8 +174,8 @@ def test_register_errors():
         return a
 
     with pytest.raises(TypeError, match='argument "a" declares a default value'):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(conc_algo_with_defaults, "conc_algo_with_defaults_plugin")
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(conc_algo_with_defaults)
         res.register(registry.plugins)
 
     @abstract_algorithm("testing.multi_ret")
@@ -190,11 +190,9 @@ def test_register_errors():
         TypeError,
         match="return type is not compatible with abstract function signature",
     ):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(my_multi_ret_algo, "test_default_plugin")
-        registry.register(
-            conc_algo_wrong_output_nums, "conc_algo_wrong_output_nums_plugin"
-        )
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(my_multi_ret_algo)
+        registry.register(conc_algo_wrong_output_nums)
         res.register(registry.plugins)
 
     @abstract_algorithm("testing.any")
@@ -208,8 +206,8 @@ def test_register_errors():
     with pytest.raises(
         TypeError, match='argument "x" does not match abstract function signature'
     ):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(abstract_any, "test_default_plugin")
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(abstract_any)
         registry.register(my_any, "my_any_plugin")
         res.register(registry.plugins)
 
@@ -230,8 +228,8 @@ def test_incorrect_signature_errors(example_resolver):
         pass
 
     with pytest.raises(TypeError, match="number of parameters"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(too_many_args, "incorrect_signature_errors_plugin")
+        registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
+        registry.register(too_many_args)
         example_resolver.register(registry.plugins)
 
     @concrete_algorithm("power")
@@ -239,8 +237,8 @@ def test_incorrect_signature_errors(example_resolver):
         pass
 
     with pytest.raises(TypeError, match='"x" does not have type compatible'):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(wrong_abstract_arg, "incorrect_signature_errors_plugin")
+        registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
+        registry.register(wrong_abstract_arg)
         example_resolver.register(registry.plugins)
 
     @concrete_algorithm("power")
@@ -248,8 +246,8 @@ def test_incorrect_signature_errors(example_resolver):
         pass
 
     with pytest.raises(TypeError, match="return type is not compatible"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(wrong_return_arg, "incorrect_signature_errors_plugin")
+        registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
+        registry.register(wrong_return_arg)
         example_resolver.register(registry.plugins)
 
     @concrete_algorithm("power")
@@ -257,8 +255,8 @@ def test_incorrect_signature_errors(example_resolver):
         pass
 
     with pytest.raises(TypeError, match='"X" does not match name of parameter'):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(wrong_arg_name, "incorrect_signature_errors_plugin")
+        registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
+        registry.register(wrong_arg_name)
         example_resolver.register(registry.plugins)
 
     @concrete_algorithm("ln")
@@ -268,10 +266,8 @@ def test_incorrect_signature_errors(example_resolver):
         pass
 
     with pytest.raises(TypeError, match="specifies abstract properties"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(
-            specifies_abstract_property, "incorrect_signature_errors_plugin"
-        )
+        registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
+        registry.register(specifies_abstract_property)
         example_resolver.register(registry.plugins)
 
 
@@ -284,8 +280,8 @@ def test_python_types_in_signature(example_resolver):
     ) -> MyNumericAbstractType:  # pragma: no cover
         pass
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(python_types, "test_default_plugin")
+    registry = PluginRegistry("test_python_types_in_signature_default_plugin")
+    registry.register(python_types)
     example_resolver.register(registry.plugins)
 
     @concrete_algorithm("testing.python_types")
@@ -293,8 +289,8 @@ def test_python_types_in_signature(example_resolver):
         pass
 
     with pytest.raises(TypeError, match='"p" does not match'):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(wrong_python_type, "python_types_in_signature_plugin")
+        registry = PluginRegistry("test_python_types_in_signature_default_plugin")
+        registry.register(wrong_python_type)
         example_resolver.register(registry.plugins)
 
     @concrete_algorithm("testing.python_types")
@@ -302,8 +298,8 @@ def test_python_types_in_signature(example_resolver):
         pass
 
     with pytest.raises(TypeError, match="is not a concrete type of"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(wrong_return_type, "python_types_in_signature_plugin")
+        registry = PluginRegistry("test_python_types_in_signature_default_plugin")
+        registry.register(wrong_return_type)
         example_resolver.register(registry.plugins)
 
     @abstract_algorithm("testing.return_type")
@@ -315,9 +311,9 @@ def test_python_types_in_signature(example_resolver):
         pass
 
     with pytest.raises(TypeError, match="return type does not match"):
-        registry = PluginRegistry("test_default_plugin")
-        registry.register(return_type, "test_default_plugin")
-        registry.register(notmatching_return_type, "python_types_in_signature_plugin")
+        registry = PluginRegistry("test_python_types_in_signature_default_plugin")
+        registry.register(return_type)
+        registry.register(notmatching_return_type)
         example_resolver.register(registry.plugins)
 
 
@@ -330,16 +326,24 @@ def test_python_types_as_concrete_substitutes(example_resolver):
     ) -> MyNumericAbstractType:  # pragma: no cover
         pass
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(python_types, "test_default_plugin")
+    registry = PluginRegistry(
+        "test_python_types_as_concrete_substitutes_default_plugin"
+    )
+    registry.register(
+        python_types, "test_python_types_as_concrete_substitutes_plugin_1"
+    )
     example_resolver.register(registry.plugins)
 
     @concrete_algorithm("testing.python_types")
     def correct_python_type(x: int, p: int) -> IntType:  # pragma: no cover
         pass
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(correct_python_type, "python_types_in_signature_plugin")
+    registry = PluginRegistry(
+        "test_python_types_as_concrete_substitutes_default_plugin"
+    )
+    registry.register(
+        correct_python_type, "test_python_types_as_concrete_substitutes_plugin_2"
+    )
     example_resolver.register(registry.plugins)
     algo_plan = example_resolver.find_algorithm_exact("testing.python_types", 3, 4)
     assert algo_plan.algo == correct_python_type
@@ -391,8 +395,8 @@ def test_translate(example_resolver):
     def int_to_int(src: int, **props) -> int:  # pragma: no cover
         return src
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(int_to_int, "translate_plugin")
+    registry = PluginRegistry("test_translate_default_plugin")
+    registry.register(int_to_int)
     example_resolver.register(registry.plugins)
     assert example_resolver.translate(4, int) == 4
 
@@ -434,9 +438,9 @@ def test_find_algorithm(example_resolver):
     def correct_python_type(x: int) -> int:  # pragma: no cover
         return 2 * x
 
-    registry = PluginRegistry("test_default_plugin")
-    registry.register(python_type, "test_default_plugin")
-    registry.register(correct_python_type, "translate_plugin")
+    registry = PluginRegistry("test_find_algorithm_default_plugin")
+    registry.register(python_type)
+    registry.register(correct_python_type)
     example_resolver.register(registry.plugins)
     plan = example_resolver.find_algorithm("testing.match_python_type", 2)
     assert plan.algo == correct_python_type
