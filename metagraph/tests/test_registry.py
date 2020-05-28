@@ -2,24 +2,39 @@ import pytest
 import metagraph as mg
 from metagraph import PluginRegistry
 from metagraph.core.plugin_registry import PluginRegistryError
-from .site_dir import plugin1_util, plugin1
+from .site_dir import plugin1
 
 
 def test_registry_modules():
     reg = PluginRegistry("test_registry_modules_default_plugin")
     reg.register_from_modules(mg.types, mg.algorithms)
-    reg.register_from_modules(plugin1_util, name="plugin1")
+    reg.register_from_modules(plugin1, name="plugin1")
     plugins = plugin1.find_plugins()
-    assert len(reg.plugins["abstract_types"]) == len(plugins["abstract_types"])
-    assert len(reg.plugins["abstract_algorithms"]) == len(
-        plugins["abstract_algorithms"]
+    assert len(reg.plugins["plugin1"]["abstract_types"]) == len(
+        plugins["plugin1"]["abstract_types"]
     )
-    assert len(reg.plugins["concrete_types"]) == len(plugins["concrete_types"])
-    assert len(reg.plugins["wrappers"]) == len(plugins["wrappers"])
-    assert len(reg.plugins["translators"]) == len(plugins["translators"])
-    assert len(reg.plugins["concrete_algorithms"]) == len(
-        plugins["concrete_algorithms"]
+    assert len(reg.plugins["plugin1"]["abstract_algorithms"]) == len(
+        plugins["plugin1"]["abstract_algorithms"]
     )
+    assert len(reg.plugins["plugin1"]["concrete_types"]) == len(
+        plugins["plugin1"]["concrete_types"]
+    )
+    assert len(reg.plugins["plugin1"]["wrappers"]) == len(
+        plugins["plugin1"]["wrappers"]
+    )
+    assert len(reg.plugins["plugin1"]["translators"]) == len(
+        plugins["plugin1"]["translators"]
+    )
+    assert len(reg.plugins["plugin1"]["concrete_algorithms"]) == len(
+        plugins["plugin1"]["concrete_algorithms"]
+    )
+
+    assert len(reg.plugins["plugin1"]["abstract_types"]) > 0
+    assert len(reg.plugins["plugin1"]["abstract_algorithms"]) > 0
+    assert len(reg.plugins["plugin1"]["concrete_types"]) > 0
+    assert len(reg.plugins["plugin1"]["wrappers"]) > 0
+    assert len(reg.plugins["plugin1"]["translators"]) > 0
+    assert len(reg.plugins["plugin1"]["concrete_algorithms"]) > 0
 
     with pytest.raises(
         TypeError,

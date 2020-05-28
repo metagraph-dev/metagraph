@@ -58,7 +58,7 @@ def test_load_plugins(site_dir):
             return any(is_from_plugin1(item) for item in x)
         if hasattr(x, "__wrapped__"):
             x = x.__wrapped__
-        return x.__module__.endswith("plugin1_util")
+        return x.__module__.endswith("plugin1")
 
     assert len([x for x in res.abstract_types if is_from_plugin1(x)]) == 1
     assert len([x for x in res.concrete_types if is_from_plugin1(x)]) == 2
@@ -215,7 +215,7 @@ def test_register_errors():
 
 
 def test_incorrect_signature_errors(example_resolver):
-    from .example_plugin_util import IntType, FloatType, abstract_power
+    from .util import IntType, FloatType, abstract_power
 
     class Abstract1(AbstractType):
         pass
@@ -276,7 +276,7 @@ def test_incorrect_signature_errors(example_resolver):
 
 
 def test_python_types_in_signature(example_resolver):
-    from .example_plugin_util import IntType, MyNumericAbstractType
+    from .util import IntType, MyNumericAbstractType
 
     @abstract_algorithm("testing.python_types")
     def python_types(
@@ -322,7 +322,7 @@ def test_python_types_in_signature(example_resolver):
 
 
 def test_python_types_as_concrete_substitutes(example_resolver):
-    from .example_plugin_util import IntType, MyNumericAbstractType
+    from .util import IntType, MyNumericAbstractType
 
     @abstract_algorithm("testing.python_types")
     def python_types(
@@ -350,7 +350,7 @@ def test_type_of(example_resolver):
     with pytest.raises(TypeError, match="registered type"):
         t = empty_res.type_of(4)
 
-    from .example_plugin_util import StrType, IntType, OtherType
+    from .util import StrType, IntType, OtherType
 
     assert example_resolver.type_of(4) == IntType()
     assert example_resolver.type_of("python") == StrType(lowercase=True)
@@ -359,7 +359,7 @@ def test_type_of(example_resolver):
 
 
 def test_find_translator(example_resolver):
-    from .example_plugin_util import StrNum, IntType, OtherType, int_to_str, str_to_int
+    from .util import StrNum, IntType, OtherType, int_to_str, str_to_int
 
     def find_translator(value, dst_type):
         src_type = example_resolver.typeclass_of(value)
@@ -377,7 +377,7 @@ def test_find_translator(example_resolver):
 
 
 def test_translate(example_resolver):
-    from .example_plugin_util import StrNum, IntType, OtherType
+    from .util import StrNum, IntType, OtherType
 
     assert example_resolver.translate(4, StrNum.Type) == StrNum("4")
     assert example_resolver.translate(StrNum("4"), IntType) == 4
@@ -398,7 +398,7 @@ def test_translate(example_resolver):
 
 
 def test_translate_plan(example_resolver, capsys):
-    from .example_plugin_util import StrNum, OtherType
+    from .util import StrNum, OtherType
 
     capsys.readouterr()
     example_resolver.plan.translate(4, StrNum.Type)
@@ -410,7 +410,7 @@ def test_translate_plan(example_resolver, capsys):
 
 
 def test_find_algorithm(example_resolver):
-    from .example_plugin_util import int_power, MyNumericAbstractType
+    from .util import int_power, MyNumericAbstractType
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.find_algorithm("does_not_exist", 1, thing=2)
@@ -444,7 +444,7 @@ def test_find_algorithm(example_resolver):
 
 
 def test_call_algorithm(example_resolver):
-    from .example_plugin_util import StrNum
+    from .util import StrNum
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.call_algorithm("does_not_exist", 1, thing=2)
@@ -483,7 +483,7 @@ def test_call_algorithm_plan(example_resolver, capsys):
 
 
 def test_call_algorithm_logging(example_resolver, capsys):
-    from .example_plugin_util import StrNum
+    from .util import StrNum
 
     with config.set({"core.logging.plans": True}):
         assert example_resolver.call_algorithm("power", 2, 3) == 8
@@ -497,7 +497,7 @@ def test_call_algorithm_logging(example_resolver, capsys):
 
 
 def test_disable_automatic_translation(example_resolver, capsys):
-    from .example_plugin_util import StrNum
+    from .util import StrNum
 
     with config.set({"core.dispatch.allow_translation": False}):
         with pytest.raises(TypeError) as e:
@@ -520,7 +520,7 @@ def test_algos_attribute(example_resolver):
 
 
 def test_concrete_algorithm_with_properties(example_resolver):
-    from .example_plugin_util import StrNum
+    from .util import StrNum
 
     val = example_resolver.algos.ln(100.0)
     assert abs(val - 4.605170185988092) < 1e-6
@@ -536,7 +536,7 @@ def test_concrete_algorithm_with_properties(example_resolver):
 
 
 def test_concrete_algorithm_insufficient_specificity(example_resolver):
-    from .example_plugin_util import MyNumericAbstractType, FloatType
+    from .util import MyNumericAbstractType, FloatType
 
     class RandomFloatType(Wrapper, abstract=MyNumericAbstractType):
         abstract_property_specificity_limits = {"positivity": "any"}

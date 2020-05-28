@@ -160,69 +160,24 @@ class Resolver:
         This function may be called multiple times to add additional plugins
         at any time.  Plugins cannot be removed.
         """
-
-        all_abstract_types = reduce(
-            set.union,
-            (
-                plugin["abstract_types"]
-                for plugin in plugins_by_name.values()
-                if "abstract_types" in plugin
-            ),
-            set(),
+        plugin_attribute_names = (
+            "abstract_types",
+            "concrete_types",
+            "wrappers",
+            "translators",
+            "abstract_algorithms",
+            "concrete_algorithms",
         )
-        all_concrete_types = reduce(
-            set.union,
-            (
-                plugin["concrete_types"]
+        all_plugin_attribute_sets_by_name = {
+            plugin_attribute_name: {
+                plugin_attribute_value
                 for plugin in plugins_by_name.values()
-                if "concrete_types" in plugin
-            ),
-            set(),
-        )
-        all_wrappers = reduce(
-            set.union,
-            (
-                plugin["wrappers"]
-                for plugin in plugins_by_name.values()
-                if "wrappers" in plugin
-            ),
-            set(),
-        )
-        all_translators = reduce(
-            set.union,
-            (
-                plugin["translators"]
-                for plugin in plugins_by_name.values()
-                if "translators" in plugin
-            ),
-            set(),
-        )
-        all_abstract_algorithms = reduce(
-            set.union,
-            (
-                plugin["abstract_algorithms"]
-                for plugin in plugins_by_name.values()
-                if "abstract_algorithms" in plugin
-            ),
-            set(),
-        )
-        all_concrete_algorithms = reduce(
-            set.union,
-            (
-                plugin["concrete_algorithms"]
-                for plugin in plugins_by_name.values()
-                if "concrete_algorithms" in plugin
-            ),
-            set(),
-        )
+                for plugin_attribute_value in plugin.get(plugin_attribute_name, set())
+            }
+            for plugin_attribute_name in plugin_attribute_names
+        }
         self._register_plugin_attributes_in_tree(
-            self,
-            all_abstract_types,
-            all_concrete_types,
-            all_wrappers,
-            all_translators,
-            all_abstract_algorithms,
-            all_concrete_algorithms,
+            self, **all_plugin_attribute_sets_by_name
         )
 
         for plugin_name, plugin in plugins_by_name.items():
@@ -240,22 +195,20 @@ class Resolver:
             plugin_namespace._register("wrappers", Namespace())
             plugin_namespace._register("types", Namespace())
 
-            abstract_types = plugin.get("abstract_types", set())
-            concrete_types = plugin.get("concrete_types", set())
-            wrappers = plugin.get("wrappers", set())
-            translators = plugin.get("translators", set())
-            abstract_algorithms = plugin.get("abstract_algorithms", set())
-            concrete_algorithms = plugin.get("concrete_algorithms", set())
+            plugin_attribute_sets_by_name = {
+                plugin_attribute_name: {
+                    plugin_attribute_value
+                    for plugin_attribute_value in plugin.get(
+                        plugin_attribute_name, set()
+                    )
+                }
+                for plugin_attribute_name in plugin_attribute_names
+            }
 
             self._register_plugin_attributes_in_tree(
                 plugin_namespace,
-                abstract_types,
-                concrete_types,
-                wrappers,
-                translators,
-                abstract_algorithms,
-                concrete_algorithms,
-                plugin_name,
+                **plugin_attribute_sets_by_name,
+                plugin_name=plugin_name,
             )
 
         return
@@ -263,12 +216,12 @@ class Resolver:
     def _register_plugin_attributes_in_tree(
         self,
         tree: Union["Resolver", Namespace],
-        abstract_types: Set[AbstractType],
-        concrete_types: Set[ConcreteType],
-        wrappers: Set[Wrapper],
-        translators: Set[Translator],
-        abstract_algorithms: Set[AbstractAlgorithm],
-        concrete_algorithms: Set[ConcreteAlgorithm],
+        abstract_types: Set[AbstractType] = set(),
+        concrete_types: Set[ConcreteType] = set(),
+        wrappers: Set[Wrapper] = set(),
+        translators: Set[Translator] = set(),
+        abstract_algorithms: Set[AbstractAlgorithm] = set(),
+        concrete_algorithms: Set[ConcreteAlgorithm] = set(),
         plugin_name: Optional[str] = None,
     ):
         tree_is_resolver = self is tree
