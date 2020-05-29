@@ -16,22 +16,22 @@ from metagraph.core.plugin import (
 from .util import site_dir, bad_site_dir
 
 
-KINDS = {
+ABSTRACT_KINDS = {
     "abstract_types": (issubclass, AbstractType),
-    "concrete_types": (issubclass, ConcreteType),
-    "translators": (isinstance, Translator),
-    "wrappers": (issubclass, Wrapper),
     "abstract_algorithms": (isinstance, AbstractAlgorithm),
-    "concrete_algorithms": (isinstance, ConcreteAlgorithm),
+    "concrete_types": (isinstance, ConcreteAlgorithm),
+    "concrete_types": (issubclass, ConcreteType),
+    "wrappers": (issubclass, Wrapper),
+    "translators": (isinstance, Translator),
 }
 
 
-def test_load_plugins(site_dir):
+def test_load_registry(site_dir):
     plugins = metagraph.core.entrypoints.load_plugins()
-    for kind, (test_func, kind_class) in KINDS.items():
-        kind_plugins = plugins[kind]
-        assert len(kind_plugins) > 0
-        for obj in kind_plugins:
+    for kind, (test_func, kind_class) in ABSTRACT_KINDS.items():
+        plugin_kind = plugins["plugin1"][kind]
+        assert len(plugin_kind) > 0
+        for obj in plugin_kind:
             assert test_func(obj, kind_class)
 
 
