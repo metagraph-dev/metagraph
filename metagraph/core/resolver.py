@@ -158,7 +158,7 @@ class Resolver:
         concrete types before translators, and so on.
 
         This function may be called multiple times to add additional plugins
-        at any time.  Plugins cannot be removed.
+        at any time.  Plugins cannot be removed. A plugin name may only be registered once.
         """
         plugin_attribute_names = (
             "abstract_types",
