@@ -38,7 +38,7 @@ def test_registry_modules():
 
     with pytest.raises(
         TypeError,
-        match="Expected one or more modules.  Got a type <class 'int'> instead",
+        match="Expected one or more modules. Got a type <class 'int'> instead.",
     ):
         reg.register_from_modules([7], name="bad_plugin")
 
