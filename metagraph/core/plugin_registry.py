@@ -9,7 +9,7 @@ from .plugin import (
 )
 from collections import defaultdict
 from functools import reduce
-from typing import Optional
+from typing import Optional, Any
 
 
 class PluginRegistryError(Exception):
@@ -72,7 +72,7 @@ class PluginRegistry:
 
     def __init__(self, default_name: str):
         self.default_name = default_name
-        self.plugins = defaultdict(lambda: defaultdict(set))
+        self.plugins = {}
 
     def register(self, obj, name: Optional[str] = None):
         """
@@ -81,22 +81,33 @@ class PluginRegistry:
         if name is None:
             name = self.default_name
         unknown = False
+
+        def _add_obj(plugin_name: str, plugin_attribute_name: str, obj: Any) -> None:
+            if plugin_name not in self.plugins:
+                self.plugins[plugin_name] = {}
+            if plugin_attribute_name not in self.plugins[plugin_name]:
+                self.plugins[plugin_name][plugin_attribute_name] = set()
+            self.plugins[plugin_name][plugin_attribute_name].add(obj)
+            return
+
         if isinstance(obj, type):
             if issubclass(obj, AbstractType):
-                self.plugins[name]["abstract_types"].add(obj)
+                _add_obj(name, "abstract_types", obj)
             elif issubclass(obj, ConcreteType):
-                self.plugins[name]["concrete_types"].add(obj)
+                _add_obj(name, "concrete_types", obj)
             elif issubclass(obj, Wrapper):
-                self.plugins[name]["wrappers"].add(obj)
+                _add_obj(name, "wrappers", obj)
             else:
-                raise PluginRegistryError(f"Invalid type for plugin registry: {obj}")
+                raise PluginRegistryError(
+                    f"Invalid type for plugin registry: {obj}", obj
+                )
         else:
             if isinstance(obj, Translator):
-                self.plugins[name]["translators"].add(obj)
+                _add_obj(name, "translators", obj)
             elif isinstance(obj, AbstractAlgorithm):
-                self.plugins[name]["abstract_algorithms"].add(obj)
+                _add_obj(name, "abstract_algorithms", obj)
             elif isinstance(obj, ConcreteAlgorithm):
-                self.plugins[name]["concrete_algorithms"].add(obj)
+                _add_obj(name, "concrete_algorithms", obj)
             else:
                 raise PluginRegistryError(
                     f"Invalid object for plugin registry: {type(obj)}"
