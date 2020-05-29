@@ -158,7 +158,7 @@ class Resolver:
         concrete types before translators, and so on.
 
         This function may be called multiple times to add additional plugins
-        at any time.  Plugins cannot be removed.
+        at any time.  Plugins cannot be removed. A plugin name may only be registered once.
         """
         plugin_attribute_names = (
             "abstract_types",
@@ -181,6 +181,8 @@ class Resolver:
         )
 
         for plugin_name, plugin in plugins_by_name.items():
+            if not plugin_name.isidentifier():
+                raise ValueError(f"{repr(plugin_name)} is not a valid plugin name.")
             if hasattr(self.plugins, plugin_name):
                 raise ValueError(f"{plugin_name} already registered.")
             self.plugins._register(plugin_name, Namespace())
