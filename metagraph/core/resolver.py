@@ -181,6 +181,8 @@ class Resolver:
         )
 
         for plugin_name, plugin in plugins_by_name.items():
+            if not plugin_name.isidentifier():
+                raise ValueError(f"{repr(plugin_name)} is not a valid plugin name.")
             if hasattr(self.plugins, plugin_name):
                 raise ValueError(f"{plugin_name} already registered.")
             self.plugins._register(plugin_name, Namespace())
