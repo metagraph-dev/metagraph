@@ -71,6 +71,8 @@ class PluginRegistry:
     """
 
     def __init__(self, default_name: str):
+        if not default_name.isidentifier():
+            raise ValueError(f"{repr(default_name)} is not a valid plugin name.")
         self.default_name = default_name
         self.plugins = {}
 
@@ -80,6 +82,8 @@ class PluginRegistry:
         """
         if name is None:
             name = self.default_name
+        elif not name.isidentifier():
+            raise ValueError(f"{repr(name)} is not a valid plugin name.")
         unknown = False
 
         def _add_obj(plugin_name: str, plugin_attribute_name: str, obj: Any) -> None:
@@ -126,12 +130,14 @@ class PluginRegistry:
         """
         if name is None:
             name = self.default_name
+        elif not name.isidentifier():
+            raise ValueError(f"{repr(name)} is not a valid plugin name.")
         if len(modules) == 1 and isinstance(modules[0], (list, tuple)):
             modules = modules[0]
         for module in modules:
             if not inspect.ismodule(module):
                 raise TypeError(
-                    f"Expected one or more modules.  Got a type {type(module)} instead."
+                    f"Expected one or more modules. Got a type {type(module)} instead."
                 )
 
         # If requested, we could break this out into a function that yields items.
