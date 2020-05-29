@@ -2,10 +2,10 @@
 to concrete algorithms.
 
 """
-from collections import defaultdict
-from functools import partial
+from functools import partial, reduce
 import inspect
-from typing import List, Tuple, Set, Dict, Callable, Optional, Any
+from collections import defaultdict
+from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -65,7 +65,7 @@ class PlanNamespace:
 
     def __init__(self, resolver):
         self._resolver = resolver
-        self.algo = Namespace()
+        self.algos = Namespace()
 
     def translate(self, value, dst_type, **props):
         """
@@ -126,8 +126,10 @@ class Resolver:
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
 
-        # map abstract name to list of concrete instances
-        self.concrete_algorithms: Dict[str, List[ConcreteAlgorithm]] = defaultdict(list)
+        # map abstract name to set of concrete instances
+        self.concrete_algorithms: DefaultDict[
+            str, Set[ConcreteAlgorithm]
+        ] = defaultdict(set)
 
         # map python classes to concrete types
         self.class_to_concrete: Dict[type, ConcreteType] = {}
@@ -140,22 +142,15 @@ class Resolver:
             Tuple[List[ConcreteType], Dict[ConcreteType, int], np.ndarray, np.ndarray],
         ] = {}
 
-        self.algo = Namespace()
-        self.wrapper = Namespace()
+        self.algos = Namespace()
+        self.wrappers = Namespace()
         self.types = Namespace()
+
+        self.plugins = Namespace()
 
         self.plan = PlanNamespace(self)
 
-    def register(
-        self,
-        *,
-        abstract_types: Optional[Set[AbstractType]] = None,
-        concrete_types: Optional[Set[ConcreteType]] = None,
-        wrappers: Optional[Set[Wrapper]] = None,
-        translators: Optional[Set[Translator]] = None,
-        abstract_algorithms: Optional[Set[AbstractAlgorithm]] = None,
-        concrete_algorithms: Optional[Set[ConcreteAlgorithm]] = None,
-    ):
+    def register(self, plugins_by_name):
         """Register plugins for use with this resolver.
 
         Plugins will be processed in category order (see function signature)
@@ -165,31 +160,96 @@ class Resolver:
         This function may be called multiple times to add additional plugins
         at any time.  Plugins cannot be removed.
         """
+        plugin_attribute_names = (
+            "abstract_types",
+            "concrete_types",
+            "wrappers",
+            "translators",
+            "abstract_algorithms",
+            "concrete_algorithms",
+        )
+        all_plugin_attribute_sets_by_name = {
+            plugin_attribute_name: {
+                plugin_attribute_value
+                for plugin in plugins_by_name.values()
+                for plugin_attribute_value in plugin.get(plugin_attribute_name, set())
+            }
+            for plugin_attribute_name in plugin_attribute_names
+        }
+        self._register_plugin_attributes_in_tree(
+            self, **all_plugin_attribute_sets_by_name
+        )
 
-        if abstract_types is not None:
-            for at in abstract_types:
-                if at in self.abstract_types:
-                    name = at.__qualname__
-                    raise ValueError(f"abstract type {name} already exists")
-                self.abstract_types.add(at)
+        for plugin_name, plugin in plugins_by_name.items():
+            if hasattr(self.plugins, plugin_name):
+                raise ValueError(f"{plugin_name} already registered.")
+            self.plugins._register(plugin_name, Namespace())
+            plugin_namespace = getattr(self.plugins, plugin_name)
+            plugin_namespace._register("abstract_types", set())
+            plugin_namespace._register("concrete_types", set())
+            plugin_namespace._register("translators", {})
+            plugin_namespace._register("abstract_algorithms", {})
+            plugin_namespace._register("concrete_algorithms", defaultdict(set))
+            plugin_namespace._register("class_to_concrete", {})
+            plugin_namespace._register("algos", Namespace())
+            plugin_namespace._register("wrappers", Namespace())
+            plugin_namespace._register("types", Namespace())
 
-        if wrappers is not None:
-            # Let concrete type associated with each wrapper be handled by concrete_types list
-            if concrete_types is None:
-                concrete_types = set()
-            else:
-                concrete_types = set(concrete_types)  # copy; don't mutate the original
-            for wr in wrappers:
-                concrete_types.add(wr.Type)
-                # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
-                path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
-                self.wrapper._register(path, wr)
+            plugin_attribute_sets_by_name = {
+                plugin_attribute_name: {
+                    plugin_attribute_value
+                    for plugin_attribute_value in plugin.get(
+                        plugin_attribute_name, set()
+                    )
+                }
+                for plugin_attribute_name in plugin_attribute_names
+            }
 
-        if concrete_types is not None:
+            self._register_plugin_attributes_in_tree(
+                plugin_namespace,
+                **plugin_attribute_sets_by_name,
+                plugin_name=plugin_name,
+            )
+
+        return
+
+    def _register_plugin_attributes_in_tree(
+        self,
+        tree: Union["Resolver", Namespace],
+        abstract_types: Set[AbstractType] = set(),
+        concrete_types: Set[ConcreteType] = set(),
+        wrappers: Set[Wrapper] = set(),
+        translators: Set[Translator] = set(),
+        abstract_algorithms: Set[AbstractAlgorithm] = set(),
+        concrete_algorithms: Set[ConcreteAlgorithm] = set(),
+        plugin_name: Optional[str] = None,
+    ):
+        tree_is_resolver = self is tree
+        tree_is_plugin = plugin_name is not None
+        if not (tree_is_resolver or tree_is_plugin):
+            raise ValueError("{tree} not known to be the resolver or a plugin.")
+
+        for at in abstract_types:
+            if tree_is_resolver and at in self.abstract_types:
+                raise ValueError(f"abstract type {at.__qualname__} already exists")
+            tree.abstract_types.add(at)
+
+        # Let concrete type associated with each wrapper be handled by concrete_types list
+        concrete_types = set(
+            concrete_types
+        )  # copy; don't mutate original since we extend this set
+        for wr in wrappers:
+            concrete_types.add(wr.Type)
+            # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
+            path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
+            tree.wrappers._register(path, wr)
+
+        if tree_is_resolver and len(concrete_types) > 0:
             self.translation_matrices.clear()  # Force a rebuild with new concrete types
-            for ct in concrete_types:
-                name = ct.__qualname__
-                # ct.abstract cannot be None due to ConcreteType.__init_subclass__
+        for ct in concrete_types:
+            name = ct.__qualname__
+            # ct.abstract cannot be None due to ConcreteType.__init_subclass__
+            if tree_is_resolver:
                 if ct.abstract not in self.abstract_types:
                     abstract_name = ct.abstract.__qualname__
                     raise ValueError(
@@ -199,50 +259,60 @@ class Resolver:
                     raise ValueError(
                         f"Python class '{ct.value_type}' already has a registered concrete type: {self.class_to_concrete[ct.value_type]}"
                     )
-
-                self.concrete_types.add(ct)
                 if ct.value_type is not None:
                     self.class_to_concrete[ct.value_type] = ct
 
-                # Make types available via resolver.types.<abstract name>.<concrete name>
-                path = f"{ct.abstract.__name__}.{ct.__name__}"
-                self.types._register(path, ct)
+            tree.concrete_types.add(ct)
 
-        if translators is not None:
+            # Make types available via resolver.types.<abstract name>.<concrete name>
+            path = f"{ct.abstract.__name__}.{ct.__name__}"
+            tree.types._register(path, ct)
+
+        if tree_is_resolver and len(translators) > 0:
             # Wipe out existing translation matrices (if any)
             self.translation_matrices = {}
 
-            for tr in translators:
-                signature = inspect.signature(tr.func)
-                src_type = next(iter(signature.parameters.values())).annotation
-                src_type = self.class_to_concrete.get(src_type, src_type)
-                dst_type = signature.return_annotation
-                dst_type = self.class_to_concrete.get(dst_type, dst_type)
-                if src_type.abstract != dst_type.abstract:
-                    raise ValueError(
-                        f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
-                    )
+        for tr in translators:
+            signature = inspect.signature(tr.func)
+            src_type = next(iter(signature.parameters.values())).annotation
+            src_type = self.class_to_concrete.get(src_type, src_type)
+            dst_type = signature.return_annotation
+            dst_type = self.class_to_concrete.get(dst_type, dst_type)
+            if src_type.abstract != dst_type.abstract:
+                raise ValueError(
+                    f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
+                )
 
-                self.translators[(src_type, dst_type)] = tr
+            tree.translators[(src_type, dst_type)] = tr
 
-        if abstract_algorithms is not None:
-            for aa in abstract_algorithms:
-                if aa.name in self.abstract_algorithms:
-                    raise ValueError(f"abstract algorithm {aa.name} already exists")
-                aa = self._normalize_abstract_algorithm_signature(aa)
-                self.abstract_algorithms[aa.name] = aa
-                self.algo._register(aa.name, Dispatcher(self, aa.name))
-                self.plan.algo._register(aa.name, Dispatcher(self.plan, aa.name))
+        for aa in abstract_algorithms:
+            if tree_is_resolver and aa.name in self.abstract_algorithms:
+                raise ValueError(f"abstract algorithm {aa.name} already exists")
+            aa = self._normalize_abstract_algorithm_signature(aa)
+            tree.abstract_algorithms[aa.name] = aa
+            if tree_is_resolver:
+                self.algos._register(aa.name, Dispatcher(self, aa.name))
+                self.plan.algos._register(aa.name, Dispatcher(self.plan, aa.name))
 
-        if concrete_algorithms is not None:
-            for ca in concrete_algorithms:
-                abstract = self.abstract_algorithms.get(ca.abstract_name, None)
+        for ca in concrete_algorithms:
+            abstract = self.abstract_algorithms.get(ca.abstract_name, None)
+            if tree_is_resolver:
                 if abstract is None:
                     raise ValueError(
                         f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
                     )
                 self._normalize_concrete_algorithm_signature(abstract, ca)
-                self.concrete_algorithms[ca.abstract_name].append(ca)
+            elif tree_is_plugin:
+                if hasattr(tree.algos, ca.abstract_name):
+                    raise ValueError(
+                        f"Multiple concrete algorithms for abstract algorithm {ca.abstract_name} within plugin {plugin_name}."
+                    )
+                tree.algos._register(ca.abstract_name, ca.func)
+                dispatcher = self.algos
+                for name in ca.abstract_name.split("."):
+                    dispatcher = getattr(dispatcher, name)
+                setattr(dispatcher, plugin_name, ca.func)
+            tree.concrete_algorithms[ca.abstract_name].add(ca)
 
     def _check_abstract_type(self, abst_algo, obj, msg):
         if obj is Any:
@@ -419,8 +489,8 @@ class Resolver:
 
     def load_plugins_from_environment(self):
         """Scans environment for plugins and populates registry with them."""
-        plugins = load_plugins()
-        self.register(**plugins)
+        plugins_by_name = load_plugins()
+        self.register(plugins_by_name)
 
     def typeclass_of(self, value):
         """Return the concrete typeclass corresponding to a value"""
@@ -471,12 +541,10 @@ class Resolver:
 
         # Find all possible solution paths
         solutions: List[AlgorithmPlan] = []
-        for concrete_algo in self.concrete_algorithms.get(algo_name, []):
+        for concrete_algo in self.concrete_algorithms.get(algo_name, {}):
             plan = AlgorithmPlan.build(self, concrete_algo, *args, **kwargs)
-            if plan is None:
-                continue
-
-            solutions.append(plan)
+            if plan is not None:
+                solutions.append(plan)
 
         # Sort by fewest number of translations required
         def total_num_translations(plan):

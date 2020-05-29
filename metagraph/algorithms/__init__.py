@@ -1,8 +1,6 @@
 from . import (
-    betweenness_centrality,
-    connected_components,
-    pagerank,
+    clustering,
     subgraph,
-    triangle_count,
     traversal,
+    vertex_ranking,
 )
