@@ -74,26 +74,6 @@ class PluginRegistry:
         self.default_name = default_name
         self.plugins = defaultdict(lambda: defaultdict(set))
 
-    @property
-    def plugin_names(self):
-        return set(self.plugins.keys())
-
-    @property
-    def concrete_types(self):
-        return {plugin["concrete_types"] for plugin in self.plugins.values()}
-
-    @property
-    def wrappers(self):
-        return {plugin["wrappers"] for plugin in self.plugins.values()}
-
-    @property
-    def translators(self):
-        return {plugin["translators"] for plugin in self.plugins.values()}
-
-    @property
-    def concrete_algorithms(self,):
-        return {plugin["concrete_algorithms"] for plugin in self.plugins.values()}
-
     def register(self, obj, name: Optional[str] = None):
         """
         Decorate classes and functions to include them in the registry
