@@ -206,7 +206,6 @@ class Resolver:
                 }
                 for plugin_attribute_name in plugin_attribute_names
             }
-
             self._register_plugin_attributes_in_tree(
                 plugin_namespace,
                 **plugin_attribute_sets_by_name,
@@ -305,7 +304,17 @@ class Resolver:
                     )
                 self._normalize_concrete_algorithm_signature(abstract, ca)
             elif tree_is_plugin:
-                if hasattr(tree.algos, ca.abstract_name):
+                abstract_algo_has_concrete_algo = False
+                tree_algos_namespace = tree.algos
+                for name in ca.abstract_name.split("."):
+                    abstract_algo_has_concrete_algo = hasattr(
+                        tree_algos_namespace, name
+                    )
+                    if abstract_algo_has_concrete_algo:
+                        tree_algos_namespace = getattr(tree_algos_namespace, name)
+                    else:
+                        break
+                if abstract_algo_has_concrete_algo:
                     raise ValueError(
                         f"Multiple concrete algorithms for abstract algorithm {ca.abstract_name} within plugin {plugin_name}."
                     )
