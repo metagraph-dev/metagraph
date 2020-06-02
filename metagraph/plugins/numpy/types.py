@@ -22,7 +22,9 @@ class NumpyVector(Wrapper, abstract=Vector):
         return len(self.value)
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
         is_dense = obj.missing_mask is None
         dtype = dtypes.dtypes_simplified[obj.value.dtype]
@@ -102,7 +104,9 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return len(self.value)
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
 
         # fast properties
@@ -156,10 +160,12 @@ class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     def to_nodeset(self):
         from ..python.types import PythonNodeSet
 
-        return PythonNodeSet(set(self.lookup), node_labels=self.node_labels)
+        return PythonNodeSet(set(self.lookup))
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
 
         # fast properties
@@ -216,7 +222,9 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         return self.value.shape
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
 
         # fast properties

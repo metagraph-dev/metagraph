@@ -523,13 +523,23 @@ class Resolver:
 
         raise TypeError(f"Class {value.__class__} does not have a registered type")
 
+    def known_properties_of(self, value):
+        """Return a dict of known properties for this value. Does not compute any new properties."""
+        this_typeclass = self.typeclass_of(value)
+        # The above line should ensure the typeinfo cache is populated
+        this_typeinfo = self.typecache[value]
+        known_properties = {}
+        known_properties.update(this_typeinfo.known_abstract_props)
+        known_properties.update(this_typeinfo.known_concrete_props)
+        return known_properties
+
     def type_of(self, value):
         """Return the fully specified type for this value.
 
         This may require potentially slow computation of properties.  Only use
         this for debugging.
         """
-        return self.typeclass_of(value).get_type(value)
+        return self.typeclass_of(value).get_type(value, self.known_properties_of(value))
 
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""
@@ -613,15 +623,20 @@ class Resolver:
                 # Update cache with required properties
                 requested_properties = set(param_type.prop_idx.keys())
                 known_properties = this_typeinfo.known_abstract_props
-                unknown_properties = set(known_properties.keys()) - requested_properties
+                unknown_properties = requested_properties - set(known_properties.keys())
 
-                # TODO: allow passing existing properties to compute_X_properties methods
                 new_properties = this_typeclass.compute_abstract_properties(
-                    arg_value, unknown_properties
+                    arg_value, unknown_properties, known_properties.copy()
                 )
                 known_properties.update(
                     new_properties
                 )  # this dict is still in the cache too
+                # Verify requested properties were computed
+                uncomputed_properties = requested_properties - set(known_properties)
+                if uncomputed_properties:
+                    raise AssertionError(
+                        f"Requested abstract properties were not computed: {uncomputed_properties}"
+                    )
                 this_abs_type = this_typeclass.abstract(**known_properties)
 
                 unsatisfied_requirements = []
