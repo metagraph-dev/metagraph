@@ -1,7 +1,7 @@
 import os
 import sys
-import math
 import pytest
+import math
 from typing import List, Dict, Any
 from collections import OrderedDict
 
@@ -190,13 +190,29 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
 # Handy for manual testing
 def make_example_resolver():
     res = Resolver()
+    import metagraph
+
     res.register(
-        abstract_types={MyAbstractType, MyNumericAbstractType},
-        concrete_types={StrType, IntType, FloatType, OtherType},
-        wrappers={StrNum},
-        translators={int_to_str, str_to_int},
-        abstract_algorithms={abstract_power, abstract_ln, abstract_echo, odict_reverse},
-        concrete_algorithms={int_power, float_ln, simple_echo, simple_odict_rev},
+        {
+            "example_plugin": {
+                "abstract_types": {MyAbstractType, MyNumericAbstractType},
+                "concrete_types": {StrType, IntType, FloatType, OtherType},
+                "wrappers": {StrNum},
+                "translators": {int_to_str, str_to_int},
+                "abstract_algorithms": {
+                    abstract_power,
+                    abstract_ln,
+                    abstract_echo,
+                    odict_reverse,
+                },
+                "concrete_algorithms": {
+                    int_power,
+                    float_ln,
+                    simple_echo,
+                    simple_odict_rev,
+                },
+            }
+        }
     )
     return res
 

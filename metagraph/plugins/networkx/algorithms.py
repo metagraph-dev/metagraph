@@ -1,5 +1,5 @@
 from metagraph import concrete_algorithm
-from metagraph.plugins import has_networkx
+from metagraph.plugins import has_networkx, has_community
 from typing import Tuple, Iterable, Any
 
 
@@ -18,6 +18,24 @@ if has_networkx:
             graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
         )
         return PythonNodeMap(pagerank)
+
+    @concrete_algorithm("link_analysis.katz_centrality")
+    def nx_katz_centrality(
+        graph: NetworkXEdgeMap,
+        attenuation_factor: float,
+        immediate_neighbor_weight: float,
+        maxiter: int,
+        tolerance: float,
+    ) -> PythonNodeMap:
+        katz_centrality_scores = nx.katz_centrality(
+            graph.value,
+            alpha=attenuation_factor,
+            beta=immediate_neighbor_weight,
+            max_iter=maxiter,
+            tol=tolerance,
+            weight=graph.weight_label,
+        )
+        return PythonNodeMap(katz_centrality_scores)
 
     @concrete_algorithm("cluster.triangle_count")
     def nx_triangle_count(graph: NetworkXEdgeMap) -> int:
@@ -41,6 +59,17 @@ if has_networkx:
         for i, nodes in enumerate(nx.strongly_connected_components(graph.value)):
             for node in nodes:
                 index_to_label[node] = i
+        return PythonNodeMap(index_to_label,)
+
+    @concrete_algorithm("clustering.label_propagation_community")
+    def nx_label_propagation_community(graph: NetworkXEdgeMap) -> PythonNodeMap:
+        communities = nx.algorithms.community.label_propagation.label_propagation_communities(
+            graph.value
+        )
+        index_to_label = dict()
+        for label, nodes in enumerate(communities):
+            for node in nodes:
+                index_to_label[node] = label
         return PythonNodeMap(index_to_label,)
 
     @concrete_algorithm("subgraph.extract_subgraph")
@@ -107,3 +136,18 @@ if has_networkx:
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
         )
         return NumpyVector(bfs_ordered_node_array)
+
+
+if has_community:
+    import community as community_louvain
+    from .types import NetworkXEdgeMap
+    from ..python.types import PythonNodeMap
+
+    @concrete_algorithm("clustering.louvain_community")
+    def nx_louvain_community(graph: NetworkXEdgeMap) -> Tuple[PythonNodeMap, float]:
+        index_to_label = community_louvain.best_partition(graph.value)
+        modularity_score = community_louvain.modularity(index_to_label, graph.value)
+        return (
+            PythonNodeMap(index_to_label,),
+            modularity_score,
+        )

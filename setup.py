@@ -10,5 +10,5 @@ setup(
     packages=find_packages(include=["metagraph", "metagraph.*"]),
     install_requires=["importlib_metadata", "numpy", "scipy", "donfig"],
     include_package_data=True,
-    entry_points={"metagraph.plugins": "plugins=metagraph.plugins:find_plugins"},
+    entry_points={"metagraph.plugins": ["plugins=metagraph.plugins:find_plugins",]},
 )

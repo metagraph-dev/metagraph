@@ -7,6 +7,9 @@ from .plugin import (
     AbstractAlgorithm,
     ConcreteAlgorithm,
 )
+from collections import defaultdict
+from functools import reduce
+from typing import Optional, Any
 
 
 class PluginRegistryError(Exception):
@@ -23,7 +26,8 @@ class PluginRegistry:
     def find_plugins():
         # Import modules here to ensure they are registered, but avoid circular imports
         from . import my_types, my_translators, my_algorithms
-        return registry.plugins
+        ...
+        return registry
     # Add entry_points to setup.py
     setup(
         ...
@@ -66,37 +70,48 @@ class PluginRegistry:
         return results
     """
 
-    def __init__(self):
-        self.plugins = {
-            "abstract_types": set(),
-            "concrete_types": set(),
-            "wrappers": set(),
-            "translators": set(),
-            "abstract_algorithms": set(),
-            "concrete_algorithms": set(),
-        }
+    def __init__(self, default_name: str):
+        if not default_name.isidentifier():
+            raise ValueError(f"{repr(default_name)} is not a valid plugin name.")
+        self.default_name = default_name
+        self.plugins = {}
 
-    def register(self, obj):
+    def register(self, obj, name: Optional[str] = None):
         """
         Decorate classes and functions to include them in the registry
         """
+        if name is None:
+            name = self.default_name
+        elif not name.isidentifier():
+            raise ValueError(f"{repr(name)} is not a valid plugin name.")
         unknown = False
+
+        def _add_obj(plugin_name: str, plugin_attribute_name: str, obj: Any) -> None:
+            if plugin_name not in self.plugins:
+                self.plugins[plugin_name] = {}
+            if plugin_attribute_name not in self.plugins[plugin_name]:
+                self.plugins[plugin_name][plugin_attribute_name] = set()
+            self.plugins[plugin_name][plugin_attribute_name].add(obj)
+            return
+
         if isinstance(obj, type):
             if issubclass(obj, AbstractType):
-                self.plugins["abstract_types"].add(obj)
+                _add_obj(name, "abstract_types", obj)
             elif issubclass(obj, ConcreteType):
-                self.plugins["concrete_types"].add(obj)
+                _add_obj(name, "concrete_types", obj)
             elif issubclass(obj, Wrapper):
-                self.plugins["wrappers"].add(obj)
+                _add_obj(name, "wrappers", obj)
             else:
-                raise PluginRegistryError(f"Invalid type for plugin registry: {obj}")
+                raise PluginRegistryError(
+                    f"Invalid type for plugin registry: {obj}", obj
+                )
         else:
             if isinstance(obj, Translator):
-                self.plugins["translators"].add(obj)
+                _add_obj(name, "translators", obj)
             elif isinstance(obj, AbstractAlgorithm):
-                self.plugins["abstract_algorithms"].add(obj)
+                _add_obj(name, "abstract_algorithms", obj)
             elif isinstance(obj, ConcreteAlgorithm):
-                self.plugins["concrete_algorithms"].add(obj)
+                _add_obj(name, "concrete_algorithms", obj)
             else:
                 raise PluginRegistryError(
                     f"Invalid object for plugin registry: {type(obj)}"
@@ -104,7 +119,7 @@ class PluginRegistry:
 
         return obj
 
-    def register_from_modules(self, *modules, recurse=True):
+    def register_from_modules(self, *modules, name: Optional[str] = None, recurse=True):
         """
         Find and register all suitable objects within modules.
 
@@ -113,12 +128,16 @@ class PluginRegistry:
 
         If ``recurse`` is True, then also recurse into any submodule we find.
         """
+        if name is None:
+            name = self.default_name
+        elif not name.isidentifier():
+            raise ValueError(f"{repr(name)} is not a valid plugin name.")
         if len(modules) == 1 and isinstance(modules[0], (list, tuple)):
             modules = modules[0]
         for module in modules:
             if not inspect.ismodule(module):
                 raise TypeError(
-                    f"Expected one or more modules.  Got a type {type(module)} instead."
+                    f"Expected one or more modules. Got a type {type(module)} instead."
                 )
 
         # If requested, we could break this out into a function that yields items.
@@ -135,12 +154,12 @@ class PluginRegistry:
                         )
                         and val not in {Wrapper, ConcreteType, AbstractType}
                     ):
-                        self.register(val)
+                        self.register(val, name)
                 elif isinstance(
                     val, (Translator, ConcreteAlgorithm, AbstractAlgorithm)
                 ):
                     # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
-                    self.register(val)
+                    self.register(val, name)
                 elif (
                     recurse
                     and inspect.ismodule(val)
