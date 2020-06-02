@@ -746,3 +746,34 @@ def test_invalid_plugin_names():
 
     with pytest.raises(ValueError, match="is not a valid plugin name"):
         res.register({invalid_plugin_name: {"abstract_types": {Abstract1}}})
+
+
+def test_wrapper_insufficient_specificity():
+    class TestNodes(AbstractType):
+        @Wrapper.required_method
+        def __getitem__(self, label):
+            raise NotImplementedError()
+
+        @Wrapper.required_property
+        def num_nodes(self):
+            raise NotImplementedError()
+
+    with pytest.raises(TypeError, match="is missing required wrapper method"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            def num_nodes(self):
+                return "dummy"
+
+    with pytest.raises(TypeError, match="is missing required wrapper property"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            def __getitem__(self, label):
+                return "dummy"
+
+    with pytest.raises(TypeError, match="must be a property, not"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            num_nodes = "string that is not a property or function"
+
+            def __getitem__(self, label):
+                return "dummy"
