@@ -1,5 +1,11 @@
-from metagraph import ConcreteType, Wrapper, dtypes, SequentialNodes
-from metagraph.types import Vector, NodeMap, Matrix, Graph, WEIGHT_CHOICES
+from metagraph import ConcreteType, dtypes
+from metagraph.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap
+from metagraph.wrappers import (
+    NodeSetWrapper,
+    NodeMapWrapper,
+    EdgeSetWrapper,
+    EdgeMapWrapper,
+)
 from metagraph.plugins import has_grblas
 
 from typing import List, Dict, Any
@@ -35,136 +41,79 @@ if has_grblas:
             return dict(is_dense=is_dense, dtype=dtype)
 
         @classmethod
-        def assert_equal(
-            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-        ):
-            assert (
-                type(obj1) is cls.value_type
-            ), f"obj1 must be grblas.Vector, not {type(obj1)}"
-            assert (
-                type(obj2) is cls.value_type
-            ), f"obj2 must be grblas.Vector, not {type(obj2)}"
-
-            if check_values:
-                if obj1.dtype.name in {"FP32", "FP64"}:
-                    assert obj1.isclose(
-                        obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
-                    )
-                else:
-                    assert obj1.isequal(obj2, check_dtype=True)
+        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+            if obj1.dtype.name in {"FP32", "FP64"}:
+                assert obj1.isclose(
+                    obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
+                )
             else:
-                assert obj1.size == obj2.size, f"{obj1.size} != {obj2.size}"
-                assert obj1.nvals == obj2.nvals, f"{obj1.nvals} != {obj2.nvals}"
-                shape_match = obj1.ewise_mult(obj2, grblas.binary.pair).new()
-                assert (
-                    shape_match.nvals == obj1.nvals
-                ), f"{shape_match.nvals} != {obj1.nvals}"
+                assert obj1.isequal(obj2, check_dtype=True)
 
-    class GrblasNodeMap(Wrapper, abstract=NodeMap):
-        def __init__(self, data, *, weights=None, node_index=None):
+    class GrblasNodeSet(NodeSetWrapper, abstract=NodeSet):
+        def __init__(self, data):
             self._assert_instance(data, grblas.Vector)
             self.value = data
-            self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype.name]]
-            self._weights = self._determine_weights(weights)
-            self._node_index = node_index
 
-        def __getitem__(self, label):
-            if self._node_index is None:
-                return self.value[label].value
-            return self.value[self._node_index.bylabel(label)].value
+        @classmethod
+        def assert_equal(cls, obj1, obj2, *, rel_tol=None, abs_tol=None):
+            v1, v2 = obj1.value, obj2.value
+            assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
+            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
+            # Compare
+            shape_match = obj1.value.ewise_mult(obj2.value, grblas.binary.pair).new()
+            assert shape_match.nvals == v1.nvals, f"node ids do not match"
 
-        def _determine_weights(self, weights=None):
-            if weights is not None:
-                if weights not in WEIGHT_CHOICES:
-                    raise ValueError(f"Illegal weights: {weights}")
-                return weights
+    class GrblasNodeMap(NodeMapWrapper, abstract=NodeMap):
+        def __init__(self, data):
+            self._assert_instance(data, grblas.Vector)
+            self.value = data
 
-            if self._dtype == "str":
-                return "any"
-            if self._dtype == "bool":
-                if self.value.reduce(grblas.monoid.land).new():
-                    return "unweighted"
-                return "non-negative"
-            else:
-                min_val = self.value.reduce(grblas.monoid.min).new().value
-                if min_val < 0:
-                    return "any"
-                elif min_val == 0:
-                    return "non-negative"
-                else:
-                    max_val = self.value.reduce(grblas.monoid.max).new().value
-                    if self._dtype == "int" and min_val == 1 and max_val == 1:
-                        return "unweighted"
-                    return "positive"
+        def __getitem__(self, node_id):
+            return self.value[node_id].value
 
         @property
         def num_nodes(self):
-            return self.value.size
-
-        @property
-        def node_index(self):
-            if self._node_index is None:
-                self._node_index = SequentialNodes(self.num_nodes)
-            return self._node_index
-
-        def rebuild_for_node_index(self, node_index):
-            """
-            Returns a new instance based on `node_index`
-            """
-            if self.num_nodes != len(node_index):
-                raise ValueError(
-                    f"Size of node_index ({len(node_index)}) must match num_nodes ({self.num_nodes})"
-                )
-
-            data = self.value
-            if node_index != self.node_index:
-                my_node_index = self.node_index
-                my_node_index._verify_valid_conversion(node_index)
-                index_converter = [my_node_index.bylabel(label) for label in node_index]
-                data = data[index_converter].new()
-            return GrblasNodeMap(data, weights=self._weights, node_index=node_index)
+            return self.value.nvals
 
         @classmethod
         def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
-            return dict(dtype=obj._dtype, weights=obj._weights)
+
+            # fast properties
+            dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.value.dtype.name]]
+            ret = {"dtype": dtype}
+
+            # slow properties, only compute if asked
+            if "weights" in props:
+                if dtype == "str":
+                    weights = "any"
+                elif dtype == "bool":
+                    weights = "non-negative"
+                else:
+                    min_val = obj.value.reduce(grblas.monoid.min).new().value
+                    if min_val < 0:
+                        weights = "any"
+                    elif min_val == 0:
+                        weights = "non-negative"
+                    else:
+                        weights = "positive"
+                ret["weights"] = weights
+
+            return ret
 
         @classmethod
-        def assert_equal(
-            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-        ):
-            assert (
-                type(obj1) is cls.value_type
-            ), f"obj1 must be GrblasNodeMap, not {type(obj1)}"
-            assert (
-                type(obj2) is cls.value_type
-            ), f"obj2 must be GrblasNodeMap, not {type(obj2)}"
-
-            assert (
-                obj1.num_nodes == obj2.num_nodes
-            ), f"{obj1.num_nodes} != {obj2.num_nodes}"
-            if check_values:
-                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
-                assert (
-                    obj1._weights == obj2._weights
-                ), f"{obj1._weights} != {obj2._weights}"
-            # Convert to a common node indexing scheme
-            obj2 = obj2.rebuild_for_node_index(obj1.node_index)
+        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+            v1, v2 = obj1.value, obj2.value
+            assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
+            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
             # Compare
-            if check_values:
-                if obj1._dtype == "float":
-                    assert obj1.value.isclose(
-                        obj2.value, rel_tol=rel_tol, abs_tol=abs_tol
-                    )
-                else:
-                    assert obj1.value.isequal(obj2.value)
+            if v1.dtype.name in {"FP32", "FP64"}:
+                assert obj1.value.isclose(obj2.value, rel_tol=rel_tol, abs_tol=abs_tol)
             else:
-                shape_match = obj1.value.ewise_mult(
-                    obj2.value, grblas.binary.pair
-                ).new()
-                assert (
-                    shape_match.nvals == obj1.value.nvals
-                ), f"{shape_match.nvals} != {obj1.value.nvals}"
+                assert obj1.value.isequal(obj2.value)
+
+        def to_nodeset(self):
+            return GrblasNodeSet(self.value, node_labels=self._node_labels)
 
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix
@@ -187,164 +136,104 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(
-            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-        ):
-            assert (
-                type(obj1) is cls.value_type
-            ), f"obj1 must be grblas.Matrix, not {type(obj1)}"
-            assert (
-                type(obj2) is cls.value_type
-            ), f"obj2 must be grblas.Matrix, not {type(obj2)}"
-
-            if check_values:
-                if obj1.dtype.name in {"FP32", "FP64"}:
-                    assert obj1.isclose(
-                        obj2, rel_tol=1e-9, abs_tol=0.0, check_dtype=True
-                    )
-                else:
-                    assert obj1.isequal(obj2, check_dtype=True)
+        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+            if obj1.dtype.name in {"FP32", "FP64"}:
+                assert obj1.isclose(
+                    obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
+                )
             else:
-                assert obj1.nrows == obj2.nrows, f"{obj1.nrows} != {obj2.nrows}"
-                assert obj1.ncols == obj2.ncolsv, f"{obj1.ncols} != {obj2.ncols}"
-                assert obj1.nvals == obj2.nvals, f"{obj1.nvals} != {obj2.nvals}"
-                shape_match = obj1.ewise_mult(obj2, grblas.binary.pair).new()
-                assert (
-                    shape_match.nvals == obj1.nvals
-                ), f"{shape_match.nvals} != {obj1.nvals}"
+                assert obj1.isequal(obj2, check_dtype=True)
 
-    class GrblasAdjacencyMatrix(Wrapper, abstract=Graph):
+    class GrblasEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         def __init__(
-            self,
-            data,
-            transposed=False,
-            *,
-            weights=None,
-            is_directed=None,
-            node_index=None,
+            self, data, transposed=False,
         ):
             self._assert_instance(data, grblas.Matrix)
-            self._assert(data.nrows == data.ncols, "Adjacency Matrix must be square")
+            self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
             self.transposed = transposed
-            self._node_index = node_index
-            self._dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[data.dtype.name]]
-            self._weights = self._determine_weights(weights)
-            self._is_directed = self._determine_is_directed(is_directed)
-
-        def _determine_weights(self, weights):
-            if weights is not None:
-                if weights not in WEIGHT_CHOICES:
-                    raise ValueError(f"Illegal weights: {weights}")
-                return weights
-
-            if self._dtype == "str":
-                return "any"
-            if self._dtype == "bool":
-                if self.value.reduce_scalar(grblas.monoid.land).new():
-                    return "unweighted"
-                return "non-negative"
-            else:
-                min_val = self.value.reduce_scalar(grblas.monoid.min).new().value
-                if min_val < 0:
-                    return "any"
-                elif min_val == 0:
-                    return "non-negative"
-                else:
-                    max_val = self.value.reduce_scalar(grblas.monoid.max).new().value
-                    if self._dtype == "int" and min_val == 1 and max_val == 1:
-                        return "unweighted"
-                    return "positive"
-
-        def _determine_is_directed(self, is_directed):
-            if is_directed is not None:
-                return is_directed
-
-            return self.value != self.value.T.new()
-
-        def dtype(self):
-            return dtype_grblas_to_mg[self.value.dtype.name]
 
         def show(self):
             return self.value.show()
 
-        @property
-        def num_nodes(self):
-            return self.value.nrows
+        @classmethod
+        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+            cls._validate_abstract_props(props)
 
-        @property
-        def node_index(self):
-            if self._node_index is None:
-                self._node_index = SequentialNodes(self.value.nrows)
-            return self._node_index
+            # fast properties
+            ret = {}
 
-        def rebuild_for_node_index(self, node_index):
-            """
-            Returns a new instance based on `node_index`
-            """
-            if self.num_nodes != len(node_index):
-                raise ValueError(
-                    f"Size of node_index ({len(node_index)}) must match num_nodes ({self.num_nodes})"
-                )
+            # slow properties, only compute if asked
+            if "is_directed" in props:
+                ret["is_directed"] = obj.value != obj.value.T.new()
 
-            data = self.value
-            if node_index != self.node_index:
-                my_node_index = self.node_index
-                my_node_index._verify_valid_conversion(node_index)
-                index_converter = [my_node_index.bylabel(label) for label in node_index]
-                data = data[index_converter, index_converter].new()
-            return GrblasAdjacencyMatrix(
-                data,
-                weights=self._weights,
-                is_directed=self._is_directed,
-                node_index=node_index,
-                transposed=self.transposed,
-            )
+            return ret
+
+        @classmethod
+        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+            v1, v2 = obj1.value, obj2.value
+            assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
+            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
+            # Handle transposed states
+            d1 = v1.T if obj1.transposed else v1
+            d2 = v2.T if obj2.transposed else v2
+            # Compare
+            shape_match = d1.ewise_mult(d2, grblas.binary.pair).new()
+            assert shape_match.nvals == v1.nvals, f"edges do not match"
+
+    class GrblasEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
+        def __init__(
+            self, data, transposed=False,
+        ):
+            self._assert_instance(data, grblas.Matrix)
+            self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
+            self.value = data
+            self.transposed = transposed
+
+        def show(self):
+            return self.value.show()
 
         @classmethod
         def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
-            return dict(
-                dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
-            )
+
+            # fast properties
+            dtype = dtype_grblas_to_mg[obj.value.dtype.name]
+            ret = {"dtype": dtype}
+
+            # slow properties, only compute if asked
+            if "is_directed" in props:
+                ret["is_directed"] = obj.value != obj.value.T.new()
+            if "weights" in props:
+                if dtype == "str":
+                    weights = "any"
+                elif dtype == "bool":
+                    weights = "non-negative"
+                else:
+                    min_val = obj.value.reduce(grblas.monoid.min).new().value
+                    if min_val < 0:
+                        weights = "any"
+                    elif min_val == 0:
+                        weights = "non-negative"
+                    else:
+                        weights = "positive"
+                ret["weights"] = weights
+
+            return ret
 
         @classmethod
-        def assert_equal(
-            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-        ):
-            assert (
-                type(obj1) is cls.value_type
-            ), f"obj1 must be GrblasAdjacencyMatrix, not {type(obj1)}"
-            assert (
-                type(obj2) is cls.value_type
-            ), f"obj2 must be GrblasAdjacencyMatrix, not {type(obj2)}"
-
-            assert (
-                obj1.num_nodes == obj2.num_nodes
-            ), f"{obj1.num_nodes} != {obj2.num_nodes}"
-            assert (
-                obj1.value.nvals == obj2.value.nvals
-            ), f"{obj1.value.nvals} != {obj2.value.nvals}"
-            if check_values:
-                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
-                assert (
-                    obj1._weights == obj2._weights
-                ), f"{obj1._weights} != {obj2._weights}"
-                assert (
-                    obj1._is_directed == obj2._is_directed
-                ), f"{obj1._is_directed} != {obj2._is_directed}"
-            # Convert to a common node indexing scheme
-            obj2 = obj2.rebuild_for_node_index(obj1.node_index)
+        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+            v1, v2 = obj1.value, obj2.value
+            assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
+            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
             # Handle transposed states
-            d1 = obj1.value.T if obj1.transposed else obj1.value
-            d2 = obj2.value.T if obj2.transposed else obj2.value
+            d1 = v1.T if obj1.transposed else v1
+            d2 = v2.T if obj2.transposed else v2
             # Compare
-            if check_values and obj1._weights != "unweighted":
-                if obj1._dtype == "float":
-                    assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
-                else:
-                    assert d1.isequal(d2)
+            if v1.dtype.name in {"FP32", "FP64"}:
+                assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
             else:
-                # Only check matching edges, not weights
-                matches = d1.ewise_mult(d2, grblas.binary.any).new()
-                assert matches.nvals == d1.nvals, f"{matches.nvals} != {d1.nvals}"
+                assert d1.isequal(d2)
+
+        def to_edgeset(self):
+            return GrblasEdgeSet(self.value, transposed=self.transposed)

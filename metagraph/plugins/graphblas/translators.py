@@ -7,7 +7,7 @@ from ..numpy.types import NumpyVector, NumpyNodeMap
 if has_grblas:
     import grblas
     from .types import (
-        GrblasAdjacencyMatrix,
+        GrblasEdgeMap,
         GrblasMatrixType,
         GrblasVectorType,
         GrblasNodeMap,
@@ -26,7 +26,7 @@ if has_grblas:
         return vec
 
     @translator
-    def nodes_from_numpy(x: NumpyNodeMap, **props) -> GrblasNodeMap:
+    def nodemap_from_numpy(x: NumpyNodeMap, **props) -> GrblasNodeMap:
         idx = np.arange(len(x.value))
         if x.missing_mask is not None:
             idx = idx[~x.missing_mask]
@@ -34,28 +34,28 @@ if has_grblas:
         vec = grblas.Vector.from_values(
             idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]
         )
-        return GrblasNodeMap(vec, weights=x._weights, node_index=x.node_index)
+        return GrblasNodeMap(vec)
 
 
 if has_grblas and has_scipy:
-    from ..scipy.types import ScipyAdjacencyMatrix, ScipyMatrixType
+    from ..scipy.types import ScipyEdgeMap, ScipyMatrixType
     from .types import dtype_mg_to_grblas
 
     @translator
-    def graph_from_scipy(x: ScipyAdjacencyMatrix, **props) -> GrblasAdjacencyMatrix:
+    def edgemap_from_scipy(x: ScipyEdgeMap, **props) -> GrblasEdgeMap:
         m = x.value.tocoo()
-        nrows, ncols = m.shape
+        node_list = x._node_list
+        size = max(node_list) + 1
         dtype = dtype_mg_to_grblas[x.value.dtype]
         out = grblas.Matrix.from_values(
-            m.row, m.col, m.data, nrows=nrows, ncols=ncols, dtype=dtype
+            node_list[m.row],
+            node_list[m.col],
+            m.data,
+            nrows=size,
+            ncols=size,
+            dtype=dtype,
         )
-        return GrblasAdjacencyMatrix(
-            out,
-            transposed=x.transposed,
-            weights=x._weights,
-            is_directed=x._is_directed,
-            node_index=x.node_index,
-        )
+        return GrblasEdgeMap(out, transposed=x.transposed,)
 
     @translator
     def matrix_from_scipy(x: ScipyMatrixType, **props) -> GrblasMatrixType:

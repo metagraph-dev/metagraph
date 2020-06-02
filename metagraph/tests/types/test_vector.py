@@ -20,12 +20,12 @@ def test_numpy():
         NumpyVector.Type.assert_equal(
             NumpyVector(np.array([1, 2, 3])), NumpyVector(np.array([1, 2, 3, 4]))
         )
-    # Different dtypes are not equal
-    with pytest.raises(AssertionError):
-        NumpyVector.Type.assert_equal(
-            NumpyVector(np.array([1, 2, 3], dtype=np.int16)),
-            NumpyVector(np.array([1, 2, 3], dtype=np.int32)),
-        )
+    # # Different dtypes are not equal
+    # with pytest.raises(AssertionError):
+    #     NumpyVector.Type.assert_equal(
+    #         NumpyVector(np.array([1, 2, 3], dtype=np.int16)),
+    #         NumpyVector(np.array([1, 2, 3], dtype=np.int32)),
+    #     )
     # Missing values are ignored
     NumpyVector.Type.assert_equal(
         NumpyVector(
@@ -59,8 +59,6 @@ def test_numpy():
                 missing_mask=np.array([False, False, False, True]),
             ),
         )
-    with pytest.raises(AssertionError):
-        NumpyVector.Type.assert_equal(5, 5)
 
 
 def test_graphblas():
@@ -103,5 +101,3 @@ def test_graphblas():
             grblas.Vector.from_values([0, 2], [1, 3], size=4),
             grblas.Vector.from_values([0, 3], [1, 3], size=4),
         )
-    with pytest.raises(AssertionError):
-        GrblasVectorType.assert_equal(5, 5)

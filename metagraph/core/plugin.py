@@ -216,7 +216,7 @@ class ConcreteType:
         """Get an instance of this type class that fully describes obj
 
         Note that this will completely specialize the type and may require
-        non-trivial computation to determinal all properties of obj. Prefer to
+        non-trivial computation to determine all properties of obj. Prefer to
         use is_typeclass_of(), compute_abstract_properties(), and
         compute_concrete_properties() instead of this method when possible.
         """
@@ -234,34 +234,37 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def assert_equal(
-        cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-    ) -> bool:
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0) -> bool:
         """
-        Compare whether obj1 and obj2 are equal, raising an AssertionError if not
+        Compare whether obj1 and obj2 are equal, raising an AssertionError if not equal.
         rel_tol and abs_tol should be used when comparing floating point numbers
-        If check_values is False, check the type and shape but ignore the values.
-            The reason for this setting is to allow custom compare functions to utilize
-            this method for type and shape checking without worrying about values which
-            might differ for valid reasons.
         """
         raise NotImplementedError()
 
 
 class MetaWrapper(type):
-    def __new__(mcls, name, bases, dict_, abstract=None):
-        kwargs = {} if abstract is None else {"abstract": abstract}
+    def __new__(mcls, name, bases, dict_, abstract=None, register=True):
+        kwargs = {}
+        if bases:
+            kwargs["register"] = register
+            if abstract is not None:
+                kwargs["abstract"] = abstract
         cls = type.__new__(mcls, name, bases, dict_, **kwargs)
-        if abstract:
+        if register and abstract is not None:
             # Check for required methods defined on abstract
             for name, val in abstract.__dict__.items():
                 if getattr(val, "_is_required_method", False):
-                    if name not in cls.__dict__:
+                    if not hasattr(cls, name):
                         raise TypeError(
                             f"{cls.__name__} is missing required wrapper method '{name}'"
                         )
+                    prop = getattr(cls, name)
+                    if not callable(prop):
+                        raise TypeError(
+                            f"{cls.__name__}.{name} must be callable, not {type(prop)}"
+                        )
                 if getattr(val, "_is_required_property", False):
-                    if name not in cls.__dict__:
+                    if not hasattr(cls, name):
                         raise TypeError(
                             f"{cls.__name__} is missing required wrapper property '{name}'"
                         )
@@ -287,7 +290,21 @@ class Wrapper(metaclass=MetaWrapper):
     )  # highest specificity supported for abstract properties
     target = "cpu"  # key may be used in future to guide dispatch
 
-    def __init_subclass__(cls, *, abstract=None):
+    def __init_subclass__(cls, *, abstract=None, register=True):
+        if not register:
+            cls._abstract = abstract
+            return
+
+        # Attempt to lookup abstract from unregistered wrapper superclass
+        implied_abstract = getattr(cls, "_abstract", None)
+        if abstract is None:
+            abstract = implied_abstract
+        elif implied_abstract is not None:
+            if abstract is not implied_abstract:
+                raise TypeError(
+                    f"Wrong abstract type for wrapper: {abstract}, expected {implied_abstract}"
+                )
+
         cls.Type = types.new_class(
             f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
         )

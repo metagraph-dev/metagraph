@@ -3,23 +3,18 @@ from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.python.types import PythonNodeMap
 from metagraph.plugins.numpy.types import NumpyNodeMap, CompactNumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap
-from metagraph import IndexedNodes, SequentialNodes
+from metagraph import NodeLabels
 import numpy as np
 import grblas
 
 
 def test_python_2_compactnumpy(default_plugin_resolver):
     dpr = default_plugin_resolver
-    rev_letters = "ZYXWVUTSRQPONMLKJIHGFEDCBA"
-    x = PythonNodeMap(
-        {"A": 12.5, "B": 33.4, "Q": -1.2}, node_index=IndexedNodes(rev_letters)
-    )
-    assert x.num_nodes == 26
+    x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
+    assert x.num_nodes == 3
     # Convert python -> compactnumpy
     intermediate = CompactNumpyNodeMap(
-        np.array([12.5, -1.2, 33.4]),
-        {"A": 0, "B": 2, "Q": 1},
-        node_index=IndexedNodes(rev_letters),
+        np.array([12.5, 33.4, -1.2]), {0: 0, 1: 1, 42: 2},
     )
     y = dpr.translate(x, CompactNumpyNodeMap)
     CompactNumpyNodeMap.Type.assert_equal(y, intermediate)
@@ -30,21 +25,12 @@ def test_python_2_compactnumpy(default_plugin_resolver):
 
 def test_compactnumpy_2_numpy(default_plugin_resolver):
     dpr = default_plugin_resolver
-    rev_letters = "ZYXWVUTSRQPONMLKJIHGFEDCBA"
-    x = CompactNumpyNodeMap(
-        np.array([12.5, 33.4, -1.2]),
-        {"A": 0, "B": 1, "Q": 2},
-        node_index=IndexedNodes(rev_letters),
-    )
-    assert x.num_nodes == 26
+    x = CompactNumpyNodeMap(np.array([12.5, 33.4, -1.2]), {0: 0, 1: 1, 12: 2},)
+    assert x.num_nodes == 3
     # Convert compactnumpy -> numpy
-    # fmt: off
-    data = np.array([1, 1, 1, 1, 1, 1, 1, 1, 1, -1.2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 33.4, 12.5])
-    # fmt: on
+    data = np.array([12.5, 33.4, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, -1.2])
     missing_mask = data == 1
-    intermediate = NumpyNodeMap(
-        data, missing_mask=missing_mask, node_index=IndexedNodes(rev_letters)
-    )
+    intermediate = NumpyNodeMap(data, missing_mask=missing_mask)
     y = dpr.translate(x, NumpyNodeMap)
     NumpyNodeMap.Type.assert_equal(y, intermediate)
     # Convert compactnumpy <- numpy
@@ -54,11 +40,11 @@ def test_compactnumpy_2_numpy(default_plugin_resolver):
 
 def test_compactnumpy_default_index_2_numpy(default_plugin_resolver):
     dpr = default_plugin_resolver
-    x = CompactNumpyNodeMap(np.array([11.1, 33.3, -22.2]), {"A": 0, "B": 2, "C": 1},)
+    x = CompactNumpyNodeMap(np.array([11.1, 33.3, -22.2]), {0: 0, 1: 1, 2: 2},)
     assert x.num_nodes == 3
     # Convert compactnumpy -> numpy
     data = np.array([11.1, 33.3, -22.2])
-    intermediate = NumpyNodeMap(data, node_index=IndexedNodes("ACB"))
+    intermediate = NumpyNodeMap(data)
     y = dpr.translate(x, NumpyNodeMap)
     NumpyNodeMap.Type.assert_equal(y, intermediate)
     # # Convert compactnumpy <- numpy
@@ -69,12 +55,10 @@ def test_compactnumpy_default_index_2_numpy(default_plugin_resolver):
 def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
     dpr = default_plugin_resolver
     data = np.array([1, 3, 5, 7, 9])
-    x = NumpyNodeMap(data, node_index=SequentialNodes(5))
+    x = NumpyNodeMap(data)
     assert x.num_nodes == 5
     # Convert numpy -> compactnumpy
-    intermediate = CompactNumpyNodeMap(
-        data, {0: 0, 1: 1, 2: 2, 3: 3, 4: 4}, node_index=SequentialNodes(5)
-    )
+    intermediate = CompactNumpyNodeMap(data, {0: 0, 1: 1, 2: 2, 3: 3, 4: 4})
     y = dpr.translate(x, CompactNumpyNodeMap)
     CompactNumpyNodeMap.Type.assert_equal(y, intermediate)
     # Convert numpy <- compactnumpy
@@ -84,16 +68,12 @@ def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
 
 def test_graphblas_python(default_plugin_resolver):
     dpr = default_plugin_resolver
-    rev_letters = "ZYXWVUTSRQPONMLKJIHGFEDCBA"
     x = GrblasNodeMap(
         grblas.Vector.from_values([9, 24, 25], [-1.2, 33.4, 12.5], size=26),
-        node_index=IndexedNodes(rev_letters),
     )
-    assert x.num_nodes == 26
+    assert x.num_nodes == 3
     # Convert graphblas -> python
-    intermediate = PythonNodeMap(
-        {"A": 12.5, "B": 33.4, "Q": -1.2}, node_index=IndexedNodes(rev_letters)
-    )
+    intermediate = PythonNodeMap({25: 12.5, 24: 33.4, 9: -1.2})
     y = dpr.translate(x, PythonNodeMap)
     PythonNodeMap.Type.assert_equal(y, intermediate)
 
@@ -102,24 +82,9 @@ def test_numpy_graphblas(default_plugin_resolver):
     dpr = default_plugin_resolver
     data = np.array([1, 1, 3, 1, 4, 1, -1])
     missing = data == 1
-    x = NumpyNodeMap(data, missing_mask=missing, node_index=IndexedNodes("ABCDEFG"))
-    assert x.num_nodes == 7
+    x = NumpyNodeMap(data, missing_mask=missing)
+    assert x.num_nodes == 3
     # Convert numpy -> graphblas
-    intermediate = GrblasNodeMap(
-        grblas.Vector.from_values([2, 4, 6], [3, 4, -1]),
-        node_index=IndexedNodes("ABCDEFG"),
-    )
+    intermediate = GrblasNodeMap(grblas.Vector.from_values([2, 4, 6], [3, 4, -1]),)
     y = dpr.translate(x, GrblasNodeMap)
     GrblasNodeMap.Type.assert_equal(y, intermediate)
-
-
-def test_numpy_rebuild_for_node_index(default_plugin_resolver):
-    dpr = default_plugin_resolver
-    data = np.array([1, 3, 5, 7, 9])
-    nodes = NumpyNodeMap(data, node_index=SequentialNodes(5))
-    nodes.rebuild_for_node_index(IndexedNodes({i: i for i in range(5)}))
-    with pytest.raises(ValueError):
-        nodes.rebuild_for_node_index(IndexedNodes({i + 1: i for i in range(5)}))
-    with pytest.raises(ValueError):
-        seq_nodes = SequentialNodes(3)
-        seq_nodes._verify_valid_conversion(SequentialNodes(1))
