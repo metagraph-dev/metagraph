@@ -24,14 +24,15 @@ class PluginRegistry:
     # /plugins.py
     registry = metagraph.plugin_registry.PluginRegistry()
     def find_plugins():
-        # Import modules here to ensure they are registered, but avoid circular imports
-        from . import my_types, my_translators, my_algorithms
+        from . import graphblas, 
+        registry.register_from_modules([metagraph.types, metagraph.algorithms])
+        registry.register_from_modules(graphblas, name="core_graphblas")
         ...
-        return registry
+        return registry.plugins
     # Add entry_points to setup.py
     setup(
         ...
-        entry_points={"metagraph.plugins": "plugins = plugins:find_plugins"},
+        entry_points={"metagraph.plugins": ["plugins = plugins:find_plugins",]},
         ...
     )
     # /my_types.py
