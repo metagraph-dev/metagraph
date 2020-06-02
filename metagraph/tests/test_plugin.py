@@ -7,6 +7,7 @@ from .util import (
     StrType,
     IntType,
     FloatType,
+    StrNum,
     int_to_str,
     abstract_power,
     int_power,
@@ -38,10 +39,30 @@ def test_abstract_type():
     at = MyNumericAbstractType(positivity=">=0")
     assert at.prop_idx == {"positivity": 1, "divisible_by_two": 0}
 
+    with pytest.raises(
+        KeyError, match=" is an invalid property; must be of type list, not "
+    ):
+
+        class BadAbstractType(plugin.AbstractType):
+            properties = {"k1": range(10)}
+
+    class AbstractType1(plugin.AbstractType):
+        properties = {"k1": ["v1", "v2", "v3"]}
+
+    with pytest.raises(
+        ValueError, match="Invalid setting for .+ property: .+; must be one of .+"
+    ):
+
+        class ConcreteType1(
+            plugin.ConcreteType, abstract=AbstractType1(k1="bad_k1_value")
+        ):
+            pass
+
 
 def test_concrete_type():
     ct = StrType()
     ct_lower = StrType(lowercase=True)
+    assert ct_lower["lowercase"]
 
     # equality and hashing
     assert ct == ct
@@ -74,6 +95,25 @@ def test_concrete_type():
     with pytest.raises(TypeError, match="not of type"):
         StrType.get_type(4)
 
+    # compute abstract properties
+    assert IntType.compute_abstract_properties(10, {"positivity"})["positivity"] == ">0"
+    assert IntType.compute_abstract_properties(10, {"divisible_by_two"})[
+        "divisible_by_two"
+    ]
+    with pytest.raises(KeyError, match="is not an abstract property of"):
+        assert IntType.compute_abstract_properties(10, {"bad_abstract_property_label"})
+    with pytest.raises(KeyError, match="is not an abstract property of"):
+        StrType.compute_abstract_properties("arbitrary string", {"made_up_property"})
+
+    # compute concrete properties
+    assert StrType.compute_concrete_properties("lowercasestring", {"lowercase"})[
+        "lowercase"
+    ]
+    with pytest.raises(KeyError, match="is not a concrete property of"):
+        assert StrType.compute_concrete_properties("arbitrary string", ["bad_key"])
+    with pytest.raises(KeyError, match="is not a concrete property of"):
+        IntType.compute_concrete_properties(10, ["bad_key"])
+
 
 def test_concrete_type_abstract_errors():
     with pytest.raises(TypeError, match="Missing required 'abstract' keyword argument"):
@@ -85,6 +125,33 @@ def test_concrete_type_abstract_errors():
 
         class MyBadType(plugin.ConcreteType, abstract=4):
             pass
+
+
+def test_wrapper():
+    class StrNumZeroOnly(plugin.Wrapper, abstract=MyNumericAbstractType):
+        def __init__(self, val):
+            self.value = val
+            self._assert_instance(val, str, f"{repr(val)} is not a string.")
+            self._assert(0 == float(val), "'zero' is only valid value.")
+            assert isinstance(val, str)
+
+    assert StrNumZeroOnly("0")
+    with pytest.raises(TypeError, match="'zero' is only valid value."):
+        StrNumZeroOnly("1234")
+    with pytest.raises(TypeError, match="is not a string."):
+        StrNumZeroOnly(0)
+
+    class StrNumZeroOnlyDefaultErrorMessage(
+        plugin.Wrapper, abstract=MyNumericAbstractType
+    ):
+        def __init__(self, val):
+            self.value = val
+            self._assert_instance(val, str)
+            self._assert(0 == float(val), "'zero' is only valid value.")
+            assert isinstance(val, str)
+
+    with pytest.raises(TypeError, match="is not an instance of"):
+        StrNumZeroOnlyDefaultErrorMessage(0)
 
 
 def test_translator():
