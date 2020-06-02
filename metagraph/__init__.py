@@ -50,7 +50,7 @@ def __getattr__(name):
         res = Resolver()
         res.load_plugins_from_environment()
         globals()["resolver"] = res
-        globals()["algo"] = res.algo
+        globals()["algos"] = res.algos
         globals()["translate"] = res.translate
         globals()["type_of"] = res.type_of
         globals()["typeclass_of"] = res.typeclass_of

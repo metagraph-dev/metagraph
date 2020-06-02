@@ -27,8 +27,8 @@ def test_pagerank(default_plugin_resolver):
         2: 0.3941492368569718,
         3: 0.037500000000000006,
     }
-    expected_val = dpr.wrapper.NodeMap.PythonNodeMap(data)
-    graph = dpr.wrapper.EdgeMap.NetworkXEdgeMap(networkx_graph)
+    expected_val = dpr.wrappers.NodeMap.PythonNodeMap(data)
+    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(networkx_graph)
     MultiVerify(dpr, "link_analysis.pagerank", graph, tolerance=1e-7).assert_equals(
         expected_val, rel_tol=1e-5
     )

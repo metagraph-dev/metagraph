@@ -41,21 +41,18 @@ def supercluster(hg: HyperGraphType) -> HyperGraphType:  # pragma: no cover
 
 
 @concrete_algorithm("hyperstuff.supercluster")
-def cpu_supercluster(hg: CPUHyperGraphType) -> CPUHyperGraphType:  # pragma: no cover
-    pass
-
-
-@concrete_algorithm("hyperstuff.supercluster")
 def gpu_supercluster(hg: GPUHyperGraph) -> GPUHyperGraph:  # pragma: no cover
     pass
 
 
 def find_plugins():
     return {
-        "abstract_types": {HyperGraphType},
-        "concrete_types": {CPUHyperGraphType},
-        "wrappers": {GPUHyperGraph},
-        "translators": {cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph},
-        "abstract_algorithms": {supercluster},
-        "concrete_algorithms": {cpu_supercluster, gpu_supercluster},
+        "plugin1": {
+            "abstract_types": {HyperGraphType},
+            "concrete_types": {CPUHyperGraphType},
+            "wrappers": {GPUHyperGraph},
+            "translators": {cpu_to_gpu_hypergraph, gpu_to_cpu_hypergraph},
+            "abstract_algorithms": {supercluster},
+            "concrete_algorithms": {gpu_supercluster},
+        }
     }
