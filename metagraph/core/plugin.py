@@ -121,7 +121,7 @@ class ConcreteType:
             return False
         return True
 
-    def is_satisfied_by_value(self, obj):
+    def is_satisfied_by_value(self, obj, resolver=None):
         """Is the type associated with this object compatible with this type?
 
         (self must be equivalent or less specific than the type of obj)
@@ -130,8 +130,11 @@ class ConcreteType:
         therefore computes all properties.  Prefer is_satisfied_by() with a
         partially specified type instance.
         """
+        known_properties = {}
+        if resolver is not None:
+            known_properties = resolver.known_properties_of(obj)
         try:
-            t = self.get_type(obj)
+            t = self.get_type(obj, known_properties)
             return self.is_satisfied_by(t)
         except TypeError:
             return False
@@ -176,13 +179,18 @@ class ConcreteType:
                 )
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Return a dictionary with a subset of abstract properties for this object.
 
         At a minimum, only the requested properties will be computed, although
         this method may return additional keys if they can be computed with
         minimal additional cost.  The return value from this method should be
         cached by the caller to avoid recomputing properties repeatedly.
+
+        Any abstract properties known from previous calls should be passed in
+        as known_properties to avoid duplicating effort.
         """
         if len(cls.abstract.properties) > 0:
             raise NotImplementedError(
@@ -194,13 +202,18 @@ class ConcreteType:
             return {}
 
     @classmethod
-    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_concrete_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         """Return a dictionary with a subset of concrete properties for this object.
 
         At a minimum, only the requested properties will be computed, although
         this method may return additional keys if they can be computed with
         minimal additional cost.  The return value from this method should be
         cached by the caller to avoid recomputing properties repeatedly.
+
+        Any concrete properties known from previous calls should be passed in
+        as known_properties to avoid duplicating effort.
         """
         if len(cls.allowed_props) > 0:
             raise NotImplementedError(
@@ -212,7 +225,7 @@ class ConcreteType:
             return {}
 
     @classmethod
-    def get_type(cls, obj):
+    def get_type(cls, obj, known_props: Dict[str, Any] = None):
         """Get an instance of this type class that fully describes obj
 
         Note that this will completely specialize the type and may require
@@ -220,12 +233,14 @@ class ConcreteType:
         use is_typeclass_of(), compute_abstract_properties(), and
         compute_concrete_properties() instead of this method when possible.
         """
+        if known_props is None:
+            known_props = {}
         if cls.is_typeclass_of(obj):
             abstract_props = cls.compute_abstract_properties(
-                obj, cls.abstract.properties.keys()
+                obj, cls.abstract.properties.keys(), known_props
             )
             concrete_props = cls.compute_concrete_properties(
-                obj, cls.allowed_props.keys()
+                obj, cls.allowed_props.keys(), known_props
             )
 
             ret_val = cls(**abstract_props, **concrete_props)

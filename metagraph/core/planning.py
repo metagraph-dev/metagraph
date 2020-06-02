@@ -216,10 +216,10 @@ class AlgorithmPlan:
             # Update cache with required properties
             requested_properties = set(param_type.props.keys())
             known_properties = arg_typeinfo.known_concrete_props
-            unknown_properties = set(known_properties.keys()) - requested_properties
+            unknown_properties = requested_properties - set(known_properties.keys())
 
             new_properties = arg_typeclass.compute_concrete_properties(
-                arg_value, unknown_properties
+                arg_value, unknown_properties, known_properties
             )
             known_properties.update(
                 new_properties

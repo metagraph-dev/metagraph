@@ -34,7 +34,9 @@ if has_grblas:
         value_type = grblas.Vector
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
             is_dense = obj.nvals == obj.size
             dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
@@ -76,7 +78,9 @@ if has_grblas:
             return self.value.nvals
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
 
             # fast properties
@@ -120,7 +124,9 @@ if has_grblas:
         abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
             # fast properties
             ret = {
@@ -157,7 +163,9 @@ if has_grblas:
             return self.value.show()
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
 
             # fast properties
@@ -194,7 +202,9 @@ if has_grblas:
             return self.value.show()
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
 
             # fast properties

@@ -14,7 +14,9 @@ if has_scipy:
         abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
             nrows, ncols = obj.shape
             is_square = nrows == ncols
@@ -101,7 +103,9 @@ if has_scipy:
             return self.value.format
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
 
             # fast properties
@@ -113,7 +117,7 @@ if has_scipy:
             if "weights" in props:
                 if ret["dtype"] == "str":
                     weights = "any"
-                values = obj.value[obj.weight_label]
+                values = obj.value.data
                 if ret["dtype"] == "bool":
                     weights = "non-negative"
                 else:
@@ -126,9 +130,7 @@ if has_scipy:
                         weights = "positive"
                 ret["weights"] = weights
 
-            return dict(
-                dtype=obj._dtype, weights=obj._weights, is_directed=obj._is_directed
-            )
+            return ret
 
         @classmethod
         def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):

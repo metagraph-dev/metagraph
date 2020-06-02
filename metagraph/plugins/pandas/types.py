@@ -99,7 +99,9 @@ if has_pandas:
             return len(src_nodes | dst_nodes)
 
         @classmethod
-        def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        def compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
 
             # fast properties
