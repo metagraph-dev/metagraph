@@ -3,7 +3,7 @@ from .plugin import ConcreteType
 import collections
 import numpy as np
 import scipy.sparse as ss
-from metagraph import config
+from metagraph import config, Wrapper
 
 
 class MultiStepTranslator:
@@ -164,7 +164,11 @@ class AlgorithmPlan:
                 self.required_translations[varname].display()
             else:
                 print(f"** {varname} **")
-                print(f"{sig.parameters[varname].annotation.__name__}")
+                anni = sig.parameters[varname].annotation
+                if type(anni) is Wrapper:
+                    print(f"{anni.__name__}")
+                else:
+                    print(f"{anni.__class__.__name__}")
         print("---------------------")
 
     @classmethod

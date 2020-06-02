@@ -27,6 +27,6 @@ def test_triangle_count(default_plugin_resolver):
     simple_graph = nx.Graph()
     simple_graph.add_edges_from(simple_graph_data)
     # Convert to wrapper
-    graph = dpr.wrapper.Graph.NetworkXGraph(simple_graph)
+    graph = dpr.wrapper.EdgeMap.NetworkXEdgeMap(simple_graph)
 
     MultiVerify(dpr, "cluster.triangle_count", graph).assert_equals(5)

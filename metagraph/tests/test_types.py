@@ -13,14 +13,11 @@ def test_nodemap_not_implemented():
         nodemap.num_nodes()
 
     with pytest.raises(NotImplementedError):
-        nodemap.node_index()
+        nodemap.to_nodeset()
 
 
-def test_graph_not_implemented():
-    graph = types.Graph()
-
-    with pytest.raises(NotImplementedError):
-        graph.num_nodes()
+def test_edgemap_not_implemented():
+    graph = types.EdgeMap()
 
     with pytest.raises(NotImplementedError):
-        graph.node_index()
+        graph.to_edgeset()

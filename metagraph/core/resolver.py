@@ -180,6 +180,10 @@ class Resolver:
             else:
                 concrete_types = set(concrete_types)  # copy; don't mutate the original
             for wr in wrappers:
+                # Wrappers without .Type had `register=False` and should not be registered
+                if not hasattr(wr, "Type"):
+                    continue
+                # Otherwise, register both the concrete type and the wrapper
                 concrete_types.add(wr.Type)
                 # Make wrappers available via resolver.wrappers.<abstract name>.<wrapper name>
                 path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
@@ -461,6 +465,7 @@ class Resolver:
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator is None:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
+        # TODO: find a way for a translator to populate cached properties
         return translator(value, **props)
 
     def find_algorithm_solutions(
@@ -540,6 +545,7 @@ class Resolver:
                 known_properties = this_typeinfo.known_abstract_props
                 unknown_properties = set(known_properties.keys()) - requested_properties
 
+                # TODO: allow passing existing properties to compute_X_properties methods
                 new_properties = this_typeclass.compute_abstract_properties(
                     arg_value, unknown_properties
                 )
@@ -574,6 +580,9 @@ class Resolver:
 
         if config.get("core.logging.plans"):
             algo.display()
+        # TODO: find a way for algorithms to specify and register cached properties on newly created objects
+        #       often the algorithms know things about the output objects which can be used to avoid
+        #       extra computational efforts
         return algo(*args, **kwargs)
 
 

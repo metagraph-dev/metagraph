@@ -3,61 +3,50 @@ from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
 from .types import NumpyMatrix, NumpyVector, NumpyNodeMap, CompactNumpyNodeMap
 from ..python.types import PythonNodeMap
-from metagraph import SequentialNodes
 
 
 @translator
-def nodes_from_compactnodes(x: CompactNumpyNodeMap, **props) -> NumpyNodeMap:
-    data = np.empty((len(x.node_index),), dtype=x.value.dtype)
+def nodemap_from_compactnodemap(x: CompactNumpyNodeMap, **props) -> NumpyNodeMap:
+    size = max(x.lookup) + 1
+    data = np.empty((size,), dtype=x.value.dtype)
     indexer = np.empty((len(x.lookup),), dtype=np.int32)
-    nidx = x.node_index
-    for label, pos in x.lookup.items():
-        idx = nidx.bylabel(label)
-        indexer[pos] = idx
+    for node_id, pos in x.lookup.items():
+        indexer[pos] = node_id
     data[indexer] = x.value
 
-    if x.num_nodes == len(x.value):
+    if size == len(x.value):
         # Dense nodes; no need for missing mask
         missing = None
     else:
         missing = np.ones_like(data, dtype=bool)
         missing[indexer] = False
 
-    return NumpyNodeMap(
-        data, missing_mask=missing, weights=x._weights, node_index=x.node_index
-    )
+    return NumpyNodeMap(data, missing_mask=missing)
 
 
 @translator
-def compactnodes_from_nodes(x: NumpyNodeMap, **props) -> CompactNumpyNodeMap:
-    nidx = x.node_index
+def compactnodemap_from_nodemap(x: NumpyNodeMap, **props) -> CompactNumpyNodeMap:
     if x.missing_mask is None:
         data = x.value
-        if type(nidx) is SequentialNodes:
-            lookup = {i: i for i in nidx}
-        else:
-            lookup = x.node_index._bylabel.copy()
+        lookup = {i: i for i in range(len(data))}
     else:
         data = x.value[~x.missing_mask]
-        indexes = np.arange(x.num_nodes)[~x.missing_mask]
-        lookup = {nidx.byindex(idx): pos for pos, idx in enumerate(indexes)}
-    return CompactNumpyNodeMap(
-        data, lookup, weights=x._weights, node_index=x.node_index
-    )
+        indexes = np.arange(len(x.value))[~x.missing_mask]
+        lookup = {idx: pos for pos, idx in enumerate(indexes)}
+    return CompactNumpyNodeMap(data, lookup)
 
 
 @translator
 def compactnodes_from_python(x: PythonNodeMap, **props) -> CompactNumpyNodeMap:
-    np_dtype = x._dtype if x._dtype != "str" else "object"
+    dtype = x._determine_dtype()
+    np_dtype = dtype if dtype != "str" else "object"
     data = np.empty((len(x.value),), dtype=np_dtype)
     lookup = {}
     pyvals = x.value
-    for idx, label in enumerate(pyvals):
-        data[idx] = pyvals[label]
-        lookup[label] = idx
-    return CompactNumpyNodeMap(
-        data, lookup, weights=x._weights, node_index=x.node_index
-    )
+    for pos, node_id in enumerate(pyvals):
+        data[pos] = pyvals[node_id]
+        lookup[node_id] = pos
+    return CompactNumpyNodeMap(data, lookup)
 
 
 if has_scipy:

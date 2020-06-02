@@ -1,7 +1,8 @@
 from typing import List, Dict, Any
 import numpy as np
-from metagraph import Wrapper, dtypes, SequentialNodes, IndexedNodes
-from metagraph.types import Vector, NodeMap, Matrix, WEIGHT_CHOICES
+from metagraph import dtypes, Wrapper
+from metagraph.types import Vector, Matrix, NodeSet, NodeMap
+from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
 class NumpyVector(Wrapper, abstract=Vector):
@@ -28,18 +29,7 @@ class NumpyVector(Wrapper, abstract=Vector):
         return dict(is_dense=is_dense, dtype=dtype)
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
-        assert (
-            type(obj1) is cls.value_type
-        ), f"obj1 must be NumpyVector, not {type(obj1)}"
-        assert (
-            type(obj2) is cls.value_type
-        ), f"obj2 must be NumpyVector, not {type(obj2)}"
-
-        if check_values:
-            assert (
-                obj1.value.dtype == obj2.value.dtype
-            ), f"{obj1.value.dtype} != {obj2.value.dtype}"
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
         assert (
             obj1.value.shape == obj2.value.shape
         ), f"{obj1.value.shape} != {obj2.value.shape}"
@@ -52,20 +42,19 @@ class NumpyVector(Wrapper, abstract=Vector):
             mask_alignment = obj1.missing_mask == obj2.missing_mask
             assert mask_alignment.all(), f"{mask_alignment}"
         # Compare
-        if check_values:
-            if issubclass(d1.dtype.type, np.floating):
-                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-            else:
-                assert (d1 == d2).all()
+        if issubclass(d1.dtype.type, np.floating):
+            assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+        else:
+            assert (d1 == d2).all()
 
 
-class NumpyNodeMap(Wrapper, abstract=NodeMap):
+class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     """
     NumpyNodeMap stores data in verbose format with an entry in the array for every node
     If nodes are empty, a boolean missing_mask is provided
     """
 
-    def __init__(self, data, *, weights=None, missing_mask=None, node_index=None):
+    def __init__(self, data, *, missing_mask=None):
         self._assert_instance(data, np.ndarray)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
@@ -73,33 +62,28 @@ class NumpyNodeMap(Wrapper, abstract=NodeMap):
         self.missing_mask = missing_mask
         if missing_mask is not None and missing_mask.shape != data.shape:
             raise ValueError("missing_mask must be the same shape as data")
-        self._dtype = dtypes.dtypes_simplified[data.dtype]
-        self._weights = self._determine_weights(weights)
-        self._node_index = node_index
-        if node_index is not None and len(node_index) != len(data):
-            raise ValueError(
-                f"node_index size {len(node_index)} does not match data size {len(data)}"
-            )
 
-    def __getitem__(self, label):
-        if self._node_index is None:
-            return self.value[label]
-        return self.value[self._node_index.bylabel(label)]
+    def __getitem__(self, node_id):
+        if self.missing_mask:
+            if self.missing_mask[node_id]:
+                raise ValueError(f"node {node_id} is not in the NodeMap")
+        return self.value[node_id]
 
-    def _determine_weights(self, weights=None):
-        if weights is not None:
-            if weights not in WEIGHT_CHOICES:
-                raise ValueError(f"Illegal weights: {weights}")
-            return weights
+    def to_nodeset(self):
+        from ..python.types import PythonNodeSet
 
-        if self._dtype == "str":
+        values = self.value
+        if self.missing_mask is not None:
+            values = values[~self.missing_mask]
+        return PythonNodeSet(set(values))
+
+    def _determine_weights(self, dtype):
+        if dtype == "str":
             return "any"
         values = (
             self.value if self.missing_mask is None else self.value[~self.missing_mask]
         )
-        if self._dtype == "bool":
-            if values.all():
-                return "unweighted"
+        if dtype == "bool":
             return "non-negative"
         else:
             min_val = values.min()
@@ -108,207 +92,118 @@ class NumpyNodeMap(Wrapper, abstract=NodeMap):
             elif min_val == 0:
                 return "non-negative"
             else:
-                if self._dtype == "int" and min_val == 1 and values.max() == 1:
-                    return "unweighted"
                 return "positive"
 
     @property
     def num_nodes(self):
+        if self.missing_mask is not None:
+            # Count number of False in the missing mask
+            return (~self.missing_mask).sum()
         return len(self.value)
-
-    @property
-    def node_index(self):
-        if self._node_index is None:
-            self._node_index = SequentialNodes(self.num_nodes)
-        return self._node_index
-
-    def rebuild_for_node_index(self, node_index):
-        """
-        Returns a new instance based on `node_index`
-        """
-        if self.num_nodes != len(node_index):
-            raise ValueError(
-                f"Size of node_index ({len(node_index)}) must match num_nodes ({self.num_nodes})"
-            )
-
-        data = self.value
-        missing_mask = self.missing_mask
-        if node_index != self.node_index:
-            my_node_index = self.node_index
-            my_node_index._verify_valid_conversion(node_index)
-            index_converter = np.array(
-                [my_node_index.bylabel(label) for label in node_index]
-            )
-            data = data[index_converter]
-            if missing_mask is not None:
-                missing_mask = missing_mask[index_converter]
-        return NumpyNodeMap(
-            data,
-            weights=self._weights,
-            missing_mask=missing_mask,
-            node_index=node_index,
-        )
 
     @classmethod
     def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
-        return dict(dtype=obj._dtype, weights=obj._weights)
+
+        # fast properties
+        ret = {"dtype": dtypes.dtypes_simplified[obj.value.dtype]}
+
+        # slow properties, only compute if asked
+        if "weights" in props:
+            ret["weights"] = obj._determine_weights(ret["dtype"])
+
+        return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
-        assert (
-            type(obj1) is cls.value_type
-        ), f"obj1 must be NumpyNodeMap, not {type(obj1)}"
-        assert (
-            type(obj2) is cls.value_type
-        ), f"obj2 must be NumpyNodeMap, not {type(obj2)}"
-
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
         assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
-        if check_values:
-            assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
-            assert obj1._weights == obj2._weights, f"{obj1._weights} != {obj2._weights}"
-        # Convert to a common node indexing scheme
-        obj2 = obj2.rebuild_for_node_index(obj1.node_index)
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
         assert len(d1) == len(d2), f"{len(d1)} != {len(d2)}"
         # Compare
-        if check_values:
-            if obj1._dtype == "float":
-                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-            else:
-                assert (d1 == d2).all()
+        if issubclass(d1.dtype.type, np.floating):
+            assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+        else:
+            assert (d1 == d2).all()
 
 
-class CompactNumpyNodeMap(Wrapper, abstract=NodeMap):
+class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     """
     CompactNumpyNodeMap only stores data for non-empty nodes
-    num_nodes is determined by node_index, which must have an entry for all possible nodes, not just non-empty ones
     """
 
-    def __init__(self, data, lookup, *, weights=None, node_index=None):
+    # TODO: make this style more general with a separate mapper including array of node_ids plus dict of {node_id: pos}
+    def __init__(self, data, node_lookup):
         self._assert_instance(data, np.ndarray)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
-        self._assert_instance(lookup, dict)
-        self._assert(len(data) == len(lookup), "size of data and lookup must match")
+        self._assert_instance(node_lookup, dict)
+        self._assert(
+            len(data) == len(node_lookup), "size of data and node_lookup must match"
+        )
         self.value = data
-        self.lookup = lookup
-        self._dtype = dtypes.dtypes_simplified[data.dtype]
-        self._weights = self._determine_weights(weights)
-        self._node_index = node_index
+        self.lookup = node_lookup
 
-    def __getitem__(self, label):
-        idx = self.lookup[label]
-        return self.value[idx]
-
-    def _determine_weights(self, weights=None):
-        if weights is not None:
-            if weights not in WEIGHT_CHOICES:
-                raise ValueError(f"Illegal weights: {weights}")
-            return weights
-
-        if self._dtype == "str":
-            return "any"
-        values = self.value
-        if self._dtype == "bool":
-            if values.all():
-                return "unweighted"
-            return "non-negative"
-        else:
-            min_val = values.min()
-            if min_val < 0:
-                return "any"
-            elif min_val == 0:
-                return "non-negative"
-            else:
-                if self._dtype == "int" and min_val == 1 and values.max() == 1:
-                    return "unweighted"
-                return "positive"
+    def __getitem__(self, node_id):
+        pos = self.lookup[node_id]
+        return self.value[pos]
 
     @property
     def num_nodes(self):
-        if self._node_index is None:
-            return len(self.value)
-        return len(self._node_index)
+        return len(self.lookup)
 
-    @property
-    def node_index(self):
-        if self._node_index is None:
-            self._node_index = IndexedNodes.from_dict(self.lookup)
-        return self._node_index
+    def to_nodeset(self):
+        from ..python.types import PythonNodeSet
 
-    def rebuild_for_lookup(self, lookup):
-        if len(self.lookup) != len(lookup):
-            raise ValueError(
-                f"Size of lookup ({len(lookup)}) must match existing lookup ({len(self.lookup)})"
-            )
-
-        data = self.value
-
-        if lookup != self.lookup:
-            mismatch_keys = self.lookup.keys() ^ lookup.keys()
-            if mismatch_keys:
-                raise ValueError(
-                    f"Unable to rebuild with mismatching keys: {mismatch_keys}"
-                )
-
-            index_converter = np.arange(len(lookup))
-            for label, idx in lookup.items():
-                index_converter[idx] = self.lookup[label]
-            data = data[index_converter]
-
-        return CompactNumpyNodeMap(
-            data, lookup, weights=self._weights, node_index=self._node_index
-        )
+        return PythonNodeSet(set(self.lookup), node_labels=self.node_labels)
 
     @classmethod
     def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
-        return dict(dtype=obj._dtype, weights=obj._weights)
+
+        # fast properties
+        ret = {"dtype": dtypes.dtypes_simplified[obj.value.dtype]}
+
+        # slow properties, only compute if asked
+        if "weights" in props:
+            if ret["dtype"] == "str":
+                weights = "any"
+            elif ret["dtype"] == "bool":
+                weights = "non-negative"
+            else:
+                min_val = obj.value.min()
+                if min_val < 0:
+                    weights = "any"
+                elif min_val == 0:
+                    weights = "non-negative"
+                else:
+                    weights = "positive"
+            ret["weights"] = weights
+
+        return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
-        assert (
-            type(obj1) is cls.value_type
-        ), f"obj1 must be CompactNumpyNodeMap, not {type(obj1)}"
-        assert (
-            type(obj2) is cls.value_type
-        ), f"obj2 must be CompactNumpyNodeMap, not {type(obj2)}"
-
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
         assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
-        if check_values:
-            assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
-            assert obj1._weights == obj2._weights, f"{obj1._weights} != {obj2._weights}"
         assert len(obj1.value) == len(
             obj2.value
         ), f"{len(obj1.value)} != {len(obj2.value)}"
-        # Convert to a common node ordering
-        obj2 = obj2.rebuild_for_lookup(obj1.lookup)
         # Compare
-        if check_values:
-            if obj1._dtype == "float":
-                assert np.isclose(
-                    obj1.value, obj2.value, rtol=rel_tol, atol=abs_tol
-                ).all()
-            else:
-                assert (obj1.value == obj2.value).all()
+        if issubclass(obj1.value.dtype.type, np.floating):
+            assert np.isclose(obj1.value, obj2.value, rtol=rel_tol, atol=abs_tol).all()
+        else:
+            assert (obj1.value == obj2.value).all()
 
 
 class NumpyMatrix(Wrapper, abstract=Matrix):
-    def __init__(self, data, missing_mask=None, is_symmetric=None):
+    def __init__(self, data, missing_mask=None):
         if type(data) is np.matrix:
             data = np.array(data, copy=False)
         self._assert_instance(data, np.ndarray)
         if len(data.shape) != 2:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
         self.value = data
-        nrows, ncols = data.shape
-        self._is_square = nrows == ncols
-        if is_symmetric is None:
-            is_symmetric = nrows == ncols and (data.T == data).all().all()
-        self._is_symmetric = is_symmetric
         self.missing_mask = missing_mask
         if missing_mask is not None:
             if missing_mask.dtype != bool:
@@ -323,28 +218,25 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     @classmethod
     def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
-        is_dense = obj.missing_mask is None
-        dtype = dtypes.dtypes_simplified[obj.value.dtype]
-        return dict(
-            is_dense=is_dense,
-            is_square=obj._is_square,
-            is_symmetric=obj._is_symmetric,
-            dtype=dtype,
-        )
+
+        # fast properties
+        ret = {
+            "is_dense": obj.missing_mask is None,
+            "is_square": obj.value.shape[0] == obj.value.shape[1],
+            "dtype": dtypes.dtypes_simplified[obj.value.dtype],
+        }
+
+        # slow properties, only compute if asked
+        if "is_symmetric" in props:
+            # TODO: make this dependent on the missing mask
+            ret["is_symmetric"] = (
+                ret["is_square"] and (obj.value.T == obj.value).all().all()
+            )
+
+        return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True):
-        assert (
-            type(obj1) is cls.value_type
-        ), f"obj1 must be NumpyMatrix, not {type(obj1)}"
-        assert (
-            type(obj2) is cls.value_type
-        ), f"obj2 must be NumpyMatrix, not {type(obj2)}"
-
-        if check_values:
-            assert (
-                obj1.value.dtype == obj2.value.dtype
-            ), f"{obj1.value.dtype} != {obj2.value.dtype}"
+    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
         assert (
             obj1.value.shape == obj2.value.shape
         ), f"{obj1.value.shape} != {obj2.value.shape}"
@@ -357,15 +249,13 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
             mask_alignment = obj1.missing_mask == obj2.missing_mask
             assert mask_alignment.all().all(), f"{mask_alignment}"
             # Compare 1-D
-            if check_values:
-                if issubclass(d1.dtype.type, np.floating):
-                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-                else:
-                    assert (d1 == d2).all()
+            if issubclass(d1.dtype.type, np.floating):
+                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
+            else:
+                assert (d1 == d2).all()
         else:
             # Compare 2-D
-            if check_values:
-                if issubclass(d1.dtype.type, np.floating):
-                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
-                else:
-                    assert (d1 == d2).all().all()
+            if issubclass(d1.dtype.type, np.floating):
+                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
+            else:
+                assert (d1 == d2).all().all()

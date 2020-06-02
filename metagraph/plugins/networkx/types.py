@@ -1,47 +1,44 @@
 from typing import List, Dict, Any
-from metagraph import ConcreteType, Wrapper, IndexedNodes
-from metagraph.types import Graph, DTYPE_CHOICES, WEIGHT_CHOICES
+from metagraph.types import EdgeSet, EdgeMap
+from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper
 from metagraph.plugins import has_networkx
-from functools import partial
-import operator
 import math
 
 
 if has_networkx:
     import networkx as nx
 
-    class NetworkXGraph(Wrapper, abstract=Graph):
+    class NetworkXEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
+        def __init__(self, nx_graph):
+            self.value = nx_graph
+
+        @classmethod
+        def assert_equal(cls, obj1, obj2, *, rel_tol=None, abs_tol=None):
+            g1 = obj1.value
+            g2 = obj2.value
+            assert (
+                g1.is_directed() == g2.is_directed()
+            ), f"is directed? {g1.is_directed()} != {g2.is_directed()}"
+            # Compare
+            assert (
+                g1.nodes() == g2.nodes()
+            ), f"node mismatch: {g1.nodes()} != {g2.nodes()}"
+            assert (
+                g1.edges() == g2.edges()
+            ), f"edge mismatch: {g1.edges()} != {g2.edges()}"
+
+    class NetworkXEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         def __init__(
-            self,
-            nx_graph,
-            weight_label=None,
-            *,
-            weights=None,
-            dtype=None,
-            node_index=None,
+            self, nx_graph, weight_label="weight",
         ):
             self.value = nx_graph
             self.weight_label = weight_label
-            self._node_index = node_index
             self._assert_instance(nx_graph, nx.Graph)
-            if weight_label is None:
-                self._dtype = "bool"
-                self._weights = "unweighted"
-            else:
-                all_values = set()
-                for edge in nx_graph.edges(data=True):
-                    e_attrs = edge[-1]
-                    value = e_attrs[weight_label]
-                    all_values.add(value)
-                self._dtype = self._determine_dtype(dtype, all_values)
-                self._weights = self._determine_weights(weights, all_values)
 
-        def _determine_dtype(self, dtype, all_values):
-            if dtype is not None:
-                if dtype not in DTYPE_CHOICES:
-                    raise ValueError(f"Illegal dtype: {dtype}")
-                return dtype
+        def to_edgeset(self):
+            return NetworkXEdgeSet(self.value)
 
+        def _determine_dtype(self, all_values):
             all_types = {type(v) for v in all_values}
             if not all_types or (all_types - {float, int, bool}):
                 return "str"
@@ -49,67 +46,41 @@ if has_networkx:
                 if type_ in all_types:
                     return str(type_.__name__)
 
-        def _determine_weights(self, weights, all_values):
-            if weights is not None:
-                if weights not in WEIGHT_CHOICES:
-                    raise ValueError(f"Illegal weights: {weights}")
-                return weights
-
-            if self._dtype == "str":
-                return "any"
-            if self._dtype == "bool":
-                if all_values == {True}:
-                    return "unweighted"
-                return "non-negative"
-            else:
-                min_val = min(all_values)
-                if min_val < 0:
-                    return "any"
-                elif min_val == 0:
-                    return "non-negative"
-                else:
-                    if self._dtype == "int" and all_values == {1}:
-                        return "unweighted"
-                    return "positive"
-
-        @property
-        def num_nodes(self):
-            return self.value.number_of_nodes()
-
-        @property
-        def node_index(self):
-            if self._node_index is None:
-                nodes = tuple(self.value.nodes())
-                if type(nodes[0]) == int:
-                    nodes = sorted(nodes)
-                self._node_index = IndexedNodes(nodes)
-            return self._node_index
-
         @classmethod
         def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
-            return dict(
-                is_directed=obj.value.is_directed(),
-                dtype=obj._dtype,
-                weights=obj._weights,
-            )
+
+            # fast properties
+            ret = {"is_directed": obj.value.is_directed()}
+
+            # slow properties, only compute if asked
+            if "dtype" in props or "weights" in props:
+                all_values = set()
+                for edge in obj.value.edges(data=True):
+                    e_attrs = edge[-1]
+                    value = e_attrs[obj.weight_label]
+                    all_values.add(value)
+                dtype = obj._determine_dtype(all_values)
+                ret["dtype"] = dtype
+                if "weights" in props:
+                    if dtype == "str":
+                        weights = "any"
+                    elif dtype == "bool":
+                        weights = "non-negative"
+                    else:
+                        min_val = min(all_values)
+                        if min_val < 0:
+                            weights = "any"
+                        elif min_val == 0:
+                            weights = "non-negative"
+                        else:
+                            weights = "positive"
+                    ret["weights"] = weights
+
+            return ret
 
         @classmethod
-        def assert_equal(
-            cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0, check_values=True
-        ):
-            assert (
-                type(obj1) is cls.value_type
-            ), f"obj1 must be NetworkXGraph, not {type(obj1)}"
-            assert (
-                type(obj2) is cls.value_type
-            ), f"obj2 must be NetworkXGraph, not {type(obj2)}"
-
-            if check_values:
-                assert obj1._dtype == obj2._dtype, f"{obj1._dtype} != {obj2._dtype}"
-                assert (
-                    obj1._weights == obj2._weights
-                ), f"{obj1._weights} != {obj2._weights}"
+        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
             g1 = obj1.value
             g2 = obj2.value
             assert (
@@ -118,16 +89,14 @@ if has_networkx:
             # Compare
             assert g1.nodes() == g2.nodes(), f"{g1.nodes()} != {g2.nodes()}"
             assert g1.edges() == g2.edges(), f"{g1.edges()} != {g2.edges()}"
-            if check_values and obj1._weights != "unweighted":
-                if obj1._dtype == "float":
-                    comp = partial(math.isclose, rel_tol=rel_tol, abs_tol=abs_tol)
-                    compstr = "close to"
-                else:
-                    comp = operator.eq
-                    compstr = "equal to"
 
-                for e1, e2, d1 in g1.edges(data=True):
-                    d2 = g2.edges[(e1, e2)]
-                    val1 = d1[obj1.weight_label]
-                    val2 = d2[obj2.weight_label]
-                    assert comp(val1, val2), f"{(e1, e2)} {val1} not {compstr} {val2}"
+            for e1, e2, d1 in g1.edges(data=True):
+                d2 = g2.edges[(e1, e2)]
+                val1 = d1[obj1.weight_label]
+                val2 = d2[obj2.weight_label]
+                if type(val1) is float:
+                    assert math.isclose(
+                        val1, val2, rel_tol=rel_tol, abs_tol=abs_tol
+                    ), f"{(e1, e2)} {val1} not close to {val2}"
+                else:
+                    assert val1 == val2, f"{(e1, e2)} {val1} != {val2}"
