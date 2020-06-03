@@ -17,10 +17,10 @@ def test_python_2_compactnumpy(default_plugin_resolver):
         np.array([12.5, 33.4, -1.2]), {0: 0, 1: 1, 42: 2},
     )
     y = dpr.translate(x, CompactNumpyNodeMap)
-    CompactNumpyNodeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
     # Convert python <- compactnumpy
     x2 = dpr.translate(y, PythonNodeMap)
-    PythonNodeMap.Type.assert_equal(x, x2)
+    dpr.assert_equal(x, x2)
 
 
 def test_compactnumpy_2_numpy(default_plugin_resolver):
@@ -32,10 +32,10 @@ def test_compactnumpy_2_numpy(default_plugin_resolver):
     missing_mask = data == 1
     intermediate = NumpyNodeMap(data, missing_mask=missing_mask)
     y = dpr.translate(x, NumpyNodeMap)
-    NumpyNodeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
     # Convert compactnumpy <- numpy
     x2 = dpr.translate(y, CompactNumpyNodeMap)
-    CompactNumpyNodeMap.Type.assert_equal(x, x2)
+    dpr.assert_equal(x, x2)
 
 
 def test_compactnumpy_default_index_2_numpy(default_plugin_resolver):
@@ -46,10 +46,10 @@ def test_compactnumpy_default_index_2_numpy(default_plugin_resolver):
     data = np.array([11.1, 33.3, -22.2])
     intermediate = NumpyNodeMap(data)
     y = dpr.translate(x, NumpyNodeMap)
-    NumpyNodeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
     # # Convert compactnumpy <- numpy
     x2 = dpr.translate(y, CompactNumpyNodeMap)
-    CompactNumpyNodeMap.Type.assert_equal(x, x2)
+    dpr.assert_equal(x, x2)
 
 
 def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
@@ -60,10 +60,10 @@ def test_numpy_2_compactnumpy_dense(default_plugin_resolver):
     # Convert numpy -> compactnumpy
     intermediate = CompactNumpyNodeMap(data, {0: 0, 1: 1, 2: 2, 3: 3, 4: 4})
     y = dpr.translate(x, CompactNumpyNodeMap)
-    CompactNumpyNodeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
     # Convert numpy <- compactnumpy
     x2 = dpr.translate(y, NumpyNodeMap)
-    NumpyNodeMap.Type.assert_equal(x, x2)
+    dpr.assert_equal(x, x2)
 
 
 def test_graphblas_python(default_plugin_resolver):
@@ -75,7 +75,7 @@ def test_graphblas_python(default_plugin_resolver):
     # Convert graphblas -> python
     intermediate = PythonNodeMap({25: 12.5, 24: 33.4, 9: -1.2})
     y = dpr.translate(x, PythonNodeMap)
-    PythonNodeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
 
 
 def test_numpy_graphblas(default_plugin_resolver):
@@ -87,4 +87,4 @@ def test_numpy_graphblas(default_plugin_resolver):
     # Convert numpy -> graphblas
     intermediate = GrblasNodeMap(grblas.Vector.from_values([2, 4, 6], [3, 4, -1]),)
     y = dpr.translate(x, GrblasNodeMap)
-    GrblasNodeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)

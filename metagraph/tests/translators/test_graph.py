@@ -27,7 +27,7 @@ def test_networkx_scipy(default_plugin_resolver):
     )
     intermediate = ScipyEdgeMap(m, [0, 2, 7])
     y = dpr.translate(x, ScipyEdgeMap)
-    ScipyEdgeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
 
 
 def test_scipy_graphblas(default_plugin_resolver):
@@ -46,7 +46,7 @@ def test_scipy_graphblas(default_plugin_resolver):
     )
     intermediate = GrblasEdgeMap(m)
     y = dpr.translate(x, GrblasEdgeMap)
-    GrblasEdgeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
 
 
 def test_networkx_2_pandas(default_plugin_resolver):
@@ -64,7 +64,7 @@ def test_networkx_2_pandas(default_plugin_resolver):
     )
     intermediate = PandasEdgeMap(df, weight_label="weight")
     y = dpr.translate(x, PandasEdgeMap)
-    PandasEdgeMap.Type.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
     # Convert networkx <- pandas edge list
     x2 = dpr.translate(y, NetworkXEdgeMap)
-    NetworkXEdgeMap.Type.assert_equal(x, x2)
+    dpr.assert_equal(x, x2)

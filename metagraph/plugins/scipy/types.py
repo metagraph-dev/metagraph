@@ -36,8 +36,9 @@ if has_scipy:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
             assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
+            assert props1 == props2, f"property mismatch: {props1} != {props2}"
             if issubclass(obj1.dtype.type, np.floating):
                 d1 = obj1.tocsr()
                 d2 = obj2.tocsr()
@@ -63,7 +64,9 @@ if has_scipy:
             self._node_list = node_list
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, *, rel_tol=None, abs_tol=None):
+        def assert_equal(
+            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
+        ):
             m1, m2 = obj1.value, obj2.value
             assert (
                 m1.shape[0] == m2.shape[0]
@@ -72,6 +75,7 @@ if has_scipy:
             assert (
                 obj1._node_list == obj2._node_list
             ).all(), f"node list mismatch: {obj1._node_list} != {obj2._node_list}"
+            assert props1 == props2, f"property mismatch: {props1} != {props2}"
             # Handle transposed states
             d1 = m1.T if obj1.transposed else m1
             d2 = m2.T if obj2.transposed else m2
@@ -141,7 +145,7 @@ if has_scipy:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
             m1, m2 = obj1.value, obj2.value
             assert (
                 m1.shape[0] == m2.shape[0]
@@ -150,6 +154,7 @@ if has_scipy:
             assert (
                 obj1._node_list == obj2._node_list
             ).all(), f"node list mismatch: {obj1._node_list} != {obj2._node_list}"
+            assert props1 == props2, f"property mismatch: {props1} != {props2}"
             # Handle transposed states
             d1 = m1.T if obj1.transposed else m1
             d2 = m2.T if obj2.transposed else m2

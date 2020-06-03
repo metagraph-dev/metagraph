@@ -13,12 +13,12 @@ if has_networkx:
             self.value = nx_graph
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, *, rel_tol=None, abs_tol=None):
+        def assert_equal(
+            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
+        ):
+            assert props1 == props2, f"property mismatch: {props1} != {props2}"
             g1 = obj1.value
             g2 = obj2.value
-            assert (
-                g1.is_directed() == g2.is_directed()
-            ), f"is directed? {g1.is_directed()} != {g2.is_directed()}"
             # Compare
             assert (
                 g1.nodes() == g2.nodes()
@@ -86,12 +86,10 @@ if has_networkx:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+            assert props1 == props2, f"property mismatch: {props1} != {props2}"
             g1 = obj1.value
             g2 = obj2.value
-            assert (
-                g1.is_directed() == g2.is_directed()
-            ), f"{g1.is_directed()} != {g2.is_directed()}"
             # Compare
             assert g1.nodes() == g2.nodes(), f"{g1.nodes()} != {g2.nodes()}"
             assert g1.edges() == g2.edges(), f"{g1.edges()} != {g2.edges()}"

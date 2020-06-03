@@ -144,7 +144,7 @@ class MultiVerify:
                         raise TypeError(
                             f"compare value must be {expected_type}, not {type(compare_val)}"
                         )
-                    expected_type.assert_equal(
+                    self.resolver.assert_equal(
                         compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
                     )
                 except AssertionError:

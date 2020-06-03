@@ -249,10 +249,11 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0) -> bool:
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
         """
         Compare whether obj1 and obj2 are equal, raising an AssertionError if not equal.
         rel_tol and abs_tol should be used when comparing floating point numbers
+        props1 and props2 and dicts of all properties and can be used when performing the comparison
         """
         raise NotImplementedError()
 
