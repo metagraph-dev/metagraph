@@ -38,10 +38,11 @@ class NumpyVector(Wrapper, abstract=Vector):
         return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
         assert (
             obj1.value.shape == obj2.value.shape
         ), f"{obj1.value.shape} != {obj2.value.shape}"
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
@@ -130,8 +131,9 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
         assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]
@@ -205,11 +207,12 @@ class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
         assert obj1.num_nodes == obj2.num_nodes, f"{obj1.num_nodes} != {obj2.num_nodes}"
         assert len(obj1.value) == len(
             obj2.value
         ), f"{len(obj1.value)} != {len(obj2.value)}"
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
         # Compare
         if issubclass(obj1.value.dtype.type, np.floating):
             assert np.isclose(obj1.value, obj2.value, rtol=rel_tol, atol=abs_tol).all()
@@ -261,10 +264,11 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
         assert (
             obj1.value.shape == obj2.value.shape
         ), f"{obj1.value.shape} != {obj2.value.shape}"
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
         # Remove missing values
         d1 = obj1.value if obj1.missing_mask is None else obj1.value[~obj1.missing_mask]
         d2 = obj2.value if obj2.missing_mask is None else obj2.value[~obj2.missing_mask]

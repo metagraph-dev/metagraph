@@ -539,7 +539,27 @@ class Resolver:
         This may require potentially slow computation of properties.  Only use
         this for debugging.
         """
-        return self.typeclass_of(value).get_type(value, self.known_properties_of(value))
+        this_typeclass = self.typeclass_of(value)
+        # The above line should ensure the typeinfo cache is populated
+        this_typeinfo = self.typecache[value]
+        ct = self.typeclass_of(value).get_type(value, self.known_properties_of(value))
+        for ap in this_typeinfo.abstract_typeclass.properties:
+            this_typeinfo.known_abstract_props[ap] = ct.abstract_instance.prop_val[ap]
+        for cp in this_typeinfo.concrete_typeclass.allowed_props:
+            this_typeinfo.known_concrete_props[cp] = ct.props[cp]
+        return ct
+
+    def assert_equal(self, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+        # Ensure all properties are fully calculated
+        type1 = self.type_of(obj1)
+        type2 = self.type_of(obj2)
+        if type(type1) is not type(type2):
+            raise TypeError(
+                f"Cannot assert_equal with different types: {type(type1)} != {type(type2)}"
+            )
+        props1 = self.known_properties_of(obj1)
+        props2 = self.known_properties_of(obj2)
+        type1.assert_equal(obj1, obj2, props1, props2, rel_tol=rel_tol, abs_tol=abs_tol)
 
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""

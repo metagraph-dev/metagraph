@@ -16,10 +16,11 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
         self.value = data
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=None, abs_tol=None):
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None):
         v1, v2 = obj1.value, obj2.value
         assert len(v1) == len(v2), f"size mismatch: {len(v1)} != {len(v2)}"
         assert v1 == v2, f"node sets do not match"
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
 
 
 class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
@@ -80,10 +81,10 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
         return ret
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
         d1, d2 = obj1.value, obj2.value
-        dtype = obj1._determine_dtype()
-        if dtype == "float":
+        if props1["dtype"] == "float":
             assert (
                 not d1.keys() ^ d2.keys()
             ), f"Mismatched keys: {d1.keys() ^ d2.keys()}"

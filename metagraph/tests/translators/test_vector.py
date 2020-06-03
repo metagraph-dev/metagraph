@@ -14,7 +14,7 @@ def test_numpy_2_graphblas(default_plugin_resolver):
     # Convert numpy -> grblas vector
     intermediate = grblas.Vector.from_values([1, 4, 5, 6], [1.1, 4.4, 5.5, 6.6], size=8)
     y = dpr.translate(x, GrblasVectorType)
-    GrblasVectorType.assert_equal(y, intermediate)
+    dpr.assert_equal(y, intermediate)
     # Convert numpy <- grblas vector
     x2 = dpr.translate(y, NumpyVector)
-    NumpyVector.Type.assert_equal(x, x2)
+    dpr.assert_equal(x, x2)

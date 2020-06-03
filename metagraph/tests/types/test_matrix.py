@@ -13,23 +13,31 @@ def test_numpy():
     NumpyMatrix.Type.assert_equal(
         NumpyMatrix(np.array([[1, 2, 3], [4, 5, 6]])),
         NumpyMatrix(np.array([[1, 2, 3], [4, 5, 6]])),
+        {},
+        {},
     )
     NumpyMatrix.Type.assert_equal(
         NumpyMatrix(np.array([[1.1, 2.2, 3.333333333333333]])),
         NumpyMatrix(np.array([[1.1, 2.199999999999999, 3.3333333333333334]])),
+        {},
+        {},
     )
     # Different size
     with pytest.raises(AssertionError):
         NumpyMatrix.Type.assert_equal(
             NumpyMatrix(np.array([[1, 2, 3], [4, 5, 6]])),
             NumpyMatrix(np.array([[1, 2], [3, 4], [5, 6]])),
+            {},
+            {},
         )
-    # # Different dtypes are not equal
-    # with pytest.raises(AssertionError):
-    #     NumpyMatrix.Type.assert_equal(
-    #         NumpyMatrix(np.array([[1, 2, 3]], dtype=np.int16)),
-    #         NumpyMatrix(np.array([[1, 2, 3]], dtype=np.int32)),
-    #     )
+    # Different dtypes are not equal
+    with pytest.raises(AssertionError):
+        NumpyMatrix.Type.assert_equal(
+            NumpyMatrix(np.array([[1, 2, 3]], dtype=np.int16)),
+            NumpyMatrix(np.array([[1, 2, 3]], dtype=np.int32)),
+            {"dtype": "int"},
+            {"dtype": "float"},
+        )
     # Missing values are ignored
     NumpyMatrix.Type.assert_equal(
         NumpyMatrix(
@@ -40,6 +48,8 @@ def test_numpy():
             np.array([[1, 2, 3], [4, 5, 22]]),
             missing_mask=np.array([[False, True, False], [False, False, True]]),
         ),
+        {},
+        {},
     )
     # Different missing values
     with pytest.raises(AssertionError):
@@ -52,6 +62,8 @@ def test_numpy():
                 np.array([[1, 2, 3, 4]]),
                 missing_mask=np.array([[False, False, False, True]]),
             ),
+            {},
+            {},
         )
     # Coincidental equality of non-missing values is not equality
     with pytest.raises(AssertionError):
@@ -64,6 +76,8 @@ def test_numpy():
                 np.array([[1, 2, 3], [3, 3, 3]]),
                 missing_mask=np.array([[False, False, False], [True, False, False]]),
             ),
+            {},
+            {},
         )
 
 
@@ -71,33 +85,45 @@ def test_scipy():
     ScipyMatrixType.assert_equal(
         ss.coo_matrix(np.array([[1, 2, 3], [4, 5, 6]])),
         ss.coo_matrix(np.array([[1, 2, 3], [4, 5, 6]])),
+        {},
+        {},
     )
     ScipyMatrixType.assert_equal(
         ss.coo_matrix(np.array([[1.1, 2.2, 3.333333333333333]])),
         ss.coo_matrix(np.array([[1.1, 2.199999999999999, 3.3333333333333334]])),
+        {},
+        {},
     )
     # Different size
     with pytest.raises(AssertionError):
         ScipyMatrixType.assert_equal(
             ss.coo_matrix(np.array([[1, 2, 3], [4, 5, 6]])),
             ss.coo_matrix(np.array([[1, 2], [3, 4], [5, 6]])),
+            {},
+            {},
         )
-    # # Different dtypes are not equal
-    # with pytest.raises(AssertionError):
-    #     ScipyMatrixType.assert_equal(
-    #         ss.coo_matrix(np.array([[1, 2, 3]], dtype=np.int16)),
-    #         ss.coo_matrix(np.array([[1, 2, 3]], dtype=np.int32)),
-    #     )
+    # Different dtypes are not equal
+    with pytest.raises(AssertionError):
+        ScipyMatrixType.assert_equal(
+            ss.coo_matrix(np.array([[1, 2, 3]], dtype=np.int16)),
+            ss.coo_matrix(np.array([[1, 2, 3]], dtype=np.int32)),
+            {"dtype": "int"},
+            {"dtype": "float"},
+        )
     # Missing values are ignored
     ScipyMatrixType.assert_equal(
         ss.coo_matrix(([1, 3, 4, 5], ([0, 0, 1, 1], [0, 2, 0, 1]))),
         ss.coo_matrix(([1, 3, 4, 5], ([0, 0, 1, 1], [0, 2, 0, 1]))),
+        {},
+        {},
     )
     # Different missing values
     with pytest.raises(AssertionError):
         ScipyMatrixType.assert_equal(
             ss.coo_matrix(([1, 3, 4, 5], ([0, 0, 1, 1], [0, 2, 0, 1]))),
             ss.coo_matrix(([1, 3, 4, 5], ([0, 0, 1, 1], [0, 2, 0, 2]))),
+            {},
+            {},
         )
 
 
@@ -109,6 +135,8 @@ def test_graphblas():
         grblas.Matrix.from_values(
             [0, 0, 0, 1, 1, 1], [0, 1, 2, 0, 1, 2], [1, 2, 3, 4, 5, 6]
         ),
+        {},
+        {},
     )
     GrblasMatrixType.assert_equal(
         grblas.Matrix.from_values(
@@ -117,6 +145,8 @@ def test_graphblas():
         grblas.Matrix.from_values(
             [0, 0, 0], [0, 1, 2], [1.1, 2.19999999999999999, 3.333333333333333334]
         ),
+        {},
+        {},
     )
     # Different size
     with pytest.raises(AssertionError):
@@ -127,6 +157,8 @@ def test_graphblas():
             grblas.Matrix.from_values(
                 [0, 0, 1, 1, 2, 2], [0, 1, 0, 1, 0, 1], [1, 2, 3, 4, 5, 6]
             ),
+            {},
+            {},
         )
     # Different dtypes are not equal
     with pytest.raises(AssertionError):
@@ -137,15 +169,21 @@ def test_graphblas():
             grblas.Matrix.from_values(
                 [0, 0, 0], [0, 1, 2], [1, 2, 3], dtype=grblas.dtypes.INT32
             ),
+            {},
+            {},
         )
     # Missing values are ignored
     GrblasMatrixType.assert_equal(
         grblas.Matrix.from_values([0, 0, 1, 1], [0, 2, 0, 1], [1, 3, 4, 5]),
         grblas.Matrix.from_values([0, 0, 1, 1], [0, 2, 0, 1], [1, 3, 4, 5]),
+        {},
+        {},
     )
     # Different missing values
     with pytest.raises(AssertionError):
         GrblasMatrixType.assert_equal(
             grblas.Matrix.from_values([0, 0, 1, 1], [0, 2, 0, 1], [1, 3, 4, 5]),
             grblas.Matrix.from_values([0, 0, 1, 1], [0, 2, 0, 2], [1, 3, 4, 5]),
+            {},
+            {},
         )
