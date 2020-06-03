@@ -38,9 +38,18 @@ if has_grblas:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
-            is_dense = obj.nvals == obj.size
-            dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]]
-            return dict(is_dense=is_dense, dtype=dtype)
+            ret = known_props.copy()
+
+            # fast properties
+            for prop in {"is_dense", "dtype"} - ret.keys():
+                if prop == "is_dense":
+                    ret[prop] = obj.nvals == obj.size
+                if prop == "dtype":
+                    ret[prop] = dtypes.dtypes_simplified[
+                        dtype_grblas_to_mg[obj.dtype.name]
+                    ]
+
+            return ret
 
         @classmethod
         def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
@@ -82,26 +91,31 @@ if has_grblas:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
+            ret = known_props.copy()
 
             # fast properties
-            dtype = dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.value.dtype.name]]
-            ret = {"dtype": dtype}
+            for prop in {"dtype"} - ret.keys():
+                if prop == "dtype":
+                    ret[prop] = dtypes.dtypes_simplified[
+                        dtype_grblas_to_mg[obj.value.dtype.name]
+                    ]
 
             # slow properties, only compute if asked
-            if "weights" in props:
-                if dtype == "str":
-                    weights = "any"
-                elif dtype == "bool":
-                    weights = "non-negative"
-                else:
-                    min_val = obj.value.reduce(grblas.monoid.min).new().value
-                    if min_val < 0:
+            for prop in props - ret.keys():
+                if prop == "weights":
+                    if ret["dtype"] == "str":
                         weights = "any"
-                    elif min_val == 0:
+                    elif ret["dtype"] == "bool":
                         weights = "non-negative"
                     else:
-                        weights = "positive"
-                ret["weights"] = weights
+                        min_val = obj.value.reduce(grblas.monoid.min).new().value
+                        if min_val < 0:
+                            weights = "any"
+                        elif min_val == 0:
+                            weights = "non-negative"
+                        else:
+                            weights = "positive"
+                    ret[prop] = weights
 
             return ret
 
@@ -128,16 +142,21 @@ if has_grblas:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
+            ret = known_props.copy()
+
             # fast properties
-            ret = {
-                "is_square": obj.nrows == obj.ncols,
-                "dtype": dtypes.dtypes_simplified[dtype_grblas_to_mg[obj.dtype.name]],
-            }
+            for prop in {"is_square", "dtype"} - ret.keys():
+                if prop == "is_square":
+                    ret[prop] = obj.nrows == obj.ncols
+                if prop == "dtype":
+                    ret[prop] = dtypes.dtypes_simplified[
+                        dtype_grblas_to_mg[obj.dtype.name]
+                    ]
 
             # slow properties, only compute if asked
-            for propname in props:
-                if propname == "is_symmetric":
-                    ret["is_symmetric"] = obj == obj.T.new()
+            for prop in props - ret.keys():
+                if prop == "is_symmetric":
+                    ret[prop] = obj == obj.T.new()
 
             return ret
 
@@ -167,13 +186,12 @@ if has_grblas:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
-
-            # fast properties
-            ret = {}
+            ret = known_props.copy()
 
             # slow properties, only compute if asked
-            if "is_directed" in props:
-                ret["is_directed"] = obj.value != obj.value.T.new()
+            for prop in props - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = obj.value != obj.value.T.new()
 
             return ret
 
@@ -206,28 +224,31 @@ if has_grblas:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
+            ret = known_props.copy()
 
             # fast properties
-            dtype = dtype_grblas_to_mg[obj.value.dtype.name]
-            ret = {"dtype": dtype}
+            for prop in {"dtype"} - ret.keys():
+                if prop == "dtype":
+                    ret[prop] = known_props["dtype"]
 
             # slow properties, only compute if asked
-            if "is_directed" in props:
-                ret["is_directed"] = obj.value != obj.value.T.new()
-            if "weights" in props:
-                if dtype == "str":
-                    weights = "any"
-                elif dtype == "bool":
-                    weights = "non-negative"
-                else:
-                    min_val = obj.value.reduce(grblas.monoid.min).new().value
-                    if min_val < 0:
+            for prop in props - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = obj.value != obj.value.T.new()
+                if prop == "weights":
+                    if ret["dtype"] == "str":
                         weights = "any"
-                    elif min_val == 0:
+                    elif ret["dtype"] == "bool":
                         weights = "non-negative"
                     else:
-                        weights = "positive"
-                ret["weights"] = weights
+                        min_val = obj.value.reduce(grblas.monoid.min).new().value
+                        if min_val < 0:
+                            weights = "any"
+                        elif min_val == 0:
+                            weights = "non-negative"
+                        else:
+                            weights = "positive"
+                    ret[prop] = weights
 
             return ret
 

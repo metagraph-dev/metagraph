@@ -103,29 +103,33 @@ if has_pandas:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
+            ret = known_props.copy()
 
             # fast properties
-            ret = {
-                "is_directed": obj.is_directed,
-                "dtype": dtypes.dtypes_simplified[obj.value[obj.weight_label].dtype],
-            }
+            for prop in {"is_directed", "dtype"} - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = obj.is_directed
+                if prop == "dtype":
+                    ret[prop] = dtypes.dtypes_simplified[
+                        obj.value[obj.weight_label].dtype
+                    ]
 
             # slow properties, only compute if asked
-            if "weights" in props:
-                if ret["dtype"] == "str":
-                    weights = "any"
-                values = obj.value[obj.weight_label]
-                if ret["dtype"] == "bool":
-                    weights = "non-negative"
-                else:
-                    min_val = values.min()
-                    if min_val < 0:
+            for prop in props - ret.keys():
+                if prop == "weights":
+                    if ret["dtype"] == "str":
                         weights = "any"
-                    elif min_val == 0:
+                    elif ret["dtype"] == "bool":
                         weights = "non-negative"
                     else:
-                        weights = "positive"
-                ret["weights"] = weights
+                        min_val = obj.value[obj.weight_label].min()
+                        if min_val < 0:
+                            weights = "any"
+                        elif min_val == 0:
+                            weights = "non-negative"
+                        else:
+                            weights = "positive"
+                    ret[prop] = weights
 
             return ret
 

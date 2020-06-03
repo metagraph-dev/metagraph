@@ -26,9 +26,16 @@ class NumpyVector(Wrapper, abstract=Vector):
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
-        is_dense = obj.missing_mask is None
-        dtype = dtypes.dtypes_simplified[obj.value.dtype]
-        return dict(is_dense=is_dense, dtype=dtype)
+        ret = known_props.copy()
+
+        # fast properties
+        for prop in {"is_dense", "dtype"} - ret.keys():
+            if prop == "is_dense":
+                ret[prop] = obj.missing_mask is None
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
+
+        return ret
 
     @classmethod
     def assert_equal(cls, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
@@ -108,13 +115,17 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
+        ret = known_props.copy()
 
         # fast properties
-        ret = {"dtype": dtypes.dtypes_simplified[obj.value.dtype]}
+        for prop in {"dtype"} - ret.keys():
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
 
         # slow properties, only compute if asked
-        if "weights" in props:
-            ret["weights"] = obj._determine_weights(ret["dtype"])
+        for prop in props - ret.keys():
+            if prop == "weights":
+                ret[prop] = obj._determine_weights(ret["dtype"])
 
         return ret
 
@@ -167,25 +178,29 @@ class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
+        ret = known_props.copy()
 
         # fast properties
-        ret = {"dtype": dtypes.dtypes_simplified[obj.value.dtype]}
+        for prop in {"dtype"} - ret.keys():
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
 
         # slow properties, only compute if asked
-        if "weights" in props:
-            if ret["dtype"] == "str":
-                weights = "any"
-            elif ret["dtype"] == "bool":
-                weights = "non-negative"
-            else:
-                min_val = obj.value.min()
-                if min_val < 0:
+        for prop in props - ret.keys():
+            if prop == "weights":
+                if ret["dtype"] == "str":
                     weights = "any"
-                elif min_val == 0:
+                elif ret["dtype"] == "bool":
                     weights = "non-negative"
                 else:
-                    weights = "positive"
-            ret["weights"] = weights
+                    min_val = obj.value.min()
+                    if min_val < 0:
+                        weights = "any"
+                    elif min_val == 0:
+                        weights = "non-negative"
+                    else:
+                        weights = "positive"
+                ret[prop] = weights
 
         return ret
 
@@ -226,20 +241,22 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
+        ret = known_props.copy()
 
         # fast properties
-        ret = {
-            "is_dense": obj.missing_mask is None,
-            "is_square": obj.value.shape[0] == obj.value.shape[1],
-            "dtype": dtypes.dtypes_simplified[obj.value.dtype],
-        }
+        for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
+            if prop == "is_dense":
+                ret[prop] = obj.missing_mask is None
+            if prop == "is_square":
+                ret[prop] = obj.value.shape[0] == obj.value.shape[1]
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
 
         # slow properties, only compute if asked
-        if "is_symmetric" in props:
-            # TODO: make this dependent on the missing mask
-            ret["is_symmetric"] = (
-                ret["is_square"] and (obj.value.T == obj.value).all().all()
-            )
+        for prop in props - ret.keys():
+            if prop == "is_symmetric":
+                # TODO: make this dependent on the missing mask
+                ret[prop] = ret["is_square"] and (obj.value.T == obj.value).all().all()
 
         return ret
 
