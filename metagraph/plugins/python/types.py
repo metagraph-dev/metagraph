@@ -67,19 +67,15 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         cls._validate_abstract_props(props)
-
-        # fast properties
-        ret = {}
+        ret = known_props.copy()
 
         # slow properties, only compute if asked
-        dtype = None
-        if "dtype" in props:
-            dtype = obj._determine_dtype()
-            ret["dtype"] = dtype
-        if "weights" in props:
-            if dtype is None:
-                dtype = obj._determine_dtype()
-            ret["weights"] = obj._determine_weights(dtype)
+        slow_props = props - ret.keys()
+        if "weights" in slow_props and "dtype" not in ret:
+            ret["dtype"] = obj._determine_dtype()
+        for prop in props - ret.keys():
+            if prop == "weights":
+                ret["weights"] = obj._determine_weights(ret["dtype"])
 
         return ret
 

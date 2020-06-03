@@ -51,23 +51,27 @@ if has_networkx:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
+            ret = known_props.copy()
 
             # fast properties
-            ret = {"is_directed": obj.value.is_directed()}
+            for prop in {"is_directed"} - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = obj.value.is_directed()
 
             # slow properties, only compute if asked
-            if "dtype" in props or "weights" in props:
+            slow_props = props - ret.keys()
+            if "dtype" in slow_props or "weights" in slow_props:
                 all_values = set()
                 for edge in obj.value.edges(data=True):
                     e_attrs = edge[-1]
                     value = e_attrs[obj.weight_label]
                     all_values.add(value)
-                dtype = obj._determine_dtype(all_values)
-                ret["dtype"] = dtype
-                if "weights" in props:
-                    if dtype == "str":
+                if "dtype" in slow_props:
+                    ret["dtype"] = obj._determine_dtype(all_values)
+                if "weights" in slow_props:
+                    if ret["dtype"] == "str":
                         weights = "any"
-                    elif dtype == "bool":
+                    elif ret["dtype"] == "bool":
                         weights = "non-negative"
                     else:
                         min_val = min(all_values)

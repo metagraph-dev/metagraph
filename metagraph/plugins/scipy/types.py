@@ -18,16 +18,20 @@ if has_scipy:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
-            nrows, ncols = obj.shape
-            is_square = nrows == ncols
-            dtype = dtypes.dtypes_simplified[obj.dtype]
+            ret = known_props.copy()
 
-            ret = dict(dtype=dtype, is_square=is_square)
+            # fast properties
+            for prop in {"dtype", "is_square"} - ret.keys():
+                if prop == "dtype":
+                    ret[prop] = dtypes.dtypes_simplified[obj.dtype]
+                if prop == "is_square":
+                    nrows, ncols = obj.shape
+                    ret[prop] = nrows == ncols
 
             # slow properties, only compute if asked
-            for propname in props:
-                if propname == "is_symmetric":
-                    ret["is_symmetric"] = is_square and (obj.T != obj).nnz == 0
+            for prop in props - ret.keys():
+                if prop == "is_symmetric":
+                    ret[prop] = ret["is_square"] and (obj.T != obj).nnz == 0
 
             return ret
 
@@ -107,28 +111,32 @@ if has_scipy:
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             cls._validate_abstract_props(props)
+            ret = known_props.copy()
 
             # fast properties
-            ret = {"dtype": dtypes.dtypes_simplified[obj.value.dtype]}
+            for prop in {"dtype"} - ret.keys():
+                if prop == "dtype":
+                    ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
 
             # slow properties, only compute if asked
-            if "is_directed" in props:
-                ret["is_directed"] = (obj.value.T != obj.value).nnz > 0
-            if "weights" in props:
-                if ret["dtype"] == "str":
-                    weights = "any"
-                values = obj.value.data
-                if ret["dtype"] == "bool":
-                    weights = "non-negative"
-                else:
-                    min_val = values.min()
-                    if min_val < 0:
+            for prop in props - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = (obj.value.T != obj.value).nnz > 0
+                if prop == "weights":
+                    if ret["dtype"] == "str":
                         weights = "any"
-                    elif min_val == 0:
+                    values = obj.value.data
+                    if ret["dtype"] == "bool":
                         weights = "non-negative"
                     else:
-                        weights = "positive"
-                ret["weights"] = weights
+                        min_val = values.min()
+                        if min_val < 0:
+                            weights = "any"
+                        elif min_val == 0:
+                            weights = "non-negative"
+                        else:
+                            weights = "positive"
+                    ret[prop] = weights
 
             return ret
 
