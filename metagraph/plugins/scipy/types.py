@@ -14,14 +14,15 @@ if has_scipy:
         abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # fast properties
-            for prop in {"dtype", "is_square"} - ret.keys():
+            for prop in {"is_dense", "dtype", "is_square"} - ret.keys():
+                if prop == "is_dense":
+                    ret[prop] = False
                 if prop == "dtype":
                     ret[prop] = dtypes.dtypes_simplified[obj.dtype]
                 if prop == "is_square":
@@ -111,10 +112,9 @@ if has_scipy:
             return self.value.format
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # fast properties

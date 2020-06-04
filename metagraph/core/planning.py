@@ -210,22 +210,13 @@ class AlgorithmPlan:
             return True
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
-            # The above line should ensure the typeinfo cache is populated
-            arg_typeinfo = resolver.typecache[arg_value]
 
-            # Update cache with required properties
             requested_properties = set(param_type.props.keys())
-            known_properties = arg_typeinfo.known_concrete_props
-            unknown_properties = requested_properties - set(known_properties.keys())
-
-            new_properties = arg_typeclass.compute_concrete_properties(
-                arg_value, unknown_properties, known_properties
+            properties_dict = arg_typeclass.compute_concrete_properties(
+                arg_value, requested_properties
             )
-            known_properties.update(
-                new_properties
-            )  # this dict is still in the cache too
             # Instantiate this with the properties we now know
-            arg_type = arg_typeclass(**known_properties)
+            arg_type = arg_typeclass(**properties_dict)
 
             if not param_type.is_satisfied_by(arg_type):
                 return False

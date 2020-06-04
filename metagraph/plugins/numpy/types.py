@@ -22,10 +22,9 @@ class NumpyVector(Wrapper, abstract=Vector):
         return len(self.value)
 
     @classmethod
-    def compute_abstract_properties(
+    def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
         ret = known_props.copy()
 
         # fast properties
@@ -112,10 +111,9 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return len(self.value)
 
     @classmethod
-    def compute_abstract_properties(
+    def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
         ret = known_props.copy()
 
         # fast properties
@@ -176,10 +174,9 @@ class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return PythonNodeSet(set(self.lookup))
 
     @classmethod
-    def compute_abstract_properties(
+    def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
         ret = known_props.copy()
 
         # fast properties
@@ -240,10 +237,9 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         return self.value.shape
 
     @classmethod
-    def compute_abstract_properties(
+    def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
         ret = known_props.copy()
 
         # fast properties

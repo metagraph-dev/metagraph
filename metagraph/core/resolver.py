@@ -16,7 +16,6 @@ from .plugin import (
 )
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
-from .typecache import TypeCache, TypeInfo
 from metagraph import config
 import numpy as np
 
@@ -121,8 +120,6 @@ class Resolver:
         self.concrete_types: Set[ConcreteType] = set()
         self.translators: Dict[Tuple[ConcreteType, ConcreteType], Translator] = {}
 
-        self.typecache = TypeCache()
-
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
 
@@ -192,7 +189,6 @@ class Resolver:
             plugin_namespace._register("translators", {})
             plugin_namespace._register("abstract_algorithms", {})
             plugin_namespace._register("concrete_algorithms", defaultdict(set))
-            plugin_namespace._register("class_to_concrete", {})
             plugin_namespace._register("algos", Namespace())
             plugin_namespace._register("wrappers", Namespace())
             plugin_namespace._register("types", Namespace())
@@ -500,38 +496,18 @@ class Resolver:
 
     def typeclass_of(self, value):
         """Return the concrete typeclass corresponding to a value"""
-        if value in self.typecache:
-            typeinfo = self.typecache[value]
-            return typeinfo.concrete_typeclass
-        else:
-            # Check for direct lookup
-            concrete_type = self.class_to_concrete.get(type(value))
-            if concrete_type is None:
-                for ct in self.concrete_types:
-                    if ct.is_typeclass_of(value):
-                        concrete_type = ct
-
-            if concrete_type is not None:
-                typeinfo = TypeInfo(
-                    abstract_typeclass=concrete_type.abstract,
-                    known_abstract_props={},
-                    concrete_typeclass=concrete_type,
-                    known_concrete_props={},
+        # Check for direct lookup
+        concrete_type = self.class_to_concrete.get(type(value))
+        if concrete_type is None:
+            for ct in self.concrete_types:
+                if ct.is_typeclass_of(value):
+                    concrete_type = ct
+                    break
+            else:
+                raise TypeError(
+                    f"Class {value.__class__} does not have a registered type"
                 )
-                self.typecache[value] = typeinfo
-                return concrete_type
-
-        raise TypeError(f"Class {value.__class__} does not have a registered type")
-
-    def known_properties_of(self, value):
-        """Return a dict of known properties for this value. Does not compute any new properties."""
-        this_typeclass = self.typeclass_of(value)
-        # The above line should ensure the typeinfo cache is populated
-        this_typeinfo = self.typecache[value]
-        known_properties = {}
-        known_properties.update(this_typeinfo.known_abstract_props)
-        known_properties.update(this_typeinfo.known_concrete_props)
-        return known_properties
+        return concrete_type
 
     def type_of(self, value):
         """Return the fully specified type for this value.
@@ -539,15 +515,7 @@ class Resolver:
         This may require potentially slow computation of properties.  Only use
         this for debugging.
         """
-        this_typeclass = self.typeclass_of(value)
-        # The above line should ensure the typeinfo cache is populated
-        this_typeinfo = self.typecache[value]
-        ct = self.typeclass_of(value).get_type(value, self.known_properties_of(value))
-        for ap in this_typeinfo.abstract_typeclass.properties:
-            this_typeinfo.known_abstract_props[ap] = ct.abstract_instance.prop_val[ap]
-        for cp in this_typeinfo.concrete_typeclass.allowed_props:
-            this_typeinfo.known_concrete_props[cp] = ct.props[cp]
-        return ct
+        return self.typeclass_of(value).get_type(value)
 
     def assert_equal(self, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
         # Ensure all properties are fully calculated
@@ -557,8 +525,8 @@ class Resolver:
             raise TypeError(
                 f"Cannot assert_equal with different types: {type(type1)} != {type(type2)}"
             )
-        props1 = self.known_properties_of(obj1)
-        props2 = self.known_properties_of(obj2)
+        props1 = type1.get_typeinfo(obj1).known_props
+        props2 = type2.get_typeinfo(obj2).known_props
         type1.assert_equal(obj1, obj2, props1, props2, rel_tol=rel_tol, abs_tol=abs_tol)
 
     def translate(self, value, dst_type, **props):
@@ -630,8 +598,6 @@ class Resolver:
                     )
             if isinstance(param_type, AbstractType):
                 this_typeclass = self.typeclass_of(arg_value)
-                # The above line should ensure the typeinfo cache is populated
-                this_typeinfo = self.typecache[arg_value]
 
                 # Check if arg_value has the right abstract type
                 if this_typeclass.abstract != type(param_type):
@@ -640,24 +606,11 @@ class Resolver:
                         f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
                     )
 
-                # Update cache with required properties
                 requested_properties = set(param_type.prop_idx.keys())
-                known_properties = this_typeinfo.known_abstract_props
-                unknown_properties = requested_properties - set(known_properties.keys())
-
-                new_properties = this_typeclass.compute_abstract_properties(
-                    arg_value, unknown_properties, known_properties.copy()
+                properties_dict = this_typeclass.compute_abstract_properties(
+                    arg_value, requested_properties
                 )
-                known_properties.update(
-                    new_properties
-                )  # this dict is still in the cache too
-                # Verify requested properties were computed
-                uncomputed_properties = requested_properties - set(known_properties)
-                if uncomputed_properties:
-                    raise AssertionError(
-                        f"Requested abstract properties were not computed: {uncomputed_properties}"
-                    )
-                this_abs_type = this_typeclass.abstract(**known_properties)
+                this_abs_type = this_typeclass.abstract(**properties_dict)
 
                 unsatisfied_requirements = []
                 for abst_prop, min_value in param_type.prop_idx.items():
