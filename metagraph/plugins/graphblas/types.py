@@ -34,10 +34,9 @@ if has_grblas:
         value_type = grblas.Vector
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # fast properties
@@ -91,10 +90,9 @@ if has_grblas:
             return self.value.nvals
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # fast properties
@@ -136,21 +134,22 @@ if has_grblas:
                 assert obj1.value.isequal(obj2.value)
 
         def to_nodeset(self):
-            return GrblasNodeSet(self.value, node_labels=self._node_labels)
+            return GrblasNodeSet(self.value)
 
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix
         abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # fast properties
-            for prop in {"is_square", "dtype"} - ret.keys():
+            for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
+                if prop == "is_dense":
+                    ret[prop] = False
                 if prop == "is_square":
                     ret[prop] = obj.nrows == obj.ncols
                 if prop == "dtype":
@@ -188,10 +187,9 @@ if has_grblas:
             return self.value.show()
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # slow properties, only compute if asked
@@ -227,10 +225,9 @@ if has_grblas:
             return self.value.show()
 
         @classmethod
-        def compute_abstract_properties(
+        def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
-            cls._validate_abstract_props(props)
             ret = known_props.copy()
 
             # fast properties

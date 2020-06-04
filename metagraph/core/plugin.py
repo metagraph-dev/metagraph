@@ -3,6 +3,7 @@
 import types
 import inspect
 from typing import Callable, List, Dict, Any
+from .typecache import TypeCache, TypeInfo
 
 
 class AbstractType:
@@ -107,6 +108,27 @@ class ConcreteType:
                 f"'abstract' keyword argument on {cls} must be subclass of AbstractType"
             )
         cls.abstract = abstract
+        # Property caches live with each ConcreteType, allowing them to be easily accessible
+        # separate from the Resolver
+        cls._typecache = TypeCache()
+
+    @classmethod
+    def get_typeinfo(cls, value):
+        if not hasattr(cls, "_typecache"):
+            raise NotImplementedError("Only implemented for subclasses of ConcreteType")
+
+        if value in cls._typecache:
+            return cls._typecache[value]
+
+        # Add a new entry for value
+        typeinfo = TypeInfo(
+            abstract_typeclass=cls.abstract,
+            known_abstract_props={},
+            concrete_typeclass=cls,
+            known_concrete_props={},
+        )
+        cls._typecache[value] = typeinfo
+        return typeinfo
 
     def is_satisfied_by(self, other_type):
         """Is other_type and its properties compatible with this type?
@@ -121,7 +143,7 @@ class ConcreteType:
             return False
         return True
 
-    def is_satisfied_by_value(self, obj, resolver=None):
+    def is_satisfied_by_value(self, obj):
         """Is the type associated with this object compatible with this type?
 
         (self must be equivalent or less specific than the type of obj)
@@ -130,11 +152,8 @@ class ConcreteType:
         therefore computes all properties.  Prefer is_satisfied_by() with a
         partially specified type instance.
         """
-        known_properties = {}
-        if resolver is not None:
-            known_properties = resolver.known_properties_of(obj)
         try:
-            t = self.get_type(obj, known_properties)
+            t = self.get_type(obj)
             return self.is_satisfied_by(t)
         except TypeError:
             return False
@@ -163,69 +182,97 @@ class ConcreteType:
             )
 
     @classmethod
-    def _validate_abstract_props(cls, props: List[str]) -> bool:
+    def _compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        raise NotImplementedError(
+            "Must override `_compute_abstract_properties` if type has abstract properties"
+        )
+
+    @classmethod
+    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        """Return a dictionary with a subset of abstract properties for this object.
+
+        At a minimum, only the requested properties will be computed, although
+        this method may return additional keys if they can be computed with
+        minimal additional cost.
+
+        The properties are cached to speed up future calls for the same properties.
+        """
+        if len(props) == 0:
+            return {}
+
+        # Validate properties
         for propname in props:
             if propname not in cls.abstract.properties:
                 raise KeyError(
                     f"{propname} is not an abstract property of {cls.abstract.__name__}"
                 )
 
+        typeinfo = cls.get_typeinfo(obj)
+        abstract_props = cls._compute_abstract_properties(
+            obj, props, typeinfo.known_abstract_props
+        )
+
+        # Verify requested properties were computed
+        uncomputed_properties = props - set(abstract_props)
+        if uncomputed_properties:
+            raise AssertionError(
+                f"Requested abstract properties were not computed: {uncomputed_properties}"
+            )
+
+        # Cache properties
+        typeinfo.known_abstract_props.update(abstract_props)
+
+        return abstract_props
+
     @classmethod
-    def _validate_concrete_props(cls, props: List[str]) -> bool:
+    def _compute_concrete_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        raise NotImplementedError(
+            "Must override `_compute_concrete_properties` if type has abstract properties"
+        )
+
+    @classmethod
+    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+        """Return a dictionary with a subset of concrete properties for this object.
+
+        At a minimum, only the requested properties will be computed, although
+        this method may return additional keys if they can be computed with
+        minimal additional cost.
+
+        The properties are cached to speed up future calls for the same properties.
+        """
+        if len(props) == 0:
+            return {}
+
+        # Validate properties
         for propname in props:
             if propname not in cls.allowed_props:
                 raise KeyError(
                     f"{propname} is not an concrete property of {cls.__name__}"
                 )
 
-    @classmethod
-    def compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Return a dictionary with a subset of abstract properties for this object.
+        typeinfo = cls.get_typeinfo(obj)
+        concrete_props = cls._compute_concrete_properties(
+            obj, props, typeinfo.known_concrete_props
+        )
 
-        At a minimum, only the requested properties will be computed, although
-        this method may return additional keys if they can be computed with
-        minimal additional cost.  The return value from this method should be
-        cached by the caller to avoid recomputing properties repeatedly.
-
-        Any abstract properties known from previous calls should be passed in
-        as known_properties to avoid duplicating effort.
-        """
-        if len(cls.abstract.properties) > 0:
-            raise NotImplementedError(
-                "Must override `compute_abstract_properties` if type has abstract properties"
+        # Verify requested properties were computed
+        uncomputed_properties = props - set(concrete_props)
+        if uncomputed_properties:
+            raise AssertionError(
+                f"Requested concrete properties were not computed: {uncomputed_properties}"
             )
-        if len(props) > 0:
-            raise TypeError("This type has no abstract properties")
-        else:
-            return {}
+
+        # Cache properties
+        typeinfo.known_concrete_props.update(concrete_props)
+
+        return concrete_props
 
     @classmethod
-    def compute_concrete_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
-    ) -> Dict[str, Any]:
-        """Return a dictionary with a subset of concrete properties for this object.
-
-        At a minimum, only the requested properties will be computed, although
-        this method may return additional keys if they can be computed with
-        minimal additional cost.  The return value from this method should be
-        cached by the caller to avoid recomputing properties repeatedly.
-
-        Any concrete properties known from previous calls should be passed in
-        as known_properties to avoid duplicating effort.
-        """
-        if len(cls.allowed_props) > 0:
-            raise NotImplementedError(
-                "Must override `compute_concrete_properties` if type has concrete properties"
-            )
-        if len(props) > 0:
-            raise TypeError("This type has no concrete properties")
-        else:
-            return {}
-
-    @classmethod
-    def get_type(cls, obj, known_props: Dict[str, Any] = None):
+    def get_type(cls, obj):
         """Get an instance of this type class that fully describes obj
 
         Note that this will completely specialize the type and may require
@@ -233,14 +280,12 @@ class ConcreteType:
         use is_typeclass_of(), compute_abstract_properties(), and
         compute_concrete_properties() instead of this method when possible.
         """
-        if known_props is None:
-            known_props = {}
         if cls.is_typeclass_of(obj):
             abstract_props = cls.compute_abstract_properties(
-                obj, cls.abstract.properties.keys(), known_props
+                obj, cls.abstract.properties.keys()
             )
             concrete_props = cls.compute_concrete_properties(
-                obj, cls.allowed_props.keys(), known_props
+                obj, cls.allowed_props.keys()
             )
 
             ret_val = cls(**abstract_props, **concrete_props)
@@ -340,8 +385,8 @@ class Wrapper(metaclass=MetaWrapper):
                 delattr(cls, funcname)
         for methodname in [
             "is_typeclass_of",
-            "compute_abstract_properties",
-            "compute_concrete_properties",
+            "_compute_abstract_properties",
+            "_compute_concrete_properties",
             "get_type",
             "assert_equal",
         ]:

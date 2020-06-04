@@ -613,7 +613,6 @@ def test_plugin_specific_concrete_algorithms():
         "abstract_algorithms",
         "abstract_types",
         "algos",
-        "class_to_concrete",
         "concrete_algorithms",
         "concrete_types",
         "translators",
