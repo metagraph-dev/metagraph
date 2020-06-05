@@ -18,11 +18,17 @@ if has_grblas:
 
     @translator
     def nodemap_to_nodeset(x: GrblasNodeMap, **props) -> GrblasNodeSet:
-        return GrblasNodeSet(x.value)
+        data = x.value.dup()
+        # Force all values to be 1's to indicate no weights
+        data[:](data.S) << 1
+        return GrblasNodeSet(data)
 
     @translator
     def edgemap_to_edgeset(x: GrblasEdgeMap, **props) -> GrblasEdgeSet:
-        return GrblasEdgeSet(x.value, transposed=x.transposed)
+        data = x.value.dup()
+        # Force all values to be 1's to indicate no weights
+        data[:, :](data.S) << 1
+        return GrblasEdgeSet(data, transposed=x.transposed)
 
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:

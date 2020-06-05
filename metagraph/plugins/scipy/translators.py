@@ -1,5 +1,6 @@
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_networkx, has_grblas
+import numpy as np
 
 if has_scipy:
     import scipy.sparse as ss
@@ -8,7 +9,10 @@ if has_scipy:
 
     @translator
     def edgemap_to_edgeset(x: ScipyEdgeMap, **props) -> ScipyEdgeSet:
-        return ScipyEdgeSet(x.value, x._node_list, x.transposed)
+        data = x.value.copy()
+        # Force all values to be 1's to indicate no weights
+        data.data = np.ones_like(data.data)
+        return ScipyEdgeSet(data, x._node_list, x.transposed)
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
