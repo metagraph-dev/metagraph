@@ -12,6 +12,11 @@ class AbstractType:
     # Properties must be a list of values from most general to most narrow
     properties = {}
 
+    # Unambiguous subcomponents is a set of other abstract types which can be
+    # extracted without any additional information, allowing translators to be
+    # written from this type to the listed subcomponents
+    unambiguous_subcomponents = {}
+
     def __init_subclass__(cls, **kwargs):
         # Check properties are lists
         for key, val in cls.properties.items():

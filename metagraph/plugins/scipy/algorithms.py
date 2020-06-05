@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm
 from metagraph.plugins import has_scipy
-from .types import ScipyEdgeMap
+from .types import ScipyEdgeSet, ScipyEdgeMap
 from typing import Tuple
 
 
@@ -20,7 +20,7 @@ if has_scipy:
         return (ScipyEdgeMap(parents), ScipyEdgeMap(lengths))
 
     @concrete_algorithm("cluster.triangle_count")
-    def ss_triangle_count(graph: ScipyEdgeMap) -> int:
+    def ss_triangle_count(graph: ScipyEdgeSet) -> int:
         """
         Uses the triangle counting method descripbed in
         https://www.sandia.gov/~srajama/publications/Tricount-HPEC.pdf

@@ -30,9 +30,7 @@ class NodeSet(AbstractType):
 
 class NodeMap(AbstractType):
     properties = {"dtype": DTYPE_CHOICES, "weights": WEIGHT_CHOICES}
-    conversions = {
-        NodeSet: "to_nodeset",
-    }
+    unambiguous_subcomponents = {NodeSet}
 
     @Wrapper.required_method
     def __getitem__(self, key):
@@ -43,19 +41,9 @@ class NodeMap(AbstractType):
     def num_nodes(self):
         raise NotImplementedError()
 
-    @Wrapper.required_method
-    def to_nodeset(self):
-        raise NotImplementedError()
-
 
 class NodeTable(AbstractType):
-    conversions = {
-        NodeSet: "to_nodeset",
-    }
-
-    @Wrapper.required_method
-    def to_nodeset(self):
-        raise NotImplementedError()
+    unambiguous_subcomponents = {NodeSet}
 
 
 #################################
@@ -71,24 +59,12 @@ class EdgeMap(AbstractType):
         "dtype": DTYPE_CHOICES,
         "weights": WEIGHT_CHOICES,
     }
-    conversions = {
-        EdgeSet: "to_edgeset",
-    }
-
-    @Wrapper.required_method
-    def to_edgeset(self):
-        raise NotImplementedError()
+    unambiguous_subcomponents = {EdgeSet}
 
 
 class EdgeTable(AbstractType):
     properties = {"is_directed": [True, False]}
-    conversions = {
-        EdgeSet: "to_edgeset",
-    }
-
-    @Wrapper.required_method
-    def to_edgeset(self):
-        raise NotImplementedError()
+    unambiguous_subcomponents = {EdgeSet}
 
 
 del AbstractType, Wrapper

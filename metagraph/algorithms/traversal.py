@@ -1,5 +1,5 @@
 from metagraph import abstract_algorithm
-from metagraph.types import EdgeMap, Vector, NodeMap
+from metagraph.types import EdgeSet, EdgeMap, Vector, NodeMap
 from typing import Any, Tuple
 
 
@@ -14,7 +14,7 @@ def all_shortest_paths(graph: EdgeMap) -> Tuple[EdgeMap, EdgeMap]:
 
 
 @abstract_algorithm("traversal.breadth_first_search")
-def breadth_first_search(graph: EdgeMap, source_node: Any) -> Vector:
+def breadth_first_search(graph: EdgeSet, source_node: Any) -> Vector:
     pass
 
 

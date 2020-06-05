@@ -133,9 +133,6 @@ if has_grblas:
             else:
                 assert obj1.value.isequal(obj2.value)
 
-        def to_nodeset(self):
-            return GrblasNodeSet(self.value)
-
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix
         abstract_property_specificity_limits = {"is_dense": False}
@@ -270,6 +267,3 @@ if has_grblas:
                 assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
             else:
                 assert d1.isequal(d2)
-
-        def to_edgeset(self):
-            return GrblasEdgeSet(self.value, transposed=self.transposed)

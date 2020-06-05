@@ -104,9 +104,6 @@ if has_scipy:
                 node_list = np.array(node_list)
             self._node_list = node_list
 
-        def to_edgeset(self):
-            return ScipyEdgeSet(self.value, self._node_list, self.transposed)
-
         @property
         def format(self):
             return self.value.format

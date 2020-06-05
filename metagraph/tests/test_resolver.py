@@ -99,6 +99,16 @@ def test_register_errors():
         res.register(registry.plugins)
 
     registry.register(Abstract1)
+    with pytest.raises(
+        ValueError, match="translator destination type .* has not been registered"
+    ):
+        res.register(registry.plugins)
+
+    # Fresh start -- too much baggage of things partially registered above
+    res = Resolver()
+
+    registry.register(Abstract2)
+    registry.register(Concrete2)
     with pytest.raises(ValueError, match="convert between concrete types"):
         res.register(registry.plugins)
 

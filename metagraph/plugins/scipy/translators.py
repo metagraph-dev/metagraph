@@ -3,8 +3,12 @@ from metagraph.plugins import has_scipy, has_networkx, has_grblas
 
 if has_scipy:
     import scipy.sparse as ss
-    from .types import ScipyEdgeMap, ScipyMatrixType
+    from .types import ScipyEdgeMap, ScipyEdgeSet, ScipyMatrixType
     from ..numpy.types import NumpyMatrix
+
+    @translator
+    def edgemap_to_edgeset(x: ScipyEdgeMap, **props) -> ScipyEdgeSet:
+        return ScipyEdgeSet(x.value, x._node_list, x.transposed)
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
