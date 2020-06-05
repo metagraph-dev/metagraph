@@ -35,9 +35,6 @@ if has_networkx:
             self.weight_label = weight_label
             self._assert_instance(nx_graph, nx.Graph)
 
-        def to_edgeset(self):
-            return NetworkXEdgeSet(self.value)
-
         def _determine_dtype(self, all_values):
             all_types = {type(v) for v in all_values}
             if not all_types or (all_types - {float, int, bool}):

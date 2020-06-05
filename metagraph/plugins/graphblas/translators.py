@@ -8,11 +8,21 @@ if has_grblas:
     import grblas
     from .types import (
         GrblasEdgeMap,
+        GrblasEdgeSet,
         GrblasMatrixType,
         GrblasVectorType,
+        GrblasNodeSet,
         GrblasNodeMap,
         dtype_mg_to_grblas,
     )
+
+    @translator
+    def nodemap_to_nodeset(x: GrblasNodeMap, **props) -> GrblasNodeSet:
+        return GrblasNodeSet(x.value)
+
+    @translator
+    def edgemap_to_edgeset(x: GrblasEdgeMap, **props) -> GrblasEdgeSet:
+        return GrblasEdgeSet(x.value, transposed=x.transposed)
 
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:

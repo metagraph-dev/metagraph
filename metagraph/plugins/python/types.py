@@ -38,9 +38,6 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
     def num_nodes(self):
         return len(self.value)
 
-    def to_nodeset(self):
-        return PythonNodeSet(set(self.value))
-
     def _determine_dtype(self):
         types = set(type(val) for val in self.value.values())
         if not types or (types - {float, int, bool}):

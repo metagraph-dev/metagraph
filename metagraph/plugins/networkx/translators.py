@@ -2,6 +2,14 @@ from metagraph import translator
 from metagraph.plugins import has_pandas, has_networkx
 
 
+if has_networkx:
+    from .types import NetworkXEdgeMap, NetworkXEdgeSet
+
+    @translator
+    def edgemap_to_edgeset(x: NetworkXEdgeMap, **props) -> NetworkXEdgeSet:
+        return NetworkXEdgeSet(x.value)
+
+
 if has_networkx and has_pandas:
     import networkx as nx
     from .types import NetworkXEdgeMap

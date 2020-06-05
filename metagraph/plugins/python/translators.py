@@ -1,7 +1,12 @@
 from metagraph import translator, dtypes
 from metagraph.plugins import has_grblas
-from .types import PythonNodeMap, dtype_casting
+from .types import PythonNodeMap, PythonNodeSet, dtype_casting
 from ..numpy.types import CompactNumpyNodeMap
+
+
+@translator
+def nodemap_to_nodeset(x: PythonNodeMap, **props) -> PythonNodeSet:
+    return PythonNodeSet(set(x.value))
 
 
 @translator

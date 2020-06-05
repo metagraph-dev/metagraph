@@ -78,14 +78,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 raise ValueError(f"node {node_id} is not in the NodeMap")
         return self.value[node_id]
 
-    def to_nodeset(self):
-        from ..python.types import PythonNodeSet
-
-        values = self.value
-        if self.missing_mask is not None:
-            values = values[~self.missing_mask]
-        return PythonNodeSet(set(values))
-
     def _determine_weights(self, dtype):
         if dtype == "str":
             return "any"
@@ -167,11 +159,6 @@ class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     @property
     def num_nodes(self):
         return len(self.lookup)
-
-    def to_nodeset(self):
-        from ..python.types import PythonNodeSet
-
-        return PythonNodeSet(set(self.lookup))
 
     @classmethod
     def _compute_abstract_properties(

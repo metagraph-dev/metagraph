@@ -75,20 +75,22 @@ class MultiStepTranslator:
             # Build translation matrix
             concrete_list = []
             concrete_lookup = {}
+            included_abstract_types = set()
             for ct in resolver.concrete_types:
-                if issubclass(ct.abstract, abstract):
+                if (
+                    abstract is ct.abstract
+                    or abstract in ct.abstract.unambiguous_subcomponents
+                ):
                     concrete_lookup[ct] = len(concrete_list)
                     concrete_list.append(ct)
+                    included_abstract_types.add(ct.abstract)
             m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)
             for s, d in resolver.translators:
-                # only accept destinations of specific abstract type
-                if d.abstract == abstract:
-                    try:
-                        sidx = concrete_lookup[s]
-                        didx = concrete_lookup[d]
-                        m[sidx, didx] = True
-                    except KeyError:
-                        pass
+                # only accept destinations of included abstract types
+                if d.abstract in included_abstract_types:
+                    sidx = concrete_lookup[s]
+                    didx = concrete_lookup[d]
+                    m[sidx, didx] = True
             sssp, predecessors = ss.csgraph.dijkstra(
                 m.tocsr(), return_predecessors=True, unweighted=True
             )

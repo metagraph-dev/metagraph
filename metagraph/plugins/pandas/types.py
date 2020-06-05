@@ -90,9 +90,6 @@ if has_pandas:
             # Build the MultiIndex representing the edges
             self.index = df.set_index([src_label, dst_label]).index
 
-        def to_edgeset(self):
-            return PandasEdgeSet(self.value, self.src_label, self.dst_label)
-
         @property
         def num_nodes(self):
             src_nodes, dst_nodes = self.index.levels

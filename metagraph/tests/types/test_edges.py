@@ -43,10 +43,7 @@ def test_networkx():
         )
     # Edgesets ignore weights
     NetworkXEdgeSet.Type.assert_equal(
-        NetworkXEdgeMap(g_int).to_edgeset(),
-        NetworkXEdgeMap(g_diff1).to_edgeset(),
-        {},
-        {},
+        NetworkXEdgeSet(g_int), NetworkXEdgeSet(g_diff1), {}, {},
     )
     g_diff2 = nx.DiGraph()
     g_diff2.add_weighted_edges_from(
@@ -118,9 +115,7 @@ def test_pandas_edge():
     with pytest.raises(AssertionError):
         PandasEdgeMap.Type.assert_equal(PandasEdgeMap(df), PandasEdgeMap(diff1), {}, {})
     # Edgesets ignore weights
-    PandasEdgeSet.Type.assert_equal(
-        PandasEdgeMap(df).to_edgeset(), PandasEdgeMap(diff1).to_edgeset(), {}, {}
-    )
+    PandasEdgeSet.Type.assert_equal(PandasEdgeSet(df), PandasEdgeSet(diff1), {}, {})
     diff2 = df.copy()
     diff2.loc[4, "target"] = "A"
     with pytest.raises(AssertionError):

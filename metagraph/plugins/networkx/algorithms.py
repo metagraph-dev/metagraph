@@ -6,7 +6,7 @@ from typing import Tuple, Iterable, Any
 if has_networkx:
     import networkx as nx
     import numpy as np
-    from .types import NetworkXEdgeMap
+    from .types import NetworkXEdgeSet, NetworkXEdgeMap
     from ..python.types import PythonNodeMap
     from ..numpy.types import NumpyVector
 
@@ -38,7 +38,7 @@ if has_networkx:
         return PythonNodeMap(katz_centrality_scores)
 
     @concrete_algorithm("cluster.triangle_count")
-    def nx_triangle_count(graph: NetworkXEdgeMap) -> int:
+    def nx_triangle_count(graph: NetworkXEdgeSet) -> int:
         triangles = nx.triangles(graph.value)
         # Sum up triangles from each node
         # Divide by 3 because each triangle is counted 3 times
@@ -46,7 +46,7 @@ if has_networkx:
         return total_triangles
 
     @concrete_algorithm("clustering.connected_components")
-    def nx_connected_components(graph: NetworkXEdgeMap) -> PythonNodeMap:
+    def nx_connected_components(graph: NetworkXEdgeSet) -> PythonNodeMap:
         index_to_label = dict()
         for i, nodes in enumerate(nx.connected_components(graph.value)):
             for node in nodes:
@@ -54,7 +54,7 @@ if has_networkx:
         return PythonNodeMap(index_to_label,)
 
     @concrete_algorithm("clustering.strongly_connected_components")
-    def nx_strongly_connected_components(graph: NetworkXEdgeMap) -> PythonNodeMap:
+    def nx_strongly_connected_components(graph: NetworkXEdgeSet) -> PythonNodeMap:
         index_to_label = dict()
         for i, nodes in enumerate(nx.strongly_connected_components(graph.value)):
             for node in nodes:
@@ -130,7 +130,7 @@ if has_networkx:
 
     @concrete_algorithm("traversal.breadth_first_search")
     def nx_breadth_first_search(
-        graph: NetworkXEdgeMap, source_node: Any
+        graph: NetworkXEdgeSet, source_node: Any
     ) -> NumpyVector:
         bfs_ordered_node_array = np.array(
             nx.breadth_first_search.bfs_tree(graph.value, source_node)

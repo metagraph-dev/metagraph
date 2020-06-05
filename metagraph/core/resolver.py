@@ -232,6 +232,21 @@ class Resolver:
                 raise ValueError(f"abstract type {at.__qualname__} already exists")
             tree.abstract_types.add(at)
 
+        if tree_is_resolver:
+            # Validate unambiguous_subcomponents are registered and have sufficient properties
+            # (must be done after all abstract types have been added above)
+            for at in abstract_types:
+                for usub in at.unambiguous_subcomponents:
+                    if usub not in tree.abstract_types:
+                        raise KeyError(
+                            f"unambiguous subcomponent {usub.__qualname__} has not been registered"
+                        )
+                    missing_props = set(usub.properties) - set(at.properties)
+                    if missing_props:
+                        raise ValueError(
+                            f"unambiguous subcomponent {usub.__qualname__} has additional properties beyond {at.__qualname__}"
+                        )
+
         # Let concrete type associated with each wrapper be handled by concrete_types list
         concrete_types = set(
             concrete_types
@@ -280,11 +295,22 @@ class Resolver:
             src_type = self.class_to_concrete.get(src_type, src_type)
             dst_type = signature.return_annotation
             dst_type = self.class_to_concrete.get(dst_type, dst_type)
-            if src_type.abstract != dst_type.abstract:
+            # Verify types are registered
+            if src_type not in self.concrete_types:
                 raise ValueError(
-                    f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
+                    f"translator source type {src_type.__qualname__} has not been registered"
                 )
-
+            if dst_type not in self.concrete_types:
+                raise ValueError(
+                    f"translator destination type {dst_type.__qualname__} has not been registered"
+                )
+            # Verify translation is allowed
+            if src_type.abstract != dst_type.abstract:
+                # Check if dst is unambiguous subcomponent of src
+                if dst_type.abstract not in src_type.abstract.unambiguous_subcomponents:
+                    raise ValueError(
+                        f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
+                    )
             tree.translators[(src_type, dst_type)] = tr
 
         for aa in abstract_algorithms:
@@ -535,7 +561,6 @@ class Resolver:
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator is None:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
-        # TODO: find a way for a translator to populate cached properties
         return translator(value, **props)
 
     def find_algorithm_solutions(
@@ -590,7 +615,8 @@ class Resolver:
             param_type = parameters[arg_name].annotation
             if param_type is Any:
                 continue
-            if type(param_type) is type:
+            param_class = type(param_type)
+            if param_class is type:
                 if not isinstance(arg_value, param_type):
                     raise TypeError(
                         f"{arg_name} must be of type {param_type.__name__}, "
@@ -600,11 +626,16 @@ class Resolver:
                 this_typeclass = self.typeclass_of(arg_value)
 
                 # Check if arg_value has the right abstract type
-                if this_typeclass.abstract != type(param_type):
-                    raise TypeError(
-                        f"{arg_name} must be of type {type(param_type).__name__}, "
-                        f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
-                    )
+                if this_typeclass.abstract != param_class:
+                    # Allow for unambiguous subcomponent
+                    if (
+                        param_class
+                        not in this_typeclass.abstract.unambiguous_subcomponents
+                    ):
+                        raise TypeError(
+                            f"{arg_name} must be of type {param_class.__name__}, "
+                            f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
+                        )
 
                 requested_properties = set(param_type.prop_idx.keys())
                 properties_dict = this_typeclass.compute_abstract_properties(
@@ -627,9 +658,11 @@ class Resolver:
                     )
 
         if config.get("core.dispatch.allow_translation"):
-            algo = self.find_algorithm(algo_name, *args, **kwargs)
+            algo = self.find_algorithm(algo_name, *bound_args.args, **bound_args.kwargs)
         else:
-            algo = self.find_algorithm_exact(algo_name, *args, **kwargs)
+            algo = self.find_algorithm_exact(
+                algo_name, *bound_args.args, **bound_args.kwargs
+            )
 
         if not algo:
             raise TypeError(
@@ -638,10 +671,7 @@ class Resolver:
 
         if config.get("core.logging.plans"):
             algo.display()
-        # TODO: find a way for algorithms to specify and register cached properties on newly created objects
-        #       often the algorithms know things about the output objects which can be used to avoid
-        #       extra computational efforts
-        return algo(*args, **kwargs)
+        return algo(*bound_args.args, **bound_args.kwargs)
 
 
 class Dispatcher:
