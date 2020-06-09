@@ -1,10 +1,18 @@
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_networkx, has_grblas
+import numpy as np
 
 if has_scipy:
     import scipy.sparse as ss
-    from .types import ScipyAdjacencyMatrix, ScipyMatrixType
+    from .types import ScipyEdgeMap, ScipyEdgeSet, ScipyMatrixType
     from ..numpy.types import NumpyMatrix
+
+    @translator
+    def edgemap_to_edgeset(x: ScipyEdgeMap, **props) -> ScipyEdgeSet:
+        data = x.value.copy()
+        # Force all values to be 1's to indicate no weights
+        data.data = np.ones_like(data.data)
+        return ScipyEdgeSet(data, x._node_list, x.transposed)
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
@@ -24,23 +32,18 @@ if has_scipy:
 
 if has_scipy and has_networkx:
     import networkx as nx
-    from ..networkx.types import NetworkXGraph
+    from .types import ScipyMatrixType, ScipyEdgeMap
+    from ..networkx.types import NetworkXEdgeMap
 
     @translator
-    def graph_from_networkx(x: NetworkXGraph, **props) -> ScipyAdjacencyMatrix:
-        node_index = x.node_index
-        m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=node_index)
-        return ScipyAdjacencyMatrix(
-            m,
-            weights=x._weights,
-            is_directed=x.value.is_directed(),
-            node_index=node_index,
-        )
+    def edgemap_from_networkx(x: NetworkXEdgeMap, **props) -> ScipyEdgeMap:
+        ordered_nodes = list(sorted(x.value.nodes()))
+        m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=ordered_nodes)
+        return ScipyEdgeMap(m, ordered_nodes)
 
 
 if has_scipy and has_grblas:
     import scipy.sparse as ss
-    from .types import ScipyMatrixType, ScipyAdjacencyMatrix
     from ..graphblas.types import GrblasMatrixType
 
     @translator

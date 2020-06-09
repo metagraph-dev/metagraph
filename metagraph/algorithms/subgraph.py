@@ -1,12 +1,12 @@
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, Vector
+from metagraph.types import EdgeMap, Vector
 
 
 @abstract_algorithm("subgraph.extract_subgraph")
-def extract_subgraph(graph: Graph, nodes: Vector) -> Graph:
+def extract_subgraph(graph: EdgeMap, nodes: Vector) -> EdgeMap:
     pass
 
 
 @abstract_algorithm("subgraph.k_core")
-def k_core(graph: Graph, k: int) -> Graph:
+def k_core(graph: EdgeMap, k: int) -> EdgeMap:
     pass

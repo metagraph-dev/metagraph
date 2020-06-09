@@ -99,6 +99,16 @@ def test_register_errors():
         res.register(registry.plugins)
 
     registry.register(Abstract1)
+    with pytest.raises(
+        ValueError, match="translator destination type .* has not been registered"
+    ):
+        res.register(registry.plugins)
+
+    # Fresh start -- too much baggage of things partially registered above
+    res = Resolver()
+
+    registry.register(Abstract2)
+    registry.register(Concrete2)
     with pytest.raises(ValueError, match="convert between concrete types"):
         res.register(registry.plugins)
 
@@ -613,7 +623,6 @@ def test_plugin_specific_concrete_algorithms():
         "abstract_algorithms",
         "abstract_types",
         "algos",
-        "class_to_concrete",
         "concrete_algorithms",
         "concrete_types",
         "translators",
@@ -631,22 +640,23 @@ def test_plugin_specific_concrete_algorithms():
     # 0 - 1    5 - 6
     # | X |    | /
     # 3 - 4 -- 2 - 7
+    # TODO: change this to an EdgeSet once triangle count signature is updated
     simple_graph_data = [
-        [0, 1],
-        [0, 3],
-        [0, 4],
-        [1, 3],
-        [1, 4],
-        [2, 4],
-        [2, 5],
-        [2, 6],
-        [3, 4],
-        [5, 6],
-        [6, 7],
+        [0, 1, 1],
+        [0, 3, 1],
+        [0, 4, 1],
+        [1, 3, 1],
+        [1, 4, 1],
+        [2, 4, 1],
+        [2, 5, 1],
+        [2, 6, 1],
+        [3, 4, 1],
+        [5, 6, 1],
+        [6, 7, 1],
     ]
     simple_graph = nx.Graph()
-    simple_graph.add_edges_from(simple_graph_data)
-    graph = r.wrappers.Graph.NetworkXGraph(simple_graph)
+    simple_graph.add_weighted_edges_from(simple_graph_data)
+    graph = r.wrappers.EdgeMap.NetworkXEdgeMap(simple_graph)
     assert r.algos.cluster.triangle_count(graph) == 5
     assert r.plugins.core_networkx.algos.cluster.triangle_count(graph) == 5
     assert r.algos.cluster.triangle_count.core_networkx(graph) == 5
