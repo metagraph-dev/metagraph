@@ -23,8 +23,6 @@ def test_extract_subgraph(default_plugin_resolver):
     nx_k_core_graph.add_weighted_edges_from(
         [(2, 5, 5), (5, 6, 10), (6, 2, 11),]
     )
-    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, weight_label="weight")
-    k_core_graph = dpr.wrappers.Graph.NetworkXGraph(
-        nx_k_core_graph, weight_label="weight"
-    )
+    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph)
+    k_core_graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_k_core_graph)
     MultiVerify(dpr, "subgraph.k_core", graph, k).assert_equals(k_core_graph)

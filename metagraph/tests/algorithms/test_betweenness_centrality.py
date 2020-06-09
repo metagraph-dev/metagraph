@@ -29,7 +29,7 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, weight_label="weight")
+    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph)
     k = 8
     enable_normalization = False
     include_endpoints = False
@@ -43,9 +43,7 @@ v        v /        v
         6: 11.0,
         7: 0.0,
     }
-    expected_answer = dpr.wrappers.Nodes.PythonNodes(
-        expected_answer_unwrapped, dtype="float"
-    )
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
     MultiVerify(
         dpr,
         "vertex_ranking.betweenness_centrality",

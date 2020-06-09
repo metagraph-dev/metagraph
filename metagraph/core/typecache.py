@@ -14,6 +14,10 @@ class TypeInfo:
     concrete_typeclass: Any
     known_concrete_props: Dict[str, Any]
 
+    @property
+    def known_props(self):
+        return {**self.known_abstract_props, **self.known_concrete_props}
+
 
 class TypeCache:
     """Maintains a cache of type information and properties for objects.

@@ -39,8 +39,9 @@ class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     target = "pdp11"
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
+    def _compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
         ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
@@ -57,8 +58,9 @@ class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     target = "pdp11"
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
+    def _compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
         ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
@@ -81,8 +83,9 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
         return self.value == other.value
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_abstract_props(props)
+    def _compute_abstract_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         value = obj.value
         # only compute properties that were requested
@@ -107,8 +110,9 @@ class StrType(plugin.ConcreteType, abstract=MyAbstractType):
     target = "pdp11"
 
     @classmethod
-    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
-        cls._validate_concrete_props(props)
+    def _compute_concrete_properties(
+        cls, obj, props: List[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
 
         # only compute properties that were requested
         ret = {}

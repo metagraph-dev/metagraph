@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm
 from metagraph.plugins import has_scipy
-from .types import ScipyAdjacencyMatrix
+from .types import ScipyEdgeSet, ScipyEdgeMap
 from typing import Tuple
 
 
@@ -9,18 +9,18 @@ if has_scipy:
 
     @concrete_algorithm("traversal.all_shortest_paths")
     def ss_all_shortest_lengths(
-        graph: ScipyAdjacencyMatrix,
-    ) -> Tuple[ScipyAdjacencyMatrix, ScipyAdjacencyMatrix]:
+        graph: ScipyEdgeMap,
+    ) -> Tuple[ScipyEdgeMap, ScipyEdgeMap]:
         graph_csr = graph.value.tocsr()
         lengths, parents = ss.csgraph.dijkstra(graph_csr, return_predecessors=True)
         lengths = ss.csr_matrix(lengths)
         parents = ss.csr_matrix(parents)
         parents = parents + 9999 * ss.eye(parents.get_shape()[0])
         parents = parents.astype(graph_csr.dtype)
-        return (ScipyAdjacencyMatrix(parents), ScipyAdjacencyMatrix(lengths))
+        return (ScipyEdgeMap(parents), ScipyEdgeMap(lengths))
 
     @concrete_algorithm("cluster.triangle_count")
-    def ss_triangle_count(graph: ScipyAdjacencyMatrix) -> int:
+    def ss_triangle_count(graph: ScipyEdgeSet) -> int:
         """
         Uses the triangle counting method descripbed in
         https://www.sandia.gov/~srajama/publications/Tricount-HPEC.pdf

@@ -1,28 +1,28 @@
-from metagraph import translator
+from metagraph import translator, dtypes
 from metagraph.plugins import has_grblas
-from .types import PythonNodes, dtype_casting
-from ..numpy.types import CompactNumpyNodes
+from .types import PythonNodeMap, PythonNodeSet, dtype_casting
+from ..numpy.types import CompactNumpyNodeMap
 
 
 @translator
-def nodes_from_compactnumpy(x: CompactNumpyNodes, **props) -> PythonNodes:
-    cast = dtype_casting[x._dtype]
+def nodemap_to_nodeset(x: PythonNodeMap, **props) -> PythonNodeSet:
+    return PythonNodeSet(set(x.value))
+
+
+@translator
+def nodemap_from_compactnumpy(x: CompactNumpyNodeMap, **props) -> PythonNodeMap:
+    cast = dtype_casting[dtypes.dtypes_simplified[x.value.dtype]]
     npdata = x.value
     nplookup = x.lookup
     data = {label: cast(npdata[idx]) for label, idx in nplookup.items()}
-    return PythonNodes(
-        data, dtype=x._dtype, weights=x._weights, node_index=x.node_index
-    )
+    return PythonNodeMap(data)
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasNodes
+    from ..graphblas.types import GrblasNodeMap
 
     @translator
-    def nodes_from_graphblas(x: GrblasNodes, **props) -> PythonNodes:
+    def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> PythonNodeMap:
         idx, vals = x.value.to_values()
-        idx2label = x.node_index.byindex
-        data = {idx2label(k): v for k, v in zip(idx, vals)}
-        return PythonNodes(
-            data, dtype=x._dtype, weights=x._weights, node_index=x.node_index
-        )
+        data = dict(zip(idx, vals))
+        return PythonNodeMap(data)

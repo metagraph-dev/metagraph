@@ -3,7 +3,7 @@ from .plugin import ConcreteType
 import collections
 import numpy as np
 import scipy.sparse as ss
-from metagraph import config
+from metagraph import config, Wrapper
 
 
 class MultiStepTranslator:
@@ -75,20 +75,22 @@ class MultiStepTranslator:
             # Build translation matrix
             concrete_list = []
             concrete_lookup = {}
+            included_abstract_types = set()
             for ct in resolver.concrete_types:
-                if issubclass(ct.abstract, abstract):
+                if (
+                    abstract is ct.abstract
+                    or abstract in ct.abstract.unambiguous_subcomponents
+                ):
                     concrete_lookup[ct] = len(concrete_list)
                     concrete_list.append(ct)
+                    included_abstract_types.add(ct.abstract)
             m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)
             for s, d in resolver.translators:
-                # only accept destinations of specific abstract type
-                if d.abstract == abstract:
-                    try:
-                        sidx = concrete_lookup[s]
-                        didx = concrete_lookup[d]
-                        m[sidx, didx] = True
-                    except KeyError:
-                        pass
+                # only accept destinations of included abstract types
+                if d.abstract in included_abstract_types:
+                    sidx = concrete_lookup[s]
+                    didx = concrete_lookup[d]
+                    m[sidx, didx] = True
             sssp, predecessors = ss.csgraph.dijkstra(
                 m.tocsr(), return_predecessors=True, unweighted=True
             )
@@ -164,7 +166,11 @@ class AlgorithmPlan:
                 self.required_translations[varname].display()
             else:
                 print(f"** {varname} **")
-                print(f"{sig.parameters[varname].annotation.__class__.__name__}")
+                anni = sig.parameters[varname].annotation
+                if type(anni) is Wrapper:
+                    print(f"{anni.__name__}")
+                else:
+                    print(f"{anni.__class__.__name__}")
         print("---------------------")
 
     @classmethod
@@ -206,22 +212,13 @@ class AlgorithmPlan:
             return True
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
-            # The above line should ensure the typeinfo cache is populated
-            arg_typeinfo = resolver.typecache[arg_value]
 
-            # Update cache with required properties
             requested_properties = set(param_type.props.keys())
-            known_properties = arg_typeinfo.known_concrete_props
-            unknown_properties = set(known_properties.keys()) - requested_properties
-
-            new_properties = arg_typeclass.compute_concrete_properties(
-                arg_value, unknown_properties
+            properties_dict = arg_typeclass.compute_concrete_properties(
+                arg_value, requested_properties
             )
-            known_properties.update(
-                new_properties
-            )  # this dict is still in the cache too
             # Instantiate this with the properties we now know
-            arg_type = arg_typeclass(**known_properties)
+            arg_type = arg_typeclass(**properties_dict)
 
             if not param_type.is_satisfied_by(arg_type):
                 return False
