@@ -17,6 +17,7 @@ from .plugin import (
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
 from metagraph import config
+from metagraph.types import NodeID
 import numpy as np
 
 
@@ -343,7 +344,7 @@ class Resolver:
             tree.concrete_algorithms[ca.abstract_name].add(ca)
 
     def _check_abstract_type(self, abst_algo, obj, msg):
-        if obj is Any:
+        if obj is Any or obj is NodeID:
             return obj, False
         if type(obj) is type:
             if issubclass(obj, AbstractType):
@@ -462,22 +463,6 @@ class Resolver:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
                     )
-                # If concrete type has specificity limits, make sure they are
-                # adequate for the abstract signature's required minimums
-                if conc_type.abstract_property_specificity_limits:
-                    for key, required_minimum in abst_type.prop_idx.items():
-                        if key in conc_type.abstract_property_specificity_limits:
-                            max_specificity_str = conc_type.abstract_property_specificity_limits[
-                                key
-                            ]
-                            max_specificity_int = abst_type.properties[key].index(
-                                max_specificity_str
-                            )
-                            if max_specificity_int < required_minimum:
-                                raise TypeError(
-                                    f'{concrete.func.__qualname__} argument "{key}" has specificity limits which are '
-                                    f"incompatible with the abstract signature"
-                                )
         abst_ret = abst_sig.return_annotation
         conc_ret = self._normalize_concrete_type(
             conc_type=conc_sig.return_annotation, abst_type=abst_ret
@@ -637,19 +622,26 @@ class Resolver:
                             f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
                         )
 
-                requested_properties = set(param_type.prop_idx.keys())
+                requested_properties = set(param_type.prop_val.keys())
                 properties_dict = this_typeclass.compute_abstract_properties(
                     arg_value, requested_properties
                 )
                 this_abs_type = this_typeclass.abstract(**properties_dict)
 
                 unsatisfied_requirements = []
-                for abst_prop, min_value in param_type.prop_idx.items():
-                    if this_abs_type.prop_idx[abst_prop] < min_value:
-                        min_val_obj = param_type.properties[abst_prop][min_value]
-                        unsatisfied_requirements.append(
-                            f' -> `{abst_prop}` must be at least "{min_val_obj}"'
-                        )
+                for abst_prop, required_value in param_type.prop_val.items():
+                    if required_value is None:  # unspecified
+                        continue
+                    if type(required_value) is tuple:
+                        if this_abs_type.prop_val[abst_prop] not in required_value:
+                            unsatisfied_requirements.append(
+                                f" -> `{abst_prop}` must be one of {required_value!r}"
+                            )
+                    else:
+                        if this_abs_type.prop_val[abst_prop] != required_value:
+                            unsatisfied_requirements.append(
+                                f" -> `{abst_prop}` must be {required_value!r}"
+                            )
                 if unsatisfied_requirements:
                     raise ValueError(
                         f'"{arg_name}" with properties\n{this_abs_type.prop_val}\n'

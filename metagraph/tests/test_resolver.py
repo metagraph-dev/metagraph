@@ -549,41 +549,6 @@ def test_concrete_algorithm_with_properties(example_resolver):
         example_resolver.algos.ln(StrNum("0"))
 
 
-def test_concrete_algorithm_insufficient_specificity(example_resolver):
-    from .util import MyNumericAbstractType, FloatType
-
-    class RandomFloatType(Wrapper, abstract=MyNumericAbstractType):
-        abstract_property_specificity_limits = {"positivity": "any"}
-
-        def __init__(self):  # pragma: no cover
-            import random
-
-            self.value = (random.random() - 0.5) * 100
-
-    example_resolver.register(
-        {"insufficient_specificity_plugin": {"wrappers": {RandomFloatType}}}
-    )
-
-    @concrete_algorithm("ln")
-    def insufficient_ln_function(x: RandomFloatType) -> FloatType:  # pragma: no cover
-        import math
-
-        return math.log(x.value)
-
-    # RandomFloatType cannot be restricted to positivity=">0", while the
-    # abstract algorithm definition requires such specificity
-    with pytest.raises(
-        TypeError, match='"positivity" has specificity limits which are incompatible'
-    ):
-        example_resolver.register(
-            {
-                "insufficient_specificity_plugin": {
-                    "concrete_algorithms": {insufficient_ln_function}
-                }
-            }
-        )
-
-
 def test_plugin_specific_concrete_algorithms():
     import metagraph as mg
 

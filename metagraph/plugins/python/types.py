@@ -46,20 +46,6 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
             if type_ in types:
                 return str(type_.__name__)
 
-    def _determine_weights(self, dtype):
-        if dtype == "str":
-            return "any"
-        elif dtype == "bool":
-            return "non-negative"
-        else:
-            min_val = min(self.value.values())
-            if min_val < 0:
-                return "any"
-            elif min_val == 0:
-                return "non-negative"
-            else:
-                return "positive"
-
     @classmethod
     def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
@@ -67,12 +53,9 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
         ret = known_props.copy()
 
         # slow properties, only compute if asked
-        slow_props = props - ret.keys()
-        if "weights" in slow_props and "dtype" not in ret:
-            ret["dtype"] = obj._determine_dtype()
         for prop in props - ret.keys():
-            if prop == "weights":
-                ret["weights"] = obj._determine_weights(ret["dtype"])
+            if prop == "dtype":
+                ret[prop] = obj._determine_dtype()
 
         return ret
 

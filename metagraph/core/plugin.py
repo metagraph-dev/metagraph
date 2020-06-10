@@ -2,53 +2,53 @@
 """
 import types
 import inspect
-from typing import Callable, List, Dict, Any
+from typing import Callable, List, Dict, Set, Any
 from .typecache import TypeCache, TypeInfo
 
 
 class AbstractType:
     """Equivalence class of concrete types."""
 
-    # Properties must be a list of values from most general to most narrow
+    # Properties must be a dict of property name to set of allowable values
+    # A value of None indicates unspecified value
     properties = {}
 
     # Unambiguous subcomponents is a set of other abstract types which can be
     # extracted without any additional information, allowing translators to be
     # written from this type to the listed subcomponents
-    unambiguous_subcomponents = {}
+    unambiguous_subcomponents = set()
 
     def __init_subclass__(cls, **kwargs):
         # Check properties are lists
         for key, val in cls.properties.items():
-            if not isinstance(val, (list, tuple)):
-                raise KeyError(
-                    f"{key} is an invalid property; must be of type list, not {type(val)}"
-                )
-            cls.properties[key] = tuple(val)
+            if not isinstance(val, set):
+                cls.properties[key] = set(val)
 
     def __init__(self, **props):
-        # Start with all properties at the most general level
-        prop_idx = {key: 0 for key in self.properties}
-        prop_val = {key: self.properties[key][0] for key in self.properties}
+        prop_val = {key: None for key in self.properties}
         for key, val in props.items():
             if key not in self.properties:
                 raise KeyError(f"{key} not a valid property of {self.__class__}")
-            try:
-                idx = self.properties[key].index(val)
-                prop_idx[key] = idx
+            if isinstance(val, (set, tuple, list)):
+                for v in val:
+                    if v not in self.properties[key]:
+                        raise ValueError(
+                            f"Invalid setting for {key} property: '{v}'; must be one of {self.properties[key]}"
+                        )
+                prop_val[key] = tuple(sorted(val))  # sort to give consistent hash
+            else:
+                if val not in self.properties[key]:
+                    raise ValueError(
+                        f"Invalid setting for {key} property: '{val}'; must be one of {self.properties[key]}"
+                    )
                 prop_val[key] = val
-            except ValueError:
-                raise ValueError(
-                    f"Invalid setting for {key} property: '{val}'; must be one of {self.properties[key]}"
-                )
-        self.prop_idx = prop_idx
         self.prop_val = prop_val
 
     def __eq__(self, other):
-        return self.__class__ == other.__class__ and self.prop_idx == other.prop_idx
+        return self.__class__ == other.__class__ and self.prop_val == other.prop_val
 
     def __hash__(self):
-        return hash((self.__class__, tuple(self.prop_idx.items())))
+        return hash((self.__class__, tuple(self.prop_val.items())))
 
     def __getitem__(self, key):
         return self.prop_val[key]
@@ -74,9 +74,6 @@ class ConcreteType:
     # Most subclasses only need to set these class attributes
     value_type = None  # override this for fast path type identification
     allowed_props = {}  # default is no props
-    abstract_property_specificity_limits = (
-        {}
-    )  # highest specificity supported for abstract properties
     target = "cpu"  # key may be used in future to guide dispatch
 
     # Override these methods only if necessary
@@ -195,7 +192,7 @@ class ConcreteType:
         )
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(cls, obj, props: Set[str]) -> Dict[str, Any]:
         """Return a dictionary with a subset of abstract properties for this object.
 
         At a minimum, only the requested properties will be computed, although
@@ -213,6 +210,9 @@ class ConcreteType:
                 raise KeyError(
                     f"{propname} is not an abstract property of {cls.abstract.__name__}"
                 )
+
+        if type(props) is not set:
+            props = set(props)
 
         typeinfo = cls.get_typeinfo(obj)
         abstract_props = cls._compute_abstract_properties(
@@ -351,9 +351,6 @@ class Wrapper(metaclass=MetaWrapper):
 
     # These class attributes will be passed on to the created ConcreteType
     allowed_props = {}  # default is no props
-    abstract_property_specificity_limits = (
-        {}
-    )  # highest specificity supported for abstract properties
     target = "cpu"  # key may be used in future to guide dispatch
 
     def __init_subclass__(cls, *, abstract=None, register=True):
@@ -379,9 +376,6 @@ class Wrapper(metaclass=MetaWrapper):
         # Copy objects and methods from wrapper to Type class
         cls.Type.value_type = cls
         cls.Type.allowed_props = cls.allowed_props
-        cls.Type.abstract_property_specificity_limits = (
-            cls.abstract_property_specificity_limits
-        )
         cls.Type.target = cls.target
         for funcname in ["is_satisfied_by", "is_satisfied_by_value"]:
             if hasattr(cls, funcname):

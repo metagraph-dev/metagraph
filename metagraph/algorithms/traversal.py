@@ -1,10 +1,10 @@
 from metagraph import abstract_algorithm
-from metagraph.types import EdgeSet, EdgeMap, Vector, NodeMap
+from metagraph.types import EdgeSet, EdgeMap, Vector, NodeMap, NodeID
 from typing import Any, Tuple
 
 
 @abstract_algorithm("traversal.bellman_ford")
-def bellman_ford(graph: EdgeMap, source_node: Any) -> Tuple[NodeMap, NodeMap]:
+def bellman_ford(graph: EdgeMap, source_node: NodeID) -> Tuple[NodeMap, NodeMap]:
     pass
 
 
@@ -14,12 +14,14 @@ def all_shortest_paths(graph: EdgeMap) -> Tuple[EdgeMap, EdgeMap]:
 
 
 @abstract_algorithm("traversal.breadth_first_search")
-def breadth_first_search(graph: EdgeSet, source_node: Any) -> Vector:
+def breadth_first_search(graph: EdgeSet, source_node: NodeID) -> Vector:
     pass
 
 
 @abstract_algorithm("traversal.dijkstra")
 def dijkstra(
-    graph: EdgeMap, source_node: Any, max_path_length: float
+    graph: EdgeMap(has_negative_weights=False),
+    source_node: NodeID,
+    max_path_length: float,
 ) -> Tuple[NodeMap, NodeMap]:
     pass
