@@ -39,13 +39,6 @@ def test_abstract_type():
     at = MyNumericAbstractType(positivity=">=0")
     assert at.prop_val == {"positivity": ">=0", "divisible_by_two": None}
 
-    with pytest.raises(
-        KeyError, match=" is an invalid property; must be of type list, not "
-    ):
-
-        class BadAbstractType(plugin.AbstractType):
-            properties = {"k1": range(10)}
-
     class AbstractType1(plugin.AbstractType):
         properties = {"k1": ["v1", "v2", "v3"]}
 
