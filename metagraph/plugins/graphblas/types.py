@@ -102,23 +102,6 @@ if has_grblas:
                         dtype_grblas_to_mg[obj.value.dtype.name]
                     ]
 
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "weights":
-                    if ret["dtype"] == "str":
-                        weights = "any"
-                    elif ret["dtype"] == "bool":
-                        weights = "non-negative"
-                    else:
-                        min_val = obj.value.reduce(grblas.monoid.min).new().value
-                        if min_val < 0:
-                            weights = "any"
-                        elif min_val == 0:
-                            weights = "non-negative"
-                        else:
-                            weights = "positive"
-                    ret[prop] = weights
-
             return ret
 
         @classmethod
@@ -135,7 +118,6 @@ if has_grblas:
 
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix
-        abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
         def _compute_abstract_properties(
@@ -230,26 +212,24 @@ if has_grblas:
             # fast properties
             for prop in {"dtype"} - ret.keys():
                 if prop == "dtype":
-                    ret[prop] = dtype_grblas_to_mg[obj.value.dtype.name]
+                    ret[prop] = dtypes.dtypes_simplified[
+                        dtype_grblas_to_mg[obj.value.dtype.name]
+                    ]
 
             # slow properties, only compute if asked
             for prop in props - ret.keys():
                 if prop == "is_directed":
                     ret[prop] = obj.value != obj.value.T.new()
-                if prop == "weights":
-                    if ret["dtype"] == "str":
-                        weights = "any"
-                    elif ret["dtype"] == "bool":
-                        weights = "non-negative"
+                if prop == "has_negative_weights":
+                    if ret["dtype"] in {"bool", "str"}:
+                        neg_weights = None
                     else:
                         min_val = obj.value.reduce_scalar(grblas.monoid.min).new().value
                         if min_val < 0:
-                            weights = "any"
-                        elif min_val == 0:
-                            weights = "non-negative"
+                            neg_weights = True
                         else:
-                            weights = "positive"
-                    ret[prop] = weights
+                            neg_weights = False
+                    ret[prop] = neg_weights
 
             return ret
 

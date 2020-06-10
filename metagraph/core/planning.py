@@ -3,7 +3,7 @@ from .plugin import ConcreteType
 import collections
 import numpy as np
 import scipy.sparse as ss
-from metagraph import config, Wrapper
+from metagraph import config, Wrapper, NodeID
 
 
 class MultiStepTranslator:
@@ -210,6 +210,8 @@ class AlgorithmPlan:
     def _check_arg_type(resolver, arg_value, param_type) -> bool:
         if param_type is Any:
             return True
+        elif param_type is NodeID:
+            return isinstance(arg_value, int)
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
 

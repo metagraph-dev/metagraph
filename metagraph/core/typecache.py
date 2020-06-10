@@ -18,6 +18,12 @@ class TypeInfo:
     def known_props(self):
         return {**self.known_abstract_props, **self.known_concrete_props}
 
+    def update_props(self, other):
+        if type(other) is not TypeInfo:
+            raise TypeError(f"other must be TypeInfo, not {type(other)}")
+        self.known_abstract_props.update(other.known_abstract_props)
+        self.known_concrete_props.update(other.known_concrete_props)
+
 
 class TypeCache:
     """Maintains a cache of type information and properties for objects.

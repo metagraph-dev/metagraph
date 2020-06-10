@@ -34,9 +34,9 @@ def test_abstract_type():
     )
     assert hash(MyNumericAbstractType(divisible_by_two=False, positivity=">=0"))
 
-    # property index calculation
+    # property values
     at = MyNumericAbstractType(positivity=">=0")
-    assert at.prop_idx == {"positivity": 1, "divisible_by_two": 0}
+    assert at.prop_val == {"positivity": ">=0", "divisible_by_two": None}
 
 
 def test_concrete_type():

@@ -1,4 +1,4 @@
-from metagraph import concrete_algorithm
+from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_networkx, has_community
 from typing import Tuple, Iterable, Any
 
@@ -7,7 +7,7 @@ if has_networkx:
     import networkx as nx
     import numpy as np
     from .types import NetworkXEdgeSet, NetworkXEdgeMap
-    from ..python.types import PythonNodeMap
+    from ..python.types import PythonNodeMap, PythonNodeSet
     from ..numpy.types import NumpyVector
 
     @concrete_algorithm("link_analysis.pagerank")
@@ -72,9 +72,9 @@ if has_networkx:
                 index_to_label[node] = label
         return PythonNodeMap(index_to_label,)
 
-    @concrete_algorithm("subgraph.extract_subgraph")
+    @concrete_algorithm("subgraph.extract_edgemap")
     def nx_extract_subgraph(
-        graph: NetworkXEdgeMap, nodes: NumpyVector
+        graph: NetworkXEdgeMap, nodes: PythonNodeSet
     ) -> NetworkXEdgeMap:
         subgraph = graph.value.subgraph(nodes.value)
         return NetworkXEdgeMap(subgraph, weight_label=graph.weight_label,)
@@ -86,7 +86,7 @@ if has_networkx:
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
-        graph: NetworkXEdgeMap, source_node: Any
+        graph: NetworkXEdgeMap, source_node: NodeID
     ) -> Tuple[PythonNodeMap, PythonNodeMap]:
         predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(
             graph.value, source_node
@@ -102,7 +102,7 @@ if has_networkx:
 
     @concrete_algorithm("traversal.dijkstra")
     def dijkstra(
-        graph: NetworkXEdgeMap, source_node: Any, max_path_length: float
+        graph: NetworkXEdgeMap, source_node: NodeID, max_path_length: float
     ) -> Tuple[PythonNodeMap, PythonNodeMap]:
         predecessors_map, distance_map = nx.dijkstra_predecessor_and_distance(
             graph.value, source_node, cutoff=max_path_length,
@@ -130,7 +130,7 @@ if has_networkx:
 
     @concrete_algorithm("traversal.breadth_first_search")
     def nx_breadth_first_search(
-        graph: NetworkXEdgeSet, source_node: Any
+        graph: NetworkXEdgeSet, source_node: NodeID
     ) -> NumpyVector:
         bfs_ordered_node_array = np.array(
             nx.breadth_first_search.bfs_tree(graph.value, source_node)

@@ -11,7 +11,6 @@ if has_scipy:
 
     class ScipyMatrixType(ConcreteType, abstract=Matrix):
         value_type = ss.spmatrix
-        abstract_property_specificity_limits = {"is_dense": False}
 
         @classmethod
         def _compute_abstract_properties(
@@ -123,21 +122,16 @@ if has_scipy:
             for prop in props - ret.keys():
                 if prop == "is_directed":
                     ret[prop] = (obj.value.T != obj.value).nnz > 0
-                if prop == "weights":
-                    if ret["dtype"] == "str":
-                        weights = "any"
-                    values = obj.value.data
-                    if ret["dtype"] == "bool":
-                        weights = "non-negative"
+                if prop == "has_negative_weights":
+                    if ret["dtype"] in {"bool", "str"}:
+                        neg_weights = None
                     else:
-                        min_val = values.min()
+                        min_val = obj.value.data.min()
                         if min_val < 0:
-                            weights = "any"
-                        elif min_val == 0:
-                            weights = "non-negative"
+                            neg_weights = True
                         else:
-                            weights = "positive"
-                    ret[prop] = weights
+                            neg_weights = False
+                    ret[prop] = neg_weights
 
             return ret
 
