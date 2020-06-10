@@ -256,7 +256,7 @@ class ConcreteType:
         for propname in props:
             if propname not in cls.allowed_props:
                 raise KeyError(
-                    f"{propname} is not an concrete property of {cls.__name__}"
+                    f"{propname} is not a concrete property of {cls.__name__}"
                 )
 
         typeinfo = cls.get_typeinfo(obj)
