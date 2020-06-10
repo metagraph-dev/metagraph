@@ -330,21 +330,12 @@ class Resolver:
                     )
                 self._normalize_concrete_algorithm_signature(abstract, ca)
             elif tree_is_plugin:
-                abstract_algo_has_concrete_algo = False
-                tree_algos_namespace = tree.algos
-                for name in ca.abstract_name.split("."):
-                    abstract_algo_has_concrete_algo = hasattr(
-                        tree_algos_namespace, name
-                    )
-                    if abstract_algo_has_concrete_algo:
-                        tree_algos_namespace = getattr(tree_algos_namespace, name)
-                    else:
-                        break
-                if abstract_algo_has_concrete_algo:
+                try:
+                    tree.algos._register(ca.abstract_name, ca.func)
+                except NamespaceError:
                     raise ValueError(
                         f"Multiple concrete algorithms for abstract algorithm {ca.abstract_name} within plugin {plugin_name}."
                     )
-                tree.algos._register(ca.abstract_name, ca.func)
                 dispatcher = self.algos
                 for name in ca.abstract_name.split("."):
                     dispatcher = getattr(dispatcher, name)
