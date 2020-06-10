@@ -7,7 +7,12 @@ if has_networkx:
 
     @translator
     def edgemap_to_edgeset(x: NetworkXEdgeMap, **props) -> NetworkXEdgeSet:
-        return NetworkXEdgeSet(x.value)
+        typeinfo = NetworkXEdgeMap.Type.get_typeinfo(x)
+
+        ret = NetworkXEdgeSet(x.value)
+
+        NetworkXEdgeSet.Type.get_typeinfo(ret).update_props(typeinfo)
+        return ret
 
 
 if has_networkx and has_pandas:
@@ -17,7 +22,9 @@ if has_networkx and has_pandas:
 
     @translator
     def edgemap_from_pandas(x: PandasEdgeMap, **props) -> NetworkXEdgeMap:
-        if x.is_directed:
+        cur_props = PandasEdgeMap.Type.compute_abstract_properties(x, ["is_directed"])
+
+        if cur_props["is_directed"]:
             out = nx.DiGraph()
         else:
             out = nx.Graph()

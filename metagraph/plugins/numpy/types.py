@@ -78,23 +78,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 raise ValueError(f"node {node_id} is not in the NodeMap")
         return self.value[node_id]
 
-    def _determine_weights(self, dtype):
-        if dtype == "str":
-            return "any"
-        values = (
-            self.value if self.missing_mask is None else self.value[~self.missing_mask]
-        )
-        if dtype == "bool":
-            return "non-negative"
-        else:
-            min_val = values.min()
-            if min_val < 0:
-                return "any"
-            elif min_val == 0:
-                return "non-negative"
-            else:
-                return "positive"
-
     @property
     def num_nodes(self):
         if self.missing_mask is not None:
@@ -112,11 +95,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         for prop in {"dtype"} - ret.keys():
             if prop == "dtype":
                 ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
-
-        # slow properties, only compute if asked
-        for prop in props - ret.keys():
-            if prop == "weights":
-                ret[prop] = obj._determine_weights(ret["dtype"])
 
         return ret
 
@@ -170,23 +148,6 @@ class CompactNumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         for prop in {"dtype"} - ret.keys():
             if prop == "dtype":
                 ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
-
-        # slow properties, only compute if asked
-        for prop in props - ret.keys():
-            if prop == "weights":
-                if ret["dtype"] == "str":
-                    weights = "any"
-                elif ret["dtype"] == "bool":
-                    weights = "non-negative"
-                else:
-                    min_val = obj.value.min()
-                    if min_val < 0:
-                        weights = "any"
-                    elif min_val == 0:
-                        weights = "non-negative"
-                    else:
-                        weights = "positive"
-                ret[prop] = weights
 
         return ret
 

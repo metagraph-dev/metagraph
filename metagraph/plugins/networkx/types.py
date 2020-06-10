@@ -56,7 +56,7 @@ if has_networkx:
 
             # slow properties, only compute if asked
             slow_props = props - ret.keys()
-            if "dtype" in slow_props or "weights" in slow_props:
+            if "dtype" in slow_props or "has_negative_weights" in slow_props:
                 all_values = set()
                 for edge in obj.value.edges(data=True):
                     e_attrs = edge[-1]
@@ -64,20 +64,16 @@ if has_networkx:
                     all_values.add(value)
                 if "dtype" in slow_props:
                     ret["dtype"] = obj._determine_dtype(all_values)
-                if "weights" in slow_props:
-                    if ret["dtype"] == "str":
-                        weights = "any"
-                    elif ret["dtype"] == "bool":
-                        weights = "non-negative"
+                if "has_negative_weights" in slow_props:
+                    if ret["dtype"] in {"bool", "str"}:
+                        neg_weights = None
                     else:
                         min_val = min(all_values)
                         if min_val < 0:
-                            weights = "any"
-                        elif min_val == 0:
-                            weights = "non-negative"
+                            neg_weights = True
                         else:
-                            weights = "positive"
-                    ret["weights"] = weights
+                            neg_weights = False
+                    ret["has_negative_weights"] = neg_weights
 
             return ret
 
