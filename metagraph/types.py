@@ -1,8 +1,22 @@
 from . import AbstractType, Wrapper
 
 
+# Use in signatures when a node ID is required
+class NodeID:
+    def __repr__(self):
+        return "NodeID"
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Do not attempt to create a NodeID. Simply pass in the node_id as an int"
+        )
+
+
+# Create a singleton object which masks the class
+NodeID = NodeID()
+
+
 DTYPE_CHOICES = ["str", "float", "int", "bool"]
-WEIGHT_CHOICES = ["any", "non-negative", "positive"]
 
 
 class Vector(AbstractType):
@@ -29,7 +43,7 @@ class NodeSet(AbstractType):
 
 
 class NodeMap(AbstractType):
-    properties = {"dtype": DTYPE_CHOICES, "weights": WEIGHT_CHOICES}
+    properties = {"dtype": DTYPE_CHOICES}
     unambiguous_subcomponents = {NodeSet}
 
     @Wrapper.required_method
@@ -57,7 +71,7 @@ class EdgeMap(AbstractType):
     properties = {
         "is_directed": [True, False],
         "dtype": DTYPE_CHOICES,
-        "weights": WEIGHT_CHOICES,
+        "has_negative_weights": [True, False],
     }
     unambiguous_subcomponents = {EdgeSet}
 
