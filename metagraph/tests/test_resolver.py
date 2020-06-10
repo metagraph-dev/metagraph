@@ -1,5 +1,6 @@
 import pytest
 
+import metagraph as mg
 from metagraph import (
     AbstractType,
     ConcreteType,
@@ -550,8 +551,6 @@ def test_concrete_algorithm_with_properties(example_resolver):
 
 
 def test_plugin_specific_concrete_algorithms():
-    import metagraph as mg
-
     r = mg.resolver
     assert hasattr(r, "plugins")
     assert hasattr(r.plugins, "core_networkx")
@@ -625,3 +624,131 @@ def test_plugin_specific_concrete_algorithms():
     assert r.algos.cluster.triangle_count(graph) == 5
     assert r.plugins.core_networkx.algos.cluster.triangle_count(graph) == 5
     assert r.algos.cluster.triangle_count.core_networkx(graph) == 5
+
+
+def test_duplciate_plugin():
+    class AbstractType1(AbstractType):
+        pass
+
+    class AbstractType2(AbstractType):
+        pass
+
+    class ConcreteType1(ConcreteType, abstract=AbstractType1):
+        value_type = int
+        pass
+
+    class ConcreteType2(ConcreteType, abstract=AbstractType2):
+        value_type = int
+        pass
+
+    @abstract_algorithm("test_duplciate_plugin.test_abstract_algo")
+    def abstract_algo1(input_int: int):
+        pass
+
+    @concrete_algorithm("test_duplciate_plugin.test_abstract_algo")
+    def concrete_algo1(input_int: int):
+        pass
+
+    @concrete_algorithm("test_duplciate_plugin.test_abstract_algo")
+    def concrete_algo2(input_int: int):
+        pass
+
+    res = Resolver()
+    with pytest.raises(
+        ValueError, match="Multiple concrete algorithms for abstract algorithm"
+    ):
+        res.register(
+            {
+                "bad_many_conc_algo_to_one_abstract_algo": {
+                    "abstract_algorithms": {abstract_algo1},
+                    "concrete_algorithms": {concrete_algo1, concrete_algo2},
+                }
+            }
+        )
+
+    res = Resolver()
+    res.register(
+        (
+            {
+                "bad_many_value_type_to_concrete": {
+                    "abstract_types": {AbstractType1, AbstractType2},
+                    "concrete_types": {ConcreteType1},
+                }
+            }
+        )
+    )
+    with pytest.raises(
+        ValueError,
+        match="Python class '<class 'int'>' already has a registered concrete type: ",
+    ):
+        res.register(
+            ({"bad_many_value_type_to_concrete": {"concrete_types": {ConcreteType2}}})
+        )
+
+    res = Resolver()
+    res.register({"test_duplciate_plugin": {"abstract_types": {AbstractType1}}})
+    with pytest.raises(ValueError, match=" already registered."):
+        res.register({"test_duplciate_plugin": {"concrete_types": {ConcreteType1}}})
+
+    res = Resolver()
+    with pytest.raises(ValueError, match=" not known to be the resolver or a plugin."):
+        res._register_plugin_attributes_in_tree(
+            Resolver(), abstract_types={AbstractType1}
+        )
+
+
+def test_invalid_plugin_names():
+    res = Resolver()
+    invalid_plugin_name = "invalid_name!#@$%#^&*()[]"
+
+    class Abstract1(AbstractType):
+        pass
+
+    class Concrete1(ConcreteType, abstract=Abstract1):
+        pass
+
+    with pytest.raises(ValueError, match="is not a valid plugin name"):
+        registry = PluginRegistry(invalid_plugin_name)
+
+    registry = PluginRegistry("test_invalid_plugin_names_default_plugin")
+    with pytest.raises(ValueError, match="is not a valid plugin name"):
+        registry.register(Abstract1, invalid_plugin_name)
+
+    with pytest.raises(ValueError, match="is not a valid plugin name"):
+        registry.register_from_modules(
+            mg.types, mg.algorithms, name=invalid_plugin_name
+        )
+
+    with pytest.raises(ValueError, match="is not a valid plugin name"):
+        res.register({invalid_plugin_name: {"abstract_types": {Abstract1}}})
+
+
+def test_wrapper_insufficient_specificity():
+    class TestNodes(AbstractType):
+        @Wrapper.required_method
+        def __getitem__(self, label):
+            raise NotImplementedError()
+
+        @Wrapper.required_property
+        def num_nodes(self):
+            raise NotImplementedError()
+
+    with pytest.raises(TypeError, match="is missing required wrapper method"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            def num_nodes(self):
+                return "dummy"
+
+    with pytest.raises(TypeError, match="is missing required wrapper property"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            def __getitem__(self, label):
+                return "dummy"
+
+    with pytest.raises(TypeError, match="must be a property, not"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            num_nodes = "string that is not a property or function"
+
+            def __getitem__(self, label):
+                return "dummy"
