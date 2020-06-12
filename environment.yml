@@ -16,8 +16,8 @@ dependencies:
   - importlib_metadata
   - numpy
   - networkx
+  - pandas
   - conda-forge::python-louvain
   - scipy
-  - pandas
   - conda-forge::donfig
   - conda-forge::grblas
