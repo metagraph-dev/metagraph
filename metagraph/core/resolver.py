@@ -590,7 +590,7 @@ class Resolver:
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
-        # Validate types meeting minimum specificity required by abstract properties
+        # Validate types have required abstract properties
         abstract_algo = self.abstract_algorithms[algo_name]
         sig = abstract_algo.__signature__
         bound_args = sig.bind(*args, **kwargs)
@@ -622,7 +622,9 @@ class Resolver:
                             f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
                         )
 
-                requested_properties = set(param_type.prop_val.keys())
+                requested_properties = set(
+                    k for k, v in param_type.prop_val.items() if v is not None
+                )
                 properties_dict = this_typeclass.compute_abstract_properties(
                     arg_value, requested_properties
                 )
@@ -645,7 +647,7 @@ class Resolver:
                 if unsatisfied_requirements:
                     raise ValueError(
                         f'"{arg_name}" with properties\n{this_abs_type.prop_val}\n'
-                        + f"does not meet the specificity requirements:\n"
+                        + f"does not meet requirements:\n"
                         + "\n".join(unsatisfied_requirements)
                     )
 
