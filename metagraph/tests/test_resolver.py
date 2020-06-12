@@ -540,13 +540,13 @@ def test_concrete_algorithm_with_properties(example_resolver):
     val = example_resolver.algos.ln(100.0)
     assert abs(val - 4.605170185988092) < 1e-6
 
-    with pytest.raises(ValueError, match="does not meet the specificity requirement"):
+    with pytest.raises(ValueError, match="does not meet requirements"):
         example_resolver.algos.ln(-1.1)
 
-    with pytest.raises(ValueError, match="does not meet the specificity requirement"):
+    with pytest.raises(ValueError, match="does not meet requirements"):
         example_resolver.algos.ln(0.0)
 
-    with pytest.raises(ValueError, match="does not meet the specificity requirement"):
+    with pytest.raises(ValueError, match="does not meet requirements"):
         example_resolver.algos.ln(StrNum("0"))
 
 
@@ -723,7 +723,7 @@ def test_invalid_plugin_names():
         res.register({invalid_plugin_name: {"abstract_types": {Abstract1}}})
 
 
-def test_wrapper_insufficient_specificity():
+def test_wrapper_insufficient_properties():
     class TestNodes(AbstractType):
         @Wrapper.required_method
         def __getitem__(self, label):
