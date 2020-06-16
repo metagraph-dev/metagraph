@@ -1,6 +1,6 @@
 .. _core_developer_guide:
 
-Core Developrer Guide
+Core Developer Guide
 =====================
 
 .. toctree::
