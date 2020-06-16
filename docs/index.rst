@@ -1,9 +1,5 @@
-.. metagraph documentation master file, created by
-   sphinx-quickstart on Tue Jan  7 16:14:34 2020.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
 
-Welcome to metagraph's documentation!
+Metagraph Documentation
 =====================================
 
 .. toctree::
@@ -22,14 +18,14 @@ Welcome to metagraph's documentation!
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="_static/dummy.svg" class="card-img-top" alt="Getting Started" height="52">
+                <img src="_static/icons/caret-right-square.svg" class="card-img-top" alt="Getting Started" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">Getting Started</h5>
                     <p class="card-text">TODO fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in</p>
 
 .. container:: custom-button
 
-    :ref:`Go to Quick Start Guide<getting_started>`
+    :ref:`Go to Quick Start<getting_started>`
 
 .. raw:: html
 
@@ -38,7 +34,7 @@ Welcome to metagraph's documentation!
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="_static/dummy.svg" class="card-img-top" alt="User Guide" height="52">
+                <img src="_static/icons/compass.svg" class="card-img-top" alt="User Guide" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">User Guide</h5>
                     <p class="card-text">TODO fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in</p>
@@ -54,14 +50,14 @@ Welcome to metagraph's documentation!
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="_static/dummy.svg" class="card-img-top" alt="Plugin Author Guide" height="52">
+                <img src="_static/icons/plug.svg" class="card-img-top" alt="Plugin Author Guide" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">Plugin Author Guide</h5>
                     <p class="card-text">TODO fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in</p>
 
 .. container:: custom-button
 
-    :ref:`Go to Plugin Author Guide<plugin_author_guide>`
+    :ref:`Go to Plugin Guide<plugin_author_guide>`
 
 .. raw:: html
 
@@ -70,14 +66,14 @@ Welcome to metagraph's documentation!
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
                 <div class="card text-center intro-card shadow">
-                <img src="_static/dummy.svg" class="card-img-top" alt="Core Developer Guide" height="52">
+                <img src="_static/icons/gear.svg" class="card-img-top" alt="Core Developer Guide" height="52">
                 <div class="card-body flex-fill">
                     <h5 class="card-title">Core Developer Guide</h5>
                     <p class="card-text">TODO fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in fill this in</p>
 
 .. container:: custom-button
 
-    :ref:`Go to the Core Developer Guide<core_developer_guide>`
+    :ref:`Go to Developer Guide<core_developer_guide>`
 
 .. raw:: html
 
