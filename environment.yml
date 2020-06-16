@@ -8,10 +8,16 @@ dependencies:
   - black
   - conda-forge::pre-commit
 
+# documentation
+  - sphinx=3.0.4
+  - conda-forge::pydata-sphinx-theme
+
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata
   - numpy
   - networkx
+  - pandas
+  - conda-forge::python-louvain
   - scipy
   - conda-forge::donfig
   - conda-forge::grblas
