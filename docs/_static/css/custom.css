@@ -8,7 +8,7 @@
   display: inline-block;
   font-size: 0.9rem;
   border-radius: 0.5rem;
-  max-width: 120px;
+  max-width: 140px;
   padding: 0.5rem 0rem;
 }
 
@@ -22,6 +22,14 @@
   color: #484848;
 }
 
-.card {
-    margin-bottom: 30px;
+.intro-card {
+  background: #fff;
+  border-radius: 0;
+  padding: 30px 10px 10px 10px;
+  margin: 15px 0px;
+}
+
+.intro-card .card-text {
+  margin: 20px 0px;
+  /*min-height: 150px; */
 }
