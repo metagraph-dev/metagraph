@@ -53,6 +53,10 @@ class AbstractType:
     def __getitem__(self, key):
         return self.prop_val[key]
 
+    def __repr__(self):
+        props_clean = {k: v for k, v in self.prop_val.items() if v is not None}
+        return f"{self.__class__.__name__}({props_clean})"
+
 
 class ConcreteType:
     """A specific data type in a particular memory space recognized by metagraph.
