@@ -1,6 +1,6 @@
 
 .custom-button {
-  background-color:#DCDCDC;
+  background-color:#b3d7ff;
   border: none;
   color: #484848;
   text-align: center;
@@ -13,7 +13,7 @@
 }
 
 .custom-button a {
-  color: #484848;
+  color: #000000;
 }
 
 .custom-button p {

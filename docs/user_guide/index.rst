@@ -3,16 +3,22 @@
 User Guide
 ==========
 
+The User Guide covers Metagraph topics in detail. It covers usage of Metagraph, including
+interacting with external plugins, but does not cover writing plugins. See
+:ref:`Writing Plugins<plugin_author_guide>` for that use case.
+
+
 .. toctree::
    :maxdepth: 2
    :caption: Contents:
 
-   user_guide
-   core_types
-   core_wrappers
+   resolver
    properties
-   abstract_vs_concrete_algorithms
-   data_loading_and_export
-   visualization
+   translators
+   types
+   wrappers
    algorithms
+   algorithm_list
+   data_loading_and_export
    node_labels
+   visualization
