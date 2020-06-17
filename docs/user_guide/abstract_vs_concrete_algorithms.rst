@@ -1,2 +1,0 @@
-Abstract vs Concrete Algorithms
-===============================
