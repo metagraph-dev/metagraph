@@ -25,7 +25,7 @@ class PluginRegistry:
     registry = metagraph.plugin_registry.PluginRegistry()
     def find_plugins():
         from . import graphblas, 
-        registry.register_from_modules([metagraph.types, metagraph.algorithms])
+        registry.register_from_modules(metagraph.types, metagraph.algorithms)
         registry.register_from_modules(graphblas, name="core_graphblas")
         ...
         return registry.plugins

@@ -8,8 +8,8 @@
   display: inline-block;
   font-size: 0.9rem;
   border-radius: 0.5rem;
-  max-width: 140px;
-  padding: 0.5rem 0rem;
+  max-width: 240px;
+  padding: 0.5rem 1rem;
 }
 
 .custom-button a {
