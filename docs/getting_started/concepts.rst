@@ -17,6 +17,7 @@ Metagraph is not a typical graph library. Instead, it is an orchestration on top
 graph libraries. This allows us to leverage the quality libraries that already exist, while
 striving to create a unified API that users can learn.
 
+.. _concepts_decoupling_storage_from_algorithms:
 
 Decoupling Storage from Algorithms
 ----------------------------------
