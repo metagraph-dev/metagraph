@@ -27,7 +27,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
 
 .. container:: custom-button
 
-    :ref:`Go to Quick Start<getting_started>`
+    :ref:`Go to the Quick Start Guide<getting_started>`
 
 .. raw:: html
 
@@ -43,7 +43,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
 
 .. container:: custom-button
 
-    :ref:`Go to User Guide<user_guide>`
+    :ref:`Go to the User Guide<user_guide>`
 
 .. raw:: html
 
@@ -59,7 +59,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
 
 .. container:: custom-button
 
-    :ref:`Go to Plugin Guide<plugin_author_guide>`
+    :ref:`Go to the Plugin Author Guide<plugin_author_guide>`
 
 .. raw:: html
 
