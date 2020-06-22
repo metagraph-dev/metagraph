@@ -1,6 +1,6 @@
 
 .custom-button {
-  background-color:#b3d7ff;
+  background-color: #b3d7ff;
   border: none;
   color: #484848;
   text-align: center;
@@ -20,6 +20,57 @@
   margin-top: 0;
   margin-bottom: 0rem;
   color: #484848;
+}
+
+.custom-icon circle {
+    fill: #b3d7ff;
+    stroke: #478eff;
+    stroke-width: 5;
+}
+
+#custom-play-button {
+    fill: #478eff;
+    stroke: #478eff;
+    stroke-width: 5;
+    stroke-linejoin: round;
+}
+
+#compass-north-dial-pointer {
+    fill: #478eff;
+    stroke: #478eff;
+    fill-opacity: 0.5;
+}
+
+#compass-south-dial-pointer {
+    fill: #478eff;
+    stroke: #478eff;
+}
+
+#custom-plug {
+    stroke: #478eff;
+    fill: #478eff;
+}
+
+#custom-plugin-prong {
+    stroke-width: 5;
+    stroke-linejoin: round;
+}
+
+#custom-back-gear circle, #custom-front-gear circle {
+    fill: #b3d7ff;
+    stroke-width: 1;
+    r: 5;
+}
+
+#custom-back-gear path {
+    fill: #478eff;
+    stroke: #478eff;
+    fill-opacity: 0.5;
+}
+
+#custom-front-gear path {
+    fill: #478eff;
+    stroke: #478eff;
 }
 
 .intro-card {
