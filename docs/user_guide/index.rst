@@ -4,8 +4,8 @@ User Guide
 ==========
 
 The User Guide covers Metagraph topics in detail. It covers usage of Metagraph, including
-interacting with external plugins, but does not cover writing plugins. See
-:ref:`Writing Plugins<plugin_author_guide>` for that use case.
+interacting with external plugins, but does not cover writing plugins. See the
+:ref:`Plugin Author Guide<plugin_author_guide>` for that use case.
 
 
 .. toctree::
