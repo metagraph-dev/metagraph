@@ -1,35 +1,101 @@
 
 .custom-button {
-  background-color:#b3d7ff;
-  border: none;
-  color: #484848;
-  text-align: center;
-  text-decoration: none;
-  display: inline-block;
-  font-size: 0.9rem;
-  border-radius: 0.5rem;
-  max-width: 240px;
-  padding: 0.5rem 1rem;
+    background-color: #b3d7ff;
+    color: #484848;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 0.9rem;
+    border-radius: 0.5rem;
+    max-width: 240px;
+    padding: 0.5rem 1rem;
+    border: 2px solid #478eff;
+    box-shadow: 2px 2px 10px #bdbdbd;
 }
 
 .custom-button a {
-  color: #000000;
+    color: #000000;
 }
 
 .custom-button p {
-  margin-top: 0;
-  margin-bottom: 0rem;
-  color: #484848;
+    margin-top: 0;
+    margin-bottom: 0rem;
+    color: #484848;
+}
+
+svg {
+    transition: all 1s;
+    transform: rotate(0deg);
+}
+
+.custom-icon-animate {
+    transform: rotate(360deg);
+}
+
+.custom-icon circle {
+    fill: #b3d7ff;
+    stroke: #478eff;
+    stroke-width: 5;
+}
+
+#custom-play-button {
+    fill: #478eff;
+    stroke: #478eff;
+    stroke-width: 5;
+    stroke-linejoin: round;
+}
+
+#compass-north-dial-pointer {
+    fill: #478eff;
+    stroke: #478eff;
+    fill-opacity: 0.5;
+}
+
+#compass-south-dial-pointer {
+    fill: #478eff;
+    stroke: #478eff;
+}
+
+#custom-plug {
+    stroke: #478eff;
+    fill: #478eff;
+}
+
+#custom-plugin-prong {
+    stroke-width: 5;
+    stroke-linejoin: round;
+}
+
+#custom-back-gear circle, #custom-front-gear circle {
+    fill: #b3d7ff;
+    stroke-width: 1;
+    r: 5;
+}
+
+#custom-back-gear path {
+    fill: #478eff;
+    stroke: #478eff;
+    fill-opacity: 0.5;
+}
+
+#custom-front-gear path {
+    fill: #478eff;
+    stroke: #478eff;
 }
 
 .intro-card {
-  background: #fff;
-  border-radius: 0;
-  padding: 30px 10px 10px 10px;
-  margin: 15px 0px;
+    background: #fff;
+    border-radius: 0;
+    padding: 30px 10px 10px 10px;
+    margin: 15px 0px;
+    transition: all 0.5s;
+}
+
+.intro-card:hover {
+    border-radius: 10px;
+    border-color: #478eff;
 }
 
 .intro-card .card-text {
-  margin: 20px 0px;
-  /*min-height: 150px; */
+    margin: 20px 0px;
 }
