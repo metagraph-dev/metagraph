@@ -11,10 +11,21 @@
     padding: 0.5rem 1rem;
     border: 2px solid #478eff;
     box-shadow: 2px 2px 10px #bdbdbd;
+    transition: all 0.5s;
+}
+
+.custom-button:hover {
+    box-shadow: 2px 2px 10px #888;
+    background-color: #bfddff;
+}
+
+.custom-button:active {
+    transform: translateY(10px);
 }
 
 .custom-button a {
     color: #000000;
+    text-decoration: none;
 }
 
 .custom-button p {
