@@ -120,4 +120,5 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
                 </div>
             </div>
         </div>
+        <script>makeCustomButtonsMatchChildLinks()</script>
     </div>
