@@ -73,16 +73,28 @@ if has_networkx:
         return PythonNodeMap(index_to_label,)
 
     @concrete_algorithm("subgraph.extract_edgemap")
-    def nx_extract_subgraph(
+    def nx_extract_edgemap(
         graph: NetworkXEdgeMap, nodes: PythonNodeSet
     ) -> NetworkXEdgeMap:
         subgraph = graph.value.subgraph(nodes.value)
         return NetworkXEdgeMap(subgraph, weight_label=graph.weight_label,)
 
+    @concrete_algorithm("subgraph.extract_edgeset")
+    def nx_extract_edgeset(
+        graph: NetworkXEdgeSet, nodes: PythonNodeSet
+    ) -> NetworkXEdgeSet:
+        subgraph = graph.value.subgraph(nodes.value)
+        return NetworkXEdgeSet(subgraph)
+
     @concrete_algorithm("subgraph.k_core")
     def nx_k_core(graph: NetworkXEdgeMap, k: int) -> NetworkXEdgeMap:
         k_core_graph = nx.k_core(graph.value, k)
         return NetworkXEdgeMap(k_core_graph, weight_label=graph.weight_label,)
+
+    @concrete_algorithm("subgraph.k_core_unweighted")
+    def nx_k_core_unweighted(graph: NetworkXEdgeSet, k: int) -> NetworkXEdgeSet:
+        k_core_graph = nx.k_core(graph.value, k)
+        return NetworkXEdgeSet(k_core_graph)
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
