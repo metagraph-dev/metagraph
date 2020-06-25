@@ -14,7 +14,7 @@ Connected Components
 
  .. code-block:: python
 		 
-		 def connected_components(graph: EdgeSet(is_directed=False)) -> NodeMap
+		 def connected_components(graph: EdgeSet(is_directed=False)) -> NodeMap:
 
 The connected components algorithm groups nodes of an **undirected** graph into subgraphs where all subgraph nodes which are reachable by each other. Since the graph is undirected, the subgraphs are both weakly and strongly connected.
 
