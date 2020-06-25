@@ -33,13 +33,19 @@ if has_scipy:
 if has_scipy and has_networkx:
     import networkx as nx
     from .types import ScipyMatrixType, ScipyEdgeMap
-    from ..networkx.types import NetworkXEdgeMap
+    from ..networkx.types import NetworkXEdgeMap, NetworkXEdgeSet
 
     @translator
     def edgemap_from_networkx(x: NetworkXEdgeMap, **props) -> ScipyEdgeMap:
         ordered_nodes = list(sorted(x.value.nodes()))
         m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=ordered_nodes)
         return ScipyEdgeMap(m, ordered_nodes)
+
+    @translator
+    def edgeset_from_networkx(x: NetworkXEdgeSet, **props) -> ScipyEdgeSet:
+        ordered_nodes = list(sorted(x.value.nodes()))
+        m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=ordered_nodes)
+        return ScipyEdgeSet(m, ordered_nodes)
 
 
 if has_scipy and has_grblas:
