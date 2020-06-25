@@ -60,6 +60,4 @@ def find_plugins():
     registry.register_from_modules(python, name="core_python")
     registry.register_from_modules(scipy, name="core_scipy")
 
-    print(f"registry.plugins {repr(registry.plugins)}")
-
     return registry.plugins
