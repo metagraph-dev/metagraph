@@ -7,7 +7,7 @@ This is a brief tutorial of basic Metagraph usage.
 
 First, we import metagraph:
 
-.. code:: ipython3
+.. code:: python
 
     >>> import metagraph as mg
 
@@ -17,13 +17,13 @@ Inspecting types and algorithms available
 The default resolver automatically pulls in all registered metagraph
 plugins
 
-.. code:: ipython3
+.. code:: python
 
     >>> res = mg.resolver
 
 A hierarchy of available types is automatically added as properties on ``res``
 
-.. code:: ipython3
+.. code:: python
 
     >>> dir(res.types)
 
@@ -38,7 +38,7 @@ equivalent data, but in a different format or data structure.
 
 Here we show the concrete types which represent EdgeMaps.
 
-.. code:: ipython3
+.. code:: python
 
     >>> dir(res.types.EdgeMap)
 
@@ -51,7 +51,7 @@ Here we show the concrete types which represent EdgeMaps.
 
 Algorithms are also be listed under ``r.algos`` and grouped by categories
 
-.. code:: ipython3
+.. code:: python
 
     >>> dir(res.algos)
 
@@ -64,7 +64,7 @@ Algorithms are also be listed under ``r.algos`` and grouped by categories
 
 
 
-.. code:: ipython3
+.. code:: python
 
     >>> dir(res.algos.traversal)
 
@@ -79,7 +79,7 @@ Let's see how to use metagraph by first constructing a graph from an edge list.
 
 Begin with an input csv file representing the edge list and weights.
 
-.. code:: ipython3
+.. code:: python
 
     >>> data = """
     Source,Destination,Weight
@@ -99,7 +99,7 @@ Begin with an input csv file representing the edge list and weights.
 
 Read in the csv file and convert to a Pandas DataFrame.
 
-.. code:: ipython3
+.. code:: python
 
     >>> import pandas as pd
     >>> import io
@@ -116,7 +116,7 @@ A ``PandasEdgeMap`` takes a DataFrame plus the labels of the columns
 representing source and destination nodes. With these, metagraph will
 know how to interpret the DataFrame as a Graph.
 
-.. code:: ipython3
+.. code:: python
 
     >>> g = res.wrappers.EdgeMap.PandasEdgeMap(df, 'Source', 'Destination', 'Weight', is_directed=False)
     >>> g.value
@@ -236,7 +236,7 @@ convert it other Graph formats.
 
 Let’s convert it to a NetworkX Graph.
 
-.. code:: ipython3
+.. code:: python
 
     >>> g2 = res.translate(g, res.wrappers.EdgeMap.NetworkXEdgeMap)
     >>> g2
@@ -249,7 +249,7 @@ The underlying object (in this case a networkx Graph) is usually stored as the `
 
 We can verify that the edges are preserved correctly by inspecting the networkx Graph directly.
 
-.. code:: ipython3
+.. code:: python
 
     >>> g2.value.edges(data=True)
 
@@ -263,7 +263,7 @@ a GraphBLAS matrix.
 The unweighted adjacency matrix has a weight value where an edge exists and is
 empty elsewhere.
 
-.. code:: ipython3
+.. code:: python
 
     >>> g3 = res.translate(g, res.types.EdgeMap.GrblasEdgeMapType)
     >>> g3
@@ -272,7 +272,7 @@ empty elsewhere.
 
 
 
-.. code:: ipython3
+.. code:: python
 
     >>> g3.show()
 
@@ -407,7 +407,7 @@ empty elsewhere.
 
 We can also visualize the graph using functions found in the plugin libraries.
 
-.. code:: ipython3
+.. code:: python
 
     >>> import grblas
     >>> grblas.io.draw(g3.value)
@@ -436,7 +436,7 @@ additional ``.plan``, the call signature is identical.
 In this first example, there is a direct function which translates
 between ``PandasEdgeList`` and ``NetworkXGraphType``
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.plan.translate(g, res.types.EdgeMap.NetworkXEdgeMapType)
 
@@ -457,7 +457,7 @@ steps involved helps users plan for expected computation time and memory
 usage. If needed, they can also write a plugin to provide a direct
 translation path to save time.
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.plan.translate(g, res.types.EdgeMap.GrblasEdgeMapType)
 
@@ -483,7 +483,7 @@ implementations are written to operate on concrete types.
 Let’s look at the signature and specific implementations available for
 triangle count.
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.algos.cluster.triangle_count.signatures
 
@@ -504,7 +504,7 @@ NetworkX Graph. The other takes a ScipyAdjacencyMatrix.
 Let’s count the triangles with our different representations of ``g``.
 We should get the same answer no matter which implementation is chosen.
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.algos.cluster.triangle_count(g)
 
@@ -512,7 +512,7 @@ We should get the same answer no matter which implementation is chosen.
 
 
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.algos.cluster.triangle_count(g2)
 
@@ -528,7 +528,7 @@ plan for algorithms.
 Attempting to run triangle count with a PandasEdgeList will
 automatically convert to a NetworkX Graph, then run the algorithm.
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.plan.algos.cluster.triangle_count(g)
 
@@ -550,7 +550,7 @@ In the next example, ``g2`` is already a NetworkX Graph, so the only
 translation needed is from an EdgeMap to an EdgeSet (i.e. dropping the
 weights).
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.plan.algos.cluster.triangle_count(g2)
 
@@ -572,7 +572,7 @@ scipy adjacency matrix?
 Because it finds the networkx version first, it will choose that unless
 we start with a scipy matrix.
 
-.. code:: ipython3
+.. code:: python
 
     >>> g4 = res.translate(g2, res.types.EdgeMap.ScipyEdgeMapType)
     >>> res.plan.algos.cluster.triangle_count(g4)
@@ -591,7 +591,7 @@ we start with a scipy matrix.
 
 Just to prove that it gives the same result, let’s run it
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.algos.cluster.triangle_count(g4)
 
@@ -611,7 +611,7 @@ First, let’s verify the signature and the implementations available.
 We see that there is only one implementation available, which takes a
 NetworkX Graph as input.
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.algos.link_analysis.pagerank.signatures
 
@@ -628,7 +628,7 @@ NetworkX Graph as input.
 Let’s look at the steps required in the plan. Then let’s perform the
 computation.
 
-.. code:: ipython3
+.. code:: python
 
     >>> res.plan.algos.link_analysis.pagerank(g)
 
@@ -648,7 +648,7 @@ computation.
     ---------------------
 
 
-.. code:: ipython3
+.. code:: python
 
     >>> pr = res.algos.link_analysis.pagerank(g)
     >>> pr
@@ -660,7 +660,7 @@ computation.
 The result is a PythonNodeMap. Its underlying object is just a dict, so
 we can view that easily.
 
-.. code:: ipython3
+.. code:: python
 
     >>> pr.value
 
@@ -679,7 +679,7 @@ Suppose we want to use the result in a numpy function. We could create
 the numpy array from the dict, but there is already a translator
 available to do that. Let’s use it.
 
-.. code:: ipython3
+.. code:: python
 
     >>> pr_nicer = res.translate(pr, res.types.NodeMap.NumpyNodeMapType)
     >>> pr_nicer.value
