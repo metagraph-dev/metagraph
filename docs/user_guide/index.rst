@@ -16,9 +16,8 @@ interacting with external plugins, but does not cover writing plugins. See the
    properties
    translators
    types
-   wrappers
    algorithms
    algorithm_list
    data_loading_and_export
-   node_labels
+   nodes
    visualization
