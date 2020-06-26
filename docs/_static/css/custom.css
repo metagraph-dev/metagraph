@@ -20,7 +20,7 @@
 }
 
 .custom-button:active {
-    transform: translateY(10px);
+    transform: translateY(5px);
 }
 
 .custom-button a {
