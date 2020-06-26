@@ -1,4 +1,6 @@
 
+/* Main Page Stylings */
+
 .custom-button {
     background-color: #b3d7ff;
     color: #484848;
@@ -20,7 +22,7 @@
 }
 
 .custom-button:active {
-    transform: translateY(10px);
+    transform: translateY(5px);
 }
 
 .custom-button a {
@@ -109,4 +111,11 @@ svg {
 
 .intro-card .card-text {
     margin: 20px 0px;
+}
+
+
+/* Styling for Jupyter Notebook ReST Exports */
+
+.dataframe tbody th, .dataframe tbody td {
+    padding: 10px;
 }

@@ -20,7 +20,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
     <div class="container">
         <div class="row">
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-              <div onmouseenter="toggleIconSVGAnimation(this)" onmouseleave="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
+              <div onmouseenter="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
                 <div class="custom-icon">
                   <svg width="66" height="66">
                     <circle cx="33" cy="33" r="28"></circle>
@@ -41,7 +41,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
                 </div>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div onmouseenter="toggleIconSVGAnimation(this)" onmouseleave="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
+                <div onmouseenter="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
                   <div class="custom-icon">
                     <svg width="66" height="66">
                       <circle cx="33" cy="33" r="28"></circle>
@@ -63,7 +63,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
                 </div>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div onmouseenter="toggleIconSVGAnimation(this)" onmouseleave="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
+                <div onmouseenter="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
                   <div class="custom-icon">
                     <svg width="66" height="66">
                       <circle cx="33" cy="33" r="28"></circle>
@@ -92,7 +92,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
                 </div>
             </div>
             <div class="col-lg-6 col-md-6 col-sm-6 col-xs-12 d-flex">
-                <div onmouseenter="toggleIconSVGAnimation(this)" onmouseleave="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
+                <div onmouseenter="toggleIconSVGAnimation(this)" class="card text-center intro-card shadow">
                   <div class="custom-icon">
                     <svg width="66" height="66">
                       <circle cx="33" cy="33" r="28"></circle>
