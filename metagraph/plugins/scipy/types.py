@@ -64,6 +64,19 @@ if has_scipy:
             self.node_list = node_list
 
         @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            ret = known_props.copy()
+
+            # slow properties, only compute if asked
+            for prop in props - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = (obj.value.T != obj.value).nnz > 0
+
+            return ret
+
+        @classmethod
         def assert_equal(
             cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
         ):
