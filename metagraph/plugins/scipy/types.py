@@ -61,7 +61,20 @@ if has_scipy:
                 node_list = np.arange(nrows)
             elif not isinstance(node_list, np.ndarray):
                 node_list = np.array(node_list)
-            self._node_list = node_list
+            self.node_list = node_list
+
+        @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            ret = known_props.copy()
+
+            # slow properties, only compute if asked
+            for prop in props - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = (obj.value.T != obj.value).nnz > 0
+
+            return ret
 
         @classmethod
         def assert_equal(
@@ -73,8 +86,8 @@ if has_scipy:
             ), f"size mismatch: {m1.shape[0]} != {m2.shape[0]}"
             assert m1.nnz == m2.nnz, f"num edges mismatch: {m1.nnz} != {m2.nnz}"
             assert (
-                obj1._node_list == obj2._node_list
-            ).all(), f"node list mismatch: {obj1._node_list} != {obj2._node_list}"
+                obj1.node_list == obj2.node_list
+            ).all(), f"node list mismatch: {obj1.node_list} != {obj2.node_list}"
             assert props1 == props2, f"property mismatch: {props1} != {props2}"
             # Handle transposed states
             d1 = m1.T if obj1.transposed else m1
@@ -101,7 +114,7 @@ if has_scipy:
                 node_list = np.arange(nrows)
             elif not isinstance(node_list, np.ndarray):
                 node_list = np.array(node_list)
-            self._node_list = node_list
+            self.node_list = node_list
 
         @property
         def format(self):
@@ -143,8 +156,8 @@ if has_scipy:
             ), f"size mismatch: {m1.shape[0]} != {m2.shape[0]}"
             assert m1.nnz == m2.nnz, f"num edges mismatch: {m1.nnz} != {m2.nnz}"
             assert (
-                obj1._node_list == obj2._node_list
-            ).all(), f"node list mismatch: {obj1._node_list} != {obj2._node_list}"
+                obj1.node_list == obj2.node_list
+            ).all(), f"node list mismatch: {obj1.node_list} != {obj2.node_list}"
             assert props1 == props2, f"property mismatch: {props1} != {props2}"
             # Handle transposed states
             d1 = m1.T if obj1.transposed else m1
