@@ -60,7 +60,7 @@ if has_grblas and has_scipy:
     @translator
     def edgemap_from_scipy(x: ScipyEdgeMap, **props) -> GrblasEdgeMap:
         m = x.value.tocoo()
-        node_list = x._node_list
+        node_list = x.node_list
         size = max(node_list) + 1
         dtype = dtype_mg_to_grblas[x.value.dtype]
         out = grblas.Matrix.from_values(

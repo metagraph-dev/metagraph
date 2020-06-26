@@ -12,7 +12,7 @@ if has_scipy:
         data = x.value.copy()
         # Force all values to be 1's to indicate no weights
         data.data = np.ones_like(data.data)
-        return ScipyEdgeSet(data, x._node_list, x.transposed)
+        return ScipyEdgeSet(data, x.node_list, x.transposed)
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
