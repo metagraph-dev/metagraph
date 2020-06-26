@@ -29,7 +29,9 @@ def test_labels_to_nodes():
     assert labels["c"] == 2
     with pytest.raises(KeyError):
         labels["q"]
-    assert labels[("a", "g")] == (0, 6)
+    with pytest.raises(KeyError):
+        labels[("a", "g")]
+    assert labels[["a", "g"]] == [0, 6]
 
 
 def test_nodes_to_labels():
@@ -39,4 +41,6 @@ def test_nodes_to_labels():
     assert labels.ids[10] == "B"
     with pytest.raises(KeyError):
         labels.ids[20]
-    assert labels.ids[(42, 0)] == ("C", "A")
+    with pytest.raises(KeyError):
+        labels.ids[(42, 0)]
+    assert labels.ids[[42, 0]] == ["C", "A"]

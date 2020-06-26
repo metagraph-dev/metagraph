@@ -101,3 +101,11 @@ redundant work.
 Translation functions can populate the property cache by calling the concrete type's ``get_typeinfo``
 method and then calling ``update_props`` on the TypeInfo object. This helps avoid unnecessary effort
 to compute properties that the translator already knows from the input object.
+
+If for some reason, the property cache for an object needs to be cleared, this is the way to do it.
+In general, this should not be needed for normal usage of Metagraph.
+
+.. code-block:: python
+
+    # How to force cached properties to be purged
+    SomeConcreteType._typecache.expire(obj)
