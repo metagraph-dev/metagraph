@@ -63,7 +63,7 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
     def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
         assert props1 == props2, f"property mismatch: {props1} != {props2}"
         d1, d2 = obj1.value, obj2.value
-        if props1["dtype"] == "float":
+        if props1.get("dtype") == "float":
             assert (
                 not d1.keys() ^ d2.keys()
             ), f"Mismatched keys: {d1.keys() ^ d2.keys()}"
