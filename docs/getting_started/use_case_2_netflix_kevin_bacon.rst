@@ -1,4 +1,4 @@
-Use Case 1: Kevin Bacon of Neflix 2019
+Use Case 2: Kevin Bacon of Neflix 2019
 ======================================
 
 This is a tutorial on how to find the most well-connected Netflix cast
@@ -64,10 +64,6 @@ Let’s take a look at the raw data provided.
         .dataframe table {
 	    width: 12000px;
 	}
-
-	.dataframe tbody th, .dataframe tbody td {
-            padding: 10px;
-        }
     </style>
     <table border="1" class="dataframe">
       <thead>
@@ -197,10 +193,6 @@ We’ll necessarily need to remove any rows with missing data as well.
         .dataframe thead th {
             text-align: right;
         }
-	
-	.dataframe tbody th, .dataframe tbody td {
-            padding: 10px;
-        }
     </style>
     <table border="1" class="dataframe">
       <thead>
@@ -329,10 +321,6 @@ rows (one for each cast member).
     
         .dataframe thead th {
             text-align: right;
-        }
-	
-	.dataframe tbody th, .dataframe tbody td {
-            padding: 10px;
         }
     </style>
     <table border="1" class="dataframe">
@@ -859,3 +847,4 @@ From here, we can determine the Kevin Bacon(s)!
     Zoe Saldana
     Zoë Kravitz
 
+It turns out that the Netflix world is much more connected than the whole Hollywood film industry since there are so many cast members who are well-connected.
