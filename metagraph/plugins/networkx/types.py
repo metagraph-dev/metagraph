@@ -27,6 +27,19 @@ if has_networkx:
                 g1.edges() == g2.edges()
             ), f"edge mismatch: {g1.edges()} != {g2.edges()}"
 
+        @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            ret = known_props.copy()
+
+            # fast properties
+            for prop in {"is_directed"} - ret.keys():
+                if prop == "is_directed":
+                    ret[prop] = obj.value.is_directed()
+
+            return ret
+
     class NetworkXEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         def __init__(
             self, nx_graph, weight_label="weight",
