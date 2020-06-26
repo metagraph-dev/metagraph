@@ -10,7 +10,8 @@ Getting Started
    installation
    tutorial
    concepts
-   use_case_1_netflix_kevin_bacon
+   use_case_1_airline_connectedness
+   use_case_2_netflix_kevin_bacon
 
 
 Metagraph is a plugin-based system for performing graph computations.
