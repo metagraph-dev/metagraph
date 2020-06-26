@@ -584,7 +584,9 @@ us the city market IDs that are most travelled through).
      (32467, 2678.3079214122013)]
 
 
-Now that we have the city market IDs with the best scores, let's find out which regions those city market IDs correspond to using the mapping from city market IDs to city names and airports we made earlier.
+Now that we have the city market IDs with the best scores, let's find out which regions
+those city market IDs correspond to using the mapping from city market IDs to city names
+and airports we made earlier.
 
 .. code:: python
      
@@ -721,6 +723,10 @@ Now that we have the city market IDs with the best scores, let's find out which 
     </div>
     <br/>
 
-This is a surprising result! We would've thought that a highly populated area like New York City or Los Angeles or a hub like Dallas would be the most traveled through area.
+This is a surprising result! We would've thought that a highly populated area like New
+York City or Los Angeles or a hub like Dallas would be the most traveled through area.
 
-There's a good explanation for Anchorage being the most travelled through region: Since Alaska is so sparsely populated, a well-connected road infrtastructure was never built. Thus, to travel between cities in Alaska, air travel is the only option. More information can be found `here <https://en.wikipedia.org/wiki/List_of_airports_in_Alaska>`_. 
+There's a good explanation for Anchorage being the most travelled through region: Since
+Alaska is so sparsely populated, a well-connected road infrtastructure was never built.
+Thus, to travel between cities in Alaska, air travel is the only option. More information
+can be found `here <https://en.wikipedia.org/wiki/List_of_airports_in_Alaska>`_. 
