@@ -10,6 +10,7 @@ Getting Started
    installation
    tutorial
    concepts
+   use_case_1_netflix_kevin_bacon
 
 
 Metagraph is a plugin-based system for performing graph computations.
