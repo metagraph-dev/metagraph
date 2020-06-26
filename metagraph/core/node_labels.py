@@ -7,8 +7,11 @@ class NodeLabels:
 
     Behaves like a mapping from label to node_id
     Contains a `.ids` attribute which behaves like a mapping from node_id back to label
-    Passing a tuple of labels or node_ids will return a tuple, allowing for easier handling of
-        edges, which are simply a tuple of two nodes
+    Passing a list of labels or node_ids will return a list, allowing for easier handling of
+        edges, which are simply a list of two nodes. The type must be list, not tuple to avoid
+        any potential conflict with the label being a tuple. Lists are not hashable and therefore
+        cannot be used as a valid label, so handling lists specially allows for clear disambiguation
+        of meaning by the caller.
 
     Usage
     -----
@@ -21,10 +24,10 @@ class NodeLabels:
     False
     >>> 42 in node_labels.ids
     True
-    >>> node_labels[('A', 'C')]
-    (0, 42)
-    >>> node_labels.ids[(42, 10)]
-    ('C', 'B')
+    >>> node_labels[['A', 'C']]
+    [0, 42]
+    >>> node_labels.ids[[42, 10]]
+    ['C', 'B']
     """
 
     def __init__(self, node_ids, labels):
@@ -73,8 +76,8 @@ class NodeLabels:
         return len(self._label2id)
 
     def __getitem__(self, label):
-        if type(label) is tuple:
-            return tuple(self._label2id[x] for x in label)
+        if type(label) is list:
+            return [self._label2id[x] for x in label]
         return self._label2id[label]
 
     def __contains__(self, item):
@@ -85,8 +88,8 @@ class NodeLabels:
             self._outer = outer
 
         def __getitem__(self, node_id):
-            if type(node_id) is tuple:
-                return tuple(self._outer._id2label[x] for x in node_id)
+            if type(node_id) is list:
+                return [self._outer._id2label[x] for x in node_id]
             return self._outer._id2label[node_id]
 
         def __contains__(self, node_id):

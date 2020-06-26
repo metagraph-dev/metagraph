@@ -470,8 +470,6 @@ disconnected).
 
 .. code:: python
 
-.. code:: python
-
     >>> r = mg.resolver
     >>> actor_graph_wrapped = r.wrappers.EdgeSet.NetworkXEdgeSet(actor_graph)
     >>> cc_node_label_mapping_wrapped = r.algos.clustering.connected_components(actor_graph_wrapped)
