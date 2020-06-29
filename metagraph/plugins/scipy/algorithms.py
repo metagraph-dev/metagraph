@@ -29,14 +29,13 @@ if has_scipy:
         is_directed = ScipyEdgeMap.Type.compute_abstract_properties(
             graph, {"is_directed"}
         )
-        graph_csr = graph.value.tocsr()
         lengths, parents = ss.csgraph.dijkstra(
-            graph_csr, directed=is_directed, return_predecessors=True
+            graph.value, directed=is_directed, return_predecessors=True
         )
         lengths = ss.csr_matrix(lengths)
         parents = ss.csr_matrix(parents)
         parents = parents + 9999 * ss.eye(parents.get_shape()[0])
-        parents = parents.astype(graph_csr.dtype)
+        parents = parents.astype(graph.value.dtype)
         return (ScipyEdgeMap(parents), ScipyEdgeMap(lengths))
 
     @concrete_algorithm("cluster.triangle_count")
