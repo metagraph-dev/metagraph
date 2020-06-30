@@ -548,303 +548,63 @@ From here, we can determine the Kevin Bacon(s)!
 
     295
 
-    >>> for kevin_bacon in sorted(kevin_bacons):
-    ...     print(kevin_bacon)
+    >>> print(sorted(kevin_bacons))
 
-    50 Cent
-    Aasif Mandvi
-    Adam Pally
-    Adam Scott
-    Alec Baldwin
-    Alexis Bledel
-    Alfred Molina
-    Alison Pill
-    Amanda Plummer
-    America Ferrera
-    Andrew Bachelor
-    Andy Richter
-    Andy Samberg
-    Angelique Cabral
-    Anna Faris
-    Anna Kendrick
-    Anthony Anderson
-    Anthony Hopkins
-    Anthony Mackie
-    Beau Bridges
-    Ben Kingsley
-    Benicio Del Toro
-    Bill Murray
-    Billy Connolly
-    Bob Odenkirk
-    Bobby Cannavale
-    Bradley Cooper
-    Brandon Routh
-    Brian Tyree Henry
-    Brie Larson
-    Brittany Murphy
-    Brooke D'Orsay
-    Brooklyn Decker
-    Bruce Willis
-    Busy Philipps
-    Cameron Diaz
-    Cate Blanchett
-    Cathy Cliften
-    Celia Weston
-    Charlie Murphy
-    Charlie Sheen
-    Chelcie Ross
-    Chloë Grace Moretz
-    Chris Parnell
-    Chris Pratt
-    Christina Hendricks
-    Christina Ricci
-    Christopher McDonald
-    Christopher Mintz-Plasse
-    Christopher Plummer
-    Christopher Walken
-    Clive Owen
-    Cole Hauser
-    Common
-    Constance Wu
-    Danai Gurira
-    Danny Trejo
-    David Koechner
-    Dax Shepard
-    Demi Moore
-    Dennis Quaid
-    Dermot Mulroney
-    Devon Aoki
-    Diane Keaton
-    Djimon Hounsou
-    Don Cheadle
-    Donal Logue
-    Donald Faison
-    Dwayne Johnson
-    Elijah Wood
-    Elizabeth Banks
-    Elizabeth Perkins
-    Ellen Barkin
-    Emily Watson
-    Emma Roberts
-    Emma Stone
-    Emmy Rossum
-    Eric Stoltz
-    Finesse Mitchell
-    Fionnula Flanagan
-    Forest Whitaker
-    Frank Grillo
-    Frank Langella
-    Fred Armisen
-    Gary Cole
-    Gary Oldman
-    Geraldine James
-    Gerard Butler
-    Gina Gershon
-    Giovanni Ribisi
-    Greg Kinnear
-    Gugu Mbatha-Raw
-    Halle Berry
-    Hank Azaria
-    Harry Connick Jr.
-    Harvey Keitel
-    Heather Graham
-    Hilary Swank
-    Hugh Jackman
-    Hugh Laurie
-    Ian McShane
-    Iko Uwais
-    J.B. Smoove
-    J.K. Simmons
-    Jack McBrayer
-    Jack Nicholson
-    Jacki Weaver
-    Jaime King
-    James Caan
-    James Marsden
-    James Remar
-    Jane Curtin
-    Janeane Garofalo
-    Jared Leto
-    Jason Butler Harner
-    Jason Sudeikis
-    Jay Hernandez
-    Jay Mohr
-    Jeffrey Tambor
-    Jennifer Coolidge
-    Jennifer Garner
-    Jennifer Jason Leigh
-    Jesse Williams
-    Jessica Alba
-    Jessica Biel
-    Jessica Simpson
-    Jessica Szohr
-    Jim Carrey
-    Jim Parsons
-    Jim Sturgess
-    Joan Cusack
-    Joanna Going
-    Joe Torry
-    Joey King
-    John Beasley
-    John C. Reilly
-    John Cleese
-    John Cusack
-    John Hodgman
-    John Leguizamo
-    John Michael Higgins
-    John Travolta
-    Johnny Knoxville
-    Jon Voight
-    Jonah Hill
-    Josh Brolin
-    Josh Duhamel
-    Josh Gad
-    Josh Hartnett
-    Julianne Moore
-    Justin Long
-    Justin Timberlake
-    Kate Berlant
-    Kate Bosworth
-    Kate Winslet
-    Kathleen Chalfant
-    Katie Holmes
-    Keanu Reeves
-    Kellita Smith
-    Kelsey Grammer
-    Kevin Bacon
-    Kevin Costner
-    Kieran Culkin
-    Kim Dickens
-    Kirsten Dunst
-    Kristen Bell
-    Kristin Chenoweth
-    Lauren Graham
-    Laurence Fishburne
-    Leila Arcieri
-    Leslie Bibb
-    Liev Schreiber
-    Lili Taylor
-    Lin Shaye
-    Lindsay Burdge
-    Loretta Devine
-    Louis C.K.
-    Louisa Krause
-    Lucien Laviscount
-    Lynn Collins
-    Macon Blair
-    Mae Whitman
-    Maria de Medeiros
-    Mark Blum
-    Mark Webber
-    Mary Alice
-    Mary Elizabeth Winstead
-    Matt Dillon
-    Matt Walsh
-    Matthew Goode
-    Maya Rudolph
-    Meagan Good
-    Melanie Lynskey
-    Melissa Leo
-    Michael Clarke Duncan
-    Michael Jeter
-    Michael Madsen
-    Michael Sheen
-    Mickey Rourke
-    Mike Epps
-    Mike Myers
-    Mike Vogel
-    Molly Shannon
-    Monica Bellucci
-    Naomi Watts
-    Natalie Martinez
-    Nick Stahl
-    Nicolas Cage
-    Nicole Ari Parker
-    Nicole Byer
-    Olivia Holt
-    Olivia Munn
-    Omid Djalili
-    Oprah Winfrey
-    Pat Healy
-    Patrick Stewart
-    Patrick Warburton
-    Patrick Wilson
-    Paul Rudd
-    Phil Crowley
-    Pierce Brosnan
-    Powers Boothe
-    Queen Latifah
-    Randall Park
-    Ray Liotta
-    Regina Hall
-    Renée Zellweger
-    Retta
-    Richard Gere
-    Richard Jenkins
-    Rick Yune
-    Ricky Gervais
-    Rob Lowe
-    Robert Forster
-    Robert Patrick
-    Romany Malco
-    Ron Livingston
-    Rosanna Arquette
-    Rosario Dawson
-    Rose Byrne
-    Rosemary Harris
-    Rotimi
-    Russell Brand
-    Russell Simmons
-    Rutger Hauer
-    Ryan Hansen
-    Ryan Kwanten
-    Ryan Phillippe
-    Ryan Reynolds
-    Sam Page
-    Sam Worthington
-    Samuel L. Jackson
-    Sarah Jessica Parker
-    Sarah Shahi
-    Sarah Silverman
-    Sean Hayes
-    Seann William Scott
-    Sebastian Stan
-    Seth Green
-    Seth MacFarlane
-    Seth Meyers
-    Sheryl Underwood
-    Shirley MacLaine
-    Stephen Merchant
-    Stephen Root
-    Steve Buscemi
-    Susie Essman
-    T.I.
-    T.J. Miller
-    Ted Danson
-    Terence Stamp
-    Terrence Howard
-    Terry Crews
-    Tim Roth
-    Tina Fey
-    Tom Arnold
-    Tom Hollander
-    Tommy Lee Jones
-    Tony Darrow
-    Uma Thurman
-    Val Kilmer
-    Verne Troyer
-    Victor Garber
-    Ving Rhames
-    Viola Davis
-    Wesley Snipes
-    Will Ferrell
-    Will Forte
-    Will Sasso
-    Willem Dafoe
-    Yolonda Ross
-    Yul Vazquez
-    Zach Braff
-    Zoe Saldana
-    Zoë Kravitz
+    [50 Cent, Aasif Mandvi, Adam Pally, Adam Scott, Alec Baldwin, Alexis Bledel,
+     Alfred Molina, Alison Pill, Amanda Plummer, America Ferrera, Andrew Bachelor,
+     Andy Richter, Andy Samberg, Angelique Cabral, Anna Faris, Anna Kendrick,
+     Anthony Anderson, Anthony Hopkins, Anthony Mackie, Beau Bridges, Ben Kingsley,
+     Benicio Del Toro, Bill Murray, Billy Connolly, Bob Odenkirk, Bobby Cannavale,
+     Bradley Cooper, Brandon Routh, Brian Tyree Henry, Brie Larson, Brittany Murphy,
+     Brooke D'Orsay, Brooklyn Decker, Bruce Willis, Busy Philipps, Cameron Diaz,
+     Cate Blanchett, Cathy Cliften, Celia Weston, Charlie Murphy, Charlie Sheen,
+     Chelcie Ross, Chloë Grace Moretz, Chris Parnell, Chris Pratt, Christina Hendricks,
+     Christina Ricci, Christopher McDonald, Christopher Mintz-Plasse, Christopher Plummer,
+     Christopher Walken, Clive Owen, Cole Hauser, Common, Constance Wu, Danai Gurira,
+     Danny Trejo, David Koechner, Dax Shepard, Demi Moore, Dennis Quaid, Dermot Mulroney,
+     Devon Aoki, Diane Keaton, Djimon Hounsou, Don Cheadle, Donal Logue, Donald Faison,
+     Dwayne Johnson, Elijah Wood, Elizabeth Banks, Elizabeth Perkins, Ellen Barkin,
+     Emily Watson, Emma Roberts, Emma Stone, Emmy Rossum, Eric Stoltz, Finesse Mitchell,
+     Fionnula Flanagan, Forest Whitaker, Frank Grillo, Frank Langella, Fred Armisen,
+     Gary Cole, Gary Oldman, Geraldine James, Gerard Butler, Gina Gershon,
+     Giovanni Ribisi, Greg Kinnear, Gugu Mbatha-Raw, Halle Berry, Hank Azaria,
+     Harry Connick Jr., Harvey Keitel, Heather Graham, Hilary Swank, Hugh Jackman,
+     Hugh Laurie, Ian McShane, Iko Uwais, J.B. Smoove, J.K. Simmons, Jack McBrayer,
+     Jack Nicholson, Jacki Weaver, Jaime King, James Caan, James Marsden, James Remar,
+     Jane Curtin, Janeane Garofalo, Jared Leto, Jason Butler Harner, Jason Sudeikis,
+     Jay Hernandez, Jay Mohr, Jeffrey Tambor, Jennifer Coolidge, Jennifer Garner,
+     Jennifer Jason Leigh, Jesse Williams, Jessica Alba, Jessica Biel, Jessica Simpson,
+     Jessica Szohr, Jim Carrey, Jim Parsons, Jim Sturgess, Joan Cusack, Joanna Going,
+     Joe Torry, Joey King, John Beasley, John C. Reilly, John Cleese, John Cusack,
+     John Hodgman, John Leguizamo, John Michael Higgins, John Travolta,
+     Johnny Knoxville, Jon Voight, Jonah Hill, Josh Brolin, Josh Duhamel, Josh Gad,
+     Josh Hartnett, Julianne Moore, Justin Long, Justin Timberlake, Kate Berlant,
+     Kate Bosworth, Kate Winslet, Kathleen Chalfant, Katie Holmes, Keanu Reeves,
+     Kellita Smith, Kelsey Grammer, Kevin Bacon, Kevin Costner, Kieran Culkin,
+     Kim Dickens, Kirsten Dunst, Kristen Bell, Kristin Chenoweth, Lauren Graham,
+     Laurence Fishburne, Leila Arcieri, Leslie Bibb, Liev Schreiber, Lili Taylor,
+     Lin Shaye, Lindsay Burdge, Loretta Devine, Louis C.K., Louisa Krause,
+     Lucien Laviscount, Lynn Collins, Macon Blair, Mae Whitman, Maria de Medeiros,
+     Mark Blum, Mark Webber, Mary Alice, Mary Elizabeth Winstead, Matt Dillon,
+     Matt Walsh, Matthew Goode, Maya Rudolph, Meagan Good, Melanie Lynskey,
+     Melissa Leo, Michael Clarke Duncan, Michael Jeter, Michael Madsen, Michael Sheen,
+     Mickey Rourke, Mike Epps, Mike Myers, Mike Vogel, Molly Shannon, Monica Bellucci,
+     Naomi Watts, Natalie Martinez, Nick Stahl, Nicolas Cage, Nicole Ari Parker,
+     Nicole Byer, Olivia Holt, Olivia Munn, Omid Djalili, Oprah Winfrey, Pat Healy,
+     Patrick Stewart, Patrick Warburton, Patrick Wilson, Paul Rudd, Phil Crowley,
+     Pierce Brosnan, Powers Boothe, Queen Latifah, Randall Park, Ray Liotta,
+     Regina Hall, Renée Zellweger, Retta, Richard Gere, Richard Jenkins, Rick Yune,
+     Ricky Gervais, Rob Lowe, Robert Forster, Robert Patrick, Romany Malco,
+     Ron Livingston, Rosanna Arquette, Rosario Dawson, Rose Byrne, Rosemary Harris,
+     Rotimi, Russell Brand, Russell Simmons, Rutger Hauer, Ryan Hansen, Ryan Kwanten,
+     Ryan Phillippe, Ryan Reynolds, Sam Page, Sam Worthington, Samuel L. Jackson,
+     Sarah Jessica Parker, Sarah Shahi, Sarah Silverman, Sean Hayes, Seann William Scott,
+     Sebastian Stan, Seth Green, Seth MacFarlane, Seth Meyers, Sheryl Underwood,
+     Shirley MacLaine, Stephen Merchant, Stephen Root, Steve Buscemi, Susie Essman,
+     T.I., T.J. Miller, Ted Danson, Terence Stamp, Terrence Howard, Terry Crews,
+     Tim Roth, Tina Fey, Tom Arnold, Tom Hollander, Tommy Lee Jones, Tony Darrow,
+     Uma Thurman, Val Kilmer, Verne Troyer, Victor Garber, Ving Rhames, Viola Davis,
+     Wesley Snipes, Will Ferrell, Will Forte, Will Sasso, Willem Dafoe, Yolonda Ross,
+     Yul Vazquez, Zach Braff, Zoe Saldana, Zoë Kravitz]
 
 It turns out that the Netflix world is much more connected than the whole Hollywood film industry since there are so many cast members who are well-connected.

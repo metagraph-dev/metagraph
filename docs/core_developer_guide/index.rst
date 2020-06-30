@@ -1,3 +1,7 @@
+.. raw:: pdf
+
+    PageBreak
+
 .. _core_developer_guide:
 
 Core Developer Guide

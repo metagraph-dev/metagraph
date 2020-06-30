@@ -114,7 +114,8 @@ know how to interpret the DataFrame as a Graph.
 
 .. code:: python
 
-    >>> g = res.wrappers.EdgeMap.PandasEdgeMap(df, 'Source', 'Destination', 'Weight', is_directed=False)
+    >>> g = res.wrappers.EdgeMap.PandasEdgeMap(df, 'Source', 'Destination', 'Weight',
+                                               is_directed=False)
     >>> g.value
 
 
@@ -249,7 +250,10 @@ We can verify that the edges are preserved correctly by inspecting the networkx 
 
     >>> g2.value.edges(data=True)
 
-    EdgeDataView([(0, 1, {'weight': 4}), (0, 3, {'weight': 2}), (0, 4, {'weight': 7}), (1, 3, {'weight': 3}), (1, 4, {'weight': 5}), (3, 4, {'weight': 1}), (4, 2, {'weight': 5}), (4, 7, {'weight': 4}), (2, 5, {'weight': 2}), (2, 6, {'weight': 8}), (5, 6, {'weight': 4}), (5, 7, {'weight': 6})])
+    EdgeDataView([(0, 1, {'weight': 4}), (0, 3, {'weight': 2}), (0, 4, {'weight': 7}),
+                  (1, 3, {'weight': 3}), (1, 4, {'weight': 5}), (3, 4, {'weight': 1}),
+                  (4, 2, {'weight': 5}), (4, 7, {'weight': 4}), (2, 5, {'weight': 2}),
+                  (2, 6, {'weight': 8}), (5, 6, {'weight': 4}), (5, 7, {'weight': 6})])
 
 
 
@@ -484,13 +488,11 @@ triangle count.
 
     >>> res.algos.cluster.triangle_count.signatures
 
-    """
     Signature:
         (graph: <metagraph.types.EdgeSet object at 0x106dfd390>) -> int
     Implementations:
         {'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeSet'>, 'return': <class 'int'>}
         {'graph': <class 'metagraph.plugins.scipy.types.ScipyEdgeSet'>, 'return': <class 'int'>}
-    """
 
 
 We see that there are two implementations available. One takes a
@@ -614,9 +616,16 @@ NetworkX Graph as input.
 
     """
     Signature:
-        (graph: <metagraph.types.EdgeMap object at 0x106e01750>, damping: float = 0.85, maxiter: int = 50, tolerance: float = 1e-05) -> metagraph.types.NodeMap
+        (graph: <metagraph.types.EdgeMap object at 0x106e01750>,
+         damping: float = 0.85,
+         maxiter: int = 50,
+         tolerance: float = 1e-05) -> metagraph.types.NodeMap
     Implementations:
-        {'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeMap'>, 'damping': <class 'float'>, 'maxiter': <class 'int'>, 'tolerance': <class 'float'>, 'return': <class 'metagraph.plugins.python.types.PythonNodeMap'>}
+        {'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeMap'>,
+         'damping': <class 'float'>,
+         'maxiter': <class 'int'>,
+         'tolerance': <class 'float'>,
+         'return': <class 'metagraph.plugins.python.types.PythonNodeMap'>}
     """
 
 
@@ -630,7 +639,10 @@ computation.
     >>> res.plan.algos.link_analysis.pagerank(g)
 
     nx_pagerank
-    (graph: metagraph.plugins.networkx.types.NetworkXEdgeMap, damping: float, maxiter: int, tolerance: float) -> metagraph.plugins.python.types.PythonNodeMap
+    (graph: metagraph.plugins.networkx.types.NetworkXEdgeMap,
+     damping: float,
+     maxiter: int,
+     tolerance: float) -> metagraph.plugins.python.types.PythonNodeMap
     =====================
     Argument Translations
     ---------------------
