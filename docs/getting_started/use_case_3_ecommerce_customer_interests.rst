@@ -1,6 +1,8 @@
 Use Case 3: Customer Interest Clustering
 ========================================
 
+Download this as a :download:`notebook </_static/notebooks/ecommerce.tar.gz>`.
+
 This is a tutorial on how to perform customer clustering based on the
 interests and purcahses of customers.
 
