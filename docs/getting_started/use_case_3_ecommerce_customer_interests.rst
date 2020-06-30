@@ -339,7 +339,7 @@ negative quantity values).
 
 Though customers may have returned these products, they did initially
 purchase the products (which reflects an interest in the product), so
-we’ll keep the intiial purchases. However, we’ll remove the return
+we’ll keep the intial purchases. However, we’ll remove the return
 transactions (which will also remove any discount transactions as well).
 
 .. code:: python
@@ -445,7 +445,7 @@ transactions (which will also remove any discount transactions as well).
 Community Detection
 ===================
 
-Let’s now find the communities of customers with similar purchases /
+Let’s now find the communities of customers with similar purchases and
 interests.
 
 First, we’ll need to create a bipartite graph of customers and products.
