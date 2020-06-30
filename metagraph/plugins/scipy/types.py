@@ -101,6 +101,28 @@ if has_scipy:
             d2.sort_indices()
             assert (d1.indices == d2.indices).all(), f"{d1.indices == d2.indices}"
 
+        def node_id_map_from_index_map(self, index_map: np.ndarray):
+            """
+            index_map is a numpy array whose indices match those of self.value
+            These indices do note necessarily match the node IDs
+            This method returns a NumpyNodeMap mapping node IDs to their values in index_map
+            """
+            from metagraph.plugins.numpy.types import NumpyNodeMap
+
+            assert len(index_map) == len(
+                self.node_list
+            ), f"size mismatch: {len(index_map)} != {len(self.node_list)}"
+            size = max(self.node_list) + 1
+            data = np.empty((size,), dtype=index_map.dtype)
+            data[self.node_list] = index_map
+            if size == len(index_map):
+                # Dense nodes; no need for missing mask
+                missing = None
+            else:
+                missing = np.ones_like(data, dtype=bool)
+                missing[self.node_list] = False
+            return NumpyNodeMap(data, missing_mask=missing)
+
     class ScipyEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         def __init__(
             self, data, node_list=None, transposed=False,
@@ -174,3 +196,25 @@ if has_scipy:
                 assert np.isclose(d1.data, d2.data, rtol=rel_tol, atol=abs_tol).all()
             else:
                 assert (d1.data == d2.data).all()
+
+        def node_id_map_from_index_map(self, index_map: np.ndarray):
+            """
+            index_map is a numpy array whose indices match those of self.value
+            These indices do note necessarily match the node IDs
+            This method returns a NumpyNodeMap mapping node IDs to their values in index_map
+            """
+            from metagraph.plugins.numpy.types import NumpyNodeMap
+
+            assert len(index_map) == len(
+                self.node_list
+            ), f"size mismatch: {len(index_map)} != {len(self.node_list)}"
+            size = max(self.node_list) + 1
+            data = np.empty((size,), dtype=index_map.dtype)
+            data[self.node_list] = index_map
+            if size == len(index_map):
+                # Dense nodes; no need for missing mask
+                missing = None
+            else:
+                missing = np.ones_like(data, dtype=bool)
+                missing[self.node_list] = False
+            return NumpyNodeMap(data, missing_mask=missing)
