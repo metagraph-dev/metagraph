@@ -31,7 +31,6 @@ First, we’ll need to import some libraries.
     >>> import metagraph as mg
     >>> import pandas as pd
     >>> from collections import Counter
-    >>> from IPython.display import display
 
 Let’s see what the data looks like.
 
