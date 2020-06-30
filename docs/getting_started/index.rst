@@ -12,7 +12,7 @@ Getting Started
    concepts
    use_case_1_airline_connectedness
    use_case_2_netflix_kevin_bacon
-
+   use_case_3_ecommerce_customer_interests
 
 Metagraph is a plugin-based system for performing graph computations.
 
