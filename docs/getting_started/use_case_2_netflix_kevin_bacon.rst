@@ -1,6 +1,8 @@
 Use Case 2: Kevin Bacon of Neflix 2019
 ======================================
 
+Download this as a :download:`notebook </_static/notebooks/kevin_bacon.tar.gz>`.
+
 This is a tutorial on how to find the most well-connected Netflix cast
 member of 2019.
 
