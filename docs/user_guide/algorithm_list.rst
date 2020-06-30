@@ -1,7 +1,7 @@
 List of Core Algorithms
 =======================
 
-This document will go over the core abstract algorithms that come with metagraph.
+This document lists the core abstract algorithms that come with metagraph.
 
 Clustering
 ----------
@@ -10,12 +10,13 @@ Graphs often have natural structure which can be discovered, allowing them to be
 
 .. py:function:: connected_components(graph: EdgeSet(is_directed=False)) -> NodeMap
 
-    The connected components algorithm groups nodes of an **undirected** graph into subgraphs where all subgraph nodes which are reachable by each other. Since the graph is undirected, the subgraphs are both weakly and strongly connected.
+    The connected components algorithm groups nodes of an **undirected** graph into subgraphs where all subgraph nodes
+    are reachable by each other. Since the graph is undirected, the subgraphs are both weakly and strongly connected.
 
 
 .. py:function:: strongly_connected_components(graph: EdgeSet(is_directed=True)) -> NodeMap
 
-    Groups nodes of a directed graph into subgraphs where all subgraph nodes which are reachable by each other.
+    Groups nodes of a directed graph into subgraphs where all subgraph nodes are reachable by each other.
 
 
 .. py:function:: label_propagation_community(graph: EdgeMap(is_directed=False)) -> NodeMap
@@ -25,12 +26,13 @@ Graphs often have natural structure which can be discovered, allowing them to be
 
 .. py:function:: louvain_community(graph: EdgeMap(is_directed=False)) -> Tuple[NodeMap, float]
 
-    This algorithm performs one step of the `Louvain algorithm <https://en.wikipedia.org/wiki/Louvain_modularity>`_, which discovers communities by maximizing modularity.
+    This algorithm performs one step of the `Louvain algorithm <https://en.wikipedia.org/wiki/Louvain_modularity>`_,
+    which discovers communities by maximizing modularity.
 
 
 .. py:function:: triangle_count(graph: EdgeSet(is_directed=False)) -> int
 
-    This algorithms returns the total triangle count in the graph.
+    This algorithms returns the total number of triangles in the graph.
 
 Traversal
 ---------
@@ -40,22 +42,35 @@ Traversing through the nodes of a graph is extremely common and important in the
 
 .. py:function:: bellman_ford(graph: EdgeMap, source_node: NodeID) -> Tuple[NodeMap, NodeMap]
 
-    This algorithm calculates `single-source shortest path (SSSP) <https://en.wikipedia.org/wiki/Shortest_path_problem>`_. It is slower than `Dijkstra’s algorithm <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_, but can handle negative weights and is parallelizable.
+    This algorithm calculates `single-source shortest path (SSSP) <https://en.wikipedia.org/wiki/Shortest_path_problem>`_.
+    It is slower than `Dijkstra’s algorithm <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_, but can handle
+    negative weights and is parallelizable.
+
+    :rtype: (parents, distance)
+
 
 
 .. py:function:: all_shortest_paths(graph: EdgeMap) -> Tuple[EdgeMap, EdgeMap]
 
-    This algorithm calculates the shortest paths between all node pairs. Choices for which algorithm to be used are backend implementation dependent.
+    This algorithm calculates the shortest paths between all node pairs. Choices for which algorithm to be used are
+    backend implementation dependent.
+
+    :rtype: (parents, distance)
 
 
 .. py:function:: breadth_first_search(graph: EdgeSet, source_node: NodeID) -> Vector
 
     This is the breadth first search algorithm.
 
+    :rtype: Node IDs in search order
+
 
 .. py:function:: dijkstra(graph: EdgeMap(has_negative_weights=False), source_node: NodeID, max_path_length: float) -> Tuple[NodeMap, NodeMap]
 
-    Calculates `single-source shortest path (SSSP) <https://en.wikipedia.org/wiki/Shortest_path_problem>` via `Dijkstra's algorithm <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
+    Calculates `single-source shortest path (SSSP) <https://en.wikipedia.org/wiki/Shortest_path_problem>`_ via
+    `Dijkstra's algorithm <https://en.wikipedia.org/wiki/Dijkstra%27s_algorithm>`_.
+
+    :rtype: (parents, distance)
 
 Vertex Ranking
 --------------

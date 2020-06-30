@@ -30,11 +30,9 @@ A hierarchy of available types is automatically added as properties on ``res``
     ['DataFrame', 'EdgeMap', 'EdgeSet', 'Matrix', 'NodeMap', 'NodeSet', 'Vector']
 
 
-
-For each abstract type, there are several concrete types.
-
-Within a single abstract type, all concrete types are able to represent
-equivalent data, but in a different format or data structure.
+For each abstract type, there are several concrete types. All concrete types within
+that single abstract type represent equivalent data, but in a different format
+or data structure.
 
 Here we show the concrete types which represent EdgeMaps.
 
@@ -49,7 +47,7 @@ Here we show the concrete types which represent EdgeMaps.
 
 
 
-Algorithms are also be listed under ``r.algos`` and grouped by categories
+Algorithms are listed under ``r.algos`` and grouped by categories
 
 .. code:: python
 
@@ -106,11 +104,9 @@ Read in the csv file and convert to a Pandas DataFrame.
     >>> csv_file = io.StringIO(data)
     >>> df = pd.read_csv(csv_file)
 
+This DataFrame represents a graph’s edges, but metagraph doesn’t know that yet.
 To use the DataFrame within metagraph, we first need to convert it into
 a Graph-like object.
-
-We understand that this DataFrame represents a graph’s edges, but
-metagraph doesn’t know that yet.
 
 A ``PandasEdgeMap`` takes a DataFrame plus the labels of the columns
 representing source and destination nodes. With these, metagraph will
@@ -402,6 +398,7 @@ empty elsewhere.
       </tbody>
     </table>
     </div>
+    <br />
 
 
 
@@ -434,7 +431,7 @@ additional ``.plan``, the call signature is identical.
 --------------
 
 In this first example, there is a direct function which translates
-between ``PandasEdgeList`` and ``NetworkXGraphType``
+between ``PandasEdgeMap`` and ``NetworkXEdgeMap``
 
 .. code:: python
 
@@ -447,9 +444,9 @@ between ``PandasEdgeList`` and ``NetworkXGraphType``
 --------------
 
 In this next example, there is no direct function which convert
-``PandasEdgeList`` into a ``GrblasAdjacencyMatrixType``. Instead, we
-have to first convert to ``NetworkXGraphType`` and then to
-``ScipyAdjacencyMatrixType`` before finally arriving at our desired
+``PandasEdgeMap`` into a ``GrblasEdgeMap``. Instead, we
+have to first convert to ``NetworkXEdgeMap`` and then to
+``ScipyEdgeMap`` before finally arriving at our desired
 format.
 
 While metagraph will do the conversion automatically, understanding the
@@ -474,7 +471,7 @@ Algorithm Example #1: Triangle Count
 ------------------------------------
 
 Algorithms are described initially in an abstract definition. For
-triangle count, we take a ``Graph`` and return an ``int`` indicating the
+triangle count, we take an ``EdgeSet`` and return an ``int`` indicating the
 number of unique triangles in the graph.
 
 After the abstract definition is written, multiple concrete
@@ -497,7 +494,7 @@ triangle count.
 
 
 We see that there are two implementations available. One takes a
-NetworkX Graph. The other takes a ScipyAdjacencyMatrix.
+NetworkXEdgeSet. The other takes a ScipyEdgeSet.
 
 --------------
 
@@ -640,11 +637,11 @@ computation.
     ** graph **  [Direct Translation]
     PandasEdgeMapType -> NetworkXEdgeMapType
     ** damping **
-    type
+    float
     ** maxiter **
-    type
+    int
     ** tolerance **
-    type
+    float
     ---------------------
 
 

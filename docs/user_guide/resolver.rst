@@ -88,6 +88,9 @@ called, and then the algorithm was run.
 To understand this visually, suppose a user calls ``algo`` and passes in a NetworkX graph object.
 The system must find concrete versions of ``algo`` which are reachable via translation pathways.
 
+In this example, two concrete versions of ``algo`` have been registered with the system, one for
+CuGraph and another which takes Pandas EdgeLists.
+
 .. image:: dispatch.png
    :scale: 65%
 
@@ -98,7 +101,9 @@ Exact Algorithm Call
 ~~~~~~~~~~~~~~~~~~~~
 
 The alternative approach is to remove auto-translation of inputs by explicitly calling the desired
-concrete algorithm. This is identical to calling the abtract version with the additional suffix of
+concrete algorithm.
+
+This is done to calling the abtract version with the additional suffix of
 the plugin name where the concrete version was registered.
 
 For example, the NetworkX version of triangle_count is registered in the ``core_networkx`` plugin.
@@ -119,7 +124,10 @@ An equivalent spelling when calling exact algorithms is:
     5
 
 
-To view the plan for calling an algorithm, use ``r.plan``.
+Algorithm Planning
+~~~~~~~~~~~~~~~~~~
+
+When calling algorithm using the generic approach, the calculated plan is available by using ``r.plan``.
 This shows the full set of translations required, along with the concrete algorithm chosen.
 
 .. code-block:: python
@@ -164,7 +172,7 @@ Because of this, the default resolver should be accessed prior to any time-sensi
 
 Usually, the default resolver is sufficient for most scripts using metagraph. However, it is
 also possible to create custom resolvers separate from the default resolver. This requires
-creating the resolver and registering plugins manually.
+creating a Resolver and registering plugins manually.
 
 .. code-block:: python
 

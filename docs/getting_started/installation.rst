@@ -6,6 +6,11 @@ Metagraph is a pure-python library, making it easy to install with ``pip`` or ``
 However, Metagraph interfaces with many extension libraries where installation using ``pip``
 can be more challenging. For this reason, we recommend installing using ``conda``.
 
+.. note::
+    This *will* be the way to install once Metagraph has been open sourced. Until then, these
+    instructions will not work.
+
+
 Python version support
 ----------------------
 
@@ -15,9 +20,6 @@ Python 3.7 and above is supported
 Installing using conda
 ----------------------
 
-**Note**: This *will* be the way to install once Metagraph has been open sourced. Until then, these
-instructions will not work.
-
 ::
 
     conda install -c conda-forge metagraph
@@ -25,9 +27,6 @@ instructions will not work.
 
 Installing from PyPI
 --------------------
-
-**Note**: This *will* be the way to install once Metagraph has been open sourced. Until then, these
-instructions will not work.
 
 ::
 
@@ -39,10 +38,10 @@ Required Dependencies
 
 These should be automatically installed when metagraph is installed
 
-  - numpy
-  - scipy
-  - importlib_metadata
-  - donfig
+  - `numpy <https://numpy.org>`_
+  - `scipy <https://scipy.org>`_
+  - `importlib_metadata <https://importlib-metadata.readthedocs.io/>`_
+  - `donfig <https://donfig.readthedocs.io/>`_
 
 
 Recommended Dependencies
@@ -55,7 +54,7 @@ formats and basic algorithm coverage.
   - `grblas <https://github.com/jim22k/grblas/>`_
 
 A list of additional plugins to provide type and algorithm coverage for more libraries and hardware
-can be found :ref:`here<existing_plugins>`.
+can be found in the list of :ref:`community plugins<existing_plugins>`.
 
 
 Running the test suite
@@ -63,9 +62,9 @@ Running the test suite
 
 Running tests requires additional libraries to be installed
 
-  - pytest
-  - coverage
-  - pytest-cov
+  - `pytest <https://docs.pytest.org/>`_
+  - `coverage <https://coverage.readthedocs.io/>`_
+  - `pytest-cov <https://pytest-cov.readthedocs.io/>`_
 
 .. raw:: html
 
