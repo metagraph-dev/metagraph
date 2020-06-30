@@ -19,8 +19,8 @@ directed and undirected variants.
 Concrete properties deal with implementation-specific details and are more rare than abstract properties.
 
 
-Specs
------
+Specification
+-------------
 
 Properties are defined when a Type is defined.
 
@@ -39,7 +39,7 @@ The ``properties`` attribute must be a ``dict`` with string keys and list-like k
 Generally, the values should be a list of True/False or a list of strings.
 
 The keys represent the properties for this type. The values represent the allowable values
-for each property.
+for each property. Together, they define the specification of a type's properties.
 
 Requirements
 ------------
@@ -48,7 +48,7 @@ Within an algorithm's signature, properties can be passed to a type class
 to indicate what assumptions the algorithm will make. Metagraph will enforce
 these restrictions prior to calling the algorithm.
 
-Here is an example strongly connected components. Besides annotating the type
+Here is an example of strongly connected components. Besides annotating the type
 of ``graph`` as ``EdgeSet``, this also indicates that the ``is_directed`` property
 of the EdgeSet must be ``True``.
 
@@ -59,7 +59,7 @@ of the EdgeSet must be ``True``.
         pass
 
 If a list of values is allowable, this is indicated with a list or set of values in the signature.
-Here is the pagerank signature showing both the allowable dtypes are ``{"int", "float"}``.
+Here is the pagerank signature showing the two allowable dtypes are ``{"int", "float"}``.
 
 .. code-block:: python
 
@@ -77,8 +77,8 @@ Classification
 --------------
 
 Concrete types are required to have the following functions:
-  - _compute_abstract_properties(obj, props: List[str], known_props: Dict[str, Any]) -> Dict[str, Any]
-  - _compute_concrete_properties(obj, props: List[str], known_props: Dict[str, Any]) -> Dict[str, Any]
+  - .. py:function:: _compute_abstract_properties(obj, props: List[str], known_props: Dict[str, Any]) -> Dict[str, Any]
+  - .. py:function:: _compute_concrete_properties(obj, props: List[str], known_props: Dict[str, Any]) -> Dict[str, Any]
 
 These are used to discover the properties of data objects and ensure they meet the
 algorithm requirements.

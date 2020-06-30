@@ -729,6 +729,6 @@ This is a surprising result! We would've thought that a highly populated area li
 York City or Los Angeles or a hub like Dallas would be the most traveled through area.
 
 There's a good explanation for Anchorage being the most travelled through region: Since
-Alaska is so sparsely populated, a well-connected road infrtastructure was never built.
+Alaska is so sparsely populated, a well-connected road infrastructure was never built.
 Thus, to travel between cities in Alaska, air travel is the only option. More information
 can be found `here <https://en.wikipedia.org/wiki/List_of_airports_in_Alaska>`_. 

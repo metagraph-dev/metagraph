@@ -6,9 +6,6 @@ Algorithms
 Algorithms perform the graph computations in Metagraph. They can also be used as helper functions
 or anywhere that type conversion needs additional inputs.
 
-For example, creating a NodeMap from a NodeSet by setting each value to 1 would require an algorithm.
-
-Translators can only convert between types without the need for additional inputs to the function.
 
 Abstract Algorithms
 -------------------
@@ -40,7 +37,7 @@ the algorithm. Required properties should be passed in to the abstract type cons
 If an argument is a plain Python type (like bool or int), that should be indicated as such.
 Default values may be listed for plain Python types.
 
-The body of the function is irrelevant. Convention is to simply ``pass``.
+The body of the function is irrelevant for abstract algorithms. Convention is to simply ``pass``.
 
 
 Concrete Algorithms
