@@ -1,3 +1,7 @@
+.. raw:: pdf
+
+    PageBreak
+
 .. _plugin_author_guide:
 
 Plugin Author Guide
