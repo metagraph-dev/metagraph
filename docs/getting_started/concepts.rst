@@ -45,12 +45,12 @@ running the same algorithm on the CPU without translating.
 Metagraph Architecture
 ----------------------
 
-:User APIs​: High level, lazy evaluation APIs that the user interacts with. For example, calling a graph
-    coloring algorithm. The user does not specify which specific implementation.
-:Workflow Scheduler​: A Dask-based scheduler that matches high level user APIs calls to plugin implementations.
+:User APIs: High level, lazy evaluation APIs that the user interacts with. For example, calling a graph
+    coloring algorithm. The user does not specify specific implementations to use.
+:Workflow Scheduler: A Dask-based scheduler that matches high level user APIs to plugin implementations.
 :Algorithms: Specific implementations of user APIs. For example, there might be an implementation
     of Connected Components using GraphBLAS or directly to a specific hardware target written in C++.
-:Protable Low Level APIs: These are APIs not suitable for direct use by data scientists, but enable the
+:Portable Low Level APIs: These are APIs not suitable for direct use by data scientists, but enable the
     implementation of algorithms in a hardware-portable way. GraphBLAS is a prime example of such an API.
 :Hardware Backends: Each portable low level API will need an implementation for whatever hardware Metagraph supports.
 

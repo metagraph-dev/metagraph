@@ -15,7 +15,7 @@ Here is an example translator
     def list_to_set(x: List, **props) -> Set:
         return set(x)
 
-The signature must be properly typed, as that is how Metagraph knows the input and output type
+The signature must be properly typed as this is how Metagraph knows the input and output type
 of the translator. The additional ``props`` are properties that the user wants set in the output.
 
 Translators are called from the resolver, passing in the input object and specifying the desired
@@ -26,6 +26,9 @@ output type.
     g = NetworkXGraph(...)
     g2 = resolver.translate(g, CuGraph)
 
+The primary rule of translators is that translation can only happen
+between objects of the same abstract type. There are exceptions to this rule,
+but this is the main usage of translators in Metagraph.
 
 Unambiguous Subcomponents
 -------------------------
@@ -36,8 +39,9 @@ Their underlying structure changes, but the data the object represents is unchan
 
 The exception to this rule is when an abstract type specifies ``unambiguous_subcomponents``.
 These are a set of other abstract types which can be safely extracted from an object.
-For example, a NodeMap can be translated to a NodeSet because it doesn't require any additional
-parameters and is unambiguous in meaning.
+For example, a NodeMap can be translated to a NodeSet because every NodeMap contains a
+NodeSet. It's merely the set of nodes without any values. Because it doesn't require any additional
+parameters and is unambiguous in meaning, the use of a translator to convert is acceptable.
 
 Converting with arguments
 -------------------------

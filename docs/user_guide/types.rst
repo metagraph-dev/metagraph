@@ -20,7 +20,7 @@ no method to report its dtype property. Vectors must have a dtype. To work aroun
 a ``PythonVectorType`` can be created which knows how to compute a dtype given a Python ``list``.
 
 In this example, the Python ``list`` knows nothing about the ``PythonVectorType`` class, while the
-``PythonVectorType`` does know about Python ``list``\ s.
+``PythonVectorType`` **does** know about the Python ``list``.
 
 .. _wrappers:
 
@@ -34,12 +34,12 @@ Type which describes it.
 To avoid requiring plugin authors to write a lot of boilerplate code, Wrappers exist and
 provide a streamlined way to wrap data objects and auto-create Types which point to the new wrapper.
 
-A wrapper must subclass Wrapper and indicate the abstract type it belongs to. It should write its
+A wrapper must subclass ``Wrapper`` and indicate the abstract type it belongs to. It should write its
 own constructor and otherwise add methods and attributes as necessary to satisfy the concept of the
 abstract type.
 
 Wrappers are somewhat magical in their behavior. To avoid the need to write a separate concrete type
-for each wrapper, the following methods are written as part of the Wrapper, but are automagically
+for each wrapper, the following methods are written as part of the wrapper, but are automagically
 moved to be part of the auto-constructed concrete type:
 
   - is_satisfied_by
@@ -141,7 +141,7 @@ Concrete properties are defined in the ``allowed_props`` attribute. If this is s
 ``_compute_concrete_properties`` must be written to compute those properties for a given object.
 
 Finally, it is recommended to write the ``assert_equal`` method for comparing two data objects
-of this type. Doing so allows these objects to be used while testing.
+of this type. Doing so allows these objects to be used in testing.
 
 Core Types
 ----------

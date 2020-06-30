@@ -3,7 +3,7 @@ Nodes
 
 Nodes have integer IDs.
 
-In the simplest case, nodes are labeled 0..n-1 for a set of **n** nodes.
+In the simplest case, nodes are labeled 0..N-1 for a set of **N** nodes.
 If a filter is performed, however, the set of nodes will no longer be sequential.
 
 Alternatively, when loading a dataset, the serialized data may already have node ids which are
