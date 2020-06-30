@@ -18,3 +18,19 @@ To run unit tests + coverage automatically
 ```
 pytest
 ```
+
+
+To build web documentation
+```
+cd docs
+make html
+```
+
+
+To build PDF documentation
+```
+# First install reportlab
+# Next install rst2pdf
+cd docs
+sphinx-build -b pdf . _build/pdf
+```
