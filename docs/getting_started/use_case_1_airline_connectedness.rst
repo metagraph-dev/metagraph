@@ -1,7 +1,7 @@
 Use Case 1: Airline Regional Connections
 ========================================
 
-Download this as a :download:`notebook </_static/notebooks/airtravel.tar.gz>`.
+Download this as a :download:`notebook </_downloads/notebooks/airtravel.tar.gz>`.
 
 This is a tutorial on how to find the most well-connected regions of the
 U.S. via air travel.

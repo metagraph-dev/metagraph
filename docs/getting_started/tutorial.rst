@@ -1,7 +1,7 @@
 Tutorial
 ========
 
-Download this as a :download:`notebook </_static/notebooks/tutorial.ipynb>`.
+Download this as a :download:`notebook </_downloads/notebooks/tutorial.ipynb>`.
 
 This is a brief tutorial of basic Metagraph usage.
 
