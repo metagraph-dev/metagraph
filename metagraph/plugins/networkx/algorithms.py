@@ -136,7 +136,11 @@ if has_networkx:
         include_endpoints: bool,
     ) -> PythonNodeMap:
         node_to_score_map = nx.betweenness_centrality(
-            graph.value, k, enable_normalization, include_endpoints
+            graph.value,
+            k,
+            normalized=enable_normalization,
+            weight=graph.weight_label,
+            endpoints=include_endpoints,
         )
         return PythonNodeMap(node_to_score_map,)
 
