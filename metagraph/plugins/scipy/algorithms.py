@@ -36,10 +36,7 @@ if has_scipy:
         parents = ss.csr_matrix(parents)
         parents = parents + 9999 * ss.eye(parents.get_shape()[0])
         parents = parents.astype(graph.value.dtype)
-        return (
-            ScipyEdgeMap(parents, graph.node_list),
-            ScipyEdgeMap(lengths, graph.node_list),
-        )
+        return (ScipyEdgeMap(parents, graph.node_list), ScipyEdgeMap(lengths, graph.node_list))
 
     @concrete_algorithm("cluster.triangle_count")
     def ss_triangle_count(graph: ScipyEdgeSet) -> int:
