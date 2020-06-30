@@ -30,7 +30,6 @@ First, we’ll need to import some libraries.
 
     >>> import metagraph as mg
     >>> import pandas as pd
-    >>> from collections import Counter
 
 Let’s see what the data looks like.
 
