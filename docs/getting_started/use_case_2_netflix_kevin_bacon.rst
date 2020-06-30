@@ -14,7 +14,7 @@ We’ll go over how to find out who are the centers of the the Netflix
 film world, similar to how Bacon is the center of the Hollywood
 film industry.
 
-Well use a Kaggle dataset containing all the TV shows and movies on
+We'll use a Kaggle dataset containing all the TV shows and movies on
 Netflix as of 2019. The dataset can be found
 `here <https://www.kaggle.com/shivamb/netflix-shows>`__.
 
@@ -434,7 +434,7 @@ We’ll use NetworkX.
 
     movies_graph = nx.from_pandas_edgelist(movies_df, 'cast', 'title')
 
-Note that the above grpah is a bipartite graph of cast members and
+Note that the above graph is a bipartite graph of cast members and
 movies. Since we want a graph where the edges connect actors who’ve
 worked together on a movie, we’ll use NetworkX’s bipartite graph
 projection functionality to generate this graph.

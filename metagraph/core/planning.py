@@ -169,6 +169,8 @@ class AlgorithmPlan:
                 anni = sig.parameters[varname].annotation
                 if type(anni) is Wrapper:
                     print(f"{anni.__name__}")
+                elif type(anni) is type:
+                    print(f"{anni.__name__}")
                 else:
                     print(f"{anni.__class__.__name__}")
         print("---------------------")

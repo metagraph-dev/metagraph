@@ -49,10 +49,3 @@ We conventionally compartmentalize these into their own modules under the plugin
 
 We conventionally make them available by importing them in the *__init__.py* of the plugin directory.
 
-Plugin Decorators
-~~~~~~~~~~~~~~~~~
-
-We conventionally use decorators for declaring abstract algorithms, concrete types, translators, abstract types, concrete types, and wrappers.
-
-See the :ref:`Plugin Author Guide<plugin_author_guide>` for more details about which decorators to use.
-

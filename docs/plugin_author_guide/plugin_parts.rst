@@ -28,32 +28,32 @@ Algorithms
 
 A plugin can provide algorithms.
 This can be done in one of two forms, abstract (i.e. a spec) or concrete (i.e. an implementation).
-You can provide one or both or none in your plugin.
-
-Be sure to read the documentation regarding algorithms from the :ref:`User Guide<algorithms>`.
 
 .. _plugin_parts_abstract_algorithm:
 
 Abstract Algorithm
 ~~~~~~~~~~~~~~~~~~
 
-An abstract algorithm is a spec. Providing this alone can be useful because other developrs can provide different implementations of it. Read more about abstract algorithms :ref:`here<algorithms>`. However, concrete examples are useful, so it's highly recommended to provide at least 1 concrete implementation when introducing a new abstract algorithm.
+An abstract algorithm is a spec. Providing this alone can be useful because other developrs can provide different
+implementations of it. Read more about abstract algorithms :ref:`here<algorithms>`. However, abstract algorithms
+cannot be used without at least one implementation, so it's highly recommended to provide at least 1 concrete
+implementation when introducing a new abstract algorithm.
 
-Here's some example code showing how to delcare an abstract algorithm:
+Here's some example code showing how to declare an abstract algorithm:
 
  .. code-block:: python
-		 
-		 from metagraph import abstract_algorithm
-		 from metagraph.types import EdgeMap
-		 
-		 @abstract_algorithm("link_analysis.pagerank")
-		 def pagerank(
-		     graph: EdgeMap(dtype={"int", "float"}),
-		     damping: float = 0.85,
-		     maxiter: int = 50,
-		     tolerance: float = 1e-05,
-		 ) -> NodeMap:
-		     pass
+
+     from metagraph import abstract_algorithm
+     from metagraph.types import EdgeMap
+
+     @abstract_algorithm("link_analysis.pagerank")
+     def pagerank(
+         graph: EdgeMap(dtype={"int", "float"}),
+         damping: float = 0.85,
+         maxiter: int = 50,
+         tolerance: float = 1e-05,
+     ) -> NodeMap:
+         pass
 
 The *abstract_algorithm* decorator denotes that the function *pagerank* specifies an abstract algorithm. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
@@ -77,17 +77,17 @@ Here's an example concrete algorithm implementation using `NetworkX <https://net
 
  .. code-block:: python
 
-		 import networkx as nx
-		 from metagraph import concrete_algorithm
-    
-		 @concrete_algorithm("link_analysis.pagerank")
-		 def nx_pagerank(
-		     graph: NetworkXEdgeMap, damping: float, maxiter: int, tolerance: float
-		 ) -> PythonNodeMap:
-		     pagerank = nx.pagerank(
-		         graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
-		     )
-		     return PythonNodeMap(pagerank)
+     import networkx as nx
+     from metagraph import concrete_algorithm
+
+     @concrete_algorithm("link_analysis.pagerank")
+     def nx_pagerank(
+         graph: NetworkXEdgeMap, damping: float, maxiter: int, tolerance: float
+     ) -> PythonNodeMap:
+         pagerank = nx.pagerank(
+             graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
+         )
+         return PythonNodeMap(pagerank)
 
 The *concrete_algorithm* decorator denotes that the function *nx_pagerank* is a concrete algorithm. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
@@ -118,14 +118,14 @@ Here's an example of an abstract type declaration:
 
  .. code-block:: python
 
-		 from metagraph import AbstractType
-		 class EdgeMap(AbstractType):
-		     properties = {
-		         "is_directed": [True, False],
-		         "dtype": DTYPE_CHOICES,
-		         "has_negative_weights": [True, False],
-		     }
-		     unambiguous_subcomponents = {EdgeSet}
+    from metagraph import AbstractType
+    class EdgeMap(AbstractType):
+        properties = {
+            "is_directed": [True, False],
+            "dtype": DTYPE_CHOICES,
+            "has_negative_weights": [True, False],
+        }
+        unambiguous_subcomponents = {EdgeSet}
 
 As shown above, abstract types are classes.
 
@@ -141,19 +141,19 @@ Concrete Types
 New concrete algorithms may require different data representations of an existing abstract type or a new abstract type introduced in a plugin. 
 
  .. code-block:: python
-		 
-		 from metagraph import ConcreteType
-		 import pandas as pd
-		 
-		 class PandasDataFrameType(ConcreteType, abstract=DataFrame):
-		     value_type = pd.DataFrame
-		 
-		     @classmethod
-		     def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-		         digits_precision = round(-math.log(rel_tol, 10))
-		         pd.testing.assert_frame_equal(
-		             obj1, obj2, check_like=True, check_less_precise=digits_precision
-		         )
+
+    from metagraph import ConcreteType
+    import pandas as pd
+
+    class PandasDataFrameType(ConcreteType, abstract=DataFrame):
+        value_type = pd.DataFrame
+
+        @classmethod
+        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+            digits_precision = round(-math.log(rel_tol, 10))
+            pd.testing.assert_frame_equal(
+                obj1, obj2, check_like=True, check_less_precise=digits_precision
+            )
 
 Though concrete types are implementated as classes, they have no instances in metagraph. 
 
@@ -174,18 +174,18 @@ Since wrappers automatically introduce concrete types, wrappers are also useful 
 
  .. code-block:: python
 
-		 class NetworkXEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
-		     def __init__(
-		         self, nx_graph, weight_label="weight",
-		     ):
-		         self.value = nx_graph
-		         self.weight_label = weight_label
-		         self._assert_instance(nx_graph, nx.Graph)
-		 		 
-		     @classmethod
-		     def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-		         ...
-			 return
+    class NetworkXEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
+        def __init__(
+            self, nx_graph, weight_label="weight",
+        ):
+            self.value = nx_graph
+            self.weight_label = weight_label
+            self._assert_instance(nx_graph, nx.Graph)
+
+        @classmethod
+        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+            ...
+            return
 
 It's conventional to have the underlying data stored in the *value* attribute.
 
@@ -203,28 +203,34 @@ When a plugin provides new types (which is often necessary when new algorithms a
 Here's an example translator:
 
  .. code-block:: python
-		 
-		 from metagraph.plugins.networkx.types import NetworkXEdgeMap
-		 from metagraph.plugins.pandas.types import PandasEdgeMap
-		 import networkx as nx
-		 
-		 @translator
-		 def edgemap_from_pandas(x: PandasEdgeMap, **props) -> NetworkXEdgeMap:
-		     cur_props = PandasEdgeMap.Type.compute_abstract_properties(x, ["is_directed"])
-		     if cur_props["is_directed"]:
-		         out = nx.DiGraph()
-		     else:
-		         out = nx.Graph()			 
-		     g = x.value[[x.src_label, x.dst_label, x.weight_label]]
-		     out.add_weighted_edges_from(g.itertuples(index=False, name="WeightedEdge"))
-		     return NetworkXEdgeMap(out, weight_label="weight",)
+
+    from metagraph.plugins.networkx.types import NetworkXEdgeMap
+    from metagraph.plugins.pandas.types import PandasEdgeMap
+    import networkx as nx
+
+    @translator
+    def edgemap_from_pandas(x: PandasEdgeMap, **props) -> NetworkXEdgeMap:
+        cur_props = PandasEdgeMap.Type.compute_abstract_properties(x, ["is_directed"])
+        if cur_props["is_directed"]:
+            out = nx.DiGraph()
+        else:
+            out = nx.Graph()
+        g = x.value[[x.src_label, x.dst_label, x.weight_label]]
+        out.add_weighted_edges_from(g.itertuples(index=False, name="WeightedEdge"))
+        return NetworkXEdgeMap(out, weight_label="weight",)
 
 The implementation of translators is fairly straightforward. We determine if the Pandas edge map is directed, create a corresponding directed or undirected NetworkX graph, take the edges from the Pandas edge map, and insert corresonding edges into the NetworkX graph.
 
-The *translator* decorator allows the metagraph resolver to use this translator. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
+The *translator* decorator allows the metagraph resolver to use this translator. How the decorator are used will be
+explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
-Since plugins are more useful when interoperating with other plugins rather than being used in isolation, it's useful to provide translators that translate to and from concrete types introduced in a new plugin with the rest of the metagraph plugin ecosystem.
+Since plugins are more useful when interoperating with other plugins rather than being used in isolation, it's useful
+to provide translators that translate to and from concrete types introduced in a new plugin with the rest of the metagraph plugin ecosystem.
 
-When writing translators, it's infeasible to write a translator from a single concrete type to every other concrete type due to the explosive number of possible translation paths. Thus, it's recommended to at least (when possible) write translators to the core metagraph concrete types. Since the core conrete types have many translators between them and many plugins provide translators the core concrete types, the core concrete types act as a translation hub to the conrete types introduced in external plugins.
+When writing translators, it's infeasible to write a translator from a single concrete type to every other concrete
+type due to the explosive number of possible translation paths. Thus, it's recommended to at least (when possible) write
+translators to the core metagraph concrete types. Since the core conrete types have many translators between them and
+many plugins provide translators the core concrete types, the core concrete types act as a translation hub to the
+concrete types introduced in external plugins.
 
 For more about translators, see :ref:`here<translators>`.
