@@ -28,7 +28,7 @@ if has_scipy:
     ) -> Tuple[ScipyEdgeMap, ScipyEdgeMap]:
         is_directed = ScipyEdgeMap.Type.compute_abstract_properties(
             graph, {"is_directed"}
-        )
+        )["is_directed"]
         lengths, parents = ss.csgraph.dijkstra(
             graph.value, directed=is_directed, return_predecessors=True
         )
@@ -54,7 +54,7 @@ if has_scipy:
     ) -> NumpyVector:
         is_directed = ScipyEdgeMap.Type.compute_abstract_properties(
             graph, {"is_directed"}
-        )
+        )["is_directed"]
         bfs_ordered_array = ss.csgraph.breadth_first_order(
             graph.value, source_node, directed=is_directed, return_predecessors=False
         )
