@@ -29,6 +29,7 @@ author = "Anaconda, Inc"
 # ones.
 extensions = [
     "sphinx.ext.autodoc",
+    "rst2pdf.pdfbuilder",
 ]
 html_css_files = [
     "css/custom.css",
@@ -62,3 +63,13 @@ html_static_path = ["_static"]
 html_theme_options = {
     "github_url": "https://github.com/ContinuumIO/metagraph",
 }
+
+# -- Options for PDF output -------------------------------------------------
+
+# Grouping the document tree into PDF files. List of tuples
+# (source start file, target name, title, author, options).
+pdf_documents = [
+    ("index", "Metagraph Documentation", "Metagraph Documentation", "Anaconda, Inc."),
+]
+
+pdf_use_index = False
