@@ -1,4 +1,4 @@
-# conda build -c jim22k --python 3.7 recipe/
+# conda build -c conda-forge --python 3.7 recipe/
 
 package:
   name: metagraph
