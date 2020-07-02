@@ -1,6 +1,5 @@
 from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
-import community as community_louvain
 from typing import Tuple
 from . import MultiVerify
 
