@@ -128,7 +128,7 @@ An equivalent spelling when calling exact algorithms is:
 Algorithm Planning
 ~~~~~~~~~~~~~~~~~~
 
-When calling an algorithm using the generic approach, the calculated steps are made available by 
+When calling an algorithm using the generic approach, the calculated steps are made available through
 ``r.plan``. This shows the full set of translations required, along with the concrete algorithm
 chosen.
 
