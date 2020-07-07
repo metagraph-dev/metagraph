@@ -219,13 +219,14 @@ out of different airports), but all of their airports serve the same
 region / city market.
 
 Since we’re mostly concerned with where passengers will end up going
-(and not which airport they choose), we’ll view city markets as the
-regions that we’re trying to determine the connectedness of.
+(and not which airport they choose), we will view city markets as the
+regions of interest.
 
-There looks to be a lot of information that’s not relevant to finding
-the most well connected region, e.g. the distance of a flight path
-(we’re concerned with connectedness in the sense that many people
-commonly travel between the two areas). Let’s filter those out.
+We will define a region as being well-connected if many people travel in
+and out of it.
+
+Let’s filter out all the irrelevant information not required for finding
+the well-connected regions.
 
 Let’s also filter out any flight paths with zero passengers (these
 flights are usually flights transporting packages).
@@ -377,7 +378,6 @@ flights are usually flights transporting packages).
     </table>
     </div>
     <br/>
-
 
 
 We’ll want to have our data in an edge list format.
@@ -545,7 +545,7 @@ get a mapping from city market IDs to city names and airports.
         </tr>
         <tr>
           <th>30009</th>
-          <td>{HOM, 09A}</td>
+          <td>{09A, HOM}</td>
           <td>{Homer, AK}</td>
         </tr>
         <tr>
@@ -557,6 +557,7 @@ get a mapping from city market IDs to city names and airports.
     </table>
     </div>
     <br/>
+
 
 
 Which region is travelled through the most?
@@ -587,6 +588,7 @@ Let’s calculate the Betweenness Centrality.
 
     >>> betweenness_centrality = r.algos.vertex_ranking.betweenness_centrality(passenger_flow_graph_wrapped, 100, False, False)
 
+
 Let’s look at the results and find the highest scores (which would give
 us the city market IDs that are most travelled through).
 
@@ -601,21 +603,21 @@ us the city market IDs that are most travelled through).
 
 .. parsed-literal::
 
-    [(32575, 49405.0),
-     (30559, 44352.0),
-     (31703, 32659.0),
-     (30299, 31495.0),
-     (30977, 21128.0),
-     (30397, 17202.0),
-     (30194, 12061.0),
-     (30325, 10482.0),
-     (31517, 9537.0),
-     (32457, 6194.0),
-     (30113, 5833.0),
-     (32467, 5503.0),
-     (30154, 5140.0),
-     (32134, 4412.0),
-     (30070, 4141.0)]
+    [(32575, 46411.0),
+     (30559, 44345.0),
+     (30299, 38214.0),
+     (31703, 31860.0),
+     (30977, 25167.0),
+     (30397, 14147.0),
+     (30194, 13684.0),
+     (31517, 9340.0),
+     (30070, 7826.0),
+     (30325, 7593.0),
+     (30113, 7585.0),
+     (32467, 7459.0),
+     (32721, 5966.0),
+     (30154, 5885.0),
+     (30056, 5878.0)]
 
 
 
@@ -665,93 +667,93 @@ from city market IDs to city names and airports we made earlier.
       <tbody>
         <tr>
           <th>32575</th>
-          <td>49405.0</td>
-          <td>{SMO, BUR, LGB, HHR, LAX, ONT, VNY, SNA}</td>
-          <td>{Long Beach, CA, Hawthorne, CA, Van Nuys, CA, ...</td>
+          <td>46411.0</td>
+          <td>{BUR, HHR, SMO, ONT, VNY, LAX, SNA, LGB}</td>
+          <td>{Burbank, CA, Long Beach, CA, Hawthorne, CA, O...</td>
         </tr>
         <tr>
           <th>30559</th>
-          <td>44352.0</td>
-          <td>{LKE, BFI, KEH, SEA}</td>
-          <td>{Seattle, WA, Kenmore, WA}</td>
-        </tr>
-        <tr>
-          <th>31703</th>
-          <td>32659.0</td>
-          <td>{JFK, LGA, JRB, HPN, JRA, ISP, EWR, SWF, TSS}</td>
-          <td>{Islip, NY, White Plains, NY, Newark, NJ, Newb...</td>
+          <td>44345.0</td>
+          <td>{LKE, KEH, BFI, SEA}</td>
+          <td>{Kenmore, WA, Seattle, WA}</td>
         </tr>
         <tr>
           <th>30299</th>
-          <td>31495.0</td>
-          <td>{MRI, DQL, ANC}</td>
+          <td>38214.0</td>
+          <td>{MRI, ANC, DQL}</td>
           <td>{Anchorage, AK}</td>
         </tr>
         <tr>
+          <th>31703</th>
+          <td>31860.0</td>
+          <td>{TSS, JFK, JRA, EWR, SWF, JRB, HPN, LGA, ISP}</td>
+          <td>{Newark, NJ, Newburgh/Poughkeepsie, NY, Islip,...</td>
+        </tr>
+        <tr>
           <th>30977</th>
-          <td>21128.0</td>
-          <td>{LOT, MDW, DPA, PWK, GYY, ORD}</td>
-          <td>{Gary, IN, Chicago/Romeoville, IL, Chicago, IL}</td>
+          <td>25167.0</td>
+          <td>{PWK, ORD, GYY, LOT, MDW, DPA}</td>
+          <td>{Chicago, IL, Chicago/Romeoville, IL, Gary, IN}</td>
         </tr>
         <tr>
           <th>30397</th>
-          <td>17202.0</td>
-          <td>{FTY, QMA, PDK, ATL}</td>
+          <td>14147.0</td>
+          <td>{ATL, PDK, QMA, FTY}</td>
           <td>{Atlanta, GA, Kennesaw, GA}</td>
         </tr>
         <tr>
           <th>30194</th>
-          <td>12061.0</td>
-          <td>{DAL, AFW, FTW, RBD, FWH, DFW, ADS}</td>
-          <td>{Dallas, TX, Dallas/Fort Worth, TX, Fort Worth...</td>
+          <td>13684.0</td>
+          <td>{DFW, ADS, DAL, AFW, FTW, RBD, FWH}</td>
+          <td>{Fort Worth, TX, Dallas, TX, Dallas/Fort Worth...</td>
+        </tr>
+        <tr>
+          <th>31517</th>
+          <td>9340.0</td>
+          <td>{FAI, MTX, FBK, EIL, A01}</td>
+          <td>{Fairbanks/Ft. Wainwright, AK, Fairbanks, AK}</td>
+        </tr>
+        <tr>
+          <th>30070</th>
+          <td>7826.0</td>
+          <td>{ADQ, KDK}</td>
+          <td>{Kodiak, AK}</td>
         </tr>
         <tr>
           <th>30325</th>
-          <td>10482.0</td>
+          <td>7593.0</td>
           <td>{APA, DEN}</td>
           <td>{Denver, CO}</td>
         </tr>
         <tr>
-          <th>31517</th>
-          <td>9537.0</td>
-          <td>{FBK, A01, EIL, MTX, FAI}</td>
-          <td>{Fairbanks, AK, Fairbanks/Ft. Wainwright, AK}</td>
-        </tr>
-        <tr>
-          <th>32457</th>
-          <td>6194.0</td>
-          <td>{CCR, SFO, OAK, SJC}</td>
-          <td>{Concord, CA, San Francisco, CA, Oakland, CA, ...</td>
-        </tr>
-        <tr>
           <th>30113</th>
-          <td>5833.0</td>
+          <td>7585.0</td>
           <td>{BET}</td>
           <td>{Bethel, AK}</td>
         </tr>
         <tr>
           <th>32467</th>
-          <td>5503.0</td>
-          <td>{MIA, OPF, TMB, MPB, FLL, FXE}</td>
+          <td>7459.0</td>
+          <td>{OPF, MIA, FLL, TMB, MPB, FXE}</td>
           <td>{Miami, FL, Fort Lauderdale, FL}</td>
         </tr>
         <tr>
+          <th>32721</th>
+          <td>5966.0</td>
+          <td>{KLN}</td>
+          <td>{Larsen Bay, AK}</td>
+        </tr>
+        <tr>
           <th>30154</th>
-          <td>5140.0</td>
+          <td>5885.0</td>
           <td>{ACK}</td>
           <td>{Nantucket, MA}</td>
         </tr>
         <tr>
-          <th>32134</th>
-          <td>4412.0</td>
-          <td>{HIK, HNL}</td>
-          <td>{Honolulu, HI}</td>
-        </tr>
-        <tr>
-          <th>30070</th>
-          <td>4141.0</td>
-          <td>{ADQ, KDK}</td>
-          <td>{Kodiak, AK}</td>
+          <th>30056</th>
+          <td>5878.0</td>
+          <td>{A43}</td>
+          <td>{Kodiak Island, AK}</td>
         </tr>
       </tbody>
     </table>
@@ -760,8 +762,8 @@ from city market IDs to city names and airports we made earlier.
 
 
 
-This is what we’d expect. Highly populated areas like New York City or
-Los Angeles are the most traveled through areas.
+This is what we’d expect. Highly populated areas like Los Angeles are
+the most traveled through areas.
 
 However, it’s suprising that Anchorage is more travelled through than a
 hub like Dallas!
