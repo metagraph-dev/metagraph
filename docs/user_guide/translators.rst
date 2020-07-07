@@ -16,7 +16,8 @@ Here is an example translator
         return set(x)
 
 The signature must be properly typed as this is how Metagraph knows the input and output type
-of the translator. The additional ``props`` are properties that the user wants set in the output.
+of the translator. The additional ``props`` are properties that the user wants to set in the
+output.
 
 Translators are called from the resolver, passing in the input object and specifying the desired
 output type.

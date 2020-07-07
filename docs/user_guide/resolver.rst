@@ -80,10 +80,10 @@ minimizes the number of translations.
     >>> r.algos.cluster.triangle_count(g)
     5
 
-This code compared the type of ``g`` against the concrete algorithms registered for ``triangle_count``.
-If the type of ``g`` was an exact match for the signature of one of the algorithms, it was called.
-Otherwise, a translation path from ``g`` to the required type in one of the algorithms was found,
-called, and then the algorithm was run.
+This code compares the type of ``g`` against the concrete algorithms registered for ``triangle_count``.
+If the type of ``g`` was an exact match for the signature of one of the algorithms, the resolver calls
+that algorithm. Otherwise, a translation path from ``g`` to the required type in one of the algorithms
+was found, called, and then the algorithm was run.
 
 To understand this visually, suppose a user calls ``algo`` and passes in a NetworkX graph object.
 The system must find concrete versions of ``algo`` which are reachable via translation pathways.
@@ -103,7 +103,7 @@ Exact Algorithm Call
 The alternative approach is to remove auto-translation of inputs by explicitly calling the desired
 concrete algorithm.
 
-This is done to calling the abtract version with the additional suffix of
+This is done by calling the abstract version with the additional suffix of
 the plugin name where the concrete version was registered.
 
 For example, the NetworkX version of triangle_count is registered in the ``core_networkx`` plugin.
@@ -113,8 +113,9 @@ For example, the NetworkX version of triangle_count is registered in the ``core_
     >>> r.algos.cluster.triangle_count.core_networkx(g)
     5
 
-This will never translate the input and will instead raise an error if ``g`` is not the expected
-input type for the ``triangle_count`` algorithm registered in the ``core_networkx`` plugin.
+This will never translate the input and will instead raise an error if ``g`` is not an instance of
+the expected input type for the ``triangle_count`` algorithm registered in the ``core_networkx``
+plugin.
 
 An equivalent spelling when calling exact algorithms is:
 
@@ -127,8 +128,9 @@ An equivalent spelling when calling exact algorithms is:
 Algorithm Planning
 ~~~~~~~~~~~~~~~~~~
 
-When calling algorithm using the generic approach, the calculated plan is available by using ``r.plan``.
-This shows the full set of translations required, along with the concrete algorithm chosen.
+When calling an algorithm using the generic approach, the calculated steps are made available by 
+``r.plan``. This shows the full set of translations required, along with the concrete algorithm
+chosen.
 
 .. code-block:: python
 
@@ -160,7 +162,7 @@ on the algorithm. This will show both the abstract signature as well as all know
 Default Resolver
 ----------------
 
-When metagraph is imported, a default resolver is available at ``metagraph.resolver``.
+When metagraph is imported, a default resolver is available through ``metagraph.resolver``.
 The first time this attribute is accessed, the plugins will be loaded from the environment.
 Because of this, the default resolver should be accessed prior to any time-sensitive testing.
 
