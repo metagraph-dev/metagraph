@@ -3,7 +3,7 @@ import networkx as nx
 from . import MultiVerify
 
 
-def test_betweenness_centrality(default_plugin_resolver):
+def test_betweenness_centrality_single_hub(default_plugin_resolver):
     """
 0 <--2-- 1        5 --10-> 6
 |      ^ |      ^ ^      / 
@@ -41,6 +41,57 @@ v        v /        v
         4: 12.0,
         5: 13.0,
         6: 11.0,
+        7: 0.0,
+    }
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
+    MultiVerify(
+        dpr,
+        "vertex_ranking.betweenness_centrality",
+        graph,
+        k,
+        enable_normalization,
+        include_endpoints,
+    ).assert_equals(expected_answer)
+
+
+def test_betweenness_centrality_multiple_hubs(default_plugin_resolver):
+    """
+0 --10-> 1 --1--> 5 --10-> 6
+|      ^ ^        ^      / 
+0.1   /  |        |     /   
+|    10  10       5   11   
+|  _/    |        |   /    
+v /      |          v      
+3 -0.1-> 4 --1--> 2 --6--> 7
+    """
+    dpr = default_plugin_resolver
+    ebunch = [
+        (0, 1, 2),
+        (0, 3, 0.1),
+        (1, 5, 1),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 0.1),
+        (4, 1, 3),
+        (4, 2, 1),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.DiGraph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph)
+    k = 8
+    enable_normalization = False
+    include_endpoints = False
+    expected_answer_unwrapped = {
+        0: 0.0,
+        1: 6.0,
+        2: 7.0,
+        3: 3.0,
+        4: 7.0,
+        5: 7.0,
+        6: 4.0,
         7: 0.0,
     }
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
