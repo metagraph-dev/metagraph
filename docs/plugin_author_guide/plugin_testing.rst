@@ -35,7 +35,7 @@ Testing Translators
 
 It's highly recommended to write tests for every translator included in a module.
 
-The *assert_equal* method of concrete types discussed in :ref:`Plugin Parts<plugin_parts>` comes in handy for translator tests.
+The ``assert_equal`` method of concrete types discussed in :ref:`Plugin Parts<plugin_parts>` comes in handy for translator tests.
 
 Translator tests will frequently come in the form of creating an instance for a concrete type, translating it via the
 Metagraph resolver, and then verifying that the translated data structure is as we expected.
@@ -65,8 +65,8 @@ Here's an example:
 
 Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ compact node map and back again.
 
-We use the Metagraph resolver's *translate* method to translate as necessary and *assert_equal* method to verify that
-the translations are valid. The Metagraph resolver's *assert_equal* method utilizes the *assert_equal* implemented by
+We use the Metagraph resolver's ``translate`` method to translate as necessary and ``assert_equal`` method to verify that
+the translations are valid. The Metagraph resolver's ``assert_equal`` method utilizes the ``assert_equal`` implemented by
 the relevant concrete types.
 
 Testing Algorithms
@@ -78,12 +78,12 @@ When testing concrete algorithms, simply testing that outputs for given inputs m
 for verifying that the outputs also match the results from concrete algorithms written in other plugins (that correspond
 to the same abstract algorithm).
 
-We highly recommend using the utility *metagraph.tests.algorithms.MultiVerify* as it verifies that all concrete algorithms
+We highly recommend using the utility ``metagraph.tests.algorithms.MultiVerify`` as it verifies that all concrete algorithms
 for a given abstract algorithm get the same result.
 
 It does this by finding all the concrete algorithms for the given abstract algorithm (known to the given resolver),
 using the given resolver's translators to translate the given input types to the appropriate types for every concrete
-algorithm, and using the *assert_equal* method of the concrete types to verify that all the results from all the concrete
+algorithm, and using the ``assert_equal`` method of the concrete types to verify that all the results from all the concrete
 algorithms are the same.
 
 This additionally also indirectly tests translators.
@@ -93,7 +93,7 @@ This additionally also indirectly tests translators.
 MultiVerify with assert_equals
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here's an example of how to use *metagraph.tests.algorithms.MultiVerify*:
+Here's an example of how to use ``metagraph.tests.algorithms.MultiVerify``:
 
 .. code-block:: python
 
@@ -152,7 +152,7 @@ Next, we generate our input graph.
 
     graph = r.wrappers.EdgeMap.NetworkXEdgeMap(networkx_graph)
 
-The last line demonstrates how to use *metagraph.tests.algorithms.MultiVerify*:
+The last line demonstrates how to use ``metagraph.tests.algorithms.MultiVerify``:
 
 .. code-block:: python
 
@@ -163,17 +163,17 @@ The last line demonstrates how to use *metagraph.tests.algorithms.MultiVerify*:
         tolerance=1e-7
     ).assert_equals(expected_val, rel_tol=1e-5)
 
-Note the use of *MultiVerify(r, "link_analysis.pagerank", graph, tolerance=1e-7)*. This generates an instance of the
-*MultiVerify* class. The first parameter is the resolver to use. The second parameter is the name of the abstract
+Note the use of ``MultiVerify(r, "link_analysis.pagerank", graph, tolerance=1e-7)``. This generates an instance of the
+``MultiVerify`` class. The first parameter is the resolver to use. The second parameter is the name of the abstract
 algorithm whose concrete algorithms are being tested. The remaining positional and keyword arguments passed into the
-*MultiVerify* initializer (in this example, *graph* and *tolerance=1e-7*) are the inputs passed to the concrete
+``MultiVerify`` initializer (in this example, ``graph`` and ``tolerance=1e-7``) are the inputs passed to the concrete
 algorithms (the given resolver is used to translate these inputs to the types appropriate for each concrete algorithm).
 
-Once the *MultiVerify* instance is created, the *assert_equals* method of *MultiVerify* is invoked. It takes an expected
+Once the ``MultiVerify`` instance is created, the ``assert_equals`` method of ``MultiVerify`` is invoked. It takes an expected
 value and optionally a relative (via the keyword "rel_tol") and absolute (via the keyword "abs_tol") tolerance. The
 relative and absolute tolerances are used to account for minor differences in float values.
 
-Using a *MultiVerify* instance with the *assert_equals* method tests that all of the concrete algorithms known to the
+Using a ``MultiVerify`` instance with the ``assert_equals`` method tests that all of the concrete algorithms known to the
 given resolver get the same result. The resolver's translators are used to translate the concrete algorithm inputs to
 the necessary type (which indirectly tests translators). This helps sanity check not just one concrete algorithm, but
 also sanity checks that all concrete algorithms behave similarly.
@@ -181,7 +181,7 @@ also sanity checks that all concrete algorithms behave similarly.
 MultiVerify with custom_compare
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Sometimes, *MultiVerify.assert_equals* is insufficient for verifying that multiple concrete algorithms have the same
+Sometimes, ``MultiVerify.assert_equals`` is insufficient for verifying that multiple concrete algorithms have the same
 behavior.
 
 Consider the `Louvain community detection algorithm <https://en.wikipedia.org/wiki/Louvain_modularity>`_. This algorithm
@@ -191,9 +191,9 @@ the modularity. Different implementations may yield different community assignme
 initialization, parallelism, or a variety of other factors. Thus, simply checking for the same community label
 assignments for each node in a node map may be insufficient.
 
-The *custom_compare* method of *MultiVerify* can be useful here.
+The ``custom_compare`` method of ``MultiVerify`` can be useful here.
 
-Here's an example of how to use the *custom_compare* method of *MultiVerify* to test concrete algorithms for Louvain community detection:
+Here's an example of how to use the ``custom_compare`` method of ``MultiVerify`` to test concrete algorithms for Louvain community detection:
 
 .. code-block:: python
 
@@ -233,15 +233,15 @@ Here's an example of how to use the *custom_compare* method of *MultiVerify* to 
 
         MultiVerify(r, "clustering.louvain_community", graph).custom_compare(cmp_func)
 
-*custom_compare* takes a comparison function (in this example *cmp_func*). The comparison function is passed the output
+``custom_compare`` takes a comparison function (in this example ``cmp_func``). The comparison function is passed the output
 of each concrete algorithm and verifies expected behavior.
 
-In this example, *cmp_func* simply takes the modularity score and verifies that it is above a selected threshold.
+In this example, ``cmp_func`` simply takes the modularity score and verifies that it is above a selected threshold.
 
-The *custom_compare* method of *MultiVerify* is useful for cases where concrete algorithms might operate non-deterministically
+The ``custom_compare`` method of ``MultiVerify`` is useful for cases where concrete algorithms might operate non-deterministically
 or that yield approximate results.
 
-Additionally, the *custom_compare* method can also be useful for algorithms that return graphs. Different concrete
+Additionally, the ``custom_compare`` method can also be useful for algorithms that return graphs. Different concrete
 algorithms might return isomorphic graphs, but checking for graph isomorphism in general is intractable. Using a custom
 compare function can be useful in these cases since a priori knowledge of the expected output graph can make graph
 isomorphism checking very fast. For example, if the expected output graph has only one node with 4 out edges, we can
@@ -250,5 +250,5 @@ quickly identify the corresponding node.
 Suggestions for MultiVerify Extensions
 --------------------------------------
 
-If you find that the utilities provided by *MultiVerify* for testing consistent behavior across all concrete algorithm
+If you find that the utilities provided by ``MultiVerify`` for testing consistent behavior across all concrete algorithm
 implementations for a given abstract algorithm are lacking, please let us know `here <https://github.com/ContinuumIO/metagraph/issues>`_.

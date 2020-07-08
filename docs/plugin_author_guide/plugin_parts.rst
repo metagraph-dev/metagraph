@@ -55,11 +55,11 @@ Here's some example code showing how to declare an abstract algorithm:
      ) -> NodeMap:
          pass
 
-The *abstract_algorithm* decorator denotes that the function *pagerank* specifies an abstract algorithm. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
+The ``abstract_algorithm`` decorator denotes that the function ``pagerank`` specifies an abstract algorithm. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
-The string *"link_analysis.pagerank"* denotes the name of the abstract algorithm that the function *pagerank* specifies.
+The string "link_analysis.pagerank" denotes the name of the abstract algorithm that the function ``pagerank`` specifies.
 
-Since an abstract algorithm is merely a spec, there's no need to specify a body (which is why the body of *pagerank* is only *pass*).
+Since an abstract algorithm is merely a spec, there's no need to specify a body (which is why the body of ``pagerank`` is only ``pass``).
 
 Take note of the type hints. Type hints are checked at plugin registration time to verify that the signatures of concrete algorithms match the types of the corresponding abstract algorithm. 
 
@@ -89,18 +89,18 @@ Here's an example concrete algorithm implementation using `NetworkX <https://net
          )
          return PythonNodeMap(pagerank)
 
-The *concrete_algorithm* decorator denotes that the function *nx_pagerank* is a concrete algorithm. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
+The ``concrete_algorithm`` decorator denotes that the function ``nx_pagerank`` is a concrete algorithm. How the decorator are used will be explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
-The string *"link_analysis.pagerank"* denotes the name of the concrete algorithm that the function *nx_pagerank* specifies.
+The string "link_analysis.pagerank" denotes the name of the concrete algorithm that the function ``nx_pagerank`` specifies.
 
-Here are some details about how the body of *nx_pagerank* implements Page Rank:
+Here are some details about how the body of ``nx_pagerank`` implements Page Rank:
 
-* *graph* is an instance of the concrete type *NetworkXEdgeMap*, which is intended to wrap a `NetworkX <https://networkx.github.io/>`_ graph. The implementation of *NetworkXEdgeMap* is such that the *value* attribute is the *networkx.Graph* instance represented by *graph*.
-* The returned value is an instance of the concrete type *PythonNodeMap*, which is an implementation of the abstract return type specified by the abstract algorithm *pagerank* (see :ref:`the abstract algorithm example from above<plugin_parts_abstract_algorithm>`).
+* ``graph`` is an instance of the concrete type ``NetworkXEdgeMap``, which is intended to wrap a `NetworkX <https://networkx.github.io/>`_ graph. The implementation of ``NetworkXEdgeMap`` is such that the ``value`` attribute is the ``networkx.Graph`` instance represented by ``graph``.
+* The returned value is an instance of the concrete type ``PythonNodeMap``, which is an implementation of the abstract return type specified by the abstract algorithm ``pagerank`` (see :ref:`the abstract algorithm example from above<plugin_parts_abstract_algorithm>`).
 
 Note that all the concrete types in the signature are concrete implementations of the corresponding abstract types in the signature of the abstract implementation.
 
-Despite the fact that *nx_pagerank* has no default values for *damping*, *maxiter*, and *tolerance*, when the Metagraph resolver seeks to call a concrete algorithm for *"link_analysis.pagerank"*, the default values from the abstract algorithm are used and would be passed to *nx_pagerank* if *nx_pagerank* is chosen by the resolver.
+Despite the fact that ``nx_pagerank`` has no default values for ``damping``, ``maxiter``, and ``tolerance``, when the Metagraph resolver seeks to call a concrete algorithm for "link_analysis.pagerank", the default values from the abstract algorithm are used and would be passed to ``nx_pagerank`` if ``nx_pagerank`` is chosen by the resolver.
 
 Types
 -----
@@ -161,9 +161,9 @@ They are classes with attributes and class methods used by the Metagraph resolve
 
 These classes are merely tools used by the Metagraph resolver to determine  how to handle the Python data structures described by the concrete type.
 
-The attribute *value_type* is used to associate a Python type with the concrete type. 
+The attribute ``value_type`` is used to associate a Python type with the concrete type. 
 
-It's highly recommended to add an *assert_equal* class method for :ref:`testing purposes<plugin_testing_multiverify_with_assert_equals>`. *assert_equal* is a class method that takes two instances of the same concrete type and verifies that they represent the same underlying data. For example, consider a concrete type for edge list style graphs. Two instances of this concrete type can represent the same graph but might have their edges in a different order. In this case, *assert_equal* would not raise any assertion errors. However, if the edge lists represented different graphs, then an assertion error would be raised. 
+It's highly recommended to add an ``assert_equal`` class method for :ref:`testing purposes<plugin_testing_multiverify_with_assert_equals>`. ``assert_equal`` is a class method that takes two instances of the same concrete type and verifies that they represent the same underlying data. For example, consider a concrete type for edge list style graphs. Two instances of this concrete type can represent the same graph but might have their edges in a different order. In this case, ``assert_equal`` would not raise any assertion errors. However, if the edge lists represented different graphs, then an assertion error would be raised. 
 
 For more about concrete types, see :ref:`here<types>`.
 
@@ -187,11 +187,11 @@ Since wrappers automatically introduce concrete types, wrappers are also useful 
             ...
             return
 
-It's conventional to have the underlying data stored in the *value* attribute.
+It's conventional to have the underlying data stored in the ``value`` attribute.
 
-It's highly recommended to use the inherited *_assert_instance* wrapper method to sanity check types. 
+It's highly recommended to use the inherited ``_assert_instance`` wrapper method to sanity check types. 
 
-It's highly recommended to add an *assert_equal* class method as it gets inherited by the automatically created concrete type and is useful for :ref:`testing purposes<plugin_testing_multiverify_with_assert_equals>`.
+It's highly recommended to add an ``assert_equal`` class method as it gets inherited by the automatically created concrete type and is useful for :ref:`testing purposes<plugin_testing_multiverify_with_assert_equals>`.
 
 For more about wrappers, see :ref:`here<wrappers>`.
 
@@ -221,7 +221,7 @@ Here's an example translator:
 
 The implementation of translators is fairly straightforward. We determine if the Pandas edge map is directed, create a corresponding directed or undirected NetworkX graph, take the edges from the Pandas edge map, and insert corresponding edges into the NetworkX graph.
 
-The *translator* decorator allows the Metagraph resolver to use this translator. How the decorator are used will be
+The ``translator`` decorator allows the Metagraph resolver to use this translator. How the decorator are used will be
 explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
 Since plugins are more useful when interoperating with other plugins rather than being used in isolation, it's useful
