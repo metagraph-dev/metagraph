@@ -34,7 +34,7 @@ This can be done in one of two forms, abstract (i.e. a spec) or concrete (i.e. a
 Abstract Algorithm
 ~~~~~~~~~~~~~~~~~~
 
-An abstract algorithm is a spec. Providing this alone can be useful because other developrs can provide different
+An abstract algorithm is a spec. Providing this alone can be useful because other developers can provide different
 implementations of it. Read more about abstract algorithms :ref:`here<algorithms>`. However, abstract algorithms
 cannot be used without at least one implementation, so it's highly recommended to provide at least 1 concrete
 implementation when introducing a new abstract algorithm.
@@ -155,7 +155,7 @@ New concrete algorithms may require different data representations of an existin
                 obj1, obj2, check_like=True, check_less_precise=digits_precision
             )
 
-Though concrete types are implementated as classes, they have no instances in metagraph. 
+Though concrete types are implemented as classes, they have no instances in metagraph. 
 
 They are classes with attributes and class methods used by the metagraph resolver to find optimal translations paths.
 
@@ -219,7 +219,7 @@ Here's an example translator:
         out.add_weighted_edges_from(g.itertuples(index=False, name="WeightedEdge"))
         return NetworkXEdgeMap(out, weight_label="weight",)
 
-The implementation of translators is fairly straightforward. We determine if the Pandas edge map is directed, create a corresponding directed or undirected NetworkX graph, take the edges from the Pandas edge map, and insert corresonding edges into the NetworkX graph.
+The implementation of translators is fairly straightforward. We determine if the Pandas edge map is directed, create a corresponding directed or undirected NetworkX graph, take the edges from the Pandas edge map, and insert corresponding edges into the NetworkX graph.
 
 The *translator* decorator allows the metagraph resolver to use this translator. How the decorator are used will be
 explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
@@ -229,8 +229,8 @@ to provide translators that translate to and from concrete types introduced in a
 
 When writing translators, it's infeasible to write a translator from a single concrete type to every other concrete
 type due to the explosive number of possible translation paths. Thus, it's recommended to at least (when possible) write
-translators to the core metagraph concrete types. Since the core conrete types have many translators between them and
-many plugins provide translators the core concrete types, the core concrete types act as a translation hub to the
+translators to the core metagraph concrete types. Since the core concrete types have many translators between them and
+since many plugins provide translators the core concrete types, the core concrete types act as a translation hub to the
 concrete types introduced in external plugins.
 
 For more about translators, see :ref:`here<translators>`.
