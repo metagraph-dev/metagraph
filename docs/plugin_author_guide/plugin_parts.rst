@@ -163,7 +163,7 @@ These classes are merely tools used by the metagraph resolver to determine  how 
 
 The attribute *value_type* is used to associate a Python type with the concrete type. 
 
-It's highly recommended to add an *assert_equal* class method for :ref:`testing purposes<plugin_testing_multiverify_with_assert_equals>`. 
+It's highly recommended to add an *assert_equal* class method for :ref:`testing purposes<plugin_testing_multiverify_with_assert_equals>`. *assert_equal* is a class method that takes two instances of the same concrete type and verifies that they represent the same underlying data. For example, consider a concrete type for edge list style graphs. Two instances of this concrete type can represent the same graph but might have their edges in a different order. In this case, *assert_equal* would not raise any assertion errors. However, if the edge lists represented different graphs, then an assertion error would be raised. 
 
 For more about concrete types, see :ref:`here<types>`.
 
