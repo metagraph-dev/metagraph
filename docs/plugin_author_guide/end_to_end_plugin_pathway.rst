@@ -47,6 +47,7 @@ Let's assume that our plugin is implemented as a module named *my_module.py*:
 		     out.add_weighted_edges_from(g.itertuples(index=False, name="WeightedEdge"))
 		     return NetworkXEdgeMap(out, weight_label="weight",)
 
+For the sake of simplicity, our plugin implemented by *my_module.py* only contains one translator (named *edgemap_from_pandas*) that translates a Pandas edge map to a NetworkX edge map.
 
 This code below will make the plugin findable by metagraph (we'll go into the exact details futher below).
 
