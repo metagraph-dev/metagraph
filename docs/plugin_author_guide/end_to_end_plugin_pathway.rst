@@ -99,6 +99,9 @@ Plugin registries have a ``plugins`` attribute that is a dictionary describing a
 
 An entrypoint declaration (e.g. as is shown in our *setup.py* example above) pointing to the plugin-finder function is what informs Metagraph of the plugins.
 
+Labelling Abstract Types, Translators, Concrete Algorithms, etc.
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
 We'll now go over how to label translators, wrappers, concrete types, etc. in such a way that plugin registries can take note of them (when the *register_from_modules* is invoked) to create these dictionaries.
 
 There are decorators for abstract algorithms, concrete algorithms, and translators that will make them findable by the *register_from_modules* method. These decorators are:
@@ -116,6 +119,9 @@ Concrete types must be subclasses of ``metagraph.ConcreteType``.
 Wrappers must be subclasses of ``metagraph.Wrapper``.
 
 Using the above decorators and class along with a plugin registry is preferred when writing a plugin-finder function as it reduces complexity.
+
+Fine Details of Plugin Finder Functions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We'll now go over the specifics of what the returned dictionary from a plugin-finder function looks like.
 
