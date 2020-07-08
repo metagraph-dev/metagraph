@@ -95,16 +95,16 @@ A plugin-finder function takes no inputs and returns a dictionary that might loo
 		     'plugin_b':
 		         {
 			     'abstract_types': {abstract_type_b_1, abstract_type_b_2, ...},
-			     'abstract_blgorithms': {abstract_blgorithm_b_1, abstract_blgorithm_b_2, ...},
+			     'abstract_algorithms': {abstract_algorithm_b_1, abstract_algorithm_b_2, ...},
 			     'concrete_types': {concrete_type_b_1, concrete_type_b_2, ...},
-			     'concrete_blgorithms': {concrete_blgorithm_b_1, concrete_blgorithm_b_2, ...},
+			     'concrete_algorithms': {concrete_algorithm_b_1, concrete_algorithm_b_2, ...},
 			     'wrappers': {wrapper_b_1, wrapper_b_2, ...},
 			     'translators': {translator_b_1, translator_b_2, ...},
 			 },
 		     'plugin_c':
 		         {
 			     'concrete_types': {},
-			     'concrete_clgorithms': {concrete_clgorithm_c_1, concrete_clgorithm_c_2, ...},
+			     'concrete_algorithms': {concrete_algorithm_c_1, concrete_algorithm_c_2, ...},
 			     'wrappers': {wrapper_c_1, wrapper_c_2, ...},
 			     'translators': {translator_c_1, translator_c_2, ...},
 			 },
