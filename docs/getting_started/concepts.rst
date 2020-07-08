@@ -23,8 +23,8 @@ Decoupling Storage from Algorithms
 ----------------------------------
 
 Metagraph needs to be able to call algorithms from one library using input data from
-another library. This gives Metagraph the power to utilize the power of many graph libraries
-and expose that power to the user.
+another library. This allows Metagraph to integrate the functionality of many graph
+libraries regardless of how graphs are represented or implemented.
 
 However, this required decoupling is not a trivial goal. Graph libraries typically choose a
 single format for representing graphs. This format informs the style of how algorithms are

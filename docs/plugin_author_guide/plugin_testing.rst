@@ -73,7 +73,7 @@ Testing Algorithms
 
 Since abstract algorithms are merely specifications, we can only test concrete algorithms.
 
-When testing concrete algorithms, simply testing that that outputs for given inputs match expectations is insufficient
+When testing concrete algorithms, simply testing that outputs for given inputs match expectations is insufficient
 for verifying that the outputs also match the results from concrete algorithms written in other plugins (that correspond
 to the same abstract algorithm).
 
