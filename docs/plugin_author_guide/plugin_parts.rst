@@ -100,7 +100,7 @@ Here are some details about how the body of *nx_pagerank* implements Page Rank:
 
 Note that all the concrete types in the signature are concrete implementations of the corresponding abstract types in the signature of the abstract implementation.
 
-Despite the fact that *nx_pagerank* has no default values for *damping*, *maxiter*, and *tolerance*, when the metagraph resolver seeks to call a concrete algorithm for *"link_analysis.pagerank"*, the default values from the abstract algorithm are used and would be passed to *nx_pagerank* if *nx_pagerank* is chosen by the resolver.
+Despite the fact that *nx_pagerank* has no default values for *damping*, *maxiter*, and *tolerance*, when the Metagraph resolver seeks to call a concrete algorithm for *"link_analysis.pagerank"*, the default values from the abstract algorithm are used and would be passed to *nx_pagerank* if *nx_pagerank* is chosen by the resolver.
 
 Types
 -----
@@ -155,11 +155,11 @@ New concrete algorithms may require different data representations of an existin
                 obj1, obj2, check_like=True, check_less_precise=digits_precision
             )
 
-Though concrete types are implemented as classes, they have no instances in metagraph. 
+Though concrete types are implemented as classes, they have no instances in Metagraph. 
 
-They are classes with attributes and class methods used by the metagraph resolver to find optimal translations paths.
+They are classes with attributes and class methods used by the Metagraph resolver to find optimal translations paths.
 
-These classes are merely tools used by the metagraph resolver to determine  how to handle the Python datastructures described by the concrete type.
+These classes are merely tools used by the Metagraph resolver to determine  how to handle the Python datastructures described by the concrete type.
 
 The attribute *value_type* is used to associate a Python type with the concrete type. 
 
@@ -221,15 +221,15 @@ Here's an example translator:
 
 The implementation of translators is fairly straightforward. We determine if the Pandas edge map is directed, create a corresponding directed or undirected NetworkX graph, take the edges from the Pandas edge map, and insert corresponding edges into the NetworkX graph.
 
-The *translator* decorator allows the metagraph resolver to use this translator. How the decorator are used will be
+The *translator* decorator allows the Metagraph resolver to use this translator. How the decorator are used will be
 explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
 
 Since plugins are more useful when interoperating with other plugins rather than being used in isolation, it's useful
-to provide translators that translate to and from concrete types introduced in a new plugin with the rest of the metagraph plugin ecosystem.
+to provide translators that translate to and from concrete types introduced in a new plugin with the rest of the Metagraph plugin ecosystem.
 
 When writing translators, it's infeasible to write a translator from a single concrete type to every other concrete
 type due to the explosive number of possible translation paths. Thus, it's recommended to at least (when possible) write
-translators to the core metagraph concrete types. Since the core concrete types have many translators between them and
+translators to the core Metagraph concrete types. Since the core concrete types have many translators between them and
 since many plugins provide translators the core concrete types, the core concrete types act as a translation hub to the
 concrete types introduced in external plugins.
 
