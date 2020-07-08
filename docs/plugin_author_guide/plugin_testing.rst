@@ -26,7 +26,7 @@ Testing Abstract Types, Concrete Types, Wrappers
 
 Testing types is difficult to do in isolation outside of trivially testing methods and attributes.
 
-There are no metagraph-specific testing practices we recommend in particular here.
+There are no Metagraph-specific testing practices we recommend in particular here.
 
 Much of the functionality provided by types will be rigorously tested indirectly in the algorithm tests and translator tests.
 
@@ -38,7 +38,7 @@ It's highly recommended to write tests for every translator included in a module
 The *assert_equal* method of concrete types discussed in :ref:`Plugin Parts<plugin_parts>` comes in handy for translator tests.
 
 Translator tests will frequently come in the form of creating an instance for a concrete type, translating it via the
-metagraph resolver, and then verifying that the translated data structure is as we expected.
+Metagraph resolver, and then verifying that the translated data structure is as we expected.
 
 Here's an example:
 
@@ -65,8 +65,8 @@ Here's an example:
 
 Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ compact node map and back again.
 
-We use the metagraph resolver's *translate* method to translate as necessary and *assert_equal* method to verify that
-the translations are valid. The metagraph resolver's *assert_equal* method utilizes the *assert_equal* implemented by
+We use the Metagraph resolver's *translate* method to translate as necessary and *assert_equal* method to verify that
+the translations are valid. The Metagraph resolver's *assert_equal* method utilizes the *assert_equal* implemented by
 the relevant concrete types.
 
 Testing Algorithms

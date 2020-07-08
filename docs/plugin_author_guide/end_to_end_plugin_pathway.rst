@@ -14,7 +14,7 @@ Familiarity with the concepts covered in the following sections are highly recom
 Introduction
 ------------
 
-This document provides a recommended workflow aimed at helping plugin authors write their first metagraph plugin.
+This document provides a recommended workflow aimed at helping plugin authors write their first Metagraph plugin.
 
 Write The Plugin
 ----------------
@@ -26,7 +26,7 @@ It's recommended to create Python modules for the :ref:`types, algorithms, trans
 Make Plugin Findable by Metagraph
 ---------------------------------
 
-Once a plugin is implemented, we must make metagraph aware of it.
+Once a plugin is implemented, we must make Metagraph aware of it.
 
 Let's assume that our plugin is implemented as a module named *my_module.py*:
 
@@ -49,7 +49,7 @@ Let's assume that our plugin is implemented as a module named *my_module.py*:
 
 For the sake of simplicity, our plugin implemented by *my_module.py* only contains one translator (named *edgemap_from_pandas*) that translates a Pandas edge map to a NetworkX edge map.
 
-This code below will make the plugin findable by metagraph (we'll go into the exact details futher below).
+This code below will make the plugin findable by Metagraph (we'll go into the exact details futher below).
 
 *registry.py*
 
@@ -76,7 +76,7 @@ This code below will make the plugin findable by metagraph (we'll go into the ex
 
 We'll now go over what happens in the above code.
 
-To make the plugin findable by metagraph, we must make an entrypoint under the name "metagraph.plugins" for a plugin-finder function (in this example *find_plugins*) that returns the plugins. For a more detailed explanation of how to use `entry points via setuptools <https://setuptools.readthedocs.io/en/latest/setuptools.html>`_, we recommend starting off with `this tutorial <https://amir.rachum.com/blog/2017/07/28/python-entry-points/>`_.
+To make the plugin findable by Metagraph, we must make an entrypoint under the name "metagraph.plugins" for a plugin-finder function (in this example *find_plugins*) that returns the plugins. For a more detailed explanation of how to use `entry points via setuptools <https://setuptools.readthedocs.io/en/latest/setuptools.html>`_, we recommend starting off with `this tutorial <https://amir.rachum.com/blog/2017/07/28/python-entry-points/>`_.
 
 A plugin-finder function takes no inputs and returns a dictionary describing all the plugins found. We’ll go over the specifics what this dictionary looks like later in this tutorial. For now, we'll show how to use a plugin registry to generate this dictionary. 
 
@@ -93,11 +93,11 @@ Using a plugin registry has the following properties:
 * The plugin registry raises exceptions when concrete algorithm signatures don't match abstract algorithm signatures. 
 * The plugin registry automatically searches modules passed to *register_from_modules* for wrappers, translators, etc. This allows for separation of plugin functionality into different Python modules.
 
-A plugin registry doesn't actually inform metagraph of anything. It is simply a datastructure that registers and sanity checks plugins.
+A plugin registry doesn't actually inform Metagraph of anything. It is simply a datastructure that registers and sanity checks plugins.
 
-Plugin registries have a ``plugins`` attribute that is a dictionary describing all the plugins known to the plugin registry. Plugin-finder functions should return dictionaries like this since this is what will be used by metagraph to account for the found plugins.
+Plugin registries have a ``plugins`` attribute that is a dictionary describing all the plugins known to the plugin registry. Plugin-finder functions should return dictionaries like this since this is what will be used by Metagraph to account for the found plugins.
 
-An entrypoint declaration (e.g. as is shown in our *setup.py* example above) pointing to the plugin-finder function is what informs metagraph of the plugins.
+An entrypoint declaration (e.g. as is shown in our *setup.py* example above) pointing to the plugin-finder function is what informs Metagraph of the plugins.
 
 We'll now go over how to label translators, wrappers, concrete types, etc. in such a way that plugin registries can take note of them (when the *register_from_modules* is invoked) to create these dictionaries.
 
@@ -107,7 +107,7 @@ There are decorators for abstract algorithms, concrete algorithms, and translato
 * ``concrete_algorithm``
 * ``translator``
 
-To make abstract types, concrete types, and wrappers findable by the the *register_from_modules* method, we must define them as being subclasses of certain metagraph base classes. 
+To make abstract types, concrete types, and wrappers findable by the the *register_from_modules* method, we must define them as being subclasses of certain Metagraph base classes. 
 
 Abstract types must be subclasses of ``metagraph.AbstractType``.
 
@@ -130,7 +130,7 @@ In our toy ``my_plugin`` example, it might look like this:
 			 },
 		 }
 
-In this example, ``<metagraph.core.plugin.Translator object at 0x123456789>`` refers to our ``edgemap_from_pandas`` translator from earlier. The ``translator`` decorator creates a translator object (to be used by metagraph) from our ``edgemap_from_pandas`` function.
+In this example, ``<metagraph.core.plugin.Translator object at 0x123456789>`` refers to our ``edgemap_from_pandas`` translator from earlier. The ``translator`` decorator creates a translator object (to be used by Metagraph) from our ``edgemap_from_pandas`` function.
 
 In a situation where more plugins are found, the dictionary might look like this:
 
