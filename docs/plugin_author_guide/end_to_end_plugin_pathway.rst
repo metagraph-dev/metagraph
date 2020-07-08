@@ -83,6 +83,34 @@ A plugin-finder function takes no inputs and returns a dictionary that might loo
  .. code-block:: python
 
 		 {
+		     'my_plugin':
+		         {
+			     'translators': {<metagraph.core.plugin.Translator object at 0x123456789>},
+			 },
+		 }
+
+In this example, ``<metagraph.core.plugin.Translator object at 0x123456789>`` refers to our ``edgemap_from_pandas`` translator from earlier.
+
+The keys are plugin names.
+
+The values are dictionaries describing the plugin. 
+
+Valid keys of a dictionary describing a plugin are:
+
+* :ref:`'abstract_types'<types>`
+* :ref:`'abstract_algorithms'<algorithms>`
+* :ref:`'concrete_types'<types>`
+* :ref:`'concrete_algorithms'<algorithms>`
+* :ref:`'wrappers'<wrappers>`
+* :ref:`'translators'<translators>`
+
+The values of a dictionary describing a plugin are sets of values corresponding to the key, e.g. the values for the key 'translators' is a set of :ref:`translators<translators>`.
+
+In a situation where a plugin-finder function will find more plugins than our toy *my_plugin* example, the returned value might look like this:
+
+ .. code-block:: python
+
+		 {
 		     'plugin_a':
 		         {
 			     'abstract_types': {abstract_type_a_1, abstract_type_a_2, ...},
@@ -111,24 +139,11 @@ A plugin-finder function takes no inputs and returns a dictionary that might loo
 		    ...
 		 }
 
-The keys are plugin names.
-
-The values are dictionaries describing the plugin. 
-
-Valid keys of a dictionary describing a plugin are:
-
-* :ref:`'abstract_types'<types>`
-* :ref:`'abstract_algorithms'<algorithms>`
-* :ref:`'concrete_types'<types>`
-* :ref:`'concrete_algorithms'<algorithms>`
-* :ref:`'wrappers'<wrappers>`
-* :ref:`'translators'<translators>`
-
-The values of a dictionary describing a plugin are sets of values corresponding to the key, e.g. the values for the key 'translators' is a set of :ref:`translators<translators>`.
-
 For small plugins, it's possible to explicitly create this dictionary returned by the plugin-finder function.
 
-For larger plugins, this is difficult to maintain. It is useful to use a plugin registry in this case. We show an example of how to use a plugin registry in our *registry.py* example above.
+For larger plugins, this is difficult to maintain. Thus, explicitly creating such dictionaries is highly discouraged.
+
+It is useful to use a plugin registry in this case. We show an example of how to use a plugin registry in our *registry.py* example above.
 
 As shown in the *registry.py* example above, a plugin registry can import all the relevant plugins from given modules via the *register_from_modules* method. This method imports all the translators, concrete algorithms, etc. from the modules (which are often easily recognized via the use of the decorators shown in :ref:`Plugin Parts<plugin_parts>`).
 
