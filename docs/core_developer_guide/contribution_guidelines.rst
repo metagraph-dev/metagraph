@@ -15,9 +15,9 @@ Contribution Process
 
 Making contributions follows this path:
 
-1. Fork metagraph.
+1. Fork Metagraph.
 2. Implement the desired changes.
 3. Make a pull request.
 4. Request a review.
 5. Revise with any desired changes.
-6. Once the pull request is in a desirable state, a metagraph core contributor will merge your pull request.
+6. Once the pull request is in a desirable state, a Metagraph core contributor will merge your pull request.

@@ -7,7 +7,7 @@
 Core Developer Guide
 =====================
 
-This guide is intended to go over guidelines for contributing to metagraph.
+This guide is intended to go over guidelines for contributing to Metagraph.
 
 .. toctree::
    :maxdepth: 2

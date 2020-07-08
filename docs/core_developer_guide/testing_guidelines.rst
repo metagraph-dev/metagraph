@@ -31,10 +31,10 @@ Tests for core plugin translators are stored in *metagraph/tests/translators/*.
 
 Tests for core plugin types are stored in *metagraph/tests/types/*. 
 
-Core metagraph Testing
+Core Metagraph Testing
 ~~~~~~~~~~~~~~~~~~~~~~
 
-Tests for metagraph's core functionality, e.g. resolver, plugin registry, etc. are stored directly in *metagraph/tests/*.
+Tests for Metagraph's core functionality, e.g. resolver, plugin registry, etc. are stored directly in *metagraph/tests/*.
 
-When making core metagraph changes, ensure via `pytest-cov <https://pytest-cov.readthedocs.io/en/latest/>`_ that test
+When making core Metagraph changes, ensure via `pytest-cov <https://pytest-cov.readthedocs.io/en/latest/>`_ that test
 coverage is as close to 100% as possible.

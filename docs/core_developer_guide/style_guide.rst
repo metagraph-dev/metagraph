@@ -10,7 +10,7 @@ Familiarity with the concepts covered in the following sections are highly recom
 * :ref:`User Guide<user_guide>`
 * :ref:`Plugin Parts<plugin_parts>`
 
-We highly recommend becoming an expert metagraph user before contributing to metagraph itself.
+We highly recommend becoming an expert Metagraph user before contributing to Metagraph itself.
 
 Additionally, we highly recommend reading our `GitHub repository's README <https://github.com/ContinuumIO/metagraph>`_.
 
@@ -19,7 +19,7 @@ Code Formatting
 
 We use `Black <https://black.readthedocs.io/en/stable/>`_ to format our code.
 
-We use `pre-commit <https://pre-commit.com/>`_ to have a pre-commit Git hook that runs `Black <https://black.readthedocs.io/en/stable/>`_ to format our code prior to committing. You can do the same by running *pre-commit install* at the top-level of your metagraph checkout. 
+We use `pre-commit <https://pre-commit.com/>`_ to have a pre-commit Git hook that runs `Black <https://black.readthedocs.io/en/stable/>`_ to format our code prior to committing. You can do the same by running *pre-commit install* at the top-level of your Metagraph checkout. 
 
 Environment Setup
 -----------------
