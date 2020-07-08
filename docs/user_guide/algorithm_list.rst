@@ -110,7 +110,7 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 
 .. py:function:: k_core(graph: EdgeMap, k: int) -> EdgeMap
 
-    This algorith finds a maximal subgraph of a given weighted graph that contains nodes of at least degree *k*.
+    This algorithm finds a maximal subgraph of a given weighted graph that contains nodes of at least degree *k*.
 
 
 

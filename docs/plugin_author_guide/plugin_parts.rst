@@ -159,7 +159,7 @@ Though concrete types are implemented as classes, they have no instances in Meta
 
 They are classes with attributes and class methods used by the Metagraph resolver to find optimal translations paths.
 
-These classes are merely tools used by the Metagraph resolver to determine  how to handle the Python datastructures described by the concrete type.
+These classes are merely tools used by the Metagraph resolver to determine  how to handle the Python data structures described by the concrete type.
 
 The attribute *value_type* is used to associate a Python type with the concrete type. 
 

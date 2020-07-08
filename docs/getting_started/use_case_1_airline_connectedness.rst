@@ -765,11 +765,11 @@ from city market IDs to city names and airports we made earlier.
 This is what we’d expect. Highly populated areas like Los Angeles are
 the most traveled through areas.
 
-However, it’s suprising that Anchorage is more travelled through than a
+However, it’s surprising that Anchorage is more travelled through than a
 hub like Dallas!
 
 There’s a good explanation for Anchorage being a very travelled through
 region: Since Alaska is so sparsely populated, a well-connected road
-infrtastructure was never built. Thus, to travel between cities in
+infrastructure was never built. Thus, to travel between cities in
 Alaska, air travel is the only option. More information can be found
 `here <https://en.wikipedia.org/wiki/List_of_airports_in_Alaska>`__.
