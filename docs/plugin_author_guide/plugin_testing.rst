@@ -24,7 +24,7 @@ We'll cover ways to test the different :ref:`plugin parts<plugin_parts>`.
 Testing Abstract Types, Concrete Types, Wrappers
 ------------------------------------------------
 
-Testing types is difficult to do in isolation outside of trivially testing of methods and attributes.
+Testing types is difficult to do in isolation outside of trivially testing methods and attributes.
 
 There are no metagraph-specific testing practices we recommend in particular here.
 
@@ -65,8 +65,9 @@ Here's an example:
 
 Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ compact node map and back again.
 
-We use the *translate* method of the metagraph resolver to translate as necessary and the *assert_equal* method of
-relevant concrete types to verify that the translations are valid.
+We use the metagraph resolver's *translate* method to translate as necessary and *assert_equal* method to verify that
+the translations are valid. The metagraph resolver's *assert_equal* method utilizes the *assert_equal* implemented by
+the relevant concrete types.
 
 Testing Algorithms
 ------------------
