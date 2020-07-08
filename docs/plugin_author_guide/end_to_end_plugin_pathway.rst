@@ -49,7 +49,7 @@ Let's assume that our plugin is implemented as a module named *my_module.py*:
 
 For the sake of simplicity, our plugin implemented by *my_module.py* only contains one translator (named *edgemap_from_pandas*) that translates a Pandas edge map to a NetworkX edge map.
 
-This code below will make the plugin findable by Metagraph (we'll go into the exact details futher below).
+This code below will make the plugin findable by Metagraph (we'll go into the exact details further below).
 
 *registry.py*
 
@@ -93,7 +93,7 @@ Using a plugin registry has the following properties:
 * The plugin registry raises exceptions when concrete algorithm signatures don't match abstract algorithm signatures. 
 * The plugin registry automatically searches modules passed to *register_from_modules* for wrappers, translators, etc. This allows for separation of plugin functionality into different Python modules.
 
-A plugin registry doesn't actually inform Metagraph of anything. It is simply a datastructure that registers and sanity checks plugins.
+A plugin registry doesn't actually inform Metagraph of anything. It is simply a data structure that registers and sanity checks plugins.
 
 Plugin registries have a ``plugins`` attribute that is a dictionary describing all the plugins known to the plugin registry. Plugin-finder functions should return dictionaries like this since this is what will be used by Metagraph to account for the found plugins.
 

@@ -12,7 +12,7 @@ We’ll show how using graph analytics can be used to gain insights about
 the interests of customers by finding communities of customers who’ve
 bought similar products.
 
-We’lll accomplish this by creating a bipartite graph of customers and
+We’ll accomplish this by creating a bipartite graph of customers and
 products, using a graph projection to create a graph of customers linked
 to other customers who’ve bought the same product, and using Louvain
 community detection to find the communities.
@@ -347,7 +347,7 @@ negative quantity values).
 
 Though customers may have returned these products, they did initially
 purchase the products (which reflects an interest in the product), so
-we’ll keep the intiial purchases. However, we’ll remove the return
+we’ll keep the initial purchases. However, we’ll remove the return
 transactions (which will also remove any discount transactions as well).
 
 .. code:: python

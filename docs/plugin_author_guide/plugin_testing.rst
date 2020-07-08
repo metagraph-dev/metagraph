@@ -138,7 +138,7 @@ This is a simple test of `Page Rank <https://en.wikipedia.org/wiki/PageRank>`_.
 
 The first several lines are fairly straightforward set up.
 
-The first noteworthly line is:
+The first noteworthy line is:
 
 .. code-block:: python
 
@@ -193,7 +193,7 @@ assignments for each node in a node map may be insufficient.
 
 The *custom_compare* method of *MultiVerify* can be useful here.
 
-Here's an example of how to use the *custom_compare* method of *MultiVerify* to test concrete algorithms for Louviain community detection:
+Here's an example of how to use the *custom_compare* method of *MultiVerify* to test concrete algorithms for Louvain community detection:
 
 .. code-block:: python
 
