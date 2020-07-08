@@ -32,14 +32,15 @@ written as well as performance characteristics of those algorithms.
 
 Metagraph's approach is to automatically translate between different data representations,
 and then call the algorithm which operates on that new representation. For example, a
-pandas edge list can be translated to a networkx Graph, and then a networkx algorithm is
+pandas edge list can be translated to a NetworkX Graph, and then a NetworkX algorithm is
 called.
 
 There is a cost to translating, but depending on the size of the graph, the cost of running
-the algorithm may overwhelm that translation cost. For example, moving a large graph from
-networkx onto a GPU with cugraph opens up extremely performant algorithms. The cost of the
-move exists, but the whole operation of translation+computation might take less time than
-running the same algorithm on the CPU without translating.
+the algorithm may overwhelm that translation cost. For example, converting a large graph from
+NetworkX into a SciPy sparse adjacency matrix allows using algorithms that are possibly more
+performant due to improved spatial locality. The cost of the move exists, but the whole operation
+of translation+computation might take less time than running the same algorithm on the CPU
+without translating.
 
 
 Metagraph Architecture
