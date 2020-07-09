@@ -62,7 +62,7 @@ Here we show the concrete types which represent ``EdgeMaps``:
 
 
 
-Algorithms are also be listed under ``res.algos`` and grouped by
+Algorithms are also listed under ``res.algos`` and grouped by
 categories
 
 .. code:: python
