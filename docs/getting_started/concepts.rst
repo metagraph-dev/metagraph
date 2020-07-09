@@ -23,8 +23,8 @@ Decoupling Storage from Algorithms
 ----------------------------------
 
 Metagraph needs to be able to call algorithms from one library using input data from
-another library. This gives Metagraph the power to utilize the power of many graph libraries
-and expose that power to the user.
+another library. This allows Metagraph to integrate the functionality of many graph
+libraries regardless of how graphs are represented or implemented.
 
 However, this required decoupling is not a trivial goal. Graph libraries typically choose a
 single format for representing graphs. This format informs the style of how algorithms are
@@ -32,14 +32,15 @@ written as well as performance characteristics of those algorithms.
 
 Metagraph's approach is to automatically translate between different data representations,
 and then call the algorithm which operates on that new representation. For example, a
-pandas edge list can be translated to a networkx Graph, and then a networkx algorithm is
+pandas edge list can be translated to a NetworkX Graph, and then a NetworkX algorithm is
 called.
 
 There is a cost to translating, but depending on the size of the graph, the cost of running
-the algorithm may overwhelm that translation cost. For example, moving a large graph from
-networkx onto a GPU with cugraph opens up extremely performant algorithms. The cost of the
-move exists, but the whole operation of translation+computation might take less time than
-running the same algorithm on the CPU without translating.
+the algorithm may overwhelm that translation cost. For example, converting a large graph from
+NetworkX into a SciPy sparse adjacency matrix allows using algorithms that are possibly more
+performant due to improved spatial locality. The cost of the translation exists, but the whole
+operation of translation+computation might take less time than running the same algorithm in 
+NetworkX without translating.
 
 
 Metagraph Architecture

@@ -90,7 +90,7 @@ Many algorithms assign a ranking or value to each vertex/node in the graph based
 
 .. py:function:: pagerank(graph: EdgeMap(dtype={"int", "float"}), damping: float = 0.85, maxiter: int = 50, tolerance: float = 1e-05) -> NodeMap
 
-    This algorithm determiens the importance of a given node in the network based on links between important nodes.
+    This algorithm determines the importance of a given node in the network based on links between important nodes.
 
 Subgraph
 --------
@@ -110,7 +110,7 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 
 .. py:function:: k_core(graph: EdgeMap, k: int) -> EdgeMap
 
-    This algorith finds a maximal subgraph of a given weighted graph that contains nodes of at least degree *k*.
+    This algorithm finds a maximal subgraph of a given weighted graph that contains nodes of at least degree *k*.
 
 
 

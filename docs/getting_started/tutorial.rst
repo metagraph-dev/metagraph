@@ -5,23 +5,24 @@ Download this as a :download:`notebook </_downloads/notebooks/tutorial.ipynb>`.
 
 This is a brief tutorial of basic Metagraph usage.
 
-First, we import metagraph:
+First, we import Metagraph:
 
 .. code:: python
 
-    >>> import metagraph as mg
+    import metagraph as mg
 
-Inspecting types and algorithms available
+Inspecting Types and Available Algorithms
 -----------------------------------------
 
-The default resolver automatically pulls in all registered metagraph
-plugins
+The default resolver automatically pulls in all registered Metagraph
+plugins.
 
 .. code:: python
 
     >>> res = mg.resolver
 
-A hierarchy of available types is automatically added as properties on ``res``
+A hierarchy of available types is automatically added as properties on
+``res``.
 
 .. code:: python
 
@@ -30,11 +31,25 @@ A hierarchy of available types is automatically added as properties on ``res``
     ['DataFrame', 'EdgeMap', 'EdgeSet', 'Matrix', 'NodeMap', 'NodeSet', 'Vector']
 
 
-For each abstract type, there are several concrete types. All concrete types within
-that single abstract type represent equivalent data, but in a different format
-or data structure.
 
-Here we show the concrete types which represent EdgeMaps.
+Two important concepts in Metagraph are abstract types and concrete
+types.
+
+Abstract types describe a generic kind of data container with
+potentially many equivalent representations.
+
+Concrete types describe a specific data object which fits under the
+abstract type category.
+
+One can think of abstract types as data container specifications and
+concrete types as implementations of those specifications.
+
+For each abstract type, there are several concrete types.
+
+Within a single abstract type, all concrete types are able to represent
+equivalent data but in a different format or data structure.
+
+Here we show the concrete types which represent ``EdgeMaps``:
 
 .. code:: python
 
@@ -47,7 +62,8 @@ Here we show the concrete types which represent EdgeMaps.
 
 
 
-Algorithms are listed under ``r.algos`` and grouped by categories
+Algorithms are also listed under ``res.algos`` and grouped by
+categories
 
 .. code:: python
 
@@ -64,16 +80,17 @@ Algorithms are listed under ``r.algos`` and grouped by categories
 
 .. code:: python
 
-    >>> dir(res.algos.traversal)
+    >>> dir(res.algos.cluster)
 
-    ['all_shortest_paths', 'bellman_ford', 'breadth_first_search', 'dijkstra']
+    ['triangle_count']
 
 
 
 Example Usage
 -------------
 
-Let's see how to use metagraph by first constructing a graph from an edge list.
+Let’s see how to use Metagraph by first constructing a graph from an
+edge list.
 
 Begin with an input csv file representing the edge list and weights.
 
@@ -95,7 +112,7 @@ Begin with an input csv file representing the edge list and weights.
     5,7,6
     """
 
-Read in the csv file and convert to a Pandas DataFrame.
+Read in the csv file and convert to a Pandas ``DataFrame``.
 
 .. code:: python
 
@@ -104,19 +121,21 @@ Read in the csv file and convert to a Pandas DataFrame.
     >>> csv_file = io.StringIO(data)
     >>> df = pd.read_csv(csv_file)
 
-This DataFrame represents a graph’s edges, but metagraph doesn’t know that yet.
-To use the DataFrame within metagraph, we first need to convert it into
-a Graph-like object.
+This ``DataFrame`` represents a graph’s edges, but Metagraph doesn’t
+know that yet. To use the ``DataFrame`` within Metagraph, we first need
+to convert it into a graph-like object.
 
-A ``PandasEdgeMap`` takes a DataFrame plus the labels of the columns
-representing source and destination nodes. With these, metagraph will
-know how to interpret the DataFrame as a Graph.
+A ``PandasEdgeMap`` takes a ``DataFrame`` plus the labels of the columns
+representing source and destination nodes. With these, Metagraph will
+know how to interpret the ``DataFrame`` as a graph.
 
 .. code:: python
 
-    >>> g = res.wrappers.EdgeMap.PandasEdgeMap(df, 'Source', 'Destination', 'Weight',
+    >>> g = res.wrappers.EdgeMap.PandasEdgeMap(df, 'Source', 'Destination', 'Weight', 
                                                is_directed=False)
     >>> g.value
+
+
 
 
 .. raw:: html
@@ -125,16 +144,14 @@ know how to interpret the DataFrame as a Graph.
     <style scoped>
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
-            text-align: center;
-            color: gray;
         }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
         .dataframe thead th {
-            text-align: center;
-            width: 25px;
-            color: gray;
-        }
-        .dataframe td {
-            text-align: center;
+            text-align: right;
         }
     </style>
     <table border="1" class="dataframe">
@@ -228,47 +245,46 @@ know how to interpret the DataFrame as a Graph.
 Translate to other Graph formats
 --------------------------------
 
-Because metagraph knows how to interpret ``g`` as a Graph, we can easily
-convert it other Graph formats.
+Because Metagraph knows how to interpret ``g`` as a graph, we can easily
+convert it other graph formats.
 
-Let’s convert it to a NetworkX Graph.
+Let’s convert it to a NetworkX graph.
 
 .. code:: python
 
     >>> g2 = res.translate(g, res.wrappers.EdgeMap.NetworkXEdgeMap)
     >>> g2
 
-    <metagraph.plugins.networkx.types.NetworkXEdgeMap at 0x12007f550>
+    <metagraph.plugins.networkx.types.NetworkXEdgeMap at 0x7fcf3e331e50>
 
 
 
-The underlying object (in this case a networkx Graph) is usually stored as the ``.value`` property.
+The underlying object (in this case a NetworkX graph) is usually stored
+as the ``.value`` property.
 
-We can verify that the edges are preserved correctly by inspecting the networkx Graph directly.
+We can verify that the edges are preserved correctly by inspecting the
+NetworkX graph directly.
 
 .. code:: python
 
     >>> g2.value.edges(data=True)
 
-    EdgeDataView([(0, 1, {'weight': 4}), (0, 3, {'weight': 2}), (0, 4, {'weight': 7}),
-                  (1, 3, {'weight': 3}), (1, 4, {'weight': 5}), (3, 4, {'weight': 1}),
-                  (4, 2, {'weight': 5}), (4, 7, {'weight': 4}), (2, 5, {'weight': 2}),
-                  (2, 6, {'weight': 8}), (5, 6, {'weight': 4}), (5, 7, {'weight': 6})])
+    EdgeDataView([(0, 1, {'weight': 4}), (0, 3, {'weight': 2}), (0, 4, {'weight': 7}), (1, 3, {'weight': 3}), (1, 4, {'weight': 5}), (3, 4, {'weight': 1}), (4, 2, {'weight': 5}), (4, 7, {'weight': 4}), (2, 5, {'weight': 2}), (2, 6, {'weight': 8}), (5, 6, {'weight': 4}), (5, 7, {'weight': 6})])
 
 
 
 We can also convert ``g`` into an adjacency matrix representation using
 a GraphBLAS matrix.
 
-The unweighted adjacency matrix has a weight value where an edge exists and is
-empty elsewhere.
+The unweighted adjacency matrix has a weight value where an edge exists
+and is empty elsewhere.
 
 .. code:: python
 
     >>> g3 = res.translate(g, res.types.EdgeMap.GrblasEdgeMapType)
     >>> g3
 
-    <metagraph.plugins.graphblas.types.GrblasEdgeMap at 0x11fddb390>
+    <metagraph.plugins.graphblas.types.GrblasEdgeMap at 0x7fcf3e3319d0>
 
 
 
@@ -278,22 +294,23 @@ empty elsewhere.
 
     <Matrix 24/(8x8):INT64>
 
+
+
+
 .. raw:: html
 
     <div>
     <style scoped>
         .dataframe tbody tr th:only-of-type {
             vertical-align: middle;
-            text-align: center;
-            color: gray;
         }
+    
+        .dataframe tbody tr th {
+            vertical-align: top;
+        }
+    
         .dataframe thead th {
-            text-align: center;
-            width: 25px;
-            color: gray;
-        }
-        .dataframe td {
-            text-align: center;
+            text-align: right;
         }
     </style>
     <table border="1" class="dataframe">
@@ -402,11 +419,10 @@ empty elsewhere.
       </tbody>
     </table>
     </div>
-    <br />
 
 
 
-We can also visualize the graph using functions found in the plugin libraries.
+We can also visualize the graph
 
 .. code:: python
 
@@ -414,28 +430,26 @@ We can also visualize the graph using functions found in the plugin libraries.
     >>> grblas.io.draw(g3.value)
 
 
-.. image:: output_24_0.png
 
-
+.. image:: output_25_0.png
 
 
 Inspect the steps required for translations
 -------------------------------------------
 
-Rather than actually converting ``g`` into other formats, let’s ask the
-system *how* it will do the conversion. Each conversion requires someone
-to write code to convert between the two formats. However, even if there
-isn’t a direct translator between two formats, metagraph will find a
-path and take several translation steps as needed to perform the task.
+Rather than actually converting ``g`` into other formats, let’s ask
+Metagraph how it will do the conversion. Each conversion requires a
+translator (written by plugin developers) to convert between the two
+formats. However, even if there isn’t a direct translator between two
+formats, Metagraph will find a path and take several translation steps
+as needed to perform the task.
 
 The mechanism for viewing the plan is to invoke the translation from
-``r.plan.translate`` rather than ``r.translate``. Other than the
+``res.plan.translate`` rather than ``res.translate``. Other than the
 additional ``.plan``, the call signature is identical.
 
---------------
-
 In this first example, there is a direct function which translates
-between ``PandasEdgeMap`` and ``NetworkXEdgeMap``
+between ``PandasEdgeMap`` and ``NetworkXEdgeMap``.
 
 .. code:: python
 
@@ -445,18 +459,15 @@ between ``PandasEdgeMap`` and ``NetworkXEdgeMap``
     PandasEdgeMapType -> NetworkXEdgeMapType
 
 
---------------
-
 In this next example, there is no direct function which convert
-``PandasEdgeMap`` into a ``GrblasEdgeMap``. Instead, we
-have to first convert to ``NetworkXEdgeMap`` and then to
-``ScipyEdgeMap`` before finally arriving at our desired
-format.
+``PandasEdgeMap`` into a ``GrblasEdgeMap``. Instead, we have to first
+convert to ``NetworkXEdgeMap`` and then to ``ScipyEdgeMap`` before
+finally arriving at our desired format.
 
-While metagraph will do the conversion automatically, understanding the
+While Metagraph will do the conversion automatically, understanding the
 steps involved helps users plan for expected computation time and memory
-usage. If needed, they can also write a plugin to provide a direct
-translation path to save time.
+usage. If needed, plugin developers can write a translator provide a
+direct translation path to save time.
 
 .. code:: python
 
@@ -469,14 +480,12 @@ translation path to save time.
      (end)         -> GrblasEdgeMapType
 
 
-
-
-Algorithm Example #1: Triangle Count
-------------------------------------
+Algorithm #1: Triangle Count
+----------------------------
 
 Algorithms are described initially in an abstract definition. For
-triangle count, we take an ``EdgeSet`` and return an ``int`` indicating the
-number of unique triangles in the graph.
+triangle count, we take an ``EdgeSet`` and return an ``int`` indicating
+the number of unique triangles in the graph.
 
 After the abstract definition is written, multiple concrete
 implementations are written to operate on concrete types.
@@ -489,18 +498,18 @@ triangle count.
     >>> res.algos.cluster.triangle_count.signatures
 
     Signature:
-        (graph: <metagraph.types.EdgeSet object at 0x106dfd390>) -> int
+    	(graph: EdgeSet({'is_directed': False})) -> int
     Implementations:
-        {'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeSet'>, 'return': <class 'int'>}
-        {'graph': <class 'metagraph.plugins.scipy.types.ScipyEdgeSet'>, 'return': <class 'int'>}
+    	{'graph': <class 'metagraph.plugins.scipy.types.ScipyEdgeSet'>, 'return': <class 'int'>}
+    	{'graph': <class 'metagraph.plugins.graphblas.types.GrblasEdgeSet'>, 'return': <class 'int'>}
+    	{'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeSet'>, 'return': <class 'int'>}
 
 
-We see that there are two implementations available. One takes a
-NetworkXEdgeSet. The other takes a ScipyEdgeSet.
+We see that there are a few implementations available. They all take
+different input graph types, e.g. a ``NetworkXEdgeSet``, a
+``ScipyEdgeSet``, etc.
 
---------------
-
-Let’s count the triangles with our different representations of ``g``.
+Let’s count the triangles with a few different representations of ``g``.
 We should get the same answer no matter which implementation is chosen.
 
 .. code:: python
@@ -519,13 +528,11 @@ We should get the same answer no matter which implementation is chosen.
 
 
 
---------------
+We can view the plan for algorithms just like we can view the plan for
+translations.
 
-Similar to how we can view the plan for translations, we can view the
-plan for algorithms.
-
-Attempting to run triangle count with a PandasEdgeList will
-automatically convert to a NetworkX Graph, then run the algorithm.
+Attempting to run triangle count with a ``PandasEdgeList`` will
+automatically convert to a NetworkX graph, then run the algorithm.
 
 .. code:: python
 
@@ -543,11 +550,9 @@ automatically convert to a NetworkX Graph, then run the algorithm.
     ---------------------
 
 
---------------
-
-In the next example, ``g2`` is already a NetworkX Graph, so the only
-translation needed is from an EdgeMap to an EdgeSet (i.e. dropping the
-weights).
+In the next example, ``g2`` is already a NetworkX graph, so the only
+translation needed is from an ``EdgeMap`` to an ``EdgeSet``
+(i.e. dropping the weights).
 
 .. code:: python
 
@@ -563,13 +568,11 @@ weights).
     ---------------------
 
 
---------------
+How do we make Metagraph run the ``triangle_count`` algorithm written
+for Scipy adjacency matrix?
 
-How do we make metagraph run the triangle_count algorithm written for
-scipy adjacency matrix?
-
-Because it finds the networkx version first, it will choose that unless
-we start with a scipy matrix.
+Because it finds the NetworkX version first, it will choose that unless
+we start with a Scipy matrix.
 
 .. code:: python
 
@@ -586,9 +589,7 @@ we start with a scipy matrix.
     ---------------------
 
 
---------------
-
-Just to prove that it gives the same result, let’s run it
+Just to prove that it gives the same result, let’s run it.
 
 .. code:: python
 
@@ -598,51 +599,38 @@ Just to prove that it gives the same result, let’s run it
 
 
 
-Algorithm Example #2: Pagerank
-------------------------------
+Example #2: PageRank
+--------------------
 
-Let’s look at the same pieces of information, but for pagerank. Pagerank
-takes a Graph and returns a NodeMap, indicating the rank value of each
-node in the graph.
+Let’s look at the same pieces of information, but for PageRank. PageRank
+takes a Graph and returns a ``NodeMap``, indicating the rank value of
+each node in the graph.
 
 First, let’s verify the signature and the implementations available.
 
-We see that there is only one implementation available, which takes a
-NetworkX Graph as input.
+
+We see that there are a few implementations available. One takes a
+NetworkX graph as input.
 
 .. code:: python
 
     >>> res.algos.link_analysis.pagerank.signatures
 
-    """
     Signature:
-        (graph: <metagraph.types.EdgeMap object at 0x106e01750>,
-         damping: float = 0.85,
-         maxiter: int = 50,
-         tolerance: float = 1e-05) -> metagraph.types.NodeMap
+    	(graph: EdgeMap({'dtype': ('float', 'int')}), damping: float = 0.85, maxiter: int = 50, tolerance: float = 1e-05) -> metagraph.types.NodeMap
     Implementations:
-        {'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeMap'>,
-         'damping': <class 'float'>,
-         'maxiter': <class 'int'>,
-         'tolerance': <class 'float'>,
-         'return': <class 'metagraph.plugins.python.types.PythonNodeMap'>}
-    """
+    	{'graph': <class 'metagraph.plugins.graphblas.types.GrblasEdgeMap'>, 'damping': <class 'float'>, 'maxiter': <class 'int'>, 'tolerance': <class 'float'>, 'return': <class 'metagraph.plugins.graphblas.types.GrblasNodeMap'>}
+    	{'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeMap'>, 'damping': <class 'float'>, 'maxiter': <class 'int'>, 'tolerance': <class 'float'>, 'return': <class 'metagraph.plugins.python.types.PythonNodeMap'>}
 
 
---------------
-
-Let’s look at the steps required in the plan. Then let’s perform the
-computation.
+Let’s look at the steps required in the plan.
 
 .. code:: python
 
     >>> res.plan.algos.link_analysis.pagerank(g)
 
     nx_pagerank
-    (graph: metagraph.plugins.networkx.types.NetworkXEdgeMap,
-     damping: float,
-     maxiter: int,
-     tolerance: float) -> metagraph.plugins.python.types.PythonNodeMap
+    (graph: metagraph.plugins.networkx.types.NetworkXEdgeMap, damping: float, maxiter: int, tolerance: float) -> metagraph.plugins.python.types.PythonNodeMap
     =====================
     Argument Translations
     ---------------------
@@ -657,17 +645,19 @@ computation.
     ---------------------
 
 
+Let’s perform the computation.
+
 .. code:: python
 
     >>> pr = res.algos.link_analysis.pagerank(g)
     >>> pr
 
-    <metagraph.plugins.python.types.PythonNodeMap at 0x1208df0d0>
+    <metagraph.plugins.python.types.PythonNodeMap at 0x7fcf3cf61c10>
 
 
 
-The result is a PythonNodeMap. Its underlying object is just a dict, so
-we can view that easily.
+The result is a ``PythonNodeMap``. Its underlying object is just a
+``dict``, so we can view that easily.
 
 .. code:: python
 
@@ -684,8 +674,8 @@ we can view that easily.
 
 
 
-Suppose we want to use the result in a numpy function. We could create
-the numpy array from the dict, but there is already a translator
+Suppose we want to use the result in a Numpy function. We could create
+the Numpy array from the dict, but there is already a translator
 available to do that. Let’s use it.
 
 .. code:: python
@@ -695,4 +685,5 @@ available to do that. Let’s use it.
 
     array([0.11990989, 0.11990989, 0.12919109, 0.11990989, 0.19538403,
            0.13300793, 0.09304149, 0.08964579])
+
 

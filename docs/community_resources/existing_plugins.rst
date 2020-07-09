@@ -3,6 +3,8 @@
 Community Plugins
 =================
 
+Metagraph comes with core plugins, e.g. NetworkX, SciPy, etc., but can be extended and integrated with external plugins that don't come with Metagraph by default.
+
 Plugins are written and maintained by the community.
 
 To use with Metagraph, simply install the plugin into your Python environment.

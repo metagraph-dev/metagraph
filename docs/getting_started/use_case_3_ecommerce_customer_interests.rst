@@ -4,15 +4,15 @@ Use Case 3: Customer Interest Clustering
 Download this as a :download:`notebook </_downloads/notebooks/ecommerce.tar.gz>`.
 
 This is a tutorial on how to perform customer clustering based on the
-interests and purcahses of customers.
+interests and purchases of customers.
 
-Marketing teams frequently want to know who how to appeal to their customers.
+Marketing teams frequently are interested in this analysis.
 
 We’ll show how graph analytics can be used to gain insights about
 the interests of customers by finding communities of customers who’ve
 bought similar products.
 
-We’lll accomplish this by creating a bipartite graph of customers and
+We’ll accomplish this by creating a bipartite graph of customers and
 products, using a graph projection to create a graph of customers linked
 to other customers who’ve bought the same product, and using Louvain
 community detection to find the communities.
@@ -41,6 +41,9 @@ Let’s see what the data looks like.
     >>> RAW_DATA_CSV = './data.csv' # https://www.kaggle.com/carrie1/ecommerce-data
     >>> data_df = pd.read_csv(RAW_DATA_CSV, encoding="ISO-8859-1")
     >>> data_df.head()
+
+
+
 
 .. raw:: html
 
@@ -143,6 +146,9 @@ Let’s clean the data to make sure there aren’t any missing values.
     >>> data_df = data_df.astype({'CustomerID': int}, copy=False)
     >>> data_df.head()
 
+
+
+
 .. raw:: html
 
     <div>
@@ -244,6 +250,8 @@ negative quantity values).
     >>> data_df[data_df.Quantity < 1].head()
 
 
+
+
 .. raw:: html
 
     <div>
@@ -339,7 +347,7 @@ negative quantity values).
 
 Though customers may have returned these products, they did initially
 purchase the products (which reflects an interest in the product), so
-we’ll keep the intial purchases. However, we’ll remove the return
+we’ll keep the initial purchases. However, we’ll remove the return
 transactions (which will also remove any discount transactions as well).
 
 .. code:: python
@@ -442,10 +450,11 @@ transactions (which will also remove any discount transactions as well).
     <br/>
 
 
+
 Community Detection
 ===================
 
-Let’s now find the communities of customers with similar purchases and
+Let’s now find the communities of customers with similar purchases /
 interests.
 
 First, we’ll need to create a bipartite graph of customers and products.
@@ -459,16 +468,16 @@ customers linked to other customers who’ve bought the same product.
 
 .. code:: python
 
-    >>> similarity_graph = nx.projected_graph(bipartite_graph, data_df.CustomerID.unique())
+    >>> customer_similarity_graph = nx.projected_graph(bipartite_graph, data_df.CustomerID.unique())
 
-Now, we’ll need to use Louvain community detection to find customer
-similarity communities.
+Now, we’ll need to use Louvain community detection to find similar
+communities based on purchased products.
 
 .. code:: python
 
     >>> r = mg.resolver
-    >>> similarity_graph_wrapped = r.wrappers.EdgeMap.NetworkXEdgeMap(similarity_graph)
-    >>> labels, modularity_score = r.algos.clustering.louvain_community(similarity_graph_wrapped)
+    >>> customer_similarity_graph_wrapped = r.wrappers.EdgeMap.NetworkXEdgeMap(customer_similarity_graph)
+    >>> labels, modularity_score = r.algos.clustering.louvain_community(customer_similarity_graph_wrapped)
 
 Let’s now merge the labels into our dataframe.
 
@@ -513,122 +522,122 @@ Let’s now merge the labels into our dataframe.
       </thead>
       <tbody>
         <tr>
-          <th>314113</th>
-          <td>564562</td>
-          <td>22384</td>
-          <td>LUNCH BAG PINK POLKADOT</td>
-          <td>10</td>
-          <td>2011-08-26 09:58:00</td>
-          <td>1.65</td>
-          <td>15203</td>
-          <td>United Kingdom</td>
+          <th>366736</th>
+          <td>568791</td>
+          <td>22179</td>
+          <td>SET 10 NIGHT OWL LIGHTS</td>
           <td>2</td>
-        </tr>
-        <tr>
-          <th>79522</th>
-          <td>542996</td>
-          <td>22822</td>
-          <td>CREAM WALL PLANTER HEART SHAPED</td>
-          <td>16</td>
-          <td>2011-02-02 12:10:00</td>
-          <td>4.95</td>
-          <td>15046</td>
+          <td>2011-09-29 09:51:00</td>
+          <td>6.75</td>
+          <td>16650</td>
           <td>United Kingdom</td>
-          <td>0</td>
-        </tr>
-        <tr>
-          <th>412667</th>
-          <td>572295</td>
-          <td>23047</td>
-          <td>PAPER LANTERN 5 POINT SEQUIN STAR</td>
-          <td>1</td>
-          <td>2011-10-23 13:49:00</td>
-          <td>5.75</td>
-          <td>16686</td>
-          <td>United Kingdom</td>
-          <td>2</td>
-        </tr>
-        <tr>
-          <th>125657</th>
-          <td>547055</td>
-          <td>22090</td>
-          <td>PAPER BUNTING RETROSPOT</td>
           <td>3</td>
-          <td>2011-03-20 12:14:00</td>
-          <td>2.95</td>
-          <td>16444</td>
-          <td>United Kingdom</td>
-          <td>2</td>
         </tr>
         <tr>
-          <th>483611</th>
-          <td>577504</td>
-          <td>21990</td>
-          <td>MODERN FLORAL STATIONERY SET</td>
-          <td>2</td>
-          <td>2011-11-20 12:36:00</td>
+          <th>452094</th>
+          <td>575322</td>
+          <td>21889</td>
+          <td>WOODEN BOX OF DOMINOES</td>
+          <td>18</td>
+          <td>2011-11-09 13:36:00</td>
           <td>1.25</td>
-          <td>14159</td>
+          <td>14543</td>
           <td>United Kingdom</td>
-          <td>3</td>
-        </tr>
-        <tr>
-          <th>231787</th>
-          <td>557281</td>
-          <td>20760</td>
-          <td>GARDEN PATH POCKET BOOK</td>
           <td>2</td>
-          <td>2011-06-19 12:23:00</td>
-          <td>0.85</td>
-          <td>13632</td>
-          <td>United Kingdom</td>
-          <td>0</td>
         </tr>
         <tr>
-          <th>269930</th>
-          <td>560534</td>
-          <td>23245</td>
-          <td>SET OF 3 REGENCY CAKE TINS</td>
+          <th>99049</th>
+          <td>544692</td>
+          <td>84406B</td>
+          <td>CREAM CUPID HEARTS COAT HANGER</td>
           <td>4</td>
-          <td>2011-07-19 12:10:00</td>
-          <td>4.95</td>
-          <td>14911</td>
-          <td>EIRE</td>
+          <td>2011-02-23 09:14:00</td>
+          <td>4.15</td>
+          <td>17499</td>
+          <td>United Kingdom</td>
           <td>3</td>
         </tr>
         <tr>
-          <th>51728</th>
-          <td>540672</td>
-          <td>84631</td>
-          <td>FRUIT TREE AND BIRDS WALL PLAQUE</td>
-          <td>2</td>
-          <td>2011-01-10 15:51:00</td>
-          <td>7.95</td>
-          <td>15281</td>
+          <th>485779</th>
+          <td>577669</td>
+          <td>22762</td>
+          <td>CUPBOARD 3 DRAWER MA CAMPAGNE</td>
+          <td>1</td>
+          <td>2011-11-21 10:48:00</td>
+          <td>14.95</td>
+          <td>15567</td>
           <td>United Kingdom</td>
           <td>0</td>
         </tr>
         <tr>
-          <th>218142</th>
-          <td>556019</td>
-          <td>23171</td>
-          <td>REGENCY TEA PLATE GREEN</td>
+          <th>315010</th>
+          <td>564715</td>
+          <td>22030</td>
+          <td>SWALLOWS GREETING CARD</td>
           <td>12</td>
-          <td>2011-06-08 12:02:00</td>
-          <td>1.65</td>
-          <td>18092</td>
+          <td>2011-08-28 11:01:00</td>
+          <td>0.42</td>
+          <td>14472</td>
           <td>United Kingdom</td>
-          <td>1</td>
+          <td>0</td>
         </tr>
         <tr>
-          <th>387217</th>
-          <td>570272</td>
-          <td>22300</td>
-          <td>COFFEE MUG DOG + BALL DESIGN</td>
+          <th>230147</th>
+          <td>557123</td>
+          <td>22551</td>
+          <td>PLASTERS IN TIN SPACEBOY</td>
+          <td>4</td>
+          <td>2011-06-16 17:56:00</td>
+          <td>1.65</td>
+          <td>15555</td>
+          <td>United Kingdom</td>
+          <td>3</td>
+        </tr>
+        <tr>
+          <th>237143</th>
+          <td>557802</td>
+          <td>21677</td>
+          <td>HEARTS  STICKERS</td>
+          <td>12</td>
+          <td>2011-06-23 10:15:00</td>
+          <td>0.85</td>
+          <td>15130</td>
+          <td>United Kingdom</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>308387</th>
+          <td>563952</td>
+          <td>82494L</td>
+          <td>WOODEN FRAME ANTIQUE WHITE</td>
+          <td>8</td>
+          <td>2011-08-22 10:44:00</td>
+          <td>2.95</td>
+          <td>15572</td>
+          <td>United Kingdom</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>285501</th>
+          <td>561910</td>
+          <td>21843</td>
+          <td>RED RETROSPOT CAKE STAND</td>
           <td>6</td>
-          <td>2011-10-10 10:45:00</td>
-          <td>2.55</td>
-          <td>14297</td>
+          <td>2011-08-01 10:23:00</td>
+          <td>9.95</td>
+          <td>17053</td>
+          <td>United Kingdom</td>
+          <td>0</td>
+        </tr>
+        <tr>
+          <th>294263</th>
+          <td>562708</td>
+          <td>21621</td>
+          <td>VINTAGE UNION JACK BUNTING</td>
+          <td>3</td>
+          <td>2011-08-08 14:15:00</td>
+          <td>8.50</td>
+          <td>17085</td>
           <td>United Kingdom</td>
           <td>0</td>
         </tr>
@@ -640,4 +649,4 @@ Let’s now merge the labels into our dataframe.
 
 
 We now have clusters of customers who’ve bought similar products and can
-market based on those interests.
+market to these interests. 
