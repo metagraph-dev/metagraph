@@ -466,7 +466,7 @@ finally arriving at our desired format.
 
 While Metagraph will do the conversion automatically, understanding the
 steps involved helps users plan for expected computation time and memory
-usage. If needed, plugin developers can write a plugin to provide a
+usage. If needed, plugin developers can write a translator provide a
 direct translation path to save time.
 
 .. code:: python
