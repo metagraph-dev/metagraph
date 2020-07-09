@@ -8,7 +8,7 @@ interests and purchases of customers.
 
 Marketing teams frequently are interested in this analysis.
 
-We’ll show how using graph analytics can be used to gain insights about
+We’ll show how graph analytics can be used to gain insights about
 the interests of customers by finding communities of customers who’ve
 bought similar products.
 
