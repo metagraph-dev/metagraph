@@ -78,7 +78,7 @@ We'll now go over what happens in the above code.
 
 To make the plugin findable by Metagraph, we must make an entrypoint under the name "metagraph.plugins" for a plugin-finder function (in this example ``find_plugins``) that returns the plugins. For a more detailed explanation of how to use `entry points via setuptools <https://setuptools.readthedocs.io/en/latest/setuptools.html>`_, we recommend starting off with `this tutorial <https://amir.rachum.com/blog/2017/07/28/python-entry-points/>`_.
 
-A plugin-finder function takes no inputs and returns a dictionary describing all the plugins found. We’ll go over the specifics what this dictionary looks like later in this tutorial. For now, we'll show how to use a plugin registry to generate this dictionary. 
+A plugin-finder function takes no inputs and returns a dictionary describing all the plugins found. We’ll go over the specifics of what this dictionary looks like later in this tutorial. For now, we'll show how to use a plugin registry to generate this dictionary. 
 
 As shown in the ``registry.py`` example above, a plugin registry can import all the relevant plugins from given modules via the ``register_from_modules`` method (note how we registered ``my_module`` in ``find_plugins``). This method imports all the translators, concrete algorithms, etc. from the modules (which are often easily recognized via the use of the decorators shown in :ref:`Plugin Parts<plugin_parts>`).
 
@@ -118,14 +118,12 @@ Concrete types must be subclasses of ``metagraph.ConcreteType``.
 
 Wrappers must be subclasses of ``metagraph.Wrapper``.
 
-Using the above decorators and class along with a plugin registry is preferred when writing a plugin-finder function as it reduces complexity.
-
 Fine Details of Plugin Finder Functions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 We'll now go over the specifics of what the returned dictionary from a plugin-finder function looks like.
 
-In our toy ``my_plugin`` example, it might look like this:
+In the ``my_plugin`` example, it looks like this:
 
  .. code-block:: python
 
@@ -188,6 +186,4 @@ The values of a dictionary describing a plugin are sets of values corresponding 
 
 For small plugins, it's possible to explicitly create this dictionary returned by the plugin-finder function.
 
-For larger plugins, this is difficult to maintain. Thus, explicitly creating such dictionaries is highly discouraged.
-
-We highly encourage using a plugin registries for this reason.
+For larger plugins, this is difficult to maintain. Thus, explicitly creating such dictionaries is discouraged. A plugin registry should be used instead.

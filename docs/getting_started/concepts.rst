@@ -38,9 +38,9 @@ called.
 There is a cost to translating, but depending on the size of the graph, the cost of running
 the algorithm may overwhelm that translation cost. For example, converting a large graph from
 NetworkX into a SciPy sparse adjacency matrix allows using algorithms that are possibly more
-performant due to improved spatial locality. The cost of the move exists, but the whole operation
-of translation+computation might take less time than running the same algorithm on the CPU
-without translating.
+performant due to improved spatial locality. The cost of the translation exists, but the whole
+operation of translation+computation might take less time than running the same algorithm in 
+NetworkX without translating.
 
 
 Metagraph Architecture

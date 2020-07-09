@@ -31,8 +31,8 @@ Sometimes, the data object by itself does not contain enough information to be f
 by Metagraph. A wrapper is needed around the data object. This wrapper will still need a separate
 Type which describes it.
 
-To avoid requiring plugin authors to write a lot of boilerplate code, developers can use wrappers
-and provide a streamlined way to wrap data objects and auto-create types which point to the new wrapper.
+To avoid requiring plugin authors to write a lot of boilerplate code, developers can use wrappers which
+provide a streamlined way to wrap data objects and auto-create a corresponding Type.
 
 A wrapper must subclass ``Wrapper`` and indicate the abstract type it belongs to. It should have its own
 constructor and otherwise add methods and attributes as necessary to satisfy the concept of the abstract
