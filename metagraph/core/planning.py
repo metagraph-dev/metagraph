@@ -18,6 +18,27 @@ class MultiStepTranslator:
     def __iter__(self):
         return iter(self.translators)
 
+    def __repr__(self):
+        if self.src_type is None or not self.dst_types:
+            return f"{self.__class__.__name__}"
+        return f"{self.__class__.__name__}({self.src_type.__name__} -> {self.dst_types[-1].__name__})"
+
+    def __str__(self):
+        if len(self) == 0:
+            return "No translation required"
+
+        s = []
+        if len(self) > 1:
+            s.append("[Multi-step Translation]")
+            s.append(f"(start)  {self.src_type.__name__}")
+            for i, nxt_type in enumerate(self.dst_types[:-1]):
+                s.append(f"         {'  ' * i}  -> {nxt_type.__name__}")
+            s.append(f" (end)   {'  ' * (i + 1)}  -> {self.dst_types[-1].__name__}")
+        else:
+            s.append("[Direct Translation]")
+            s.append(f"{self.src_type.__name__} -> {self.dst_types[-1].__name__}")
+        return "\n".join(s)
+
     def add_before(self, translator, dst_type):
         self.translators.insert(0, translator)
         self.dst_types.insert(0, dst_type)
@@ -40,17 +61,7 @@ class MultiStepTranslator:
         return dst
 
     def display(self):
-        if len(self) == 0:
-            print("No translation required")
-        if len(self) > 1:
-            print("[Multi-step Translation]")
-            print(f"(start)  {self.src_type.__name__}")
-            for i, nxt_type in enumerate(self.dst_types[:-1]):
-                print(f"         {'  ' * i}  -> {nxt_type.__name__}")
-            print(f" (end)   {'  ' * (i + 1)}  -> {self.dst_types[-1].__name__}")
-        else:
-            print("[Direct Translation]")
-            print(f"{self.src_type.__name__} -> {self.dst_types[-1].__name__}")
+        print(self)
 
     @classmethod
     def find_translation(
@@ -137,7 +148,31 @@ class AlgorithmPlan:
         self.required_translations = required_translations
 
     def __repr__(self):
-        return f"AlgorithmPlan({self.algo.__name__}, {self.required_translations})"
+        return f"{self.__class__.__name__}({self.algo.__name__}, {self.required_translations})"
+
+    def __str__(self):
+        sig = self.algo.__signature__
+        s = [
+            f"{self.algo.__name__}",
+            f"{self.algo.__signature__}",
+            "=====================",
+            "Argument Translations",
+            "---------------------",
+        ]
+        for varname in sig.parameters:
+            if varname in self.required_translations:
+                s.append(f"** {varname} **  {self.required_translations[varname]}")
+            else:
+                s.append(f"** {varname} **")
+                anni = sig.parameters[varname].annotation
+                if type(anni) is Wrapper:
+                    s.append(f"{anni.__name__}")
+                elif type(anni) is type:
+                    s.append(f"{anni.__name__}")
+                else:
+                    s.append(f"{anni.__class__.__name__}")
+        s.append("---------------------")
+        return "\n".join(s)
 
     def __call__(self, *args, **kwargs):
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
@@ -154,26 +189,7 @@ class AlgorithmPlan:
         return self.algo(*bound_args.args, **bound_args.kwargs)
 
     def display(self):
-        sig = self.algo.__signature__
-        print(f"{self.algo.__name__}")
-        print(f"{self.algo.__signature__}")
-        print("=====================")
-        print("Argument Translations")
-        print("---------------------")
-        for varname in sig.parameters:
-            if varname in self.required_translations:
-                print(f"** {varname} **  ", end="")
-                self.required_translations[varname].display()
-            else:
-                print(f"** {varname} **")
-                anni = sig.parameters[varname].annotation
-                if type(anni) is Wrapper:
-                    print(f"{anni.__name__}")
-                elif type(anni) is type:
-                    print(f"{anni.__name__}")
-                else:
-                    print(f"{anni.__class__.__name__}")
-        print("---------------------")
+        print(self)
 
     @classmethod
     def build(
