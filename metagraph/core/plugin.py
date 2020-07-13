@@ -175,6 +175,20 @@ class ConcreteType:
             return self.abstract_instance[key]
         return self.props[key]
 
+    def __repr__(self):
+        if self.abstract_instance is None:
+            props_clean = {}
+        else:
+            props_clean = {
+                k: v
+                for k, v in self.abstract_instance.prop_val.items()
+                if v is not None
+            }
+        props_clean.update(
+            {k: v for k, v in self.allowed_props.items() if v is not None}
+        )
+        return f"{self.__class__.__name__}({props_clean})"
+
     @classmethod
     def is_typeclass_of(cls, obj):
         """Is obj described by this type class?"""
