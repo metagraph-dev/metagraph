@@ -33,7 +33,7 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
             assert len(v1) == len(v2), f"size mismatch: {len(v1)} != {len(v2)}"
             assert v1 == v2, f"node sets do not match"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            
+
     @property
     def num_nodes(self):
         return len(self.value)
