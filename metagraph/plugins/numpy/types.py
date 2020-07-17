@@ -57,7 +57,7 @@ class NumpyVector(Wrapper, abstract=Vector):
         d1 = obj1.value if obj1.mask is None else obj1.value[obj1.mask]
         d2 = obj2.value if obj2.mask is None else obj2.value[obj2.mask]
         assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
-        # Check for alignment of missing masks
+        # Check for alignment of masks
         if obj1.mask is not None:
             mask_alignment = obj1.mask == obj2.mask
             assert mask_alignment.all(), f"{mask_alignment}"
@@ -70,7 +70,7 @@ class NumpyVector(Wrapper, abstract=Vector):
 
 class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     """
-    NumpyNodeMap stores data using numpy arrays. A missing mask or
+    NumpyNodeMap stores data using numpy arrays. A mask of present values or
     a compact representation can be used.
     """
 
@@ -88,22 +88,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         Provide either mask or node_ids, not both.
         If there are not missing nodes, mask and node_ids are not required.
         """
-
-        # numpynodemap
-        # data = [10, 20, 30, 40]
-        # mask = None
-
-        # numpynodemap
-        # data = [10, 20, -1, 40]
-        # mask = [True, True, False, True]
-
-        # compactnumpynodemap
-        # data = [10, 20, 40]
-        # node_lookup = {0:0, 1:1, 3:2}
-
-        # helper function from scipy
-        # node_index = [0, 1, 3]
-
         self._assert_instance(data, np.ndarray)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
@@ -265,7 +249,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         # slow properties, only compute if asked
         for prop in props - ret.keys():
             if prop == "is_symmetric":
-                # TODO: make this dependent on the missing mask
+                # TODO: make this dependent on the mask
                 ret[prop] = ret["is_square"] and (obj.value.T == obj.value).all().all()
 
         return ret
@@ -291,7 +275,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         d1 = obj1.value if obj1.mask is None else obj1.value[obj1.mask]
         d2 = obj2.value if obj2.mask is None else obj2.value[obj2.mask]
         assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
-        # Check for alignment of missing masks
+        # Check for alignment of masks
         if obj1.mask is not None:
             mask_alignment = obj1.mask == obj2.mask
             assert mask_alignment.all().all(), f"{mask_alignment}"
