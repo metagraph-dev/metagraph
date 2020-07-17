@@ -5,4 +5,5 @@ from . import (
     traversal,
     util,
     vertex_ranking,
+    utility,
 )
