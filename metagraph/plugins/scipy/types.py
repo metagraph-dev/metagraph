@@ -36,9 +36,20 @@ if has_scipy:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
             assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             if issubclass(obj1.dtype.type, np.floating):
                 d1 = obj1.tocsr()
                 d2 = obj2.tocsr()
@@ -78,7 +89,16 @@ if has_scipy:
 
         @classmethod
         def assert_equal(
-            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=None,
+            abs_tol=None,
         ):
             m1, m2 = obj1.value, obj2.value
             assert (
@@ -88,7 +108,7 @@ if has_scipy:
             assert (
                 obj1.node_list == obj2.node_list
             ).all(), f"node list mismatch: {obj1.node_list} != {obj2.node_list}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             # Handle transposed states
             d1 = m1.T if obj1.transposed else m1
             d2 = m2.T if obj2.transposed else m2
@@ -100,28 +120,6 @@ if has_scipy:
             d1.sort_indices()
             d2.sort_indices()
             assert (d1.indices == d2.indices).all(), f"{d1.indices == d2.indices}"
-
-        def node_id_map_from_index_map(self, index_map: np.ndarray):
-            """
-            index_map is a numpy array whose indices match those of self.value
-            These indices do note necessarily match the node IDs
-            This method returns a NumpyNodeMap mapping node IDs to their values in index_map
-            """
-            from metagraph.plugins.numpy.types import NumpyNodeMap
-
-            assert len(index_map) == len(
-                self.node_list
-            ), f"size mismatch: {len(index_map)} != {len(self.node_list)}"
-            size = max(self.node_list) + 1
-            data = np.empty((size,), dtype=index_map.dtype)
-            data[self.node_list] = index_map
-            if size == len(index_map):
-                # Dense nodes; no need for missing mask
-                missing = None
-            else:
-                missing = np.ones_like(data, dtype=bool)
-                missing[self.node_list] = False
-            return NumpyNodeMap(data, missing_mask=missing)
 
     class ScipyEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         def __init__(
@@ -171,7 +169,18 @@ if has_scipy:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
             m1, m2 = obj1.value, obj2.value
             assert (
                 m1.shape[0] == m2.shape[0]
@@ -180,7 +189,7 @@ if has_scipy:
             assert (
                 obj1.node_list == obj2.node_list
             ).all(), f"node list mismatch: {obj1.node_list} != {obj2.node_list}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             # Handle transposed states
             d1 = m1.T if obj1.transposed else m1
             d2 = m2.T if obj2.transposed else m2
@@ -196,25 +205,3 @@ if has_scipy:
                 assert np.isclose(d1.data, d2.data, rtol=rel_tol, atol=abs_tol).all()
             else:
                 assert (d1.data == d2.data).all()
-
-        def node_id_map_from_index_map(self, index_map: np.ndarray):
-            """
-            index_map is a numpy array whose indices match those of self.value
-            These indices do note necessarily match the node IDs
-            This method returns a NumpyNodeMap mapping node IDs to their values in index_map
-            """
-            from metagraph.plugins.numpy.types import NumpyNodeMap
-
-            assert len(index_map) == len(
-                self.node_list
-            ), f"size mismatch: {len(index_map)} != {len(self.node_list)}"
-            size = max(self.node_list) + 1
-            data = np.empty((size,), dtype=index_map.dtype)
-            data[self.node_list] = index_map
-            if size == len(index_map):
-                # Dense nodes; no need for missing mask
-                missing = None
-            else:
-                missing = np.ones_like(data, dtype=bool)
-                missing[self.node_list] = False
-            return NumpyNodeMap(data, missing_mask=missing)

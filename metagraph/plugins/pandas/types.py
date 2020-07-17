@@ -14,7 +14,18 @@ if has_pandas:
         value_type = pd.DataFrame
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
             digits_precision = round(-math.log(rel_tol, 10))
             pd.testing.assert_frame_equal(
                 obj1, obj2, check_like=True, check_less_precise=digits_precision
@@ -41,9 +52,18 @@ if has_pandas:
 
         @classmethod
         def assert_equal(
-            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=None,
+            abs_tol=None,
         ):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             g1 = obj1.value
             g2 = obj2.value
             assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
@@ -126,8 +146,19 @@ if has_pandas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             g1 = obj1.value
             g2 = obj2.value
             assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"

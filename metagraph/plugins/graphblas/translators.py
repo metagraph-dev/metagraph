@@ -33,8 +33,8 @@ if has_grblas:
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
         idx = np.arange(len(x))
-        if x.missing_mask is not None:
-            idx = idx[~x.missing_mask]
+        if x.mask is not None:
+            idx = idx[x.mask]
         vals = x.value[idx]
         vec = grblas.Vector.from_values(
             idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.value.dtype]
@@ -43,12 +43,18 @@ if has_grblas:
 
     @translator
     def nodemap_from_numpy(x: NumpyNodeMap, **props) -> GrblasNodeMap:
-        idx = np.arange(len(x.value))
-        if x.missing_mask is not None:
-            idx = idx[~x.missing_mask]
-        vals = x.value[idx]
+        if x.mask is not None:
+            idx = np.flatnonzero(x.mask)
+            vals = x.value[idx]
+        elif x.id2pos is not None:
+            idx = x.pos2id
+            vals = x.value
+        else:
+            idx = np.arange(len(x.value))
+            vals = x.value
+        size = idx[-1] + 1
         vec = grblas.Vector.from_values(
-            idx, vals, size=len(x.value), dtype=dtype_mg_to_grblas[x.value.dtype]
+            idx, vals, size=size, dtype=dtype_mg_to_grblas[x.value.dtype]
         )
         return GrblasNodeMap(vec)
 

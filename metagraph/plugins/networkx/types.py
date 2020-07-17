@@ -14,9 +14,18 @@ if has_networkx:
 
         @classmethod
         def assert_equal(
-            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=None,
+            abs_tol=None,
         ):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             g1 = obj1.value
             g2 = obj2.value
             # Compare
@@ -91,8 +100,19 @@ if has_networkx:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             g1 = obj1.value
             g2 = obj2.value
             # Compare
