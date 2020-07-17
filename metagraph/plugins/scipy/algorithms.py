@@ -13,14 +13,14 @@ if has_scipy:
         _, node_labels = ss.csgraph.connected_components(
             graph.value, False, return_labels=True
         )
-        return graph.node_id_map_from_index_map(node_labels)
+        return NumpyNodeMap(node_labels, node_ids=graph.node_list)
 
     @concrete_algorithm("clustering.strongly_connected_components")
     def ss_strongly_connected_components(graph: ScipyEdgeSet) -> NumpyNodeMap:
         _, node_labels = ss.csgraph.connected_components(
             graph.value, True, connection="strong", return_labels=True
         )
-        return graph.node_id_map_from_index_map(node_labels)
+        return NumpyNodeMap(node_labels, node_ids=graph.node_list)
 
     @concrete_algorithm("traversal.all_shortest_paths")
     def ss_all_shortest_lengths(

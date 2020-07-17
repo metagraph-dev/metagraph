@@ -254,7 +254,7 @@ class ConcreteType:
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         raise NotImplementedError(
-            "Must override `_compute_concrete_properties` if type has abstract properties"
+            "Must override `_compute_concrete_properties` if type has concrete properties"
         )
 
     @classmethod
@@ -317,7 +317,18 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
         """
         Compare whether obj1 and obj2 are equal, raising an AssertionError if not equal.
         rel_tol and abs_tol should be used when comparing floating point numbers

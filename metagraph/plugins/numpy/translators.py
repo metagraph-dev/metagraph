@@ -1,56 +1,23 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
-from .types import NumpyMatrix, NumpyVector, NumpyNodeMap, CompactNumpyNodeMap
+from .types import NumpyMatrix, NumpyVector, NumpyNodeMap
 from ..python.types import PythonNodeMap, PythonNodeSet
 
 
 @translator
 def nodemap_to_pynodeset(x: NumpyNodeMap, **props) -> PythonNodeSet:
-    values = x.value
-    if x.missing_mask is not None:
-        values = values[~x.missing_mask]
-    return PythonNodeSet(set(values))
-
-
-@translator
-def compactnodemap_to_pynodeset(x: CompactNumpyNodeMap, **props) -> PythonNodeSet:
-    return PythonNodeSet(set(x.lookup))
-
-
-@translator
-def nodemap_from_compactnodemap(x: CompactNumpyNodeMap, **props) -> NumpyNodeMap:
-    size = max(x.lookup) + 1
-    data = np.empty((size,), dtype=x.value.dtype)
-    indexer = np.empty((len(x.lookup),), dtype=np.int32)
-    for node_id, pos in x.lookup.items():
-        indexer[pos] = node_id
-    data[indexer] = x.value
-
-    if size == len(x.value):
-        # Dense nodes; no need for missing mask
-        missing = None
+    if x.mask is not None:
+        nodes = set(np.flatnonzero(x.mask))
+    elif x.id2pos is not None:
+        nodes = set(x.id2pos)
     else:
-        missing = np.ones_like(data, dtype=bool)
-        missing[indexer] = False
-
-    return NumpyNodeMap(data, missing_mask=missing)
+        nodes = set(range(len(x.value)))
+    return PythonNodeSet(nodes)
 
 
 @translator
-def compactnodemap_from_nodemap(x: NumpyNodeMap, **props) -> CompactNumpyNodeMap:
-    if x.missing_mask is None:
-        data = x.value
-        lookup = {i: i for i in range(len(data))}
-    else:
-        data = x.value[~x.missing_mask]
-        indexes = np.arange(len(x.value))[~x.missing_mask]
-        lookup = {idx: pos for pos, idx in enumerate(indexes)}
-    return CompactNumpyNodeMap(data, lookup)
-
-
-@translator
-def compactnodes_from_python(x: PythonNodeMap, **props) -> CompactNumpyNodeMap:
+def nodemap_from_python(x: PythonNodeMap, **props) -> NumpyNodeMap:
     dtype = x._determine_dtype()
     np_dtype = dtype if dtype != "str" else "object"
     data = np.empty((len(x.value),), dtype=np_dtype)
@@ -59,7 +26,7 @@ def compactnodes_from_python(x: PythonNodeMap, **props) -> CompactNumpyNodeMap:
     for pos, node_id in enumerate(pyvals):
         data[pos] = pyvals[node_id]
         lookup[node_id] = pos
-    return CompactNumpyNodeMap(data, lookup)
+    return NumpyNodeMap(data, node_ids=lookup)
 
 
 if has_scipy:
@@ -74,7 +41,7 @@ if has_scipy:
         data = x.toarray()
         existing.data = np.ones_like(existing.data)
         existing_mask = existing.toarray()
-        return NumpyMatrix(data, missing_mask=~existing_mask)
+        return NumpyMatrix(data, mask=existing_mask)
 
 
 if has_grblas:
@@ -89,8 +56,8 @@ if has_grblas:
                 data[idx] = val
             return NumpyVector(data)
         else:
-            missing_mask = np.ones_like(data, dtype=bool)
+            existing_mask = np.zeros_like(data, dtype=bool)
             for idx, val in zip(inds, vals):
                 data[idx] = val
-                missing_mask[idx] = False
-            return NumpyVector(data, missing_mask=missing_mask)
+                existing_mask[idx] = True
+            return NumpyVector(data, mask=existing_mask)

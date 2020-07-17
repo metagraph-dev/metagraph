@@ -51,8 +51,19 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             if obj1.dtype.name in {"FP32", "FP64"}:
                 assert obj1.isclose(
                     obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
@@ -67,12 +78,21 @@ if has_grblas:
 
         @classmethod
         def assert_equal(
-            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=None,
+            abs_tol=None,
         ):
             v1, v2 = obj1.value, obj2.value
             assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
             assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             # Compare
             shape_match = obj1.value.ewise_mult(obj2.value, grblas.binary.pair).new()
             assert shape_match.nvals == v1.nvals, f"node ids do not match"
@@ -105,11 +125,22 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
             v1, v2 = obj1.value, obj2.value
             assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
             assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             # Compare
             if v1.dtype.name in {"FP32", "FP64"}:
                 assert obj1.value.isclose(obj2.value, rel_tol=rel_tol, abs_tol=abs_tol)
@@ -144,8 +175,19 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             if obj1.dtype.name in {"FP32", "FP64"}:
                 assert obj1.isclose(
                     obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
@@ -179,11 +221,22 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
             v1, v2 = obj1.value, obj2.value
             assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
             assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             # Handle transposed states
             d1 = v1.T if obj1.transposed else v1
             d2 = v2.T if obj2.transposed else v2
@@ -234,11 +287,22 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
             v1, v2 = obj1.value, obj2.value
             assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
             assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             # Handle transposed states
             d1 = v1.T if obj1.transposed else v1
             d2 = v2.T if obj2.transposed else v2
