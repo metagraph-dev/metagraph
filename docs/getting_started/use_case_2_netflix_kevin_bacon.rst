@@ -1,5 +1,5 @@
 Use Case 2: Kevin Bacon of Netflix 2019
-======================================
+=======================================
 
 Download this as a :download:`notebook </_downloads/notebooks/kevin_bacon.tar.gz>`.
 
