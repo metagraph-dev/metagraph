@@ -1,6 +1,7 @@
-from typing import Dict, Optional, Any, Iterable
+from typing import Dict, Optional, Any, Iterable, Union, Callable
 from .plugin import ConcreteType
-import collections
+from collections import abc
+import inspect
 import numpy as np
 import scipy.sparse as ss
 from metagraph import config, Wrapper, NodeID
@@ -242,19 +243,41 @@ class AlgorithmPlan:
 
             if not param_type.is_satisfied_by(arg_type):
                 return False
-        elif (
-            hasattr(param_type, "__origin__")
-            and param_type.__origin__ == collections.abc.Iterable
-        ):
-            if not isinstance(arg_value, collections.abc.Iterable):
+        elif getattr(param_type, "__origin__", None) == Union:
+            param_type_args = getattr(param_type, "__args__", ())
+            none_type = type(None)
+            param_type_is_optional = (
+                len(param_type_args) == 2 and none_type in param_type_args
+            )
+            if not param_type_is_optional:
+                raise TypeError(
+                    f"Union type declarations only allowed for optional arguments"
+                )
+            if arg_value == None:
+                return True
+            else:
+                non_default_type = (
+                    param_type_args[0]
+                    if none_type == param_type_args[1]
+                    else param_type_args[1]
+                )
+                return AlgorithmPlan._check_arg_type(
+                    resolver, arg_value, non_default_type
+                )
+        elif getattr(param_type, "__origin__", None) == abc.Callable:
+            if not callable(arg_value):
                 return False
-            if hasattr(arg_value, "__len__") and len(arg_value) == 0:
-                return True
-            if param_type.__args__ == Iterable.__args__:
-                return True
-            if param_type.__args__[0] == Any:
-                return True
-            return isinstance(arg_value[0], param_type.__args__[0])
+            arg_value_func_params_desired_types = param_type.__args__[:-1]
+            arg_value_func_params = inspect.signature(arg_value).parameters.values()
+            arg_value_func_params_actual_types = (
+                param.annotation for param in arg_value_func_params
+            )
+            for actual_type, desired_type in zip(
+                arg_value_func_params_actual_types, arg_value_func_params_desired_types
+            ):
+                if actual_type != inspect._empty:
+                    if not issubclass(actual_type, desired_type):
+                        return False
         else:
             if not isinstance(arg_value, param_type):
                 return False

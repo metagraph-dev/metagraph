@@ -1,8 +1,37 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
-from .types import NumpyMatrix, NumpyVector, NumpyNodeMap, CompactNumpyNodeMap
+from .types import (
+    NumpyMatrix,
+    NumpyVector,
+    NumpyNodeSet,
+    NumpyNodeMap,
+    CompactNumpyNodeMap,
+)
 from ..python.types import PythonNodeMap, PythonNodeSet
+
+
+@translator
+def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
+    values = x.value
+    if x.missing_mask is not None:
+        values = values[~x.missing_mask]
+    return NumpyNodeSet(values)
+
+
+@translator
+def compactnodemap_to_nodeset(x: CompactNumpyNodeMap, **props) -> NumpyNodeSet:
+    return NumpyNodeSet(x.value)
+
+
+@translator
+def nodeset_to_pynodeset(x: NumpyNodeSet, **props) -> PythonNodeSet:
+    return PythonNodeSet(set(x.value))
+
+
+@translator
+def pynodeset_to_nodeset(x: PythonNodeSet, **props) -> NumpyNodeSet:
+    return NumpyNodeSet(np.array(list(x.value)))
 
 
 @translator
@@ -15,7 +44,7 @@ def nodemap_to_pynodeset(x: NumpyNodeMap, **props) -> PythonNodeSet:
 
 @translator
 def compactnodemap_to_pynodeset(x: CompactNumpyNodeMap, **props) -> PythonNodeSet:
-    return PythonNodeSet(set(x.lookup))
+    return PythonNodeSet(set(x.value))
 
 
 @translator
