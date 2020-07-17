@@ -3,4 +3,5 @@ from . import (
     subgraph,
     traversal,
     vertex_ranking,
+    utility,
 )

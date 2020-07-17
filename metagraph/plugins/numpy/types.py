@@ -5,6 +5,29 @@ from metagraph.types import Vector, Matrix, NodeSet, NodeMap
 from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
+class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
+    def __init__(self, data):
+        """
+        data: set of node ids
+        """
+        self._assert_instance(data, np.ndarray)
+        self.value = data
+
+    @property
+    def num_nodes(self):
+        return len(self.value)
+
+    @classmethod
+    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None):
+        v1, v2 = obj1.value, obj2.value
+        assert len(v1) == len(v2), f"size mismatch: {len(v1)} != {len(v2)}"
+        assert (
+            len(np.setdiff1d(v1, v2, assume_unique=True)) == 0
+            and len(np.setdiff1d(v2, v1, assume_unique=True)) == 0
+        ), f"node sets do not match"
+        assert props1 == props2, f"property mismatch: {props1} != {props2}"
+
+
 class NumpyVector(Wrapper, abstract=Vector):
     def __init__(self, data, missing_mask=None):
         self._assert_instance(data, np.ndarray)

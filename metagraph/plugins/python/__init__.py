@@ -1,1 +1,1 @@
-from . import translators, types
+from . import algorithms, translators, types

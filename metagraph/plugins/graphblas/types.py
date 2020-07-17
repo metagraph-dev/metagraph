@@ -65,6 +65,10 @@ if has_grblas:
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
+        @property
+        def num_nodes(self):
+            return len(self.value)
+
         @classmethod
         def assert_equal(
             cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
