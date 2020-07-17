@@ -536,9 +536,16 @@ class Resolver:
             raise TypeError(
                 f"Cannot assert_equal with different types: {type(type1)} != {type(type2)}"
             )
-        props1 = type1.get_typeinfo(obj1).known_props
-        props2 = type2.get_typeinfo(obj2).known_props
-        type1.assert_equal(obj1, obj2, props1, props2, rel_tol=rel_tol, abs_tol=abs_tol)
+        type1.assert_equal(
+            obj1,
+            obj2,
+            type1.get_typeinfo(obj1).known_abstract_props,
+            type2.get_typeinfo(obj2).known_abstract_props,
+            type1.get_typeinfo(obj1).known_concrete_props,
+            type2.get_typeinfo(obj2).known_concrete_props,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
+        )
 
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""
