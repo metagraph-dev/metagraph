@@ -15,6 +15,10 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
         self._assert_instance(data, set)
         self.value = data
 
+    @property
+    def num_nodes(self):
+        return len(self.value)
+
     @classmethod
     def assert_equal(
         cls,
