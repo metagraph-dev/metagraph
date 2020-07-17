@@ -12,7 +12,7 @@ def test_numpy_2_scipy(default_plugin_resolver):
     dpr = default_plugin_resolver
     mat = np.array([[1, 2, 3], [3, 3, 9], [3, 0, 3]])
     missing_mask = mat == 3
-    x = NumpyMatrix(mat, missing_mask=missing_mask)
+    x = NumpyMatrix(mat, mask=~missing_mask)
     assert x.shape == (3, 3)
     # Convert numpy -> scipy.sparse
     intermediate = ss.coo_matrix(
