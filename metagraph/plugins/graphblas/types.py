@@ -76,7 +76,7 @@ if has_grblas:
         def __init__(self, data):
             self._assert_instance(data, grblas.Vector)
             self.value = data
-
+            
         class TypeMixin:
             @classmethod
             def assert_equal(
@@ -102,6 +102,11 @@ if has_grblas:
                     obj2.value, grblas.binary.pair
                 ).new()
                 assert shape_match.nvals == v1.nvals, f"node ids do not match"
+                
+        @property
+        def num_nodes(self):
+            return len(self.value)
+
 
     class GrblasNodeMap(NodeMapWrapper, abstract=NodeMap):
         def __init__(self, data):

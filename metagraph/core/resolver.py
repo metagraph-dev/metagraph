@@ -4,10 +4,19 @@ to concrete algorithms.
 """
 from functools import partial, reduce
 import inspect
-import collections
 import warnings
-from collections import defaultdict
-from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
+from collections import defaultdict, abc 
+from typing import (
+    List,
+    Tuple,
+    Set,
+    Dict,
+    DefaultDict,
+    Callable,
+    Optional,
+    Any,
+    Union
+)
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -317,7 +326,7 @@ class Resolver:
                 # Check if dst is unambiguous subcomponent of src
                 if dst_type.abstract not in src_type.abstract.unambiguous_subcomponents:
                     raise ValueError(
-                        f"Translator {tr.func.__name__} must convert between concrete types of same abstract type"
+                        f"Translator {tr.func.__name__} must convert between concrete types of same abstract type ({src_type.abstract} != {dst_type.abstract})"
                     )
             tree.translators[(src_type, dst_type)] = tr
 
@@ -421,13 +430,23 @@ class Resolver:
                         )
 
     def _check_abstract_type(self, abst_algo, obj, msg):
+        if getattr(obj, "__origin__", None) == Union:
+            obj_args = getattr(obj, "__args__", None)
+            none_type = type(None)
+            if len(obj_args) == 2 and none_type in obj_args:
+                obj = obj_args[0] if none_type == obj_args[1] else obj_args[1]
         if obj is Any or obj is NodeID:
             return obj, False
+        if getattr(obj, "__origin__", None) == abc.Callable:
+            return (
+                obj,
+                False,
+            )  # TODO something more robust as they still might pass in a non-func
         if type(obj) is type:
             if issubclass(obj, AbstractType):
                 return obj(), True
         elif hasattr(obj, "__origin__") and obj.__origin__ in {
-            collections.Callable,
+            abc.Callable,
             Union,
         }:
             return obj, False
@@ -461,7 +480,7 @@ class Resolver:
                 any_changed = True
             params_modified.append(p)
         # Normalize return type, which might be a tuple
-        if hasattr(ret, "__origin__") and ret.__origin__ == tuple:
+        if getattr(ret, "__origin__", None) == tuple:
             ret_modified = []
             for ret_sub in ret.__args__:
                 ret_sub, changed = self._check_abstract_type(

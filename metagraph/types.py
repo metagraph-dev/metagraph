@@ -42,7 +42,9 @@ class DataFrame(AbstractType):
 # Nodes
 #################################
 class NodeSet(AbstractType):
-    pass
+    @Wrapper.required_property
+    def num_nodes(self):
+        raise NotImplementedError()
 
 
 class NodeMap(AbstractType):
