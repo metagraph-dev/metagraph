@@ -107,7 +107,6 @@ if has_grblas:
         def num_nodes(self):
             return len(self.value)
 
-
     class GrblasNodeMap(NodeMapWrapper, abstract=NodeMap):
         def __init__(self, data):
             self._assert_instance(data, grblas.Vector)

@@ -5,7 +5,6 @@ to concrete algorithms.
 from functools import partial, reduce
 import inspect
 import warnings
-from collections import defaultdict, abc 
 from typing import (
     List,
     Tuple,
