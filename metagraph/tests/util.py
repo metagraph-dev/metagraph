@@ -83,26 +83,27 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
             return NotImplemented
         return self.value == other.value
 
-    @ConcreteType.classmethod
-    def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    class TypeMixin:
+        @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: List[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
 
-        value = obj.value
-        # only compute properties that were requested
-        ret = {}
-        for propname in props:
-            if propname == "positivity":
-                if value.startswith("-"):
-                    positivity = "any"
-                elif value == "0":
-                    positivity = ">=0"
-                else:
-                    positivity = ">0"
-                ret["positivity"] = positivity
-            elif propname == "divisible_by_two":
-                ret["divisible_by_two"] = int(value) % 2 == 0
-        return ret
+            value = obj.value
+            # only compute properties that were requested
+            ret = {}
+            for propname in props:
+                if propname == "positivity":
+                    if value.startswith("-"):
+                        positivity = "any"
+                    elif value == "0":
+                        positivity = ">=0"
+                    else:
+                        positivity = ">0"
+                    ret["positivity"] = positivity
+                elif propname == "divisible_by_two":
+                    ret["divisible_by_two"] = int(value) % 2 == 0
+            return ret
 
 
 class StrType(plugin.ConcreteType, abstract=MyAbstractType):

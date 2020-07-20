@@ -351,21 +351,6 @@ class ConcreteType:
         """
         raise NotImplementedError()
 
-    @staticmethod
-    def method(func):
-        func._is_type_method = True
-        return func
-
-    @staticmethod
-    def classmethod(func):
-        func._is_type_classmethod = True
-        return func
-
-    @staticmethod
-    def staticmethod(func):
-        func._is_type_staticmethod = True
-        return func
-
 
 class MetaWrapper(type):
     def __new__(mcls, name, bases, dict_, abstract=None, register=True):
@@ -408,10 +393,6 @@ class Wrapper(metaclass=MetaWrapper):
     The auto-created ConcreteType will be attached as `.Type` onto the wrapper class.
     """
 
-    # These class attributes will be passed on to the created ConcreteType
-    allowed_props = {}  # default is no props
-    target = "cpu"  # key may be used in future to guide dispatch
-
     def __init_subclass__(cls, *, abstract=None, register=True):
         if not register:
             cls._abstract = abstract
@@ -427,26 +408,18 @@ class Wrapper(metaclass=MetaWrapper):
                     f"Wrong abstract type for wrapper: {abstract}, expected {implied_abstract}"
                 )
 
+        # Use TypeMixin class to create a new ConcreteType class; store as `.Type`
+        if not hasattr(cls, "TypeMixin") or type(cls.TypeMixin) is not type:
+            raise TypeError(
+                f"class {cls.__name__} does not define required `TypeMixin` inner class"
+            )
         cls.Type = types.new_class(
-            f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
+            f"{cls.__name__}Type", (cls.TypeMixin, ConcreteType), {"abstract": abstract}
         )
         cls.Type.__module__ = cls.__module__
         cls.Type.__doc__ = cls.__doc__
-        # Copy objects and methods from wrapper to Type class
+        # Point new Type class at this wrapper
         cls.Type.value_type = cls
-        cls.Type.allowed_props = cls.allowed_props
-        cls.Type.target = cls.target
-        # Move all ConcreteType methods to the Type class
-        for name, val in tuple(cls.__dict__.items()):
-            if getattr(val, "_is_type_method", False):
-                setattr(cls.Type, name, val)
-                delattr(cls, name)
-            if getattr(val, "_is_type_classmethod", False):
-                setattr(cls.Type, name, classmethod(val))
-                delattr(cls, name)
-            if getattr(val, "_is_type_staticmethod", False):
-                setattr(cls.Type, name, staticmethod(val))
-                delattr(cls, name)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):
