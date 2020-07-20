@@ -76,7 +76,7 @@ if has_grblas:
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
@@ -109,7 +109,7 @@ if has_grblas:
         def num_nodes(self):
             return self.value.nvals
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -124,7 +124,7 @@ if has_grblas:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
@@ -207,7 +207,7 @@ if has_grblas:
         def show(self):
             return self.value.show()
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -220,7 +220,7 @@ if has_grblas:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
@@ -256,7 +256,7 @@ if has_grblas:
         def show(self):
             return self.value.show()
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -286,7 +286,7 @@ if has_grblas:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,

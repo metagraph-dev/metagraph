@@ -50,7 +50,7 @@ if has_pandas:
             src_nodes, dst_nodes = self.index.levels
             return len(src_nodes | dst_nodes)
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
@@ -115,7 +115,7 @@ if has_pandas:
             src_nodes, dst_nodes = self.index.levels
             return len(src_nodes | dst_nodes)
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -145,7 +145,7 @@ if has_pandas:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,

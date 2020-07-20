@@ -74,7 +74,7 @@ if has_scipy:
                 node_list = np.array(node_list)
             self.node_list = node_list
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -87,7 +87,7 @@ if has_scipy:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
@@ -140,7 +140,7 @@ if has_scipy:
         def format(self):
             return self.value.format
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -168,7 +168,7 @@ if has_scipy:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,

@@ -1,5 +1,6 @@
 from typing import List, Dict, Any
 import math
+from metagraph import ConcreteType
 from metagraph.types import NodeSet, NodeMap
 from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
@@ -15,7 +16,7 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
         self._assert_instance(data, set)
         self.value = data
 
-    @classmethod
+    @ConcreteType.classmethod
     def assert_equal(
         cls,
         obj1,
@@ -57,7 +58,7 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
             if type_ in types:
                 return str(type_.__name__)
 
-    @classmethod
+    @ConcreteType.classmethod
     def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -70,7 +71,7 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
 
         return ret
 
-    @classmethod
+    @ConcreteType.classmethod
     def assert_equal(
         cls,
         obj1,

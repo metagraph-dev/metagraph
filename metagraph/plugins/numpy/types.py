@@ -1,6 +1,6 @@
 from typing import List, Dict, Any
 import numpy as np
-from metagraph import dtypes, Wrapper
+from metagraph import dtypes, Wrapper, ConcreteType
 from metagraph.types import Vector, Matrix, NodeSet, NodeMap
 from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
@@ -21,7 +21,7 @@ class NumpyVector(Wrapper, abstract=Vector):
     def __len__(self):
         return len(self.value)
 
-    @classmethod
+    @ConcreteType.classmethod
     def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -36,7 +36,7 @@ class NumpyVector(Wrapper, abstract=Vector):
 
         return ret
 
-    @classmethod
+    @ConcreteType.classmethod
     def assert_equal(
         cls,
         obj1,
@@ -142,7 +142,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         # This covers the sequential and compact cases
         return len(self.value)
 
-    @classmethod
+    @ConcreteType.classmethod
     def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -155,13 +155,13 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
 
         return ret
 
-    @classmethod
+    @ConcreteType.classmethod
     def _compute_concrete_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         return {"is_compact": obj.id2pos is not None}
 
-    @classmethod
+    @ConcreteType.classmethod
     def assert_equal(
         cls,
         obj1,
@@ -231,7 +231,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     def shape(self):
         return self.value.shape
 
-    @classmethod
+    @ConcreteType.classmethod
     def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
@@ -254,7 +254,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
 
         return ret
 
-    @classmethod
+    @ConcreteType.classmethod
     def assert_equal(
         cls,
         obj1,
