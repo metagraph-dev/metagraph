@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any, Iterable, Union, Callable
+from typing import Dict, Optional, Any, Union, Callable
 from .plugin import ConcreteType
 from collections import abc
 import inspect
