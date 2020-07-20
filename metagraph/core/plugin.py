@@ -117,6 +117,21 @@ class ConcreteType:
         # Property caches live with each ConcreteType, allowing them to be easily accessible
         # separate from the Resolver
         cls._typecache = TypeCache()
+        # Ensure ConcreteType.method decorators are used in ConcreteType class
+        # They are intended only to be used in a Wrapper class
+        for name, val in cls.__dict__.items():
+            if getattr(val, "_is_type_method", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.method` should only be used in a Wrapper class"
+                )
+            elif getattr(val, "_is_type_classmethod", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.classmethod` should only be used in a Wrapper class"
+                )
+            elif getattr(val, "_is_type_staticmethod", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.staticmethod` should only be used in a Wrapper class"
+                )
 
     @classmethod
     def get_typeinfo(cls, value):
@@ -336,6 +351,21 @@ class ConcreteType:
         """
         raise NotImplementedError()
 
+    @staticmethod
+    def method(func):
+        func._is_type_method = True
+        return func
+
+    @staticmethod
+    def classmethod(func):
+        func._is_type_classmethod = True
+        return func
+
+    @staticmethod
+    def staticmethod(func):
+        func._is_type_staticmethod = True
+        return func
+
 
 class MetaWrapper(type):
     def __new__(mcls, name, bases, dict_, abstract=None, register=True):
@@ -406,27 +436,17 @@ class Wrapper(metaclass=MetaWrapper):
         cls.Type.value_type = cls
         cls.Type.allowed_props = cls.allowed_props
         cls.Type.target = cls.target
-        for funcname in ["is_satisfied_by", "is_satisfied_by_value"]:
-            if hasattr(cls, funcname):
-                func = getattr(cls, funcname)
-                setattr(cls.Type, funcname, func)
-                delattr(cls, funcname)
-        for methodname in [
-            "is_typeclass_of",
-            "_compute_abstract_properties",
-            "_compute_concrete_properties",
-            "get_type",
-            "assert_equal",
-        ]:
-            if hasattr(cls, methodname):
-                func = getattr(cls, methodname).__func__
-                setattr(cls.Type, methodname, classmethod(func))
-                delattr(cls, methodname)
-        for sfuncname in []:
-            if hasattr(cls, sfuncname):
-                func = getattr(cls, sfuncname)
-                setattr(cls.Type, sfuncname, staticmethod(func))
-                delattr(cls, sfuncname)
+        # Move all ConcreteType methods to the Type class
+        for name, val in tuple(cls.__dict__.items()):
+            if getattr(val, "_is_type_method", False):
+                setattr(cls.Type, name, val)
+                delattr(cls, name)
+            if getattr(val, "_is_type_classmethod", False):
+                setattr(cls.Type, name, classmethod(val))
+                delattr(cls, name)
+            if getattr(val, "_is_type_staticmethod", False):
+                setattr(cls.Type, name, staticmethod(val))
+                delattr(cls, name)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):

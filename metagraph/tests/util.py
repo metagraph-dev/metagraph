@@ -5,6 +5,7 @@ import math
 from typing import List, Dict, Any
 from collections import OrderedDict
 
+from metagraph import ConcreteType
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
 
@@ -82,7 +83,7 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
             return NotImplemented
         return self.value == other.value
 
-    @classmethod
+    @ConcreteType.classmethod
     def _compute_abstract_properties(
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:

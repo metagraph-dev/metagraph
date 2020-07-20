@@ -1,4 +1,5 @@
 from typing import List, Dict, Any
+from metagraph import ConcreteType
 from metagraph.types import EdgeSet, EdgeMap
 from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper
 from metagraph.plugins import has_networkx
@@ -12,7 +13,7 @@ if has_networkx:
         def __init__(self, nx_graph):
             self.value = nx_graph
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
@@ -36,7 +37,7 @@ if has_networkx:
                 g1.edges() == g2.edges()
             ), f"edge mismatch: {g1.edges()} != {g2.edges()}"
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -65,7 +66,7 @@ if has_networkx:
                 if type_ in all_types:
                     return str(type_.__name__)
 
-        @classmethod
+        @ConcreteType.classmethod
         def _compute_abstract_properties(
             cls, obj, props: List[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
@@ -99,7 +100,7 @@ if has_networkx:
 
             return ret
 
-        @classmethod
+        @ConcreteType.classmethod
         def assert_equal(
             cls,
             obj1,
