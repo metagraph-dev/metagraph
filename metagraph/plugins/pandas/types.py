@@ -50,26 +50,27 @@ if has_pandas:
             src_nodes, dst_nodes = self.index.levels
             return len(src_nodes | dst_nodes)
 
-        @ConcreteType.classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=None,
-            abs_tol=None,
-        ):
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            g1 = obj1.value
-            g2 = obj2.value
-            assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
-            assert len(obj1.index & obj2.index) == len(
-                obj1.index
-            ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
+        class TypeMixin:
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=None,
+                abs_tol=None,
+            ):
+                assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+                g1 = obj1.value
+                g2 = obj2.value
+                assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
+                assert len(obj1.index & obj2.index) == len(
+                    obj1.index
+                ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
 
     class PandasEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         """
@@ -115,63 +116,68 @@ if has_pandas:
             src_nodes, dst_nodes = self.index.levels
             return len(src_nodes | dst_nodes)
 
-        @ConcreteType.classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
+        class TypeMixin:
+            @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: List[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ret = known_props.copy()
 
-            # fast properties
-            for prop in {"is_directed", "dtype"} - ret.keys():
-                if prop == "is_directed":
-                    ret[prop] = obj.is_directed
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[
-                        obj.value[obj.weight_label].dtype
-                    ]
+                # fast properties
+                for prop in {"is_directed", "dtype"} - ret.keys():
+                    if prop == "is_directed":
+                        ret[prop] = obj.is_directed
+                    if prop == "dtype":
+                        ret[prop] = dtypes.dtypes_simplified[
+                            obj.value[obj.weight_label].dtype
+                        ]
 
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "has_negative_weights":
-                    if ret["dtype"] in {"bool", "str"}:
-                        neg_weights = None
-                    else:
-                        min_val = obj.value[obj.weight_label].min()
-                        if min_val < 0:
-                            neg_weights = True
+                # slow properties, only compute if asked
+                for prop in props - ret.keys():
+                    if prop == "has_negative_weights":
+                        if ret["dtype"] in {"bool", "str"}:
+                            neg_weights = None
                         else:
-                            neg_weights = False
-                    ret[prop] = neg_weights
+                            min_val = obj.value[obj.weight_label].min()
+                            if min_val < 0:
+                                neg_weights = True
+                            else:
+                                neg_weights = False
+                        ret[prop] = neg_weights
 
-            return ret
+                return ret
 
-        @ConcreteType.classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=1e-9,
-            abs_tol=0.0,
-        ):
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            g1 = obj1.value
-            g2 = obj2.value
-            assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
-            assert len(obj1.index & obj2.index) == len(
-                obj1.index
-            ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
-            # Ensure dataframes are indexed the same
-            if not (obj1.index == obj2.index).all():
-                g2 = g2.set_index(obj2.index).reindex(obj1.index).reset_index(drop=True)
-            # Compare
-            v1 = g1[obj1.weight_label]
-            v2 = g2[obj2.weight_label]
-            if issubclass(v1.dtype.type, np.floating):
-                assert np.isclose(v1, v2, rtol=rel_tol, atol=abs_tol).all()
-            else:
-                assert (v1 == v2).all()
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=1e-9,
+                abs_tol=0.0,
+            ):
+                assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+                g1 = obj1.value
+                g2 = obj2.value
+                assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
+                assert len(obj1.index & obj2.index) == len(
+                    obj1.index
+                ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
+                # Ensure dataframes are indexed the same
+                if not (obj1.index == obj2.index).all():
+                    g2 = (
+                        g2.set_index(obj2.index)
+                        .reindex(obj1.index)
+                        .reset_index(drop=True)
+                    )
+                # Compare
+                v1 = g1[obj1.weight_label]
+                v2 = g2[obj2.weight_label]
+                if issubclass(v1.dtype.type, np.floating):
+                    assert np.isclose(v1, v2, rtol=rel_tol, atol=abs_tol).all()
+                else:
+                    assert (v1 == v2).all()
