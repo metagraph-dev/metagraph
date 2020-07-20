@@ -7,15 +7,13 @@ from ..python.types import PythonNodeMap, PythonNodeSet
 
 @translator
 def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
-    values = x.value
-    if x.missing_mask is not None:
-        values = values[~x.missing_mask]
-    return NumpyNodeSet(values)
-
-
-@translator
-def compactnodemap_to_nodeset(x: CompactNumpyNodeMap, **props) -> NumpyNodeSet:
-    return NumpyNodeSet(x.value)
+    if x.mask is not None:
+        node_set = NumpyNodeSet(np.flatnonzero(x.mask))
+    elif x.pos2id is not None:
+        node_set = NumpyNodeSet(x.pos2id)
+    else:
+        node_set = NumpyNodeSet(np.arange(len(x.value)))
+    return node_set
 
 
 @translator
@@ -25,7 +23,7 @@ def nodeset_to_pynodeset(x: NumpyNodeSet, **props) -> PythonNodeSet:
 
 @translator
 def pynodeset_to_nodeset(x: PythonNodeSet, **props) -> NumpyNodeSet:
-    return NumpyNodeSet(np.array(list(x.value)))
+    return NumpyNodeSet(np.array(sorted(x.value)))
 
 
 @translator
