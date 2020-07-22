@@ -632,7 +632,7 @@ def test_plugin_specific_concrete_algorithms():
     assert r.algos.cluster.triangle_count.core_networkx(graph) == 5
 
 
-def test_duplciate_plugin():
+def test_duplicate_plugin():
     class AbstractType1(AbstractType):
         pass
 
@@ -729,6 +729,18 @@ def test_invalid_plugin_names():
         res.register({invalid_plugin_name: {"abstract_types": {Abstract1}}})
 
 
+def test_wrapper_mixing_required():
+    class Abstract1(AbstractType):
+        pass
+
+    with pytest.raises(
+        TypeError, match="does not define required `TypeMixin` inner class"
+    ):
+
+        class Wrapper1(Wrapper, abstract=Abstract1):
+            pass
+
+
 def test_wrapper_insufficient_properties():
     class TestNodes(AbstractType):
         @Wrapper.required_method
@@ -745,11 +757,17 @@ def test_wrapper_insufficient_properties():
             def num_nodes(self):
                 return "dummy"
 
+            class TypeMixin:
+                pass
+
     with pytest.raises(TypeError, match="is missing required wrapper property"):
 
         class Wrapper1(Wrapper, abstract=TestNodes):
             def __getitem__(self, label):
                 return "dummy"
+
+            class TypeMixin:
+                pass
 
     with pytest.raises(TypeError, match="must be a property, not"):
 
@@ -758,6 +776,9 @@ def test_wrapper_insufficient_properties():
 
             def __getitem__(self, label):
                 return "dummy"
+
+            class TypeMixin:
+                pass
 
 
 def test_algorithm_versions():

@@ -117,6 +117,21 @@ class ConcreteType:
         # Property caches live with each ConcreteType, allowing them to be easily accessible
         # separate from the Resolver
         cls._typecache = TypeCache()
+        # Ensure ConcreteType.method decorators are used in ConcreteType class
+        # They are intended only to be used in a Wrapper class
+        for name, val in cls.__dict__.items():
+            if getattr(val, "_is_type_method", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.method` should only be used in a Wrapper class"
+                )
+            elif getattr(val, "_is_type_classmethod", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.classmethod` should only be used in a Wrapper class"
+                )
+            elif getattr(val, "_is_type_staticmethod", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.staticmethod` should only be used in a Wrapper class"
+                )
 
     @classmethod
     def get_typeinfo(cls, value):
@@ -378,10 +393,6 @@ class Wrapper(metaclass=MetaWrapper):
     The auto-created ConcreteType will be attached as `.Type` onto the wrapper class.
     """
 
-    # These class attributes will be passed on to the created ConcreteType
-    allowed_props = {}  # default is no props
-    target = "cpu"  # key may be used in future to guide dispatch
-
     def __init_subclass__(cls, *, abstract=None, register=True):
         if not register:
             cls._abstract = abstract
@@ -397,36 +408,18 @@ class Wrapper(metaclass=MetaWrapper):
                     f"Wrong abstract type for wrapper: {abstract}, expected {implied_abstract}"
                 )
 
+        # Use TypeMixin class to create a new ConcreteType class; store as `.Type`
+        if not hasattr(cls, "TypeMixin") or type(cls.TypeMixin) is not type:
+            raise TypeError(
+                f"class {cls.__name__} does not define required `TypeMixin` inner class"
+            )
         cls.Type = types.new_class(
-            f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
+            f"{cls.__name__}Type", (cls.TypeMixin, ConcreteType), {"abstract": abstract}
         )
         cls.Type.__module__ = cls.__module__
         cls.Type.__doc__ = cls.__doc__
-        # Copy objects and methods from wrapper to Type class
+        # Point new Type class at this wrapper
         cls.Type.value_type = cls
-        cls.Type.allowed_props = cls.allowed_props
-        cls.Type.target = cls.target
-        for funcname in ["is_satisfied_by", "is_satisfied_by_value"]:
-            if hasattr(cls, funcname):
-                func = getattr(cls, funcname)
-                setattr(cls.Type, funcname, func)
-                delattr(cls, funcname)
-        for methodname in [
-            "is_typeclass_of",
-            "_compute_abstract_properties",
-            "_compute_concrete_properties",
-            "get_type",
-            "assert_equal",
-        ]:
-            if hasattr(cls, methodname):
-                func = getattr(cls, methodname).__func__
-                setattr(cls.Type, methodname, classmethod(func))
-                delattr(cls, methodname)
-        for sfuncname in []:
-            if hasattr(cls, sfuncname):
-                func = getattr(cls, sfuncname)
-                setattr(cls.Type, sfuncname, staticmethod(func))
-                delattr(cls, sfuncname)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):
