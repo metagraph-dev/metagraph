@@ -39,7 +39,7 @@ def test_katz_centrality(default_plugin_resolver):
         5: 0.4068740216338262,
     }
     expected_val = dpr.wrappers.NodeMap.PythonNodeMap(data)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(networkx_graph)
+    graph = dpr.wrappers.Graph.NetworkXGraph(networkx_graph)
     MultiVerify(
         dpr, "link_analysis.katz_centrality", graph, tolerance=1e-7
     ).assert_equals(expected_val, rel_tol=1e-5)

@@ -1,5 +1,5 @@
 import numpy as np
-from typing import List, Dict, Any
+from typing import Set, Dict, Any
 from metagraph import ConcreteType, dtypes
 from metagraph.types import DataFrame, EdgeSet, EdgeMap
 from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper
@@ -119,7 +119,7 @@ if has_pandas:
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
-                cls, obj, props: List[str], known_props: Dict[str, Any]
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
             ) -> Dict[str, Any]:
                 ret = known_props.copy()
 
@@ -142,7 +142,11 @@ if has_pandas:
                             if min_val < 0:
                                 neg_weights = True
                             else:
-                                neg_weights = False
+                                min_val = obj.value[obj.weight_label].min()
+                                if min_val < 0:
+                                    neg_weights = True
+                                else:
+                                    neg_weights = False
                         ret[prop] = neg_weights
 
                 return ret

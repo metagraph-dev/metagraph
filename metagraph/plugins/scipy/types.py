@@ -1,7 +1,7 @@
-from typing import List, Dict, Any
+from typing import Set, Dict, Any
 from metagraph import ConcreteType, dtypes
-from metagraph.types import Matrix, EdgeSet, EdgeMap
-from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper
+from metagraph.types import Matrix, EdgeSet, EdgeMap, Graph
+from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper, CompositeGraphWrapper
 from metagraph.plugins import has_scipy
 import numpy as np
 
@@ -14,7 +14,7 @@ if has_scipy:
 
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -77,7 +77,7 @@ if has_scipy:
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
-                cls, obj, props: List[str], known_props: Dict[str, Any]
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
             ) -> Dict[str, Any]:
                 ret = known_props.copy()
 
@@ -144,7 +144,7 @@ if has_scipy:
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
-                cls, obj, props: List[str], known_props: Dict[str, Any]
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
             ) -> Dict[str, Any]:
                 ret = known_props.copy()
 
@@ -209,3 +209,19 @@ if has_scipy:
                     ).all()
                 else:
                     assert (d1.data == d2.data).all()
+
+    class ScipyGraph(CompositeGraphWrapper, abstract=Graph):
+        def __init__(self, edges, nodes=None):
+            # Import here to avoid circular import
+            from ..python.types import PythonNodeSet
+            from ..numpy.types import NumpyNodeMap
+
+            # Auto convert simple matrix to EdgeMap
+            # Anything more complicated requires explicit creation of the EdgeMap or EdgeSet
+            if isinstance(edges, ss.spmatrix):
+                edges = ScipyEdgeMap(edges)
+
+            super().__init__(edges, nodes)
+            self._assert_instance(edges, (ScipyEdgeSet, ScipyEdgeMap))
+            if nodes is not None:
+                self._assert_instance(nodes, (PythonNodeSet, NumpyNodeMap))

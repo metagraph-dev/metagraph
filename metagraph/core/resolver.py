@@ -4,6 +4,7 @@ to concrete algorithms.
 """
 from functools import partial, reduce
 import inspect
+import collections
 import warnings
 from collections import defaultdict
 from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
@@ -316,7 +317,7 @@ class Resolver:
                 # Check if dst is unambiguous subcomponent of src
                 if dst_type.abstract not in src_type.abstract.unambiguous_subcomponents:
                     raise ValueError(
-                        f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
+                        f"Translator {tr.func.__name__} must convert between concrete types of same abstract type"
                     )
             tree.translators[(src_type, dst_type)] = tr
 
@@ -425,6 +426,11 @@ class Resolver:
         if type(obj) is type:
             if issubclass(obj, AbstractType):
                 return obj(), True
+        elif hasattr(obj, "__origin__") and obj.__origin__ in {
+            collections.Callable,
+            Union,
+        }:
+            return obj, False
         elif not isinstance(obj, AbstractType):
             wrong_type_str = f"an instance of type {type(obj)}"
             # Improve messaging for typing module objects
@@ -506,7 +512,7 @@ class Resolver:
         conc_params = list(conc_sig.parameters.values())
         if len(abst_params) != len(conc_params):
             raise TypeError(
-                f"number of parameters does not match between {abstract.func.__qualname__} and {concrete.func.__qualname__}"
+                f"number of parameters does not match between {abstract.name} and {concrete.func.__qualname__}"
             )
         for abst_param, conc_param in zip(abst_params, conc_params):
             # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
@@ -530,7 +536,9 @@ class Resolver:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
                     )
+                # TODO: handle Callable
             else:
+                # TODO: handle Union
                 if not issubclass(conc_type.abstract, abst_type.__class__):
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
