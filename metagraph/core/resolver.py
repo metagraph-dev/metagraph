@@ -351,11 +351,17 @@ class Resolver:
                     )
                 if ca.version not in self.abstract_algorithm_versions[ca.abstract_name]:
                     action = config["core.algorithm.unknown_concrete_version"]
+                    abstract_versions = ", ".join(
+                        map(
+                            str,
+                            sorted(self.abstract_algorithm_versions[ca.abstract_name]),
+                        )
+                    )
                     message = (
                         f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements "
                         f"an unknown version of abstract algorithm {ca.abstract_name}.\n\n"
-                        f"The concrete version is {ca.version}.\n"
-                        f"The latest abstract version is {abstract.version}."
+                        f"The concrete version: {ca.version}.\n"
+                        f"Abstract versions: {abstract_versions}"
                     )
                     if action is None or action == "ignore":
                         pass
