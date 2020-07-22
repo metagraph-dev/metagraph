@@ -11,7 +11,7 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
    getting_started/index
    user_guide/index
    plugin_author_guide/index
-   core_developer_guide/index
+   contributor_guide/index
    community_resources/index
 
 .. raw:: html
@@ -107,12 +107,12 @@ Metagraph is licensed under the `Apache 2.0 license <https://www.apache.org/lice
                     </svg>
                   </div>
                   <div class="card-body flex-fill">
-                      <h5 class="card-title">Core Developer Guide</h5>
+                      <h5 class="card-title">Contributor Guide</h5>
                       <p class="card-text">Details about the inner workings of Metagraph and all the pieces that make it tick.</p>
 
 .. container:: custom-button
 
-    :ref:`Go to Developer Guide<core_developer_guide>`
+    :ref:`Go to Contributor Guide<contributor_guide>`
 
 .. raw:: html
 

@@ -10,7 +10,13 @@ from metagraph import (
     concrete_algorithm,
 )
 from metagraph.core.plugin_registry import PluginRegistry
-from metagraph.core.resolver import Resolver, Namespace, Dispatcher, NamespaceError
+from metagraph.core.resolver import (
+    Resolver,
+    Namespace,
+    Dispatcher,
+    NamespaceError,
+    AlgorithmWarning,
+)
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
 from typing import Tuple, List, Any
@@ -775,3 +781,110 @@ def test_wrapper_insufficient_properties():
 
             class TypeMixin:
                 pass
+
+
+def test_algorithm_versions():
+    @abstract_algorithm("test_algorithm_versions.test_abstract_algo")
+    def abstract_algo1(input_int: int):
+        pass
+
+    @abstract_algorithm("test_algorithm_versions.test_abstract_algo", version=1)
+    def abstract_algo2(input_int: int):
+        pass
+
+    @concrete_algorithm("test_algorithm_versions.test_abstract_algo")
+    def concrete_algo1(input_int: int):
+        pass
+
+    @concrete_algorithm("test_algorithm_versions.test_abstract_algo", version=1)
+    def concrete_algo2(input_int: int):
+        pass
+
+    # Sanity check
+    res = Resolver()
+    res.register(
+        {
+            "test_algorithm_versions1": {
+                "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                "concrete_algorithms": {concrete_algo1, concrete_algo2},
+            }
+        }
+    )
+    assert (
+        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1.__name__
+        == "concrete_algo2"
+    )
+
+    # Unknown concrete, raise
+    with pytest.raises(ValueError, match="implements an unknown version"):
+        with config.set({"core.algorithm.unknown_concrete_version": "raise"}):
+            res = Resolver()
+            res.register(
+                {
+                    "test_algorithm_versions1": {
+                        "abstract_algorithms": {abstract_algo1},
+                        "concrete_algorithms": {concrete_algo1, concrete_algo2},
+                    }
+                }
+            )
+
+    # Unknown concrete, use version 0
+    with config.set({"core.algorithm.unknown_concrete_version": "ignore"}):
+        res = Resolver()
+        res.register(
+            {
+                "test_algorithm_versions1": {
+                    "abstract_algorithms": {abstract_algo1},
+                    "concrete_algorithms": {concrete_algo1, concrete_algo2},
+                }
+            }
+        )
+    assert (
+        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1.__name__
+        == "concrete_algo1"
+    )
+
+    # Outdated concrete, raise
+    with pytest.raises(
+        ValueError, match="implements an outdated version of abstract algorithm"
+    ):
+        with config.set({"core.algorithms.outdated_concrete_version": "raise"}):
+            res = Resolver()
+            res.register(
+                {
+                    "test_algorithm_versions1": {
+                        "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                        "concrete_algorithms": {concrete_algo1},
+                    }
+                }
+            )
+
+    # Outdated concrete, ignore b/c/ not the latest
+    with config.set({"core.algorithms.outdated_concrete_version": None}):
+        res = Resolver()
+        res.register(
+            {
+                "test_algorithm_versions1": {
+                    "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                    "concrete_algorithms": {concrete_algo1},
+                }
+            }
+        )
+    assert not hasattr(
+        res.algos.test_algorithm_versions.test_abstract_algo, "test_algorithm_versions1"
+    )
+
+    # Outdated concrete, warn
+    with pytest.warns(
+        AlgorithmWarning, match="implements an outdated version of abstract algorithm"
+    ):
+        with config.set({"core.algorithms.outdated_concrete_version": "warn"}):
+            res = Resolver()
+            res.register(
+                {
+                    "test_algorithm_versions1": {
+                        "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                        "concrete_algorithms": {concrete_algo1},
+                    }
+                }
+            )
