@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Set, Dict, Any
 import math
 from metagraph.types import NodeSet, NodeMap
 from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
@@ -61,7 +61,7 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
     class TypeMixin:
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 

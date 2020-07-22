@@ -7,6 +7,7 @@ if has_grblas:
     from .types import (
         GrblasEdgeSet,
         GrblasEdgeMap,
+        GrblasGraph,
         GrblasNodeMap,
         GrblasNodeSet,
         GrblasVectorType,
@@ -14,10 +15,10 @@ if has_grblas:
     from ..python.types import PythonNodeSet
 
     @concrete_algorithm("cluster.triangle_count")
-    def grblas_triangle_count(graph: GrblasEdgeSet) -> int:
+    def grblas_triangle_count(graph: GrblasGraph) -> int:
         # Burkhardt method: num_triangles = sum(sum(A @ A) * A) / 6
         # We do it in two steps: a matrix multiplication then a reduction
-        A = graph.value
+        A = graph.edges.value
         val = A.mxm(
             A.T,  # Transpose here assumes symmetric matrix stored by row (the default for SuiteSparse:GraphBLAS)
             gb.semiring.plus_pair[
@@ -30,11 +31,11 @@ if has_grblas:
 
     @concrete_algorithm("link_analysis.pagerank")
     def grblas_pagerank(
-        graph: GrblasEdgeMap, damping: float, maxiter: int, tolerance: float
+        graph: GrblasGraph, damping: float, maxiter: int, tolerance: float
     ) -> GrblasNodeMap:
         # `scale_edges` matrix does the bulk of the work; it's what distributes
         # the current value of a vertex to its neighbors
-        A = graph.value
+        A = graph.edges.value
         N = A.ncols
         scale_edges = A.apply(gb.unary.one).new(dtype=float)
         node_scale = scale_edges.reduce_rows().new()  # num edges

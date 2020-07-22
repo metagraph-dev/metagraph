@@ -1,14 +1,15 @@
 from metagraph import ConcreteType, dtypes
-from metagraph.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap
+from metagraph.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap, Graph
 from metagraph.wrappers import (
     NodeSetWrapper,
     NodeMapWrapper,
     EdgeSetWrapper,
     EdgeMapWrapper,
+    CompositeGraphWrapper,
 )
 from metagraph.plugins import has_grblas
 
-from typing import List, Dict, Any
+from typing import Set, Dict, Any
 
 
 if has_grblas:
@@ -35,7 +36,7 @@ if has_grblas:
 
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -117,7 +118,7 @@ if has_grblas:
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
-                cls, obj, props: List[str], known_props: Dict[str, Any]
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
             ) -> Dict[str, Any]:
                 ret = known_props.copy()
 
@@ -162,7 +163,7 @@ if has_grblas:
 
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -220,14 +221,14 @@ if has_grblas:
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
-                cls, obj, props: List[str], known_props: Dict[str, Any]
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
             ) -> Dict[str, Any]:
                 ret = known_props.copy()
 
                 # slow properties, only compute if asked
                 for prop in props - ret.keys():
                     if prop == "is_directed":
-                        ret[prop] = obj.value != obj.value.T.new()
+                        ret[prop] = not obj.value.isequal(obj.value.T.new())
 
                 return ret
 
@@ -272,7 +273,7 @@ if has_grblas:
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
-                cls, obj, props: List[str], known_props: Dict[str, Any]
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
             ) -> Dict[str, Any]:
                 ret = known_props.copy()
 
@@ -286,7 +287,7 @@ if has_grblas:
                 # slow properties, only compute if asked
                 for prop in props - ret.keys():
                     if prop == "is_directed":
-                        ret[prop] = obj.value != obj.value.T.new()
+                        ret[prop] = not obj.value.isequal(obj.value.T.new())
                     if prop == "has_negative_weights":
                         if ret["dtype"] in {"bool", "str"}:
                             neg_weights = None
@@ -329,3 +330,15 @@ if has_grblas:
                     assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
                 else:
                     assert d1.isequal(d2)
+
+    class GrblasGraph(CompositeGraphWrapper, abstract=Graph):
+        def __init__(self, edges, nodes=None):
+            # Auto convert simple matrix to EdgeMap
+            # Anything more complicated requires explicit creation of the EdgeMap or EdgeSet
+            if isinstance(edges, grblas.Matrix):
+                edges = GrblasEdgeMap(edges)
+
+            super().__init__(edges, nodes)
+            self._assert_instance(edges, (GrblasEdgeSet, GrblasEdgeMap))
+            if nodes is not None:
+                self._assert_instance(nodes, (GrblasNodeSet, GrblasNodeMap))

@@ -6,13 +6,13 @@ from typing import Tuple, Iterable, Any
 if has_networkx:
     import networkx as nx
     import numpy as np
-    from .types import NetworkXEdgeSet, NetworkXEdgeMap
+    from .types import NetworkXGraph
     from ..python.types import PythonNodeMap, PythonNodeSet
     from ..numpy.types import NumpyVector
 
     @concrete_algorithm("link_analysis.pagerank")
     def nx_pagerank(
-        graph: NetworkXEdgeMap, damping: float, maxiter: int, tolerance: float
+        graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float
     ) -> PythonNodeMap:
         pagerank = nx.pagerank(
             graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
@@ -21,7 +21,7 @@ if has_networkx:
 
     @concrete_algorithm("link_analysis.katz_centrality")
     def nx_katz_centrality(
-        graph: NetworkXEdgeMap,
+        graph: NetworkXGraph,
         attenuation_factor: float,
         immediate_neighbor_weight: float,
         maxiter: int,
@@ -33,12 +33,12 @@ if has_networkx:
             beta=immediate_neighbor_weight,
             max_iter=maxiter,
             tol=tolerance,
-            weight=graph.weight_label,
+            weight=graph.edge_weight_label,
         )
         return PythonNodeMap(katz_centrality_scores)
 
     @concrete_algorithm("cluster.triangle_count")
-    def nx_triangle_count(graph: NetworkXEdgeSet) -> int:
+    def nx_triangle_count(graph: NetworkXGraph) -> int:
         triangles = nx.triangles(graph.value)
         # Sum up triangles from each node
         # Divide by 3 because each triangle is counted 3 times
@@ -46,7 +46,7 @@ if has_networkx:
         return total_triangles
 
     @concrete_algorithm("clustering.connected_components")
-    def nx_connected_components(graph: NetworkXEdgeSet) -> PythonNodeMap:
+    def nx_connected_components(graph: NetworkXGraph) -> PythonNodeMap:
         index_to_label = dict()
         for i, nodes in enumerate(nx.connected_components(graph.value)):
             for node in nodes:
@@ -54,7 +54,7 @@ if has_networkx:
         return PythonNodeMap(index_to_label,)
 
     @concrete_algorithm("clustering.strongly_connected_components")
-    def nx_strongly_connected_components(graph: NetworkXEdgeSet) -> PythonNodeMap:
+    def nx_strongly_connected_components(graph: NetworkXGraph) -> PythonNodeMap:
         index_to_label = dict()
         for i, nodes in enumerate(nx.strongly_connected_components(graph.value)):
             for node in nodes:
@@ -62,7 +62,7 @@ if has_networkx:
         return PythonNodeMap(index_to_label,)
 
     @concrete_algorithm("clustering.label_propagation_community")
-    def nx_label_propagation_community(graph: NetworkXEdgeMap) -> PythonNodeMap:
+    def nx_label_propagation_community(graph: NetworkXGraph) -> PythonNodeMap:
         communities = nx.algorithms.community.label_propagation.label_propagation_communities(
             graph.value
         )
@@ -72,33 +72,21 @@ if has_networkx:
                 index_to_label[node] = label
         return PythonNodeMap(index_to_label,)
 
-    @concrete_algorithm("subgraph.extract_edgemap")
-    def nx_extract_edgemap(
-        graph: NetworkXEdgeMap, nodes: PythonNodeSet
-    ) -> NetworkXEdgeMap:
+    @concrete_algorithm("subgraph.extract_subgraph")
+    def nx_extract_subgraph(
+        graph: NetworkXGraph, nodes: PythonNodeSet
+    ) -> NetworkXGraph:
         subgraph = graph.value.subgraph(nodes.value)
-        return NetworkXEdgeMap(subgraph, weight_label=graph.weight_label,)
-
-    @concrete_algorithm("subgraph.extract_edgeset")
-    def nx_extract_edgeset(
-        graph: NetworkXEdgeSet, nodes: PythonNodeSet
-    ) -> NetworkXEdgeSet:
-        subgraph = graph.value.subgraph(nodes.value)
-        return NetworkXEdgeSet(subgraph)
+        return NetworkXGraph(subgraph, edge_weight_label=graph.edge_weight_label)
 
     @concrete_algorithm("subgraph.k_core")
-    def nx_k_core(graph: NetworkXEdgeMap, k: int) -> NetworkXEdgeMap:
+    def nx_k_core(graph: NetworkXGraph, k: int) -> NetworkXGraph:
         k_core_graph = nx.k_core(graph.value, k)
-        return NetworkXEdgeMap(k_core_graph, weight_label=graph.weight_label,)
-
-    @concrete_algorithm("subgraph.k_core_unweighted")
-    def nx_k_core_unweighted(graph: NetworkXEdgeSet, k: int) -> NetworkXEdgeSet:
-        k_core_graph = nx.k_core(graph.value, k)
-        return NetworkXEdgeSet(k_core_graph)
+        return NetworkXGraph(k_core_graph, edge_weight_label=graph.edge_weight_label)
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
-        graph: NetworkXEdgeMap, source_node: NodeID
+        graph: NetworkXGraph, source_node: NodeID
     ) -> Tuple[PythonNodeMap, PythonNodeMap]:
         predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(
             graph.value, source_node
@@ -113,11 +101,11 @@ if has_networkx:
         )
 
     @concrete_algorithm("traversal.dijkstra")
-    def dijkstra(
-        graph: NetworkXEdgeMap, source_node: NodeID, max_path_length: float
+    def nx_dijkstra(
+        graph: NetworkXGraph, source_node: NodeID  # , max_path_length: float
     ) -> Tuple[PythonNodeMap, PythonNodeMap]:
         predecessors_map, distance_map = nx.dijkstra_predecessor_and_distance(
-            graph.value, source_node, cutoff=max_path_length,
+            graph.value, source_node,  # cutoff=max_path_length,
         )
         single_parent_map = {
             child: parents[0] if len(parents) > 0 else source_node
@@ -130,23 +118,24 @@ if has_networkx:
 
     @concrete_algorithm("vertex_ranking.betweenness_centrality")
     def nx_betweenness_centrality(
-        graph: NetworkXEdgeMap,
-        k: int,
-        enable_normalization: bool,
-        include_endpoints: bool,
+        graph: NetworkXGraph,
+        nodes: NumpyVector,
+        normalize: bool,
+        # include_endpoints: bool,
     ) -> PythonNodeMap:
-        node_to_score_map = nx.betweenness_centrality(
+        node_to_score_map = nx.betweenness_centrality_subset(
             graph.value,
-            k,
-            normalized=enable_normalization,
-            weight=graph.weight_label,
-            endpoints=include_endpoints,
+            sources=nodes.value,
+            targets=nodes.value,
+            normalized=normalize,
+            weight=graph.edge_weight_label,
+            # endpoints=include_endpoints,
         )
         return PythonNodeMap(node_to_score_map,)
 
-    @concrete_algorithm("traversal.breadth_first_search")
+    @concrete_algorithm("traversal.bfs_iter")
     def nx_breadth_first_search(
-        graph: NetworkXEdgeSet, source_node: NodeID
+        graph: NetworkXGraph, source_node: NodeID, depth_limit: int
     ) -> NumpyVector:
         bfs_ordered_node_array = np.array(
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
@@ -156,11 +145,11 @@ if has_networkx:
 
 if has_community:
     import community as community_louvain
-    from .types import NetworkXEdgeMap
+    from .types import NetworkXGraph
     from ..python.types import PythonNodeMap
 
     @concrete_algorithm("clustering.louvain_community")
-    def nx_louvain_community(graph: NetworkXEdgeMap) -> Tuple[PythonNodeMap, float]:
+    def nx_louvain_community(graph: NetworkXGraph) -> Tuple[PythonNodeMap, float]:
         index_to_label = community_louvain.best_partition(graph.value)
         modularity_score = community_louvain.modularity(index_to_label, graph.value)
         return (
