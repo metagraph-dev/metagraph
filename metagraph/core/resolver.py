@@ -4,6 +4,7 @@ to concrete algorithms.
 """
 from functools import partial, reduce
 import inspect
+import warnings
 from collections import defaultdict
 from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
 from .plugin import (
@@ -26,6 +27,10 @@ class ResolveFailureError(Exception):
 
 
 class NamespaceError(Exception):
+    pass
+
+
+class AlgorithmWarning(Warning):
     pass
 
 
@@ -123,6 +128,7 @@ class Resolver:
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
+        self.abstract_algorithm_versions: Dict[str, Dict[int, AbstractAlgorithm]] = {}
 
         # map abstract name to set of concrete instances
         self.concrete_algorithms: DefaultDict[
@@ -189,6 +195,7 @@ class Resolver:
             plugin_namespace._register("concrete_types", set())
             plugin_namespace._register("translators", {})
             plugin_namespace._register("abstract_algorithms", {})
+            plugin_namespace._register("abstract_algorithm_versions", {})
             plugin_namespace._register("concrete_algorithms", defaultdict(set))
             plugin_namespace._register("algos", Namespace())
             plugin_namespace._register("wrappers", Namespace())
@@ -314,23 +321,65 @@ class Resolver:
             tree.translators[(src_type, dst_type)] = tr
 
         for aa in abstract_algorithms:
-            if tree_is_resolver and aa.name in self.abstract_algorithms:
-                raise ValueError(f"abstract algorithm {aa.name} already exists")
             aa = self._normalize_abstract_algorithm_signature(aa)
-            tree.abstract_algorithms[aa.name] = aa
-            if tree_is_resolver:
-                self.algos._register(aa.name, Dispatcher(self, aa.name))
-                self.plan.algos._register(aa.name, Dispatcher(self.plan, aa.name))
+            if aa.name not in tree.abstract_algorithm_versions:
+                tree.abstract_algorithm_versions[aa.name] = {aa.version: aa}
+                tree.abstract_algorithms[aa.name] = aa
+                if tree_is_resolver:
+                    self.algos._register(aa.name, Dispatcher(self, aa.name))
+                    self.plan.algos._register(aa.name, Dispatcher(self.plan, aa.name))
+            else:
+                if (
+                    tree_is_resolver
+                    and aa.version in tree.abstract_algorithm_versions[aa.name]
+                ):
+                    raise ValueError(
+                        f"abstract algorithm {aa.name} with version {aa.version} already exists"
+                    )
+                tree.abstract_algorithm_versions[aa.name][aa.version] = aa
+                if aa.version > tree.abstract_algorithms[aa.name].version:
+                    tree.abstract_algorithms[aa.name] = aa
 
+        latest_concrete_versions = defaultdict(int)
         for ca in concrete_algorithms:
-            abstract = self.abstract_algorithms.get(ca.abstract_name, None)
             if tree_is_resolver:
+                abstract = self.abstract_algorithms.get(ca.abstract_name)
                 if abstract is None:
                     raise ValueError(
-                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} "
+                        f"implements unregistered abstract algorithm {ca.abstract_name}"
                     )
-                self._normalize_concrete_algorithm_signature(abstract, ca)
+                if ca.version not in self.abstract_algorithm_versions[ca.abstract_name]:
+                    action = config["core.algorithm.unknown_concrete_version"]
+                    message = (
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements "
+                        f"an unknown version of abstract algorithm {ca.abstract_name}.\n\n"
+                        f"The concrete version is {ca.version}.\n"
+                        f"The latest abstract version is {abstract.version}."
+                    )
+                    if action is None or action == "ignore":
+                        pass
+                    elif action == "warn":
+                        warnings.warn(message, AlgorithmWarning, stacklevel=2)
+                    elif action == "raise":
+                        raise ValueError(message)
+                    else:
+                        raise ValueError(
+                            "Unknown configuration for 'core.algorithm.unknown_concrete_version'.\n"
+                            f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
+                            + message
+                        )
+                latest_concrete_versions[ca.abstract_name] = max(
+                    ca.version, latest_concrete_versions[ca.abstract_name]
+                )
+                if ca.version == abstract.version:
+                    self._normalize_concrete_algorithm_signature(abstract, ca)
+                else:
+                    continue
             elif tree_is_plugin:
+                abstract = self.abstract_algorithms.get(ca.abstract_name)
+                if abstract is None or ca.version != abstract.version:
+                    continue
                 try:
                     tree.algos._register(ca.abstract_name, ca.func)
                 except NamespaceError:
@@ -342,6 +391,27 @@ class Resolver:
                     dispatcher = getattr(dispatcher, name)
                 setattr(dispatcher, plugin_name, ca.func)
             tree.concrete_algorithms[ca.abstract_name].add(ca)
+
+        action = config["core.algorithms.outdated_concrete_version"]
+        if action is not None and action != "ignore":
+            for name, version in latest_concrete_versions.items():
+                if version < self.abstract_algorithms[name].version:
+                    message = (
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements "
+                        f"an outdated version of abstract algorithm {ca.abstract_name}.\n\n"
+                        f"The latest concrete version is {ca.version}.\n"
+                        f"The latest abstract version is {abstract.version}."
+                    )
+                    if action == "warn":
+                        warnings.warn(message, AlgorithmWarning, stacklevel=2)
+                    elif action == "raise":
+                        raise ValueError(message)
+                    else:
+                        raise ValueError(
+                            "Unknown configuration for 'core.algorithm.outdated_concrete_version'.\n"
+                            f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
+                            + message
+                        )
 
     def _check_abstract_type(self, abst_algo, obj, msg):
         if obj is Any or obj is NodeID:
