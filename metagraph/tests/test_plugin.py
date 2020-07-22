@@ -128,6 +128,9 @@ def test_wrapper():
             self._assert(0 == float(val), "'zero' is only valid value.")
             assert isinstance(val, str)
 
+        class TypeMixin:
+            pass
+
     assert StrNumZeroOnly("0")
     with pytest.raises(TypeError, match="'zero' is only valid value."):
         StrNumZeroOnly("1234")
@@ -142,6 +145,9 @@ def test_wrapper():
             self._assert_instance(val, str)
             self._assert(0 == float(val), "'zero' is only valid value.")
             assert isinstance(val, str)
+
+        class TypeMixin:
+            pass
 
     with pytest.raises(TypeError, match="is not an instance of"):
         StrNumZeroOnlyDefaultErrorMessage(0)
