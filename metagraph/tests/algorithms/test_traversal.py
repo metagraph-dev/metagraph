@@ -5,7 +5,7 @@ import scipy.sparse as ss
 from . import MultiVerify
 
 
-def test_all_shortest_paths(default_plugin_resolver):
+def test_all_pairs_shortest_paths(default_plugin_resolver):
     """
 A --1--- B
 |     _/ |
@@ -20,7 +20,7 @@ C --4--- D
             [[0, 1, 3, 0], [1, 0, 9, 2], [3, 9, 0, 4], [0, 2, 4, 0]], dtype=np.int64
         )
     )
-    graph = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix)
+    graph = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix)
     parents_ss_matrix = ss.csr_matrix(
         np.array(
             [[0, 0, 0, 1], [1, 0, 0, 1], [2, 0, 0, 2], [1, 3, 3, 0]], dtype=np.int64
@@ -32,15 +32,19 @@ C --4--- D
         )
     )
     expected_answer = (
-        dpr.wrappers.EdgeMap.ScipyEdgeMap(parents_ss_matrix),
-        dpr.wrappers.EdgeMap.ScipyEdgeMap(lengths_ss_matrix),
+        dpr.wrappers.Graph.ScipyGraph(
+            dpr.wrappers.EdgeMap.ScipyEdgeMap(parents_ss_matrix)
+        ),
+        dpr.wrappers.Graph.ScipyGraph(
+            dpr.wrappers.EdgeMap.ScipyEdgeMap(lengths_ss_matrix)
+        ),
     )
-    MultiVerify(dpr, "traversal.all_shortest_paths", graph).assert_equals(
+    MultiVerify(dpr, "traversal.all_pairs_shortest_paths", graph).assert_equals(
         expected_answer
     )
 
 
-def test_bfs(default_plugin_resolver):
+def test_bfs_iter(default_plugin_resolver):
     """
 0 <--2-- 1        5 --10-> 6
 |        |      ^ ^      / 
@@ -65,11 +69,9 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
     correct_answer = dpr.wrappers.Vector.NumpyVector(np.array([0, 3, 4, 5, 6, 2, 7]))
-    MultiVerify(dpr, "traversal.breadth_first_search", graph, 0).assert_equals(
-        correct_answer
-    )
+    MultiVerify(dpr, "traversal.bfs_iter", graph, 0).assert_equals(correct_answer)
 
 
 def test_bellman_ford(default_plugin_resolver):
@@ -98,7 +100,7 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
     expected_answer = (
@@ -134,13 +136,11 @@ v        v /        v
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
     expected_answer = (
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
     )
-    MultiVerify(dpr, "traversal.dijkstra", graph, 0, 100.0).assert_equals(
-        expected_answer
-    )
+    MultiVerify(dpr, "traversal.dijkstra", graph, 0).assert_equals(expected_answer)

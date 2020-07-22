@@ -1,7 +1,7 @@
 import pytest
 from metagraph.tests.util import default_plugin_resolver
-from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet
-from metagraph.plugins.networkx.types import NetworkXEdgeMap
+from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet, ScipyGraph
+from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.graphblas.types import GrblasEdgeMap
 from metagraph.plugins.pandas.types import PandasEdgeMap
 from metagraph import NodeLabels
@@ -12,11 +12,11 @@ import pandas as pd
 import numpy as np
 
 
-def test_networkx_scipy_edge_map(default_plugin_resolver):
+def test_networkx_scipy_edgemap(default_plugin_resolver):
     dpr = default_plugin_resolver
     g = nx.DiGraph()
     g.add_weighted_edges_from([(2, 2, 1), (2, 7, 2), (7, 7, 0), (7, 0, 3), (0, 7, 3)])
-    x = NetworkXEdgeMap(g)
+    x = NetworkXGraph(g)
     # Convert networkx -> scipy adjacency
     #    0 2 7
     # 0 [    3]
@@ -25,16 +25,16 @@ def test_networkx_scipy_edge_map(default_plugin_resolver):
     m = ss.coo_matrix(
         ([3, 1, 2, 3, 0], ([0, 1, 1, 2, 2], [2, 1, 2, 0, 2])), dtype=np.int64
     )
-    intermediate = ScipyEdgeMap(m, [0, 2, 7])
-    y = dpr.translate(x, ScipyEdgeMap)
+    intermediate = ScipyGraph(ScipyEdgeMap(m, [0, 2, 7]))
+    y = dpr.translate(x, ScipyGraph)
     dpr.assert_equal(y, intermediate)
 
 
-def test_networkx_scipy_edge_set(default_plugin_resolver):
+def test_networkx_scipy_edgeset(default_plugin_resolver):
     dpr = default_plugin_resolver
     g = nx.DiGraph()
     g.add_edges_from([(2, 2), (2, 7), (7, 7), (7, 0), (0, 7)])
-    x = NetworkXEdgeMap(g)
+    x = NetworkXGraph(g)
     # Convert networkx -> scipy adjacency
     #    0 2 7
     # 0 [    1]
@@ -43,8 +43,8 @@ def test_networkx_scipy_edge_set(default_plugin_resolver):
     m = ss.coo_matrix(
         ([1, 1, 1, 1, 1], ([0, 1, 1, 2, 2], [2, 1, 2, 0, 2])), dtype=np.int64
     )
-    intermediate = ScipyEdgeSet(m, [0, 2, 7])
-    y = dpr.translate(x, ScipyEdgeSet)
+    intermediate = ScipyGraph(ScipyEdgeSet(m, [0, 2, 7]))
+    y = dpr.translate(x, ScipyGraph)
     dpr.assert_equal(y, intermediate)
 
 
@@ -67,22 +67,22 @@ def test_scipy_graphblas(default_plugin_resolver):
     dpr.assert_equal(y, intermediate)
 
 
-def test_networkx_2_pandas(default_plugin_resolver):
-    dpr = default_plugin_resolver
-    g = nx.DiGraph()
-    g.add_weighted_edges_from([(2, 2, 1), (2, 7, 2), (7, 7, 0), (7, 0, 3), (0, 7, 3)])
-    x = NetworkXEdgeMap(g)
-    # Convert networkx -> pandas edge list
-    df = pd.DataFrame(
-        {
-            "source": [2, 2, 7, 0, 7],
-            "target": [2, 7, 0, 7, 7],
-            "weight": [1, 2, 3, 3, 0],
-        }
-    )
-    intermediate = PandasEdgeMap(df, weight_label="weight")
-    y = dpr.translate(x, PandasEdgeMap)
-    dpr.assert_equal(y, intermediate)
-    # Convert networkx <- pandas edge list
-    x2 = dpr.translate(y, NetworkXEdgeMap)
-    dpr.assert_equal(x, x2)
+# def test_networkx_2_pandas(default_plugin_resolver):
+#     dpr = default_plugin_resolver
+#     g = nx.DiGraph()
+#     g.add_weighted_edges_from([(2, 2, 1), (2, 7, 2), (7, 7, 0), (7, 0, 3), (0, 7, 3)])
+#     x = NetworkXGraph(g)
+#     # Convert networkx -> pandas edge list
+#     df = pd.DataFrame(
+#         {
+#             "source": [2, 2, 7, 0, 7],
+#             "target": [2, 7, 0, 7, 7],
+#             "weight": [1, 2, 3, 3, 0],
+#         }
+#     )
+#     intermediate = PandasEdgeMap(df, weight_label="weight")
+#     y = dpr.translate(x, PandasEdgeMap)
+#     dpr.assert_equal(y, intermediate)
+#     # Convert networkx <- pandas edge list
+#     x2 = dpr.translate(y, NetworkXGraph)
+#     dpr.assert_equal(x, x2)
