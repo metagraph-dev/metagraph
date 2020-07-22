@@ -28,7 +28,7 @@ def test_connected_components(default_plugin_resolver):
     ]
     nx_graph = nx.Graph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph)
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
 
     def cmp_func(x):
         # clusters should be:
@@ -67,7 +67,7 @@ def test_strongly_connected_components(default_plugin_resolver):
     networkx_graph_data = [(0, 1, 9), (0, 2, 8), (2, 0, 7), (1, 2, 6), (3, 2, 5)]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(networkx_graph_data, weight="wait")
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="wait")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="wait")
 
     def cmp_func(x):
         # clusters should be:
@@ -109,7 +109,7 @@ def test_louvain(default_plugin_resolver):
     ]
     nx_graph = nx.Graph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
     def cmp_func(x):
         x_graph, modularity_score = x
@@ -143,7 +143,7 @@ def test_label_propagation(default_plugin_resolver):
     ]
     nx_graph = nx.Graph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
     def cmp_func(x):
         # clusters should be:

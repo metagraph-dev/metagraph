@@ -218,7 +218,7 @@ class ConcreteType:
 
     @classmethod
     def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         raise NotImplementedError(
             "Must override `_compute_abstract_properties` if type has abstract properties"
@@ -427,7 +427,11 @@ class Wrapper(metaclass=MetaWrapper):
             if err_msg:
                 raise TypeError(err_msg)
             else:
-                raise TypeError(f"{obj} is not an instance of {klass.__name__}")
+                if type(klass) is tuple:
+                    name = tuple(kls.__name__ for kls in klass)
+                else:
+                    name = klass.__name__
+                raise TypeError(f"{obj} is not an instance of {name}")
 
     @staticmethod
     def _assert(cond, err_msg):

@@ -152,17 +152,20 @@ def test_register_errors():
     with pytest.raises(TypeError, match='argument "a" may not be typing.List'):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_input_type)
-        res.register(registry.plugins)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
 
     with pytest.raises(TypeError, match="return type may not be an instance of"):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_output_type)
-        res.register(registry.plugins)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
 
     with pytest.raises(TypeError, match="return type may not be typing.List"):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_compound_output_type)
-        res.register(registry.plugins)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
 
     @concrete_algorithm("testing.does_not_exist")
     def my_algo3(a: Abstract1) -> Abstract2:  # pragma: no cover
@@ -610,23 +613,22 @@ def test_plugin_specific_concrete_algorithms():
     # 0 - 1    5 - 6
     # | X |    | /
     # 3 - 4 -- 2 - 7
-    # TODO: change this to an EdgeSet once triangle count signature is updated
     simple_graph_data = [
-        [0, 1, 1],
-        [0, 3, 1],
-        [0, 4, 1],
-        [1, 3, 1],
-        [1, 4, 1],
-        [2, 4, 1],
-        [2, 5, 1],
-        [2, 6, 1],
-        [3, 4, 1],
-        [5, 6, 1],
-        [6, 7, 1],
+        [0, 1],
+        [0, 3],
+        [0, 4],
+        [1, 3],
+        [1, 4],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [3, 4],
+        [5, 6],
+        [6, 7],
     ]
     simple_graph = nx.Graph()
-    simple_graph.add_weighted_edges_from(simple_graph_data)
-    graph = r.wrappers.EdgeMap.NetworkXEdgeMap(simple_graph)
+    simple_graph.add_edges_from(simple_graph_data)
+    graph = r.wrappers.Graph.NetworkXGraph(simple_graph)
     assert r.algos.cluster.triangle_count(graph) == 5
     assert r.plugins.core_networkx.algos.cluster.triangle_count(graph) == 5
     assert r.algos.cluster.triangle_count.core_networkx(graph) == 5

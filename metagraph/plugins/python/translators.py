@@ -10,7 +10,7 @@ def nodemap_to_nodeset(x: PythonNodeMap, **props) -> PythonNodeSet:
 
 
 @translator
-def nodemap_from_compactnumpy(x: NumpyNodeMap, **props) -> PythonNodeMap:
+def nodemap_from_numpy(x: NumpyNodeMap, **props) -> PythonNodeMap:
     cast = dtype_casting[dtypes.dtypes_simplified[x.value.dtype]]
     npdata = x.value
     nplookup = x.id2pos

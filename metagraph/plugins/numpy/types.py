@@ -1,4 +1,4 @@
-from typing import List, Dict, Any
+from typing import Set, Dict, Any
 import numpy as np
 from metagraph import dtypes, Wrapper
 from metagraph.types import Vector, Matrix, NodeSet, NodeMap
@@ -24,7 +24,7 @@ class NumpyVector(Wrapper, abstract=Vector):
     class TypeMixin:
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -146,7 +146,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
 
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -159,7 +159,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
 
         @classmethod
         def _compute_concrete_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             return {"is_compact": obj.id2pos is not None}
 
@@ -238,7 +238,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     class TypeMixin:
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 

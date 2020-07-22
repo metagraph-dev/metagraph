@@ -2,6 +2,7 @@ import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas, has_scipy
 from ..numpy.types import NumpyVector, NumpyNodeMap
+from ..python.types import PythonNodeSet
 
 
 if has_grblas:
@@ -9,6 +10,7 @@ if has_grblas:
     from .types import (
         GrblasEdgeMap,
         GrblasEdgeSet,
+        GrblasGraph,
         GrblasMatrixType,
         GrblasVectorType,
         GrblasNodeSet,
@@ -42,6 +44,13 @@ if has_grblas:
         return vec
 
     @translator
+    def nodeset_from_python(x: PythonNodeSet, **props) -> GrblasNodeSet:
+        nodes = list(sorted(x.value))
+        size = nodes[-1] + 1
+        vec = grblas.Vector.from_values(nodes, [1] * len(nodes), size=size)
+        return GrblasNodeSet(vec)
+
+    @translator
     def nodemap_from_numpy(x: NumpyNodeMap, **props) -> GrblasNodeMap:
         if x.mask is not None:
             idx = np.flatnonzero(x.mask)
@@ -60,8 +69,22 @@ if has_grblas:
 
 
 if has_grblas and has_scipy:
-    from ..scipy.types import ScipyEdgeMap, ScipyMatrixType
+    from ..scipy.types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph, ScipyMatrixType
     from .types import dtype_mg_to_grblas
+
+    @translator
+    def edgeset_from_scipy(x: ScipyEdgeSet, **props) -> GrblasEdgeSet:
+        m = x.value.tocoo()
+        node_list = x.node_list
+        size = max(node_list) + 1
+        out = grblas.Matrix.from_values(
+            node_list[m.row],
+            node_list[m.col],
+            np.ones_like(m.data),
+            nrows=size,
+            ncols=size,
+        )
+        return GrblasEdgeSet(out, transposed=x.transposed)
 
     @translator
     def edgemap_from_scipy(x: ScipyEdgeMap, **props) -> GrblasEdgeMap:
@@ -77,7 +100,28 @@ if has_grblas and has_scipy:
             ncols=size,
             dtype=dtype,
         )
-        return GrblasEdgeMap(out, transposed=x.transposed,)
+        return GrblasEdgeMap(out, transposed=x.transposed)
+
+    @translator
+    def graph_from_scipy(x: ScipyGraph, **props) -> GrblasGraph:
+        aprops = ScipyGraph.Type.compute_abstract_properties(
+            x, {"node_type", "edge_type"}
+        )
+        nodes = None
+        if aprops["node_type"] == "map":
+            nodes = nodemap_from_numpy(x.nodes)
+        elif aprops["node_type"] == "set":
+            if x.nodes is not None:
+                nodes = nodeset_from_python(x.nodes)
+
+        if aprops["edge_type"] == "map":
+            edges = edgemap_from_scipy(x.edges)
+        elif aprops["edge_type"] == "set":
+            edges = edgeset_from_scipy(x.edges)
+        else:
+            raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
+
+        return GrblasGraph(edges=edges, nodes=nodes)
 
     @translator
     def matrix_from_scipy(x: ScipyMatrixType, **props) -> GrblasMatrixType:

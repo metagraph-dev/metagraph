@@ -2,7 +2,7 @@ import os
 import sys
 import pytest
 import math
-from typing import List, Dict, Any
+from typing import List, Set, Dict, Any
 from collections import OrderedDict
 
 from metagraph import ConcreteType
@@ -41,7 +41,7 @@ class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
 
     @classmethod
     def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
@@ -60,7 +60,7 @@ class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
 
     @classmethod
     def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
@@ -86,7 +86,7 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
     class TypeMixin:
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
 
             value = obj.value
