@@ -506,19 +506,21 @@ class AbstractAlgorithm:
     Abstract algorithms should have empty function bodies.
     """
 
-    def __init__(self, func: Callable, name: str):
+    def __init__(self, func: Callable, name: str, *, version: int = 0):
         self.func = func
         self.name = name
+        self.version = version
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
         self.__signature__ = inspect.signature(self.func)
 
 
-def abstract_algorithm(name: str):
+def abstract_algorithm(name: str, *, version: int = 0):
     def _abstract_decorator(func: Callable):
-        return AbstractAlgorithm(func=func, name=name)
+        return AbstractAlgorithm(func=func, name=name, version=version)
 
+    _abstract_decorator.version = version
     return _abstract_decorator
 
 
@@ -530,9 +532,10 @@ class ConcreteAlgorithm:
     types (which are not converted) must match exactly.
     """
 
-    def __init__(self, func: Callable, abstract_name: str):
+    def __init__(self, func: Callable, abstract_name: str, *, version: int = 0):
         self.func = func
         self.abstract_name = abstract_name
+        self.version = version
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
@@ -542,8 +545,11 @@ class ConcreteAlgorithm:
         return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name: str):
+def concrete_algorithm(abstract_name: str, *, version: int = 0):
     def _concrete_decorator(func: Callable):
-        return ConcreteAlgorithm(func=func, abstract_name=abstract_name)
+        return ConcreteAlgorithm(
+            func=func, abstract_name=abstract_name, version=version
+        )
 
+    _concrete_decorator.version = version
     return _concrete_decorator
