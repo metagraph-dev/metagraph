@@ -96,10 +96,10 @@ def np_nodemap_apply(x: NumpyNodeMap, func: Callable[[Any], Any]) -> NumpyNodeMa
     if x.id2pos is not None:
         new_node_map = NumpyNodeMap(func_vectorized(x.value), node_ids=x.pos2id.copy())
     elif x.mask is not None:
-        new_node_map = NumpyNodeMap(x.value.copy(), missing_mask=x.missing_mask.copy())
-        new_node_map.value[new_node_map.mask] = func_vectorized(
-            new_node_map.value[new_node_map.mask]
-        )
+        results = func_vectorized(new_node_map.value[new_node_map.mask])
+        new_data = np.empty_like(x.value, dtype=results.dtype)
+        new_data[x.mask] = results
+        new_node_map = NumpyNodeMap(new_data, mask=x.mask.copy())
     else:
         new_node_map = NumpyNodeMap(func_vectorized(x.value))
     return new_node_map
