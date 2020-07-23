@@ -42,7 +42,13 @@ class DataFrame(AbstractType):
 # Nodes
 #################################
 class NodeSet(AbstractType):
-    pass
+    @Wrapper.required_property
+    def num_nodes(self):
+        raise NotImplementedError()
+
+    @Wrapper.required_method
+    def __contains__(self, key):
+        raise NotImplementedError()
 
 
 class NodeMap(AbstractType):
@@ -54,6 +60,10 @@ class NodeMap(AbstractType):
     @Wrapper.required_method
     def __getitem__(self, key):
         """Returns a scalar"""
+        raise NotImplementedError()
+
+    @Wrapper.required_method
+    def __contains__(self, key):
         raise NotImplementedError()
 
     @Wrapper.required_property

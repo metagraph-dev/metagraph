@@ -15,6 +15,13 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
         self._assert_instance(data, set)
         self.value = data
 
+    @property
+    def num_nodes(self):
+        return len(self.value)
+
+    def __contains__(self, key):
+        return key in self.value
+
     class TypeMixin:
         @classmethod
         def assert_equal(
@@ -49,6 +56,9 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
     @property
     def num_nodes(self):
         return len(self.value)
+
+    def __contains__(self, key):
+        return key in self.value
 
     def _determine_dtype(self):
         types = set(type(val) for val in self.value.values())
