@@ -1,6 +1,6 @@
 from metagraph import abstract_algorithm
-from metagraph.types import NodeSet, NodeMap, Vector, NodeID  # Graph
-from typing import Any, Callable, Optional
+from metagraph.types import NodeSet, NodeMap, Vector, NodeID, EdgeSet, EdgeMap, Graph
+from typing import Any, Callable, Union, Optional
 
 
 @abstract_algorithm("util.nodeset.choose_random")
@@ -32,4 +32,33 @@ def nodemap_apply(x: NodeMap, func: Callable[[Any], Any]) -> NodeMap:
 
 @abstract_algorithm("util.nodemap.reduce")
 def nodemap_reduce(x: NodeMap, func: Callable[[Any, Any], Any]) -> Any:
+    pass
+
+
+@abstract_algorithm("util.graph.aggregate_edges")
+def graph_aggregate_edges(
+    graph: Graph(edge_type="map"),
+    func: Callable[[Any, Any], Any],
+    in_edges=False,
+    out_edges=True,
+) -> NodeMap:
+    pass
+
+
+@abstract_algorithm("util.graph.filter_edges")
+def graph_filter_edges(graph: Graph, func: Callable[[Any], bool]) -> Graph:
+    pass
+
+
+@abstract_algorithm("util.graph.add_uniform_weight")
+def graph_add_uniform_weight(
+    graph: Graph(edge_type="set"), weight: Any = 1
+) -> Graph(edge_type="map"):
+    pass
+
+
+@abstract_algorithm("util.graph.build")
+def graph_build(
+    edges: Union[EdgeSet, EdgeMap], nodes: Union[NodeSet, NodeMap, None]
+) -> Graph:
     pass
