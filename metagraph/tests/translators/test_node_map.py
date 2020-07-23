@@ -1,9 +1,9 @@
 import pytest
+from metagraph import NodeLabels
 from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.python.types import PythonNodeMap
 from metagraph.plugins.numpy.types import NumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap
-from metagraph import NodeLabels
 import numpy as np
 import grblas
 

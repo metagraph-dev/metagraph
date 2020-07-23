@@ -1,8 +1,32 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
-from .types import NumpyMatrix, NumpyVector, NumpyNodeMap
+from .types import NumpyMatrix, NumpyVector, NumpyNodeSet, NumpyNodeMap
 from ..python.types import PythonNodeMap, PythonNodeSet
+
+
+@translator
+def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
+    if x.mask is not None:
+        node_set = NumpyNodeSet(np.flatnonzero(x.mask))
+    elif x.pos2id is not None:
+        node_set = NumpyNodeSet(x.pos2id)
+    else:
+        node_set = NumpyNodeSet(np.arange(len(x.value)))
+    return node_set
+
+
+@translator
+def nodeset_to_pynodeset(x: NumpyNodeSet, **props) -> PythonNodeSet:
+    if x.mask is None:
+        return PythonNodeSet(x.node_set)
+    else:
+        return PythonNodeSet(set(np.flatnonzero(x.mask)))
+
+
+@translator
+def pynodeset_to_nodeset(x: PythonNodeSet, **props) -> NumpyNodeSet:
+    return NumpyNodeSet(np.array(sorted(x.value)))
 
 
 @translator

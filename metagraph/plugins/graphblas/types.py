@@ -77,6 +77,13 @@ if has_grblas:
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
+        @property
+        def num_nodes(self):
+            return len(self.value)
+
+        def __contains__(self, key):
+            return 0 <= key < len(self.value) and self.value[key].value is not None
+
         class TypeMixin:
             @classmethod
             def assert_equal(
@@ -114,6 +121,9 @@ if has_grblas:
         @property
         def num_nodes(self):
             return self.value.nvals
+
+        def __contains__(self, key):
+            return 0 <= key < len(self.value) and self.value[key].value is not None
 
         class TypeMixin:
             @classmethod
