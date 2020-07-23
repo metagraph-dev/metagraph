@@ -6,62 +6,52 @@ from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
 class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
-    def __init__(self, data, *, mask=None, first_node_id=None, num_node_ids=None):
-        """
-        data: set of sorted node ids
-        """
-        self._assert_instance(data, np.ndarray)
-        self.value = data
+    def __init__(self, node_ids=None, *, mask=None):
+        self.node_array = None
+        self.node_set = None
         self.mask = None
-        self.first_node_id = None
-        self.num_node_ids = None
+        self._assert(
+            (node_ids is None) ^ (mask is None),
+            "Either node_ids or mask must be present, but not both",
+        )
         if mask is not None:
             self._assert_instance(mask, np.ndarray)
-            self._assert(np.all(np.diff(data) > 0), "data must be ordered")
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
+            self._assert(mask.dtype == bool, "Only boolean masks are allowed")
             self.mask = mask
-        elif not (first_node_id is None and num_node_ids is None):
-            self._assert(
-                first_node_id is not None and num_node_ids is not None,
-                "both first_node_id and num_node_ids must be specified",
-            )
-            self.first_node_id = first_node_id
-            self.num_node_ids = num_node_ids
         else:
-            self._assert(np.all(np.diff(data) > 0), "data must be ordered")
+            if isinstance(node_ids, set):
+                self.node_set = node_ids
+                self.node_array = np.array(list(node_ids))
+                self.node_array.sort()
+            elif isinstance(node_ids, np.ndarray):
+                self.node_array = node_ids
+                self.node_set = set(node_ids)
+            else:
+                raise TypeError("node_ids must be a set or numpy array")
 
     @property
     def num_nodes(self):
         if self.mask is not None:
-            node_count = len(self.value) - self.mask.sum()
-        elif self.first_node_id is not None:
-            node_count = num_node_ids
+            node_count = self.mask.sum()
         else:
-            node_count = len(self.value)
+            node_count = len(self.node_array)
         return node_count
 
-    @property
-    def _min(self):
-        if self.mask is not None:
-            minimum = self.value[self.mask.argmax()]
-        elif self.first_node_id is not None:
-            minimum = self.first_node_id
+    def __contains__(self, key):
+        if mask is not None:
+            return 0 <= key < len(self.mask) and self.mask[key]
         else:
-            minimum = self.value[0]
-        return minimum
-
-    @property
-    def _max(self):
-        if self.mask is not None:
-            maximum = self.value[np.flatnonzero(self.mask)[-1]]
-        elif self.first_node_id is not None:
-            maximum = self.first_node_id + self.num_node_ids - 1
-        else:
-            maximum = self.value[-1]
-        return maximum
+            return key in self.node_set
 
     class TypeMixin:
+        allowed_props = {"is_compact": [True, False]}
+
+        @classmethod
+        def _compute_concrete_properties(
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            return {"is_compact": obj.node_array is not None}
+
         @classmethod
         def assert_equal(
             cls,
@@ -78,9 +68,20 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             assert (
                 obj1.num_nodes == obj2.num_nodes
             ), f"size mismatch: {v1.num_nodes} != {v2.num_nodes}"
-            assert (
-                obj1._min == obj2._min and obj1._max == obj2._max
-            ), f"node sets do not match"
+            if obj1.mask is not None and obj2.mask is not None:
+                assert (obj1.mask == obj2.mask).all(), f"node sets do not match"
+            elif obj1.mask is not None:
+                assert (
+                    np.flatnonzero(obj1.mask) == obj2.node_array
+                ).all(), f"node sets do not match"
+            elif obj2.mask is not None:
+                assert (
+                    obj1.node_array == np.flatnonzero(obj2.mask)
+                ).all(), f"node sets do not match"
+            else:
+                assert (
+                    obj1.node_array == obj2.node_array
+                ).all(), f"node sets do not match"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
 
 
@@ -219,6 +220,12 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             return self.mask.sum()
         # This covers the sequential and compact cases
         return len(self.value)
+
+    def __contains__(self, key):
+        if mask is not None:
+            return 0 <= key < len(self.mask) and self.mask[key]
+        else:
+            return key in self.id2pos
 
     class TypeMixin:
         allowed_props = {"is_compact": [True, False]}

@@ -18,7 +18,10 @@ def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
 
 @translator
 def nodeset_to_pynodeset(x: NumpyNodeSet, **props) -> PythonNodeSet:
-    return PythonNodeSet(set(x.value))
+    if x.mask is None:
+        return PythonNodeSet(x.node_set)
+    else:
+        return PythonNodeSet(set(np.flatnonzero(x.mask)))
 
 
 @translator

@@ -7,7 +7,8 @@ from typing import Any, Callable, Optional
 
 @concrete_algorithm("util.nodeset.choose_random")
 def np_nodeset_choose_random(x: NumpyNodeSet, k: int) -> NumpyNodeSet:
-    random_elements = np.random.choice(np.array(x.value), k, False)
+    values = np.flatnonzero(x.mask) if x.mask is not None else x.node_array
+    random_elements = np.random.choice(np.array(values), k, False)
     random_elements.sort()
     return NumpyNodeSet(random_elements)
 
@@ -37,21 +38,33 @@ def np_nodemap_sort(
 @concrete_algorithm("util.nodemap.select")
 def np_nodemap_select(x: NumpyNodeMap, nodes: NumpyNodeSet) -> NumpyNodeMap:
     if x.id2pos is not None:
-        new_pos2id = np.intersect1d(x.pos2id, nodes.value)
+        if nodes.node_array is None:
+            select_nodes = np.flatnonzero(nodes.mask)
+        else:
+            select_nodes = nodes.node_array
+        new_pos2id = np.intersect1d(x.pos2id, select_nodes)
         positions_to_keep = np.array([x.id2pos[node_id] for node_id in new_pos2id])
         new_data = x.value[positions_to_keep].copy()
         selected_node_map = NumpyNodeMap(new_data, node_ids=new_pos2id)
     else:
-        nodes.value.sort()
-        selected_node_map = NumpyNodeMap(
-            x.value.copy(),
-            mask=x.mask.copy() if x.mask else np.ones(len(x.value), dtype=bool),
-        )
-        present_value_positions = np.flatnonzero(selected_node_map.mask)
-        positions_to_remove = np.setdiff1d(
-            present_value_positions, nodes.value, assume_unique=True
-        )
-        selected_node_map.mask[positions_to_remove] = False
+        if nodes.node_array is not None:
+            selected_node_map = NumpyNodeMap(
+                x.value.copy(),
+                mask=x.mask.copy() if x.mask else np.ones(len(x.value), dtype=bool),
+            )
+            present_value_positions = np.flatnonzero(selected_node_map.mask)
+            positions_to_remove = np.setdiff1d(
+                present_value_positions, nodes.value, assume_unique=True
+            )
+            selected_node_map.mask[positions_to_remove] = False
+        else:
+            if len(nodes_mask) == len(x.mask):
+                nodes_mask = nodes.mask
+            else:
+                nodes_mask = nodes.mask.copy()
+                nodes_mask.resize(len(x.mask), refcheck=False)
+            new_mask = nodes_mask & x.mask
+            selected_node_map = NumpyNodeMap(x.value.copy(), mask=new_mask)
     return selected_node_map
 
 
