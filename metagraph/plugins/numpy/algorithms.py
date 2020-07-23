@@ -3,6 +3,10 @@ from functools import reduce
 from metagraph import concrete_algorithm, NodeID
 from .types import NumpyVector, NumpyNodeMap, NumpyNodeSet
 from typing import Any, Callable, Optional
+from .. import has_numba
+
+if has_numba:
+    import numba
 
 
 @concrete_algorithm("util.nodeset.choose_random")
@@ -71,7 +75,7 @@ def np_nodemap_select(x: NumpyNodeMap, nodes: NumpyNodeSet) -> NumpyNodeMap:
 @concrete_algorithm("util.nodemap.filter")
 def np_nodemap_filter(x: NumpyNodeMap, func: Callable[[Any], bool]) -> NumpyNodeSet:
     # TODO consider caching this somewhere or enforcing that only vectorized functions are given
-    func_vectorized = np.vectorize(func)
+    func_vectorized = numba.vectorize(func) if has_numba else np.vectorize(func)
     if x.id2pos is not None:
         filtered_positions = np.flatnonzero(func_vectorized(x.value))
         filtered_ids = x.pos2id[filtered_positions]
@@ -88,7 +92,7 @@ def np_nodemap_filter(x: NumpyNodeMap, func: Callable[[Any], bool]) -> NumpyNode
 @concrete_algorithm("util.nodemap.apply")
 def np_nodemap_apply(x: NumpyNodeMap, func: Callable[[Any], Any]) -> NumpyNodeMap:
     # TODO consider caching this somewhere or enforcing that only vectorized functions are given
-    func_vectorized = np.vectorize(func)
+    func_vectorized = numba.vectorize(func) if has_numba else np.vectorize(func)
     if x.id2pos is not None:
         new_node_map = NumpyNodeMap(func_vectorized(x.value), node_ids=x.pos2id.copy())
     elif x.mask is not None:
