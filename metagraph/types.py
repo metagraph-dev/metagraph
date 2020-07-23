@@ -46,6 +46,10 @@ class NodeSet(AbstractType):
     def num_nodes(self):
         raise NotImplementedError()
 
+    @Wrapper.required_method
+    def __contains__(self, key):
+        raise NotImplementedError()
+
 
 class NodeMap(AbstractType):
     properties = {
@@ -56,6 +60,10 @@ class NodeMap(AbstractType):
     @Wrapper.required_method
     def __getitem__(self, key):
         """Returns a scalar"""
+        raise NotImplementedError()
+
+    @Wrapper.required_method
+    def __contains__(self, key):
         raise NotImplementedError()
 
     @Wrapper.required_property
