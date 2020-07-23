@@ -38,10 +38,6 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
     def num_nodes(self):
         return len(self.value)
 
-    @property
-    def num_nodes(self):
-        return len(self.value)
-
 
 class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
     def __init__(self, data):
