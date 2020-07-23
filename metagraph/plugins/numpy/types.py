@@ -18,25 +18,26 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
     def num_nodes(self):
         return len(self.value)
 
-    @classmethod
-    def assert_equal(
-        cls,
-        obj1,
-        obj2,
-        aprops1,
-        aprops2,
-        cprops1,
-        cprops2,
-        *,
-        rel_tol=None,
-        abs_tol=None,
-    ):
-        v1, v2 = obj1.value, obj2.value
-        assert len(v1) == len(v2), f"size mismatch: {len(v1)} != {len(v2)}"
-        if not all(v1 == v2):
-            breakpoint()
-        assert all(v1 == v2), f"node sets do not match"
-        assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+    class TypeMixin:
+        @classmethod
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=None,
+            abs_tol=None,
+        ):
+            v1, v2 = obj1.value, obj2.value
+            assert len(v1) == len(v2), f"size mismatch: {len(v1)} != {len(v2)}"
+            if not all(v1 == v2):
+                breakpoint()
+            assert all(v1 == v2), f"node sets do not match"
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
 
 
 class NumpyVector(Wrapper, abstract=Vector):
