@@ -5,17 +5,8 @@ to concrete algorithms.
 from functools import partial, reduce
 import inspect
 import warnings
-from typing import (
-    List,
-    Tuple,
-    Set,
-    Dict,
-    DefaultDict,
-    Callable,
-    Optional,
-    Any,
-    Union
-)
+from collections import defaultdict, abc
+from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
 from .plugin import (
     AbstractType,
     ConcreteType,
