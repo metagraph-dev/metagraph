@@ -40,6 +40,13 @@ try:
 except ImportError:  # pragma: no cover
     has_grblas = False
 
+try:
+    import numba as _
+
+    has_numba = True
+except ImportError:  # pragma: no cover
+    has_numba = False
+
 ################
 # Load Plugins #
 ################
