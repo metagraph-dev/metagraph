@@ -34,8 +34,6 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
         ):
             v1, v2 = obj1.value, obj2.value
             assert len(v1) == len(v2), f"size mismatch: {len(v1)} != {len(v2)}"
-            if not all(v1 == v2):
-                breakpoint()
             assert all(v1 == v2), f"node sets do not match"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
 
