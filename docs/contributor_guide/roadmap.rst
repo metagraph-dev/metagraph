@@ -26,11 +26,14 @@ General Features
 - Global preference setting plugin priority.  This would be used to
   more easily switch a workflow from one backend to another without having to
   modify the calculation itself.
+- Allow an abstract algorithm to have a default implementation that only calls
+  other abstract algorithms via the current ``Resolver``.
 
-Type System
------------
-- [insert list of type system enhancements here]
-
-Algorithms
-----------
-- [insert list of future algorithms here]
+Type System and Dispatcher
+--------------------------
+- Nested namespace of properties and validators, that allow common subgroups to be used in multiple types.
+- Change ``unambigous_subcomponents`` to ``allowed_translations``
+    - Include which property values can translate to another values
+    - Clarify what self-translators need to do
+- Allow concrete algorithms to specialize on more than the abstract type signature, such as literal values of
+  non-translatable (i.e. "Python") types.
