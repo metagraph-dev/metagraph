@@ -9,7 +9,7 @@ def test_numpy_2_graphblas(default_plugin_resolver):
     dpr = default_plugin_resolver
     dense_array = np.array([0, 1.1, 0, 0, 4.4, 5.5, 6.6, 0])
     missing_mask = dense_array == 0
-    x = NumpyVector(dense_array, missing_mask=missing_mask)
+    x = NumpyVector(dense_array, mask=~missing_mask)
     assert len(x) == 8
     # Convert numpy -> grblas vector
     intermediate = grblas.Vector.from_values([1, 4, 5, 6], [1.1, 4.4, 5.5, 6.6], size=8)

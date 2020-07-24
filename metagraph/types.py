@@ -20,7 +20,10 @@ DTYPE_CHOICES = ["str", "float", "int", "bool"]
 
 
 class Vector(AbstractType):
-    properties = {"is_dense": [False, True], "dtype": DTYPE_CHOICES}
+    properties = {
+        "is_dense": [False, True],
+        "dtype": DTYPE_CHOICES,
+    }
 
 
 class Matrix(AbstractType):
@@ -39,16 +42,28 @@ class DataFrame(AbstractType):
 # Nodes
 #################################
 class NodeSet(AbstractType):
-    pass
+    @Wrapper.required_property
+    def num_nodes(self):
+        raise NotImplementedError()
+
+    @Wrapper.required_method
+    def __contains__(self, key):
+        raise NotImplementedError()
 
 
 class NodeMap(AbstractType):
-    properties = {"dtype": DTYPE_CHOICES}
+    properties = {
+        "dtype": DTYPE_CHOICES,
+    }
     unambiguous_subcomponents = {NodeSet}
 
     @Wrapper.required_method
     def __getitem__(self, key):
         """Returns a scalar"""
+        raise NotImplementedError()
+
+    @Wrapper.required_method
+    def __contains__(self, key):
         raise NotImplementedError()
 
     @Wrapper.required_property
@@ -78,6 +93,37 @@ class EdgeMap(AbstractType):
 
 class EdgeTable(AbstractType):
     properties = {"is_directed": [True, False]}
+    unambiguous_subcomponents = {EdgeSet}
+
+
+#################################
+# Graphs
+#################################
+class Graph(AbstractType):
+    properties = {
+        "is_directed": [True, False],
+        "node_type": ["set", "map", "table"],
+        "node_dtype": DTYPE_CHOICES + [None],
+        "edge_type": ["set", "map", "table"],
+        "edge_dtype": DTYPE_CHOICES + [None],
+        "edge_has_negative_weights": [True, False, None],
+    }
+    unambiguous_subcomponents = {NodeSet, EdgeSet}
+
+
+class BipartiteGraph(AbstractType):
+    properties = {
+        "is_directed": [True, False],
+        "node_type": [
+            "set",
+            "map",
+            "table",
+        ],  # should be a list so both node sets can have independent types
+        "node_dtype": DTYPE_CHOICES + [None],
+        "edge_type": ["set", "map", "table"],
+        "edge_dtype": DTYPE_CHOICES + [None],
+        "edge_has_negative_weights": [True, False, None],
+    }
     unambiguous_subcomponents = {EdgeSet}
 
 

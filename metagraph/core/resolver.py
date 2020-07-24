@@ -4,7 +4,8 @@ to concrete algorithms.
 """
 from functools import partial, reduce
 import inspect
-from collections import defaultdict
+import warnings
+from collections import defaultdict, abc
 from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
 from .plugin import (
     AbstractType,
@@ -26,6 +27,10 @@ class ResolveFailureError(Exception):
 
 
 class NamespaceError(Exception):
+    pass
+
+
+class AlgorithmWarning(Warning):
     pass
 
 
@@ -123,6 +128,7 @@ class Resolver:
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
+        self.abstract_algorithm_versions: Dict[str, Dict[int, AbstractAlgorithm]] = {}
 
         # map abstract name to set of concrete instances
         self.concrete_algorithms: DefaultDict[
@@ -189,6 +195,7 @@ class Resolver:
             plugin_namespace._register("concrete_types", set())
             plugin_namespace._register("translators", {})
             plugin_namespace._register("abstract_algorithms", {})
+            plugin_namespace._register("abstract_algorithm_versions", {})
             plugin_namespace._register("concrete_algorithms", defaultdict(set))
             plugin_namespace._register("algos", Namespace())
             plugin_namespace._register("wrappers", Namespace())
@@ -309,28 +316,76 @@ class Resolver:
                 # Check if dst is unambiguous subcomponent of src
                 if dst_type.abstract not in src_type.abstract.unambiguous_subcomponents:
                     raise ValueError(
-                        f"Translator {tr.__class__.__qualname__} must convert between concrete types of same abstract type"
+                        f"Translator {tr.func.__name__} must convert between concrete types of same abstract type ({src_type.abstract} != {dst_type.abstract})"
                     )
             tree.translators[(src_type, dst_type)] = tr
 
         for aa in abstract_algorithms:
-            if tree_is_resolver and aa.name in self.abstract_algorithms:
-                raise ValueError(f"abstract algorithm {aa.name} already exists")
             aa = self._normalize_abstract_algorithm_signature(aa)
-            tree.abstract_algorithms[aa.name] = aa
-            if tree_is_resolver:
-                self.algos._register(aa.name, Dispatcher(self, aa.name))
-                self.plan.algos._register(aa.name, Dispatcher(self.plan, aa.name))
+            if aa.name not in tree.abstract_algorithm_versions:
+                tree.abstract_algorithm_versions[aa.name] = {aa.version: aa}
+                tree.abstract_algorithms[aa.name] = aa
+                if tree_is_resolver:
+                    self.algos._register(aa.name, Dispatcher(self, aa.name))
+                    self.plan.algos._register(aa.name, Dispatcher(self.plan, aa.name))
+            else:
+                if (
+                    tree_is_resolver
+                    and aa.version in tree.abstract_algorithm_versions[aa.name]
+                ):
+                    raise ValueError(
+                        f"abstract algorithm {aa.name} with version {aa.version} already exists"
+                    )
+                tree.abstract_algorithm_versions[aa.name][aa.version] = aa
+                if aa.version > tree.abstract_algorithms[aa.name].version:
+                    tree.abstract_algorithms[aa.name] = aa
 
+        latest_concrete_versions = defaultdict(int)
         for ca in concrete_algorithms:
-            abstract = self.abstract_algorithms.get(ca.abstract_name, None)
             if tree_is_resolver:
+                abstract = self.abstract_algorithms.get(ca.abstract_name)
                 if abstract is None:
                     raise ValueError(
-                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements unregistered abstract algorithm {ca.abstract_name}"
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} "
+                        f"implements unregistered abstract algorithm {ca.abstract_name}"
                     )
-                self._normalize_concrete_algorithm_signature(abstract, ca)
+                if ca.version not in self.abstract_algorithm_versions[ca.abstract_name]:
+                    action = config["core.algorithm.unknown_concrete_version"]
+                    abstract_versions = ", ".join(
+                        map(
+                            str,
+                            sorted(self.abstract_algorithm_versions[ca.abstract_name]),
+                        )
+                    )
+                    message = (
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements "
+                        f"an unknown version of abstract algorithm {ca.abstract_name}.\n\n"
+                        f"The concrete version: {ca.version}.\n"
+                        f"Abstract versions: {abstract_versions}"
+                    )
+                    if action is None or action == "ignore":
+                        pass
+                    elif action == "warn":
+                        warnings.warn(message, AlgorithmWarning, stacklevel=2)
+                    elif action == "raise":
+                        raise ValueError(message)
+                    else:
+                        raise ValueError(
+                            "Unknown configuration for 'core.algorithm.unknown_concrete_version'.\n"
+                            f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
+                            + message
+                        )
+                latest_concrete_versions[ca.abstract_name] = max(
+                    ca.version, latest_concrete_versions[ca.abstract_name]
+                )
+                if ca.version == abstract.version:
+                    self._normalize_concrete_algorithm_signature(abstract, ca)
+                else:
+                    continue
             elif tree_is_plugin:
+                abstract = self.abstract_algorithms.get(ca.abstract_name)
+                if abstract is None or ca.version != abstract.version:
+                    continue
                 try:
                     tree.algos._register(ca.abstract_name, ca.func)
                 except NamespaceError:
@@ -343,12 +398,48 @@ class Resolver:
                 setattr(dispatcher, plugin_name, ca.func)
             tree.concrete_algorithms[ca.abstract_name].add(ca)
 
+        action = config["core.algorithms.outdated_concrete_version"]
+        if action is not None and action != "ignore":
+            for name, version in latest_concrete_versions.items():
+                if version < self.abstract_algorithms[name].version:
+                    message = (
+                        f"concrete algorithm {ca.func.__module__}.{ca.func.__qualname__} implements "
+                        f"an outdated version of abstract algorithm {ca.abstract_name}.\n\n"
+                        f"The latest concrete version is {ca.version}.\n"
+                        f"The latest abstract version is {abstract.version}."
+                    )
+                    if action == "warn":
+                        warnings.warn(message, AlgorithmWarning, stacklevel=2)
+                    elif action == "raise":
+                        raise ValueError(message)
+                    else:
+                        raise ValueError(
+                            "Unknown configuration for 'core.algorithm.outdated_concrete_version'.\n"
+                            f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
+                            + message
+                        )
+
     def _check_abstract_type(self, abst_algo, obj, msg):
+        if getattr(obj, "__origin__", None) == Union:
+            obj_args = getattr(obj, "__args__", None)
+            none_type = type(None)
+            if len(obj_args) == 2 and none_type in obj_args:
+                obj = obj_args[0] if none_type == obj_args[1] else obj_args[1]
         if obj is Any or obj is NodeID:
             return obj, False
+        if getattr(obj, "__origin__", None) == abc.Callable:
+            return (
+                obj,
+                False,
+            )  # TODO something more robust as they still might pass in a non-func
         if type(obj) is type:
             if issubclass(obj, AbstractType):
                 return obj(), True
+        elif hasattr(obj, "__origin__") and obj.__origin__ in {
+            abc.Callable,
+            Union,
+        }:
+            return obj, False
         elif not isinstance(obj, AbstractType):
             wrong_type_str = f"an instance of type {type(obj)}"
             # Improve messaging for typing module objects
@@ -379,7 +470,7 @@ class Resolver:
                 any_changed = True
             params_modified.append(p)
         # Normalize return type, which might be a tuple
-        if hasattr(ret, "__origin__") and ret.__origin__ == tuple:
+        if getattr(ret, "__origin__", None) == tuple:
             ret_modified = []
             for ret_sub in ret.__args__:
                 ret_sub, changed = self._check_abstract_type(
@@ -430,7 +521,7 @@ class Resolver:
         conc_params = list(conc_sig.parameters.values())
         if len(abst_params) != len(conc_params):
             raise TypeError(
-                f"number of parameters does not match between {abstract.func.__qualname__} and {concrete.func.__qualname__}"
+                f"number of parameters does not match between {abstract.name} and {concrete.func.__qualname__}"
             )
         for abst_param, conc_param in zip(abst_params, conc_params):
             # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
@@ -454,7 +545,9 @@ class Resolver:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
                     )
+                # TODO: handle Callable
             else:
+                # TODO: handle Union
                 if not issubclass(conc_type.abstract, abst_type.__class__):
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
@@ -536,9 +629,16 @@ class Resolver:
             raise TypeError(
                 f"Cannot assert_equal with different types: {type(type1)} != {type(type2)}"
             )
-        props1 = type1.get_typeinfo(obj1).known_props
-        props2 = type2.get_typeinfo(obj2).known_props
-        type1.assert_equal(obj1, obj2, props1, props2, rel_tol=rel_tol, abs_tol=abs_tol)
+        type1.assert_equal(
+            obj1,
+            obj2,
+            type1.get_typeinfo(obj1).known_abstract_props,
+            type2.get_typeinfo(obj2).known_abstract_props,
+            type1.get_typeinfo(obj1).known_concrete_props,
+            type2.get_typeinfo(obj2).known_concrete_props,
+            rel_tol=rel_tol,
+            abs_tol=abs_tol,
+        )
 
     def translate(self, value, dst_type, **props):
         """Convert a value to a new concrete type using translators"""

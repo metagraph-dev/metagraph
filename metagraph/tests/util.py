@@ -2,9 +2,10 @@ import os
 import sys
 import pytest
 import math
-from typing import List, Dict, Any
+from typing import List, Set, Dict, Any
 from collections import OrderedDict
 
+from metagraph import ConcreteType
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
 
@@ -40,7 +41,7 @@ class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
 
     @classmethod
     def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
@@ -59,7 +60,7 @@ class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
 
     @classmethod
     def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
@@ -82,26 +83,27 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
             return NotImplemented
         return self.value == other.value
 
-    @classmethod
-    def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
-    ) -> Dict[str, Any]:
+    class TypeMixin:
+        @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
 
-        value = obj.value
-        # only compute properties that were requested
-        ret = {}
-        for propname in props:
-            if propname == "positivity":
-                if value.startswith("-"):
-                    positivity = "any"
-                elif value == "0":
-                    positivity = ">=0"
-                else:
-                    positivity = ">0"
-                ret["positivity"] = positivity
-            elif propname == "divisible_by_two":
-                ret["divisible_by_two"] = int(value) % 2 == 0
-        return ret
+            value = obj.value
+            # only compute properties that were requested
+            ret = {}
+            for propname in props:
+                if propname == "positivity":
+                    if value.startswith("-"):
+                        positivity = "any"
+                    elif value == "0":
+                        positivity = ">=0"
+                    else:
+                        positivity = ">0"
+                    ret["positivity"] = positivity
+                elif propname == "divisible_by_two":
+                    ret["divisible_by_two"] = int(value) % 2 == 0
+            return ret
 
 
 class StrType(plugin.ConcreteType, abstract=MyAbstractType):

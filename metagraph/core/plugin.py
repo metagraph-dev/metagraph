@@ -117,6 +117,21 @@ class ConcreteType:
         # Property caches live with each ConcreteType, allowing them to be easily accessible
         # separate from the Resolver
         cls._typecache = TypeCache()
+        # Ensure ConcreteType.method decorators are used in ConcreteType class
+        # They are intended only to be used in a Wrapper class
+        for name, val in cls.__dict__.items():
+            if getattr(val, "_is_type_method", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.method` should only be used in a Wrapper class"
+                )
+            elif getattr(val, "_is_type_classmethod", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.classmethod` should only be used in a Wrapper class"
+                )
+            elif getattr(val, "_is_type_staticmethod", False):
+                raise TypeError(
+                    "Invalid decorator: `ConcreteType.staticmethod` should only be used in a Wrapper class"
+                )
 
     @classmethod
     def get_typeinfo(cls, value):
@@ -203,7 +218,7 @@ class ConcreteType:
 
     @classmethod
     def _compute_abstract_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         raise NotImplementedError(
             "Must override `_compute_abstract_properties` if type has abstract properties"
@@ -254,7 +269,7 @@ class ConcreteType:
         cls, obj, props: List[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         raise NotImplementedError(
-            "Must override `_compute_concrete_properties` if type has abstract properties"
+            "Must override `_compute_concrete_properties` if type has concrete properties"
         )
 
     @classmethod
@@ -317,7 +332,18 @@ class ConcreteType:
             raise TypeError(f"object not of type {cls.__name__}")
 
     @classmethod
-    def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
         """
         Compare whether obj1 and obj2 are equal, raising an AssertionError if not equal.
         rel_tol and abs_tol should be used when comparing floating point numbers
@@ -367,10 +393,6 @@ class Wrapper(metaclass=MetaWrapper):
     The auto-created ConcreteType will be attached as `.Type` onto the wrapper class.
     """
 
-    # These class attributes will be passed on to the created ConcreteType
-    allowed_props = {}  # default is no props
-    target = "cpu"  # key may be used in future to guide dispatch
-
     def __init_subclass__(cls, *, abstract=None, register=True):
         if not register:
             cls._abstract = abstract
@@ -386,36 +408,18 @@ class Wrapper(metaclass=MetaWrapper):
                     f"Wrong abstract type for wrapper: {abstract}, expected {implied_abstract}"
                 )
 
+        # Use TypeMixin class to create a new ConcreteType class; store as `.Type`
+        if not hasattr(cls, "TypeMixin") or type(cls.TypeMixin) is not type:
+            raise TypeError(
+                f"class {cls.__name__} does not define required `TypeMixin` inner class"
+            )
         cls.Type = types.new_class(
-            f"{cls.__name__}Type", (ConcreteType,), {"abstract": abstract}
+            f"{cls.__name__}Type", (cls.TypeMixin, ConcreteType), {"abstract": abstract}
         )
         cls.Type.__module__ = cls.__module__
         cls.Type.__doc__ = cls.__doc__
-        # Copy objects and methods from wrapper to Type class
+        # Point new Type class at this wrapper
         cls.Type.value_type = cls
-        cls.Type.allowed_props = cls.allowed_props
-        cls.Type.target = cls.target
-        for funcname in ["is_satisfied_by", "is_satisfied_by_value"]:
-            if hasattr(cls, funcname):
-                func = getattr(cls, funcname)
-                setattr(cls.Type, funcname, func)
-                delattr(cls, funcname)
-        for methodname in [
-            "is_typeclass_of",
-            "_compute_abstract_properties",
-            "_compute_concrete_properties",
-            "get_type",
-            "assert_equal",
-        ]:
-            if hasattr(cls, methodname):
-                func = getattr(cls, methodname).__func__
-                setattr(cls.Type, methodname, classmethod(func))
-                delattr(cls, methodname)
-        for sfuncname in []:
-            if hasattr(cls, sfuncname):
-                func = getattr(cls, sfuncname)
-                setattr(cls.Type, sfuncname, staticmethod(func))
-                delattr(cls, sfuncname)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):
@@ -423,7 +427,11 @@ class Wrapper(metaclass=MetaWrapper):
             if err_msg:
                 raise TypeError(err_msg)
             else:
-                raise TypeError(f"{obj} is not an instance of {klass.__name__}")
+                if type(klass) is tuple:
+                    name = tuple(kls.__name__ for kls in klass)
+                else:
+                    name = klass.__name__
+                raise TypeError(f"{obj} is not an instance of {name}")
 
     @staticmethod
     def _assert(cond, err_msg):
@@ -498,19 +506,21 @@ class AbstractAlgorithm:
     Abstract algorithms should have empty function bodies.
     """
 
-    def __init__(self, func: Callable, name: str):
+    def __init__(self, func: Callable, name: str, *, version: int = 0):
         self.func = func
         self.name = name
+        self.version = version
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
         self.__signature__ = inspect.signature(self.func)
 
 
-def abstract_algorithm(name: str):
+def abstract_algorithm(name: str, *, version: int = 0):
     def _abstract_decorator(func: Callable):
-        return AbstractAlgorithm(func=func, name=name)
+        return AbstractAlgorithm(func=func, name=name, version=version)
 
+    _abstract_decorator.version = version
     return _abstract_decorator
 
 
@@ -522,9 +532,10 @@ class ConcreteAlgorithm:
     types (which are not converted) must match exactly.
     """
 
-    def __init__(self, func: Callable, abstract_name: str):
+    def __init__(self, func: Callable, abstract_name: str, *, version: int = 0):
         self.func = func
         self.abstract_name = abstract_name
+        self.version = version
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
@@ -534,8 +545,11 @@ class ConcreteAlgorithm:
         return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name: str):
+def concrete_algorithm(abstract_name: str, *, version: int = 0):
     def _concrete_decorator(func: Callable):
-        return ConcreteAlgorithm(func=func, abstract_name=abstract_name)
+        return ConcreteAlgorithm(
+            func=func, abstract_name=abstract_name, version=version
+        )
 
+    _concrete_decorator.version = version
     return _concrete_decorator
