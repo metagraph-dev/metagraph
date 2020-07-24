@@ -1,92 +1,12 @@
 import pytest
-from metagraph.plugins.networkx.types import NetworkXEdgeMap, NetworkXEdgeSet
 from metagraph.plugins.pandas.types import PandasEdgeMap, PandasEdgeSet
 from metagraph.plugins.graphblas.types import GrblasEdgeMap
 from metagraph.plugins.scipy.types import ScipyEdgeMap
 from metagraph import NodeLabels
-import networkx as nx
 import pandas as pd
 import grblas
 import scipy.sparse as ss
 import numpy as np
-
-
-def test_networkx():
-    # 0 -> 0 (weight=1)
-    # 0 -> 1 (weight=2)
-    # 1 -> 1 (weight=0)
-    # 1 -> 2 (weight=3)
-    # 2 -> 1 (weight=3)
-    g_int = nx.DiGraph()
-    g_int.add_weighted_edges_from(
-        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3), (2, 1, 3)]
-    )
-    g_float = nx.DiGraph()
-    g_float.add_weighted_edges_from(
-        [(0, 0, 1.0), (0, 1, 2.0), (1, 1, 0.0), (1, 2, 3.0), (2, 1, 3.0),]
-    )
-    NetworkXEdgeMap.Type.assert_equal(
-        NetworkXEdgeMap(g_int), NetworkXEdgeMap(g_int.copy()), {}, {}
-    )
-    g_close = g_float.copy()
-    g_close.edges[(0, 0)]["weight"] = 1.0000000000001
-    NetworkXEdgeMap.Type.assert_equal(
-        NetworkXEdgeMap(g_close), NetworkXEdgeMap(g_float), {}, {}
-    )
-    g_diff1 = nx.DiGraph()
-    g_diff1.add_weighted_edges_from(
-        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3), (2, 1, 333)]
-    )
-    with pytest.raises(AssertionError):
-        NetworkXEdgeMap.Type.assert_equal(
-            NetworkXEdgeMap(g_int), NetworkXEdgeMap(g_diff1), {}, {}
-        )
-    # Edgesets ignore weights
-    NetworkXEdgeSet.Type.assert_equal(
-        NetworkXEdgeSet(g_int), NetworkXEdgeSet(g_diff1), {}, {},
-    )
-    g_diff2 = nx.DiGraph()
-    g_diff2.add_weighted_edges_from(
-        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3), (2, 0, 3)]
-    )
-    with pytest.raises(AssertionError):
-        NetworkXEdgeMap.Type.assert_equal(
-            NetworkXEdgeMap(g_int), NetworkXEdgeMap(g_diff2), {}, {}
-        )
-    g_extra = nx.DiGraph()
-    g_extra.add_weighted_edges_from(
-        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3), (2, 1, 3), (2, 0, 2),]
-    )
-    with pytest.raises(AssertionError):
-        NetworkXEdgeMap.Type.assert_equal(
-            NetworkXEdgeMap(g_int), NetworkXEdgeMap(g_extra), {}, {}
-        )
-    # Undirected vs Directed
-    g_undir = nx.Graph()
-    g_undir.add_weighted_edges_from([(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3)])
-    g_dir = nx.DiGraph()
-    g_dir.add_weighted_edges_from([(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3)])
-    with pytest.raises(AssertionError):
-        NetworkXEdgeMap.Type.assert_equal(
-            NetworkXEdgeMap(g_undir),
-            NetworkXEdgeMap(g_dir),
-            {"is_directed": False},
-            {"is_directed": True},
-        )
-    NetworkXEdgeMap.Type.assert_equal(
-        NetworkXEdgeMap(g_undir), NetworkXEdgeMap(g_undir), {}, {}
-    )
-    # Different weight_label
-    g_wgt = nx.DiGraph()
-    g_wgt.add_weighted_edges_from(
-        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3), (2, 1, 3)], weight="WGT",
-    )
-    NetworkXEdgeMap.Type.assert_equal(
-        NetworkXEdgeMap(g_int, weight_label="weight"),
-        NetworkXEdgeMap(g_wgt, weight_label="WGT"),
-        {},
-        {},
-    )
 
 
 def test_pandas_edge():
@@ -95,6 +15,8 @@ def test_pandas_edge():
     # B -> B (weight=0)
     # B -> C (weight=3)
     # C -> B (weight=3)
+    iprops = {"is_directed": True, "dtype": "int"}
+    fprops = {"is_directed": True, "dtype": "float"}
     df = pd.DataFrame(
         {
             "source": ["A", "A", "B", "B", "C"],
@@ -102,28 +24,43 @@ def test_pandas_edge():
             "weight": [1, 2, 0, 3, 3],
         }
     )
-    PandasEdgeMap.Type.assert_equal(PandasEdgeMap(df), PandasEdgeMap(df.copy()), {}, {})
+    PandasEdgeMap.Type.assert_equal(
+        PandasEdgeMap(df), PandasEdgeMap(df.copy()), iprops, iprops, {}, {}
+    )
     df_float = df.copy()
     df_float["weight"] = df_float["weight"].astype(np.float64)
     df_close = df_float.copy()
     df_close.loc[0, "weight"] = 1.0000000000001
     PandasEdgeMap.Type.assert_equal(
-        PandasEdgeMap(df_close), PandasEdgeMap(df_float), {}, {}
+        PandasEdgeMap(df_close), PandasEdgeMap(df_float), fprops, fprops, {}, {}
     )
     diff1 = df.copy()
     diff1.loc[4, "weight"] = 333
     with pytest.raises(AssertionError):
-        PandasEdgeMap.Type.assert_equal(PandasEdgeMap(df), PandasEdgeMap(diff1), {}, {})
+        PandasEdgeMap.Type.assert_equal(
+            PandasEdgeMap(df), PandasEdgeMap(diff1), iprops, iprops, {}, {}
+        )
     # Edgesets ignore weights
-    PandasEdgeSet.Type.assert_equal(PandasEdgeSet(df), PandasEdgeSet(diff1), {}, {})
+    PandasEdgeSet.Type.assert_equal(
+        PandasEdgeSet(df),
+        PandasEdgeSet(diff1),
+        {"is_directed": True},
+        {"is_directed": True},
+        {},
+        {},
+    )
     diff2 = df.copy()
     diff2.loc[4, "target"] = "A"
     with pytest.raises(AssertionError):
-        PandasEdgeMap.Type.assert_equal(PandasEdgeMap(df), PandasEdgeMap(diff2), {}, {})
+        PandasEdgeMap.Type.assert_equal(
+            PandasEdgeMap(df), PandasEdgeMap(diff2), iprops, iprops, {}, {}
+        )
     extra = df.copy()
     extra = extra.append(pd.Series([2], index=["weight"], name=("C", "A")))
     with pytest.raises(AssertionError):
-        PandasEdgeMap.Type.assert_equal(PandasEdgeMap(df), PandasEdgeMap(extra), {}, {})
+        PandasEdgeMap.Type.assert_equal(
+            PandasEdgeMap(df), PandasEdgeMap(extra), iprops, iprops, {}, {}
+        )
     # Undirected vs Directed
     with pytest.raises(AssertionError):
         PandasEdgeMap.Type.assert_equal(
@@ -131,12 +68,16 @@ def test_pandas_edge():
             PandasEdgeMap(df, is_directed=False),
             {"is_directed": True},
             {"is_directed": False},
+            {},
+            {},
         )
     PandasEdgeMap.Type.assert_equal(
         PandasEdgeMap(df, is_directed=False),
         PandasEdgeMap(df, is_directed=False),
-        {"is_directed": False},
-        {"is_directed": False},
+        {**iprops, "is_directed": False},
+        {**iprops, "is_directed": False},
+        {},
+        {},
     )
     # Different weight_label
     wgt = df.copy()
@@ -144,15 +85,19 @@ def test_pandas_edge():
     PandasEdgeMap.Type.assert_equal(
         PandasEdgeMap(df, weight_label="weight"),
         PandasEdgeMap(wgt, weight_label="WGT"),
+        iprops,
+        iprops,
         {},
         {},
     )
 
 
-def test_graphblas_adj():
+def test_graphblas():
     # [1 2  ]
     # [  0 3]
     # [  3  ]
+    iprops = {"is_directed": True, "dtype": "int"}
+    fprops = {"is_directed": True, "dtype": "float"}
     g_int = grblas.Matrix.from_values(
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], dtype=grblas.dtypes.INT64
     )
@@ -160,19 +105,19 @@ def test_graphblas_adj():
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], dtype=grblas.dtypes.FP64
     )
     GrblasEdgeMap.Type.assert_equal(
-        GrblasEdgeMap(g_int), GrblasEdgeMap(g_int.dup()), {}, {}
+        GrblasEdgeMap(g_int), GrblasEdgeMap(g_int.dup()), iprops, iprops, {}, {}
     )
     g_close = g_float.dup()
     g_close[0, 0] = 1.0000000000001
     GrblasEdgeMap.Type.assert_equal(
-        GrblasEdgeMap(g_close), GrblasEdgeMap(g_float), {}, {}
+        GrblasEdgeMap(g_close), GrblasEdgeMap(g_float), fprops, fprops, {}, {}
     )
     g_diff = grblas.Matrix.from_values(
         [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 3, 0, 3, 3]
     )  # change is here                     ^^^
     with pytest.raises(AssertionError):
         GrblasEdgeMap.Type.assert_equal(
-            GrblasEdgeMap(g_int), GrblasEdgeMap(g_diff), {}, {}
+            GrblasEdgeMap(g_int), GrblasEdgeMap(g_diff), iprops, iprops, {}, {}
         )
     with pytest.raises(AssertionError):
         GrblasEdgeMap.Type.assert_equal(
@@ -182,6 +127,8 @@ def test_graphblas_adj():
                     [0, 0, 1, 1, 2], [0, 1, 1, 2, 0], [1, 2, 0, 3, 3]
                 )  # change is here              ^^^
             ),
+            iprops,
+            iprops,
             {},
             {},
         )
@@ -193,6 +140,8 @@ def test_graphblas_adj():
                     [0, 0, 1, 1, 2, 2], [0, 1, 1, 2, 1, 2], [1, 2, 0, 3, 3, 0]
                 )  # extra element ^^^                 ^^^                 ^^^
             ),
+            iprops,
+            iprops,
             {},
             {},
         )
@@ -205,6 +154,8 @@ def test_graphblas_adj():
             ),
             transposed=True,
         ),
+        iprops,
+        iprops,
         {},
         {},
     )
@@ -213,21 +164,27 @@ def test_graphblas_adj():
         GrblasEdgeMap(
             grblas.Matrix.from_values([0, 1, 1, 1, 2], [0, 0, 1, 2, 1], [1, 2, 0, 3, 3])
         ),
+        iprops,
+        iprops,
         {},
         {},
     )
     GrblasEdgeMap.Type.assert_equal(
         GrblasEdgeMap(g_int, transposed=True),
         GrblasEdgeMap(g_int, transposed=True),
+        iprops,
+        iprops,
         {},
         {},
     )
 
 
-def test_scipy_adj():
+def test_scipy():
     # [1 2  ]
     # [  0 3]
     # [  3  ]
+    iprops = {"is_directed": True, "dtype": "int"}
+    fprops = {"is_directed": True, "dtype": "float"}
     g_int = ss.coo_matrix(
         ([1, 2, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 1])), dtype=np.int64
     )
@@ -235,17 +192,19 @@ def test_scipy_adj():
         ([1, 2, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 1])), dtype=np.float64
     )
     ScipyEdgeMap.Type.assert_equal(
-        ScipyEdgeMap(g_int), ScipyEdgeMap(g_int.copy().tocsr()), {}, {}
+        ScipyEdgeMap(g_int), ScipyEdgeMap(g_int.copy().tocsr()), iprops, iprops, {}, {}
     )
     g_close = g_float.tocsr()
     g_close[0, 0] = 1.0000000000001
-    ScipyEdgeMap.Type.assert_equal(ScipyEdgeMap(g_close), ScipyEdgeMap(g_float), {}, {})
+    ScipyEdgeMap.Type.assert_equal(
+        ScipyEdgeMap(g_close), ScipyEdgeMap(g_float), fprops, fprops, {}, {}
+    )
     g_diff = ss.coo_matrix(
         ([1, 3, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 1]))
     )  # -  ^^^ changed
     with pytest.raises(AssertionError):
         ScipyEdgeMap.Type.assert_equal(
-            ScipyEdgeMap(g_int), ScipyEdgeMap(g_diff), {}, {}
+            ScipyEdgeMap(g_int), ScipyEdgeMap(g_diff), iprops, iprops, {}, {}
         )
     with pytest.raises(AssertionError):
         ScipyEdgeMap.Type.assert_equal(
@@ -255,6 +214,8 @@ def test_scipy_adj():
                     ([1, 2, 0, 3, 3], ([0, 0, 1, 1, 2], [0, 1, 1, 2, 0]))
                 )  # change is here                                 ^^^
             ),
+            iprops,
+            iprops,
             {},
             {},
         )
@@ -266,16 +227,28 @@ def test_scipy_adj():
                     ([1, 2, 0, 3, 3, 0], ([0, 0, 1, 1, 2, 2], [0, 1, 1, 2, 1, 2]))
                 )  # extra element  ^^^                  ^^^                 ^^^
             ),
+            iprops,
+            iprops,
             {},
             {},
         )
     # Node index affects comparison
     ScipyEdgeMap.Type.assert_equal(
-        ScipyEdgeMap(g_int, [0, 2, 7]), ScipyEdgeMap(g_int, [0, 2, 7]), {}, {}
+        ScipyEdgeMap(g_int, [0, 2, 7]),
+        ScipyEdgeMap(g_int, [0, 2, 7]),
+        iprops,
+        iprops,
+        {},
+        {},
     )
     with pytest.raises(AssertionError):
         ScipyEdgeMap.Type.assert_equal(
-            ScipyEdgeMap(g_int, [0, 2, 7]), ScipyEdgeMap(g_int, [0, 1, 2]), {}, {}
+            ScipyEdgeMap(g_int, [0, 2, 7]),
+            ScipyEdgeMap(g_int, [0, 1, 2]),
+            iprops,
+            iprops,
+            {},
+            {},
         )
     # Transposed
     ScipyEdgeMap.Type.assert_equal(
@@ -284,6 +257,8 @@ def test_scipy_adj():
             ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1]))),
             transposed=True,
         ),
+        iprops,
+        iprops,
         {},
         {},
     )
@@ -292,12 +267,16 @@ def test_scipy_adj():
         ScipyEdgeMap(
             ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1])))
         ),
+        iprops,
+        iprops,
         {},
         {},
     )
     ScipyEdgeMap.Type.assert_equal(
         ScipyEdgeMap(g_int, transposed=True),
         ScipyEdgeMap(g_int, transposed=True),
+        iprops,
+        iprops,
         {},
         {},
     )

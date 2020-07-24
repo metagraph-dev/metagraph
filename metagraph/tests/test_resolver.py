@@ -10,7 +10,13 @@ from metagraph import (
     concrete_algorithm,
 )
 from metagraph.core.plugin_registry import PluginRegistry
-from metagraph.core.resolver import Resolver, Namespace, Dispatcher, NamespaceError
+from metagraph.core.resolver import (
+    Resolver,
+    Namespace,
+    Dispatcher,
+    NamespaceError,
+    AlgorithmWarning,
+)
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
 from typing import Tuple, List, Any
@@ -146,17 +152,20 @@ def test_register_errors():
     with pytest.raises(TypeError, match='argument "a" may not be typing.List'):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_input_type)
-        res.register(registry.plugins)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
 
     with pytest.raises(TypeError, match="return type may not be an instance of"):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_output_type)
-        res.register(registry.plugins)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
 
     with pytest.raises(TypeError, match="return type may not be typing.List"):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_compound_output_type)
-        res.register(registry.plugins)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
 
     @concrete_algorithm("testing.does_not_exist")
     def my_algo3(a: Abstract1) -> Abstract2:  # pragma: no cover
@@ -604,29 +613,28 @@ def test_plugin_specific_concrete_algorithms():
     # 0 - 1    5 - 6
     # | X |    | /
     # 3 - 4 -- 2 - 7
-    # TODO: change this to an EdgeSet once triangle count signature is updated
     simple_graph_data = [
-        [0, 1, 1],
-        [0, 3, 1],
-        [0, 4, 1],
-        [1, 3, 1],
-        [1, 4, 1],
-        [2, 4, 1],
-        [2, 5, 1],
-        [2, 6, 1],
-        [3, 4, 1],
-        [5, 6, 1],
-        [6, 7, 1],
+        [0, 1],
+        [0, 3],
+        [0, 4],
+        [1, 3],
+        [1, 4],
+        [2, 4],
+        [2, 5],
+        [2, 6],
+        [3, 4],
+        [5, 6],
+        [6, 7],
     ]
     simple_graph = nx.Graph()
-    simple_graph.add_weighted_edges_from(simple_graph_data)
-    graph = r.wrappers.EdgeMap.NetworkXEdgeMap(simple_graph)
+    simple_graph.add_edges_from(simple_graph_data)
+    graph = r.wrappers.Graph.NetworkXGraph(simple_graph)
     assert r.algos.cluster.triangle_count(graph) == 5
     assert r.plugins.core_networkx.algos.cluster.triangle_count(graph) == 5
     assert r.algos.cluster.triangle_count.core_networkx(graph) == 5
 
 
-def test_duplciate_plugin():
+def test_duplicate_plugin():
     class AbstractType1(AbstractType):
         pass
 
@@ -723,6 +731,18 @@ def test_invalid_plugin_names():
         res.register({invalid_plugin_name: {"abstract_types": {Abstract1}}})
 
 
+def test_wrapper_mixing_required():
+    class Abstract1(AbstractType):
+        pass
+
+    with pytest.raises(
+        TypeError, match="does not define required `TypeMixin` inner class"
+    ):
+
+        class Wrapper1(Wrapper, abstract=Abstract1):
+            pass
+
+
 def test_wrapper_insufficient_properties():
     class TestNodes(AbstractType):
         @Wrapper.required_method
@@ -739,11 +759,17 @@ def test_wrapper_insufficient_properties():
             def num_nodes(self):
                 return "dummy"
 
+            class TypeMixin:
+                pass
+
     with pytest.raises(TypeError, match="is missing required wrapper property"):
 
         class Wrapper1(Wrapper, abstract=TestNodes):
             def __getitem__(self, label):
                 return "dummy"
+
+            class TypeMixin:
+                pass
 
     with pytest.raises(TypeError, match="must be a property, not"):
 
@@ -752,3 +778,113 @@ def test_wrapper_insufficient_properties():
 
             def __getitem__(self, label):
                 return "dummy"
+
+            class TypeMixin:
+                pass
+
+
+def test_algorithm_versions():
+    @abstract_algorithm("test_algorithm_versions.test_abstract_algo")
+    def abstract_algo1(input_int: int):
+        pass
+
+    @abstract_algorithm("test_algorithm_versions.test_abstract_algo", version=1)
+    def abstract_algo2(input_int: int):
+        pass
+
+    @concrete_algorithm("test_algorithm_versions.test_abstract_algo")
+    def concrete_algo1(input_int: int):
+        pass
+
+    @concrete_algorithm("test_algorithm_versions.test_abstract_algo", version=1)
+    def concrete_algo2(input_int: int):
+        pass
+
+    # Sanity check
+    res = Resolver()
+    res.register(
+        {
+            "test_algorithm_versions1": {
+                "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                "concrete_algorithms": {concrete_algo1, concrete_algo2},
+            }
+        }
+    )
+    assert (
+        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1.__name__
+        == "concrete_algo2"
+    )
+
+    # Unknown concrete, raise
+    with pytest.raises(ValueError, match="implements an unknown version"):
+        with config.set({"core.algorithm.unknown_concrete_version": "raise"}):
+            res = Resolver()
+            res.register(
+                {
+                    "test_algorithm_versions1": {
+                        "abstract_algorithms": {abstract_algo1},
+                        "concrete_algorithms": {concrete_algo1, concrete_algo2},
+                    }
+                }
+            )
+
+    # Unknown concrete, use version 0
+    with config.set({"core.algorithm.unknown_concrete_version": "ignore"}):
+        res = Resolver()
+        res.register(
+            {
+                "test_algorithm_versions1": {
+                    "abstract_algorithms": {abstract_algo1},
+                    "concrete_algorithms": {concrete_algo1, concrete_algo2},
+                }
+            }
+        )
+    assert (
+        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1.__name__
+        == "concrete_algo1"
+    )
+
+    # Outdated concrete, raise
+    with pytest.raises(
+        ValueError, match="implements an outdated version of abstract algorithm"
+    ):
+        with config.set({"core.algorithms.outdated_concrete_version": "raise"}):
+            res = Resolver()
+            res.register(
+                {
+                    "test_algorithm_versions1": {
+                        "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                        "concrete_algorithms": {concrete_algo1},
+                    }
+                }
+            )
+
+    # Outdated concrete, ignore b/c/ not the latest
+    with config.set({"core.algorithms.outdated_concrete_version": None}):
+        res = Resolver()
+        res.register(
+            {
+                "test_algorithm_versions1": {
+                    "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                    "concrete_algorithms": {concrete_algo1},
+                }
+            }
+        )
+    assert not hasattr(
+        res.algos.test_algorithm_versions.test_abstract_algo, "test_algorithm_versions1"
+    )
+
+    # Outdated concrete, warn
+    with pytest.warns(
+        AlgorithmWarning, match="implements an outdated version of abstract algorithm"
+    ):
+        with config.set({"core.algorithms.outdated_concrete_version": "warn"}):
+            res = Resolver()
+            res.register(
+                {
+                    "test_algorithm_versions1": {
+                        "abstract_algorithms": {abstract_algo1, abstract_algo2},
+                        "concrete_algorithms": {concrete_algo1},
+                    }
+                }
+            )

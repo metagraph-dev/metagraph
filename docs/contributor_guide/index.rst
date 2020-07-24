@@ -2,10 +2,10 @@
 
     PageBreak
 
-.. _core_developer_guide:
+.. _contributor_guide:
 
-Core Developer Guide
-=====================
+Contributor Guide
+=================
 
 This guide is intended to go over guidelines for contributing to Metagraph.
 

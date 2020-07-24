@@ -34,9 +34,18 @@ try:
     import grblas as _grblas
 
     _grblas.init("suitesparse")
+    import grblas.dtypes  # remove once new version of grblas auto-imports this
+
     has_grblas = True
 except ImportError:  # pragma: no cover
     has_grblas = False
+
+try:
+    import numba as _
+
+    has_numba = True
+except ImportError:  # pragma: no cover
+    has_numba = False
 
 ################
 # Load Plugins #

@@ -17,7 +17,8 @@ class CPUHyperGraphType(ConcreteType, abstract=HyperGraphType):
 
 
 class GPUHyperGraph(Wrapper, abstract=HyperGraphType):
-    pass
+    class TypeMixin:
+        pass
 
 
 @translator

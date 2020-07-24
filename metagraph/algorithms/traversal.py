@@ -1,27 +1,43 @@
 from metagraph import abstract_algorithm
-from metagraph.types import EdgeSet, EdgeMap, Vector, NodeMap, NodeID
-from typing import Any, Tuple
+from metagraph.types import Graph, Vector, NodeMap, NodeID
+from typing import Tuple
 
 
 @abstract_algorithm("traversal.bellman_ford")
-def bellman_ford(graph: EdgeMap, source_node: NodeID) -> Tuple[NodeMap, NodeMap]:
+def bellman_ford(
+    graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID
+) -> Tuple[NodeMap, NodeMap]:
     pass
 
 
-@abstract_algorithm("traversal.all_shortest_paths")
-def all_shortest_paths(graph: EdgeMap) -> Tuple[EdgeMap, EdgeMap]:
+@abstract_algorithm("traversal.all_pairs_shortest_paths")
+def all_pairs_shortest_paths(
+    graph: Graph(edge_type="map", edge_dtype={"int", "float"})
+) -> Tuple[Graph, Graph]:
     pass
 
 
-@abstract_algorithm("traversal.breadth_first_search")
-def breadth_first_search(graph: EdgeSet, source_node: NodeID) -> Vector:
+@abstract_algorithm("traversal.bfs_iter")
+def breadth_first_search_iterator(
+    graph: Graph, source_node: NodeID, depth_limit: int = -1
+) -> Vector:
+    """Output is NodeID"""
+    pass
+
+
+@abstract_algorithm("traversal.bfs_tree")
+def breadth_first_search_tree(
+    graph: Graph, source_node: NodeID, depth_limit: int = -1
+) -> Tuple[NodeMap, NodeMap]:
+    """Output is (Depth, Parents)"""
     pass
 
 
 @abstract_algorithm("traversal.dijkstra")
 def dijkstra(
-    graph: EdgeMap(has_negative_weights=False),
+    graph: Graph(
+        edge_has_negative_weights=False, edge_type="map", edge_dtype={"int", "float"}
+    ),
     source_node: NodeID,
-    max_path_length: float,
 ) -> Tuple[NodeMap, NodeMap]:
     pass

@@ -1,14 +1,15 @@
 from metagraph import ConcreteType, dtypes
-from metagraph.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap
+from metagraph.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap, Graph
 from metagraph.wrappers import (
     NodeSetWrapper,
     NodeMapWrapper,
     EdgeSetWrapper,
     EdgeMapWrapper,
+    CompositeGraphWrapper,
 )
 from metagraph.plugins import has_grblas
 
-from typing import List, Dict, Any
+from typing import Set, Dict, Any
 
 
 if has_grblas:
@@ -35,7 +36,7 @@ if has_grblas:
 
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -51,8 +52,19 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             if obj1.dtype.name in {"FP32", "FP64"}:
                 assert obj1.isclose(
                     obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
@@ -65,17 +77,38 @@ if has_grblas:
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
-        @classmethod
-        def assert_equal(
-            cls, obj1, obj2, props1, props2, *, rel_tol=None, abs_tol=None
-        ):
-            v1, v2 = obj1.value, obj2.value
-            assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
-            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
-            # Compare
-            shape_match = obj1.value.ewise_mult(obj2.value, grblas.binary.pair).new()
-            assert shape_match.nvals == v1.nvals, f"node ids do not match"
+        @property
+        def num_nodes(self):
+            return len(self.value)
+
+        def __contains__(self, key):
+            return 0 <= key < len(self.value) and self.value[key].value is not None
+
+        class TypeMixin:
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=None,
+                abs_tol=None,
+            ):
+                v1, v2 = obj1.value, obj2.value
+                assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
+                assert (
+                    v1.nvals == v2.nvals
+                ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
+                assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+                # Compare
+                shape_match = obj1.value.ewise_mult(
+                    obj2.value, grblas.binary.pair
+                ).new()
+                assert shape_match.nvals == v1.nvals, f"node ids do not match"
 
     class GrblasNodeMap(NodeMapWrapper, abstract=NodeMap):
         def __init__(self, data):
@@ -89,39 +122,58 @@ if has_grblas:
         def num_nodes(self):
             return self.value.nvals
 
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
+        def __contains__(self, key):
+            return 0 <= key < len(self.value) and self.value[key].value is not None
 
-            # fast properties
-            for prop in {"dtype"} - ret.keys():
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[
-                        dtype_grblas_to_mg[obj.value.dtype.name]
-                    ]
+        class TypeMixin:
+            @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ret = known_props.copy()
 
-            return ret
+                # fast properties
+                for prop in {"dtype"} - ret.keys():
+                    if prop == "dtype":
+                        ret[prop] = dtypes.dtypes_simplified[
+                            dtype_grblas_to_mg[obj.value.dtype.name]
+                        ]
 
-        @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            v1, v2 = obj1.value, obj2.value
-            assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
-            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
-            # Compare
-            if v1.dtype.name in {"FP32", "FP64"}:
-                assert obj1.value.isclose(obj2.value, rel_tol=rel_tol, abs_tol=abs_tol)
-            else:
-                assert obj1.value.isequal(obj2.value)
+                return ret
+
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=1e-9,
+                abs_tol=0.0,
+            ):
+                v1, v2 = obj1.value, obj2.value
+                assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
+                assert (
+                    v1.nvals == v2.nvals
+                ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
+                assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+                # Compare
+                if v1.dtype.name in {"FP32", "FP64"}:
+                    assert obj1.value.isclose(
+                        obj2.value, rel_tol=rel_tol, abs_tol=abs_tol
+                    )
+                else:
+                    assert obj1.value.isequal(obj2.value)
 
     class GrblasMatrixType(ConcreteType, abstract=Matrix):
         value_type = grblas.Matrix
 
         @classmethod
         def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
         ) -> Dict[str, Any]:
             ret = known_props.copy()
 
@@ -144,8 +196,19 @@ if has_grblas:
             return ret
 
         @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
             if obj1.dtype.name in {"FP32", "FP64"}:
                 assert obj1.isclose(
                     obj2, rel_tol=rel_tol, abs_tol=abs_tol, check_dtype=True
@@ -165,31 +228,45 @@ if has_grblas:
         def show(self):
             return self.value.show()
 
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
+        class TypeMixin:
+            @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ret = known_props.copy()
 
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "is_directed":
-                    ret[prop] = obj.value != obj.value.T.new()
+                # slow properties, only compute if asked
+                for prop in props - ret.keys():
+                    if prop == "is_directed":
+                        ret[prop] = not obj.value.isequal(obj.value.T.new())
 
-            return ret
+                return ret
 
-        @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            v1, v2 = obj1.value, obj2.value
-            assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
-            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
-            # Handle transposed states
-            d1 = v1.T if obj1.transposed else v1
-            d2 = v2.T if obj2.transposed else v2
-            # Compare
-            shape_match = d1.ewise_mult(d2, grblas.binary.pair).new()
-            assert shape_match.nvals == v1.nvals, f"edges do not match"
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=1e-9,
+                abs_tol=0.0,
+            ):
+                v1, v2 = obj1.value, obj2.value
+                assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
+                assert (
+                    v1.nvals == v2.nvals
+                ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
+                assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+                # Handle transposed states
+                d1 = v1.T if obj1.transposed else v1
+                d2 = v2.T if obj2.transposed else v2
+                # Compare
+                shape_match = d1.ewise_mult(d2, grblas.binary.pair).new()
+                assert shape_match.nvals == v1.nvals, f"edges do not match"
 
     class GrblasEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         def __init__(
@@ -203,47 +280,75 @@ if has_grblas:
         def show(self):
             return self.value.show()
 
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: List[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
+        class TypeMixin:
+            @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ret = known_props.copy()
 
-            # fast properties
-            for prop in {"dtype"} - ret.keys():
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[
-                        dtype_grblas_to_mg[obj.value.dtype.name]
-                    ]
+                # fast properties
+                for prop in {"dtype"} - ret.keys():
+                    if prop == "dtype":
+                        ret[prop] = dtypes.dtypes_simplified[
+                            dtype_grblas_to_mg[obj.value.dtype.name]
+                        ]
 
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "is_directed":
-                    ret[prop] = obj.value != obj.value.T.new()
-                if prop == "has_negative_weights":
-                    if ret["dtype"] in {"bool", "str"}:
-                        neg_weights = None
-                    else:
-                        min_val = obj.value.reduce_scalar(grblas.monoid.min).new().value
-                        if min_val < 0:
-                            neg_weights = True
+                # slow properties, only compute if asked
+                for prop in props - ret.keys():
+                    if prop == "is_directed":
+                        ret[prop] = not obj.value.isequal(obj.value.T.new())
+                    if prop == "has_negative_weights":
+                        if ret["dtype"] in {"bool", "str"}:
+                            neg_weights = None
                         else:
-                            neg_weights = False
-                    ret[prop] = neg_weights
+                            min_val = (
+                                obj.value.reduce_scalar(grblas.monoid.min).new().value
+                            )
+                            if min_val < 0:
+                                neg_weights = True
+                            else:
+                                neg_weights = False
+                        ret[prop] = neg_weights
 
-            return ret
+                return ret
 
-        @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            v1, v2 = obj1.value, obj2.value
-            assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
-            assert v1.nvals == v2.nvals, f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
-            assert props1 == props2, f"property mismatch: {props1} != {props2}"
-            # Handle transposed states
-            d1 = v1.T if obj1.transposed else v1
-            d2 = v2.T if obj2.transposed else v2
-            # Compare
-            if v1.dtype.name in {"FP32", "FP64"}:
-                assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
-            else:
-                assert d1.isequal(d2)
+            @classmethod
+            def assert_equal(
+                cls,
+                obj1,
+                obj2,
+                aprops1,
+                aprops2,
+                cprops1,
+                cprops2,
+                *,
+                rel_tol=1e-9,
+                abs_tol=0.0,
+            ):
+                v1, v2 = obj1.value, obj2.value
+                assert v1.nrows == v2.nrows, f"size mismatch: {v1.nrows} != {v2.nrows}"
+                assert (
+                    v1.nvals == v2.nvals
+                ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
+                assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+                # Handle transposed states
+                d1 = v1.T if obj1.transposed else v1
+                d2 = v2.T if obj2.transposed else v2
+                # Compare
+                if v1.dtype.name in {"FP32", "FP64"}:
+                    assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
+                else:
+                    assert d1.isequal(d2)
+
+    class GrblasGraph(CompositeGraphWrapper, abstract=Graph):
+        def __init__(self, edges, nodes=None):
+            # Auto convert simple matrix to EdgeMap
+            # Anything more complicated requires explicit creation of the EdgeMap or EdgeSet
+            if isinstance(edges, grblas.Matrix):
+                edges = GrblasEdgeMap(edges)
+
+            super().__init__(edges, nodes)
+            self._assert_instance(edges, (GrblasEdgeSet, GrblasEdgeMap))
+            if nodes is not None:
+                self._assert_instance(nodes, (GrblasNodeSet, GrblasNodeMap))
