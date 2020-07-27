@@ -39,14 +39,24 @@ def nodemap_reduce(x: NodeMap, func: Callable[[Any, Any], Any]) -> Any:
 def graph_aggregate_edges(
     graph: Graph(edge_type="map"),
     func: Callable[[Any, Any], Any],
-    in_edges=False,
-    out_edges=True,
+    initial_value: Any,
+    in_edges: bool = False,
+    out_edges: bool = True,
 ) -> NodeMap:
+    """
+    in_edges and out_edges aren't used unless the graph is directed
+    """
     pass
 
 
 @abstract_algorithm("util.graph.filter_edges")
-def graph_filter_edges(graph: Graph, func: Callable[[Any], bool]) -> Graph:
+def graph_filter_edges(
+    graph: Graph(edge_type="map"), func: Callable[[Any], bool]
+) -> Graph:
+    """
+    func takes the edge weight and returns a bool
+    Edges are removed, but nodes are kept (this may result in orphan nodes).
+    """
     pass
 
 
@@ -54,6 +64,9 @@ def graph_filter_edges(graph: Graph, func: Callable[[Any], bool]) -> Graph:
 def graph_add_uniform_weight(
     graph: Graph(edge_type="set"), weight: Any = 1
 ) -> Graph(edge_type="map"):
+    """
+    Adds a fixed amount to every edge weight.
+    """
     pass
 
 
