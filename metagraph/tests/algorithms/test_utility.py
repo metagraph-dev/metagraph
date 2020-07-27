@@ -1,4 +1,5 @@
 from metagraph.tests.util import default_plugin_resolver
+import networkx as nx
 import numpy as np
 from . import MultiVerify
 
@@ -87,3 +88,209 @@ def test_nodemap_reduce(default_plugin_resolver):
     MultiVerify(dpr, "util.nodemap.reduce", node_map, reduce_func).assert_equals(
         correct_answer
     )
+
+
+def test_graph_aggregate_edges_directed(default_plugin_resolver):
+    """
+0 <--2-- 1        5 --10-> 6
+|      ^ |      ^ ^      / 
+|     /  |     /  |     /   
+1    7   3    9   5   11   
+|   /    |  /     |   /    
+v        v /        v      
+3 --8--> 4 <--4-- 2 --6--> 7
+    """
+    import operator
+
+    dpr = default_plugin_resolver
+    ebunch = [
+        (0, 3, 1),
+        (1, 0, 2),
+        (1, 4, 3),
+        (2, 4, 4),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 8),
+        (4, 5, 9),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.DiGraph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    func = operator.mul
+    initial_value = 1.0
+
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
+        {0: 2.0, 1: 42.0, 2: 1320.0, 3: 56.0, 4: 864.0, 5: 450.0, 6: 110.0, 7: 6.0,}
+    )
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, True, True
+    ).assert_equals(expected_answer)
+
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
+        {0: 1.0, 1: 6.0, 2: 120.0, 3: 56.0, 4: 9.0, 5: 10.0, 6: 11.0, 7: 1.0,}
+    )
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, False, True
+    ).assert_equals(expected_answer)
+
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
+        {0: 2.0, 1: 7.0, 2: 11.0, 3: 1.0, 4: 96.0, 5: 45.0, 6: 10.0, 7: 6.0,}
+    )
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, True, False
+    ).assert_equals(expected_answer)
+
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
+        {node: 1.0 for node in range(8)}
+    )
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, False, False
+    ).assert_equals(expected_answer)
+
+
+def test_graph_aggregate_edges_undirected(default_plugin_resolver):
+    """
+0 ---2-- 1        5 --10-- 6
+|      / |      / |      / 
+|     /  |     /  |     /   
+1    7   3    9   5   11   
+|  _/    |  /     |  _/    
+| /      | /      | /      
+3 --8--- 4 ---4-- 2 --6--- 7
+    """
+    import operator
+
+    dpr = default_plugin_resolver
+    ebunch = [
+        (0, 3, 1),
+        (1, 0, 2),
+        (1, 4, 3),
+        (2, 4, 4),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 8),
+        (4, 5, 9),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.Graph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    func = operator.mul
+    initial_value = 1.0
+
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
+        {0: 2.0, 1: 42.0, 2: 1320.0, 3: 56.0, 4: 864.0, 5: 450.0, 6: 110.0, 7: 6.0,}
+    )
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, True, True
+    ).assert_equals(expected_answer)
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, False, True
+    ).assert_equals(expected_answer)
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, True, False
+    ).assert_equals(expected_answer)
+
+    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
+        {node: 1.0 for node in range(8)}
+    )
+    MultiVerify(
+        dpr, "util.graph.aggregate_edges", graph, func, initial_value, False, False
+    ).assert_equals(expected_answer)
+
+
+def test_graph_filter_edges(default_plugin_resolver):
+    """
+0 <--2-- 1        5 --10-> 6
+|      ^ |      ^ ^      / 
+|     /  |     /  |     /   
+1    7   3    9   5   11   
+|   /    |  /     |   /    
+v        v /        v      
+3 --8--> 4 <--4-- 2 --6--> 7
+    """
+    dpr = default_plugin_resolver
+    ebunch = [
+        (0, 3, 1),
+        (1, 0, 2),
+        (1, 4, 3),
+        (2, 4, 4),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 8),
+        (4, 5, 9),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.DiGraph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    func = lambda weight: weight > 5
+
+    expected_answer_nx_graph = nx.Graph()
+    expected_answer_nx_graph.add_nodes_from(range(8))
+    expected_answer_nx_graph.add_weighted_edges_from(
+        [(2, 7, 6), (3, 1, 7), (3, 4, 8), (4, 5, 9), (5, 6, 10), (6, 2, 11),]
+    )
+    expected_answer = dpr.wrappers.Graph.NetworkXGraph(expected_answer_nx_graph)
+    MultiVerify(dpr, "util.graph.filter_edges", graph, func).assert_equals(
+        expected_answer
+    )
+
+
+def test_add_uniform_weight(default_plugin_resolver):
+    """
+0 <--2-- 1        5 --10-> 6
+|      ^ |      ^ ^      / 
+|     /  |     /  |     /   
+1    7   3    9   5   11   
+|   /    |  /     |   /    
+v        v /        v      
+3 --8--> 4 <--4-- 2 --6--> 7
+    """
+    dpr = default_plugin_resolver
+    ebunch = [
+        (0, 3, 1),
+        (1, 0, 2),
+        (1, 4, 3),
+        (2, 4, 4),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 8),
+        (4, 5, 9),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.DiGraph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    weight_delta = 1000
+
+    expected_answer_nx_graph = nx.DiGraph()
+    expected_answer_nx_graph.add_nodes_from(range(8))
+    expected_answer_nx_graph.add_weighted_edges_from(
+        [
+            (0, 3, 1001),
+            (1, 0, 1002),
+            (1, 4, 1003),
+            (2, 4, 1004),
+            (2, 5, 1005),
+            (2, 7, 1006),
+            (3, 1, 1007),
+            (3, 4, 1008),
+            (4, 5, 1009),
+            (5, 6, 1010),
+            (6, 2, 1011),
+        ]
+    )
+    expected_answer = dpr.wrappers.Graph.NetworkXGraph(expected_answer_nx_graph)
+    MultiVerify(
+        dpr, "util.graph.add_uniform_weight", graph, weight_delta
+    ).assert_equals(expected_answer)

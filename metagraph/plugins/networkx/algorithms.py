@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_networkx, has_community
-from typing import Tuple, Iterable, Any
+from typing import Tuple, Iterable, Any, Callable
 
 
 if has_networkx:
@@ -141,6 +141,55 @@ if has_networkx:
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
         )
         return NumpyVector(bfs_ordered_node_array)
+
+    @concrete_algorithm("util.graph.aggregate_edges")
+    def nx_graph_aggregate_edges(
+        graph: NetworkXGraph,
+        func: Callable[[Any, Any], Any],
+        initial_value: Any,
+        in_edges: bool,
+        out_edges: bool,
+    ) -> PythonNodeMap:
+        is_directed = NetworkXGraph.Type.compute_abstract_properties(
+            graph, {"is_directed"}
+        )["is_directed"]
+        if not is_directed:
+            in_edges = out_edges = in_edges or out_edges
+        result_dict = {node: initial_value for node in graph.value.nodes}
+        for start_node, end_node, weight in graph.value.edges.data(
+            graph.edge_weight_label
+        ):
+            if out_edges:
+                result_dict[start_node] = func(weight, result_dict[start_node])
+            if in_edges:
+                result_dict[end_node] = func(weight, result_dict[end_node])
+        return PythonNodeMap(result_dict)
+
+    @concrete_algorithm("util.graph.filter_edges")
+    def nx_graph_filter_edges(
+        graph: NetworkXGraph, func: Callable[[Any], bool]
+    ) -> NetworkXGraph:
+        result_nx_graph = nx.Graph()
+        result_nx_graph.add_nodes_from(graph.value.nodes())
+        ebunch = filter(
+            lambda uvw_triple: func(uvw_triple[2]),
+            graph.value.edges.data(graph.edge_weight_label),
+        )
+        result_nx_graph.add_weighted_edges_from(ebunch)
+        return NetworkXGraph(
+            result_nx_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
+
+    @concrete_algorithm("util.graph.add_uniform_weight")
+    def nx_graph_add_uniform_weight(graph: NetworkXGraph, weight: Any) -> NetworkXGraph:
+        result_nx_graph = graph.value.copy()
+        for _, _, edge_attributes in result_nx_graph.edges.data():
+            edge_attributes[graph.edge_weight_label] += weight
+        return NetworkXGraph(
+            result_nx_graph, graph.node_weight_label, graph.edge_weight_label
+        )
 
 
 if has_community:
