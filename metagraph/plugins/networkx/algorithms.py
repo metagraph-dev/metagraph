@@ -204,6 +204,15 @@ if has_networkx:
             result_nx_graph, graph.node_weight_label, graph.edge_weight_label
         )
 
+    @concrete_algorithm("util.graph.add_uniform_weight")
+    def nx_graph_add_uniform_weight(graph: NetworkXGraph, weight: Any) -> NetworkXGraph:
+        result_nx_graph = graph.value.copy()
+        for _, _, edge_attributes in result_nx_graph.edges.data():
+            edge_attributes[graph.edge_weight_label] += weight
+        return NetworkXGraph(
+            result_nx_graph, graph.node_weight_label, graph.edge_weight_label
+        )
+
 
 if has_networkx and has_community:
     import community as community_louvain
