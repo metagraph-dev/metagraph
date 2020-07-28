@@ -1,6 +1,7 @@
+import metagraph as mg
 from metagraph import abstract_algorithm
 from metagraph.types import NodeSet, NodeMap, Vector, NodeID, EdgeSet, EdgeMap, Graph
-from typing import Any, Callable, Union, Optional
+from typing import Any, Callable
 
 
 @abstract_algorithm("util.nodeset.choose_random")
@@ -10,7 +11,7 @@ def nodeset_choose_random(x: NodeSet, k: int) -> NodeSet:
 
 @abstract_algorithm("util.nodemap.sort")
 def nodemap_sort(
-    x: NodeMap, ascending: bool = True, limit: Optional[int] = None
+    x: NodeMap, ascending: bool = True, limit: mg.Optional[int] = None
 ) -> Vector:
     pass
 
@@ -59,6 +60,7 @@ def graph_add_uniform_weight(
 
 @abstract_algorithm("util.graph.build")
 def graph_build(
-    edges: Union[EdgeSet, EdgeMap], nodes: Union[NodeSet, NodeMap, None]
+    edges: mg.Union[EdgeSet, EdgeMap],
+    nodes: mg.Optional[mg.Union[NodeSet, NodeMap]] = None,
 ) -> Graph:
     pass

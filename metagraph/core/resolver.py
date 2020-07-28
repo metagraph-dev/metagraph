@@ -17,8 +17,9 @@ from .plugin import (
 )
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
-from metagraph import config
-from metagraph.types import NodeID
+from . import typing as mgtyping
+from .. import config
+from ..types import NodeID
 import numpy as np
 
 
@@ -420,35 +421,37 @@ class Resolver:
                         )
 
     def _check_abstract_type(self, abst_algo, obj, msg):
-        if getattr(obj, "__origin__", None) == Union:
-            obj_args = getattr(obj, "__args__", None)
-            none_type = type(None)
-            if len(obj_args) == 2 and none_type in obj_args:
-                obj = obj_args[0] if none_type == obj_args[1] else obj_args[1]
         if obj is Any or obj is NodeID:
             return obj, False
-        if getattr(obj, "__origin__", None) == abc.Callable:
-            return (
-                obj,
-                False,
-            )  # TODO something more robust as they still might pass in a non-func
+
+        origin = getattr(obj, "__origin__", None)
+        if origin == abc.Callable:
+            return obj, False
+        if origin == Union:
+            return mgtyping.Union[obj.__args__], True
+
         if type(obj) is type:
             if issubclass(obj, AbstractType):
                 return obj(), True
-        elif hasattr(obj, "__origin__") and obj.__origin__ in {
-            abc.Callable,
-            Union,
-        }:
+            # Non-abstract type class is assumed to be Python type
             return obj, False
-        elif not isinstance(obj, AbstractType):
-            wrong_type_str = f"an instance of type {type(obj)}"
-            # Improve messaging for typing module objects
-            if hasattr(obj, "__origin__") and hasattr(obj, "_name"):
-                wrong_type_str = f"typing.{obj._name}"
-            raise TypeError(
-                f"{abst_algo.func.__qualname__} {msg} may not be {wrong_type_str}"
-            )
-        return obj, False
+        if isinstance(obj, mgtyping.Combo):
+            if obj.kind not in {"python", "abstract"}:
+                raise TypeError(
+                    f"{abst_algo.func.__qualname__} {msg} may not have Concrete types not allowed in Union"
+                )
+            return obj, False
+        if isinstance(obj, AbstractType):
+            return obj, False
+
+        # All valid cases listed are listed above; if we got here, raise an error
+        wrong_type_str = f"an instance of type {type(obj)}"
+        # Improve messaging for typing module objects
+        if origin is not None and getattr(obj, "_name", None) is not None:
+            wrong_type_str = f"typing.{obj._name}"
+        raise TypeError(
+            f"{abst_algo.func.__qualname__} {msg} may not be {wrong_type_str}"
+        )
 
     def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
         """
@@ -545,7 +548,6 @@ class Resolver:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
                     )
-                # TODO: handle Callable
             else:
                 # TODO: handle Union
                 if not issubclass(conc_type.abstract, abst_type.__class__):

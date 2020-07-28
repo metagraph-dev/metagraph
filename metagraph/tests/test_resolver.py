@@ -19,6 +19,7 @@ from metagraph.core.resolver import (
 )
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
+import typing
 from typing import Tuple, List, Any
 from collections import OrderedDict
 
@@ -230,6 +231,72 @@ def test_register_errors():
         registry.register(abstract_any)
         registry.register(my_any, "my_any_plugin")
         res.register(registry.plugins)
+
+
+def test_union_signatures():
+    class Abstract1(AbstractType):
+        pass
+
+    class Abstract2(AbstractType):
+        pass
+
+    @abstract_algorithm("testing.typing_union_types")
+    def typing_union_types(
+        a: typing.Union[int, float],
+        b: typing.Optional[typing.Union[int, float]],
+        c: typing.Optional[float],
+        d: typing.Union[Abstract1, Abstract2],
+        e: typing.Optional[typing.Union[Abstract1, Abstract2]],
+        f: typing.Optional[Abstract2],
+    ) -> int:
+        pass
+
+    @abstract_algorithm("testing.mg_union_types")
+    def mg_union_types(
+        a: mg.Union[int, float],
+        b: mg.Optional[mg.Union[int, float]],
+        c: mg.Optional[float],
+        d: mg.Union[Abstract1, Abstract2],
+        e: mg.Optional[mg.Union[Abstract1, Abstract2]],
+        f: mg.Optional[Abstract2],
+    ) -> int:
+        pass
+
+    @abstract_algorithm("testing.mg_union_instances")
+    def mg_union_instances(
+        a: mg.Union[Abstract1(), Abstract2()],
+        b: mg.Optional[mg.Union[Abstract1(), Abstract2()]],
+        c: mg.Optional[Abstract2()],
+    ) -> int:
+        pass
+
+    registry = PluginRegistry("test_union_signatures_good")
+    registry.register(Abstract1)
+    registry.register(Abstract2)
+    registry.register(typing_union_types)
+    registry.register(mg_union_types)
+    registry.register(mg_union_instances)
+
+    res_good = Resolver()
+    res_good.register(registry.plugins)
+
+    @abstract_algorithm("testing.typing_union_mixed")
+    def typing_union_mixed(a: typing.Union[int, Abstract1]) -> int:
+        pass
+
+    with pytest.raises(TypeError, match="Cannot mix"):
+
+        @abstract_algorithm("testing.mg_union_mixed")
+        def mg_union_mixed(a: mg.Union[int, Abstract1]) -> int:
+            pass
+
+    registry = PluginRegistry("test_union_signatures_bad")
+    registry.register(Abstract1)
+    registry.register(typing_union_mixed)
+
+    with pytest.raises(TypeError, match="Cannot mix"):
+        res_bad = Resolver()
+        res_bad.register(registry.plugins)
 
 
 def test_incorrect_signature_errors(example_resolver):
