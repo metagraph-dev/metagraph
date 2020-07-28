@@ -19,6 +19,9 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
     def num_nodes(self):
         return len(self.value)
 
+    def copy(self):
+        return PythonNodeSet(self.value.copy())
+
     def __contains__(self, key):
         return key in self.value
 
@@ -56,6 +59,9 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
     @property
     def num_nodes(self):
         return len(self.value)
+
+    def copy(self):
+        return PythonNodeMap(self.value.copy())
 
     def __contains__(self, key):
         return key in self.value

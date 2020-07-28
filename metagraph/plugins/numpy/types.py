@@ -37,6 +37,15 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             node_count = len(self.node_array)
         return node_count
 
+    def copy(self):
+        if self.mask is not None:
+            copied_node_set = NumpyNodeSet(
+                mask=self.mask if self.mask is None else self.mask.copy()
+            )
+        else:
+            copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
+        return copied_node_set
+
     def __contains__(self, key):
         if mask is not None:
             return 0 <= key < len(self.mask) and self.mask[key]
@@ -100,6 +109,11 @@ class NumpyVector(Wrapper, abstract=Vector):
 
     def __len__(self):
         return len(self.value)
+
+    def copy(self):
+        return NumpyVector(
+            self.value.copy(), mask=self.mask if self.mask is None else self.mask.copy()
+        )
 
     class TypeMixin:
         @classmethod
@@ -221,6 +235,12 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         # This covers the sequential and compact cases
         return len(self.value)
 
+    def copy(self):
+        mask = self.mask if self.mask is None else self.mask.copy()
+        node_ids = self.id2pos if self.id2pos is None else self.id2pos.copy()
+        copied_node_map = NumpyNodeMap(self.value.copy(), mask=mask, node_ids=node_ids)
+        return copied_node_map
+
     def __contains__(self, key):
         if mask is not None:
             return 0 <= key < len(self.mask) and self.mask[key]
@@ -320,6 +340,10 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     @property
     def shape(self):
         return self.value.shape
+
+    def copy(self):
+        mask = self.mask if self.mask is None else self.mask.copy()
+        return NumpyMatrix(self.value.copy(), mask=mask)
 
     class TypeMixin:
         @classmethod
