@@ -16,6 +16,7 @@ def _determine_dtype(all_values):
 
 if has_networkx:
     import networkx as nx
+    import copy
 
     class NetworkXGraph(GraphWrapper, abstract=Graph):
         def __init__(
@@ -25,7 +26,22 @@ if has_networkx:
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label
             self._assert_instance(nx_graph, nx.Graph)
+            
+        def copy(self):
+            return NetworkXGraph(
+                copy.deepcopy(self.value),
+                self.node_weight_label,
+                self.edge_weight_label,
+            )
 
+        def _determine_dtype(self, all_values):
+            all_types = {type(v) for v in all_values}
+            if not all_types or (all_types - {float, int, bool}):
+                return "str"
+            for type_ in (float, int, bool):
+                if type_ in all_types:
+                    return str(type_.__name__)
+                
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
