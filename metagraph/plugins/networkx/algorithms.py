@@ -162,11 +162,12 @@ if has_networkx:
         in_edges: bool,
         out_edges: bool,
     ) -> PythonNodeMap:
-        is_directed = NetworkXGraph.Type.compute_abstract_properties(
-            graph, {"is_directed"}
-        )["is_directed"]
-        if not is_directed:
-            in_edges = out_edges = in_edges or out_edges
+        if not (in_edges == out_edges):
+            is_directed = NetworkXGraph.Type.compute_abstract_properties(
+                graph, {"is_directed"}
+            )["is_directed"]
+            if not is_directed:
+                in_edges = out_edges = in_edges or out_edges
         result_dict = {node: initial_value for node in graph.value.nodes}
         for start_node, end_node, weight in graph.value.edges.data(
             graph.edge_weight_label
@@ -181,10 +182,10 @@ if has_networkx:
     def nx_graph_filter_edges(
         graph: NetworkXGraph, func: Callable[[Any], bool]
     ) -> NetworkXGraph:
-        result_nx_graph = nx.Graph()
+        result_nx_graph = type(graph.value)()
         result_nx_graph.add_nodes_from(graph.value.nodes())
         ebunch = filter(
-            lambda uvw_triple: func(uvw_triple[2]),
+            lambda uvw_triple: func(uvw_triple[-1]),
             graph.value.edges.data(graph.edge_weight_label),
         )
         result_nx_graph.add_weighted_edges_from(ebunch)
