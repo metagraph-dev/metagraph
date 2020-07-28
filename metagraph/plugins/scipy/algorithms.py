@@ -3,6 +3,7 @@ from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_scipy
 from .types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
 from .. import has_numba
+import numpy as np
 from typing import Tuple, Callable, Any
 
 if has_numba:
@@ -91,3 +92,14 @@ if has_scipy:
             result_edge_map.value.eliminate_zeros()
         result_graph_nodes = graph.nodes if graph.nodes is None else graph.nodes.copy()
         return ScipyGraph(result_edge_map, result_graph_nodes)
+
+    @concrete_algorithm("util.graph.add_uniform_weight")
+    def ss_graph_add_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
+        result = graph.copy()
+        nonzero_row_col_tuple = result.edges.value.nonzero()
+        num_nonzero_elems = len(nonzero_row_col_tuple[0])
+        result.edges.value = result.edges.value + ss.csr_matrix(
+            (np.full(num_nonzero_elems, weight), nonzero_row_col_tuple),
+            result.edges.value.shape,
+        )
+        return result
