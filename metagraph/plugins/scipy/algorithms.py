@@ -1,8 +1,11 @@
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_scipy
 from .types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
-from typing import Tuple
+from .. import has_numba
+from typing import Tuple, Callable, Any
 
+if has_numba:
+    import numba
 
 if has_scipy:
     import scipy.sparse as ss
@@ -66,3 +69,17 @@ if has_scipy:
         )
         bfs_ordered_nodes = graph.edges.node_list[bfs_ordered_incides]
         return NumpyVector(bfs_ordered_nodes)
+
+    @concrete_algorithm("util.graph.filter_edges")
+    def ss_graph_filter_edges(
+        graph: ScipyGraph, func: Callable[[Any], bool]
+    ) -> ScipyGraph:
+        # TODO consider caching this somewhere or enforcing that only vectorized functions are given
+        func_vectorized = numba.vectorize(func) if has_numba else np.vectorize(func)
+        result_edge_map = graph.edges.copy()
+        to_remove_mask = ~func_vectorized(result_edge_map.value.data)
+        if to_remove_mask.any():
+            result_edge_map.value.data[to_remove_mask] = 0
+            result_edge_map.value.eliminate_zeros()
+        result_graph_nodes = graph.nodes if graph.nodes is None else graph.nodes.copy()
+        return ScipyGraph(result_edge_map, result_graph_nodes)

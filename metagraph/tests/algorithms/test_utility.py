@@ -233,7 +233,7 @@ v        v /        v
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     func = lambda weight: weight > 5
 
-    expected_answer_nx_graph = nx.Graph()
+    expected_answer_nx_graph = nx.DiGraph()
     expected_answer_nx_graph.add_nodes_from(range(8))
     expected_answer_nx_graph.add_weighted_edges_from(
         [(2, 7, 6), (3, 1, 7), (3, 4, 8), (4, 5, 9), (5, 6, 10), (6, 2, 11),]
