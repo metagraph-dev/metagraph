@@ -539,7 +539,8 @@ class ConcreteAlgorithm:
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
-        self.__signature__ = normalize_signature(inspect.signature(self.func))
+        self.__original_signature__ = inspect.signature(self.func)
+        self.__signature__ = normalize_signature(self.__original_signature__)
 
     def __call__(self, *args, **kwargs):
         return self.func(*args, **kwargs)
