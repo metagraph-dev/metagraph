@@ -11,7 +11,7 @@ if has_networkx:
     from ..python.types import PythonNodeMap, PythonNodeSet
     from ..numpy.types import NumpyVector
 
-    @concrete_algorithm("link_analysis.pagerank")
+    @concrete_algorithm("centrality.pagerank")
     def nx_pagerank(
         graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float
     ) -> PythonNodeMap:
@@ -20,7 +20,7 @@ if has_networkx:
         )
         return PythonNodeMap(pagerank)
 
-    @concrete_algorithm("link_analysis.katz_centrality")
+    @concrete_algorithm("centrality.katz")
     def nx_katz_centrality(
         graph: NetworkXGraph,
         attenuation_factor: float,
@@ -117,7 +117,7 @@ if has_networkx:
             PythonNodeMap(distance_map,),
         )
 
-    @concrete_algorithm("vertex_ranking.betweenness_centrality")
+    @concrete_algorithm("centrality.betweenness")
     def nx_betweenness_centrality(
         graph: NetworkXGraph,
         nodes: NumpyVector,

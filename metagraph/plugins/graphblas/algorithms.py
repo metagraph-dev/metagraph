@@ -29,7 +29,7 @@ if has_grblas:
         )  # Using a (structural) mask is equivalent to the elementwise multiplication step
         return val.reduce_scalar().value // 6
 
-    @concrete_algorithm("link_analysis.pagerank")
+    @concrete_algorithm("centrality.pagerank")
     def grblas_pagerank(
         graph: GrblasGraph, damping: float, maxiter: int, tolerance: float
     ) -> GrblasNodeMap:

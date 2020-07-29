@@ -3,6 +3,6 @@ from . import (
     clustering,
     subgraph,
     traversal,
-    vertex_ranking,
+    centrality,
     utility,
 )
