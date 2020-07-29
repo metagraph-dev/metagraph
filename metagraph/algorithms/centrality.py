@@ -2,7 +2,7 @@ from metagraph import abstract_algorithm
 from metagraph.types import Graph, NodeMap, Vector, NodeID
 
 
-@abstract_algorithm("vertex_ranking.betweenness_centrality")
+@abstract_algorithm("centrality.betweenness")
 def betweenness_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
     nodes: Vector = None,
@@ -11,7 +11,7 @@ def betweenness_centrality(
     pass  # pragma: no cover
 
 
-@abstract_algorithm("link_analysis.katz_centrality")
+@abstract_algorithm("centrality.katz")
 def katz_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
     attenuation_factor: float = 0.01,
@@ -22,7 +22,7 @@ def katz_centrality(
     pass  # pragma: no cover
 
 
-@abstract_algorithm("link_analysis.pagerank")
+@abstract_algorithm("centrality.pagerank")
 def pagerank(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
     damping: float = 0.85,
