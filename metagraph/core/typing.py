@@ -7,10 +7,10 @@ from .plugin import AbstractType, ConcreteType, MetaWrapper
 
 
 class Combo:
-    def __init__(self, types, *, optional=False):
+    def __init__(self, types, *, optional=False, strict=None):
         # Ensure all AbstractTypes or all ConcreteType or all Python types, but not mixed
         kind = None
-        checked_types = []
+        checked_types = set()
         for t in types:
             if t is None or t is type(None):
                 optional = True
@@ -38,14 +38,25 @@ class Combo:
             elif kind != this_kind:
                 raise TypeError(f"Cannot mix {kind} and {this_kind} types within Union")
 
-            checked_types.append(t)
+            checked_types.add(t)
+
+        if strict is None:
+            # Assume a single type with optional=True is only meant to be optional, not strict
+            strict = False if len(checked_types) == 1 and optional else True
 
         self.types = checked_types
         self.optional = optional
         self.kind = kind
+        self.strict = strict
 
     def __len__(self):
         return len(self.types)
+
+    def __repr__(self):
+        ret = f"Union[{','.join(str(x) for x in self.types)}]"
+        if self.optional:
+            ret = f"Optional[{ret}]"
+        return ret
 
 
 class Union:
@@ -71,9 +82,9 @@ class Optional:
 
     def __getitem__(self, parameter):
         if isinstance(parameter, Combo):
-            return Combo(parameter.types, optional=True)
+            return Combo(parameter.types, optional=True, strict=parameter.strict)
 
-        return Combo([parameter], optional=True)
+        return Combo([parameter], optional=True, strict=False)
 
 
 # Convert to singleton

@@ -47,7 +47,7 @@ def nodemap_from_python(x: PythonNodeMap, **props) -> NumpyNodeMap:
     data = np.empty((len(x.value),), dtype=np_dtype)
     lookup = {}
     pyvals = x.value
-    for pos, node_id in enumerate(pyvals):
+    for pos, node_id in enumerate(sorted(pyvals)):
         data[pos] = pyvals[node_id]
         lookup[node_id] = pos
     return NumpyNodeMap(data, node_ids=lookup)

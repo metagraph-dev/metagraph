@@ -1,3 +1,4 @@
+import numpy as np
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_scipy
 from .types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
@@ -44,11 +45,18 @@ if has_scipy:
     @concrete_algorithm("cluster.triangle_count")
     def ss_triangle_count(graph: ScipyGraph) -> int:
         """
-        Uses the triangle counting method descripbed in
+        Uses the triangle counting method described in
         https://www.sandia.gov/~srajama/publications/Tricount-HPEC.pdf
         """
-        L = ss.tril(graph.edges.value, k=-1).tocsr()
-        U = ss.triu(graph.edges.value, k=1).tocsc()
+        props = ScipyGraph.Type.compute_abstract_properties(graph, {"edge_type"})
+        if props["edge_type"] == "map":
+            # Drop weights before performing triangle count
+            m = graph.edges.value.copy()
+            m.data = np.ones_like(m.data)
+        elif props["edge_type"] == "set":
+            m = graph.edges.value
+        L = ss.tril(m, k=-1).tocsr()
+        U = ss.triu(m, k=1).tocsc()
         return int((L @ U.T).multiply(L).sum())
 
     @concrete_algorithm("traversal.bfs_iter")

@@ -1,5 +1,6 @@
-from typing import Dict, Optional, Any, Union, Callable
+from typing import Dict, Optional, Any
 from .plugin import ConcreteType
+from .typing import Combo
 from collections import abc
 import inspect
 import numpy as np
@@ -213,24 +214,37 @@ class AlgorithmPlan:
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
                 #   If no translator is found, return None to indicate failure
-                if not cls._check_arg_type(resolver, arg_value, param_type):
+                translation_param_type = cls._check_arg_type(
+                    resolver, arg_name, arg_value, param_type
+                )
+                if translation_param_type is not None:
                     src_type = resolver.typeclass_of(arg_value)
                     translator = MultiStepTranslator.find_translation(
-                        resolver, src_type, param_type
+                        resolver, src_type, translation_param_type
                     )
                     if translator is None:
+                        if config.get("core.planner.build.verbose", False):
+                            print(f"Failed to find translator for {arg_name}")
                         return
                     required_translations[arg_name] = translator
             return AlgorithmPlan(resolver, concrete_algorithm, required_translations)
-        except TypeError:
+        except TypeError as e:
+            if config.get("core.planner.build.verbose", False):
+                print("Failed to find plan due to TypeError:\n{e}")
             return
 
     @staticmethod
-    def _check_arg_type(resolver, arg_value, param_type) -> bool:
+    def _check_arg_type(resolver, arg_name, arg_value, param_type):
+        """
+        Returns None if no translation is needed
+        If translation is needed, returns the appropriate param_type to build the translation for
+        """
         if param_type is Any:
-            return True
+            return
         elif param_type is NodeID:
-            return isinstance(arg_value, int)
+            if not isinstance(arg_value, int):
+                raise TypeError(f"{arg_name} Not a valid NodeID: {arg_value}")
+            return
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
 
@@ -242,31 +256,40 @@ class AlgorithmPlan:
             arg_type = arg_typeclass(**properties_dict)
 
             if not param_type.is_satisfied_by(arg_type):
-                return False
-        elif getattr(param_type, "__origin__", None) == Union:
-            param_type_args = getattr(param_type, "__args__", ())
-            none_type = type(None)
-            param_type_is_optional = (
-                len(param_type_args) == 2 and none_type in param_type_args
-            )
-            if not param_type_is_optional:
+                return param_type
+        elif isinstance(param_type, Combo):
+            if arg_value is None:
+                if not param_type.optional:
+                    raise TypeError(f"{arg_name} is not Optional, but None was given")
+                return
+            elif param_type.strict:
+                if param_type.kind == "concrete":
+                    arg_typeclass = resolver.typeclass_of(arg_value)
+                    # Find appropriate abstract type to translate to (don't allow translation between abstract types)
+                    for ct in param_type.types:
+                        if arg_typeclass.abstract == ct.abstract:
+                            return AlgorithmPlan._check_arg_type(
+                                resolver, arg_name, arg_value, ct
+                            )
+                else:
+                    for pt in param_type.types:
+                        if isinstance(arg_value, pt):
+                            return
                 raise TypeError(
-                    f"Union type declarations only allowed for optional arguments"
+                    f"{arg_name} {arg_value} does not match any of {param_type}"
                 )
-            if arg_value == None:
-                return True
             else:
-                non_default_type = (
-                    param_type_args[0]
-                    if none_type == param_type_args[1]
-                    else param_type_args[1]
-                )
+                # Non-strict should only have a single possible choice
+                if len(param_type.types) > 1:
+                    raise AssertionError(
+                        f"{arg_name} Illegal Combo: non-strict with choice of {param_type.types}"
+                    )
                 return AlgorithmPlan._check_arg_type(
-                    resolver, arg_value, non_default_type
+                    resolver, arg_name, arg_value, list(param_type.types)[0]
                 )
         elif getattr(param_type, "__origin__", None) == abc.Callable:
             if not callable(arg_value):
-                return False
+                raise TypeError(f"{arg_name} must be Callable, not {type(arg_value)}")
             arg_value_func_params_desired_types = param_type.__args__[:-1]
             arg_value_func_params = inspect.signature(arg_value).parameters.values()
             arg_value_func_params_actual_types = (
@@ -277,11 +300,10 @@ class AlgorithmPlan:
             ):
                 if actual_type != inspect._empty:
                     if not issubclass(actual_type, desired_type):
-                        return False
+                        return param_type
         else:
             if not isinstance(arg_value, param_type):
-                return False
-        return True
+                return param_type
 
     @staticmethod
     def apply_abstract_defaults(resolver, algo_name, *args, **kwargs):
