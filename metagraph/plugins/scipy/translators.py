@@ -86,9 +86,9 @@ if has_scipy and has_networkx:
             simplified_obj = obj
             if np.issubdtype(type(obj), np.dtype(str).type):
                 simplified_obj = str(simplified_obj)
-            if np.issubdtype(type(obj), np.dtype(int).type):
+            elif np.issubdtype(type(obj), np.dtype(int).type):
                 simplified_obj = int(simplified_obj)
-            if np.issubdtype(type(obj), np.dtype(float).type):
+            elif np.issubdtype(type(obj), np.dtype(float).type):
                 simplified_obj = float(simplified_obj)
             return simplified_obj
 
