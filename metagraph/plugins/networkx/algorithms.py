@@ -1,6 +1,7 @@
+import metagraph as mg
 from metagraph import concrete_algorithm, NodeID
-from metagraph.plugins import has_networkx, has_community
-from typing import Tuple, Iterable, Any
+from metagraph.plugins import has_networkx, has_community, has_pandas
+from typing import Tuple
 
 
 if has_networkx:
@@ -10,7 +11,7 @@ if has_networkx:
     from ..python.types import PythonNodeMap, PythonNodeSet
     from ..numpy.types import NumpyVector
 
-    @concrete_algorithm("link_analysis.pagerank")
+    @concrete_algorithm("centrality.pagerank")
     def nx_pagerank(
         graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float
     ) -> PythonNodeMap:
@@ -19,7 +20,7 @@ if has_networkx:
         )
         return PythonNodeMap(pagerank)
 
-    @concrete_algorithm("link_analysis.katz_centrality")
+    @concrete_algorithm("centrality.katz")
     def nx_katz_centrality(
         graph: NetworkXGraph,
         attenuation_factor: float,
@@ -116,7 +117,7 @@ if has_networkx:
             PythonNodeMap(distance_map,),
         )
 
-    @concrete_algorithm("vertex_ranking.betweenness_centrality")
+    @concrete_algorithm("centrality.betweenness")
     def nx_betweenness_centrality(
         graph: NetworkXGraph,
         nodes: NumpyVector,
@@ -143,7 +144,7 @@ if has_networkx:
         return NumpyVector(bfs_ordered_node_array)
 
 
-if has_community:
+if has_networkx and has_community:
     import community as community_louvain
     from .types import NetworkXGraph
     from ..python.types import PythonNodeMap
@@ -156,3 +157,27 @@ if has_community:
             PythonNodeMap(index_to_label,),
             modularity_score,
         )
+
+
+if has_networkx and has_pandas:
+    from ..pandas.types import PandasEdgeSet, PandasEdgeMap
+    from ..python.types import PythonNodeMap, PythonNodeSet
+
+    @concrete_algorithm("util.graph.build")
+    def nx_graph_build_from_pandas(
+        edges: mg.Union[PandasEdgeSet, PandasEdgeMap],
+        nodes: mg.Optional[mg.Union[PythonNodeSet, PythonNodeMap]],
+    ) -> NetworkXGraph:
+        g = nx.DiGraph() if edges.is_directed else nx.Graph()
+        if nodes is not None:
+            if type(nodes) is PythonNodeMap:
+                g.add_nodes_from((n, {"weight": v}) for n, v in nodes.value.items())
+            else:
+                g.add_nodes_from(nodes.value)
+        if type(edges) is PandasEdgeMap:
+            df = edges.value[[edges.src_label, edges.dst_label, edges.weight_label]]
+            g.add_weighted_edges_from(df.itertuples(index=False, name="WeightedEdge"))
+        else:
+            df = edges.value[[edges.src_label, edges.dst_label]]
+            g.add_edges_from(df.itertuples(index=False, name="Edge"))
+        return NetworkXGraph(g)
