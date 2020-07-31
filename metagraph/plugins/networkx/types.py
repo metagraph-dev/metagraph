@@ -34,20 +34,6 @@ if has_networkx:
                 self.edge_weight_label,
             )
 
-        def copy(self):
-            return NetworkXGraph(
-                copy.deepcopy(self.value),
-                self.node_weight_label,
-                self.edge_weight_label,
-            )
-
-        def copy(self):
-            return NetworkXGraph(
-                copy.deepcopy(self.value),
-                self.node_weight_label,
-                self.edge_weight_label,
-            )
-
         def _determine_dtype(self, all_values):
             all_types = {type(v) for v in all_values}
             if not all_types or (all_types - {float, int, bool}):
