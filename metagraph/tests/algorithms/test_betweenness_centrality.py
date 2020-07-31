@@ -44,7 +44,7 @@ v        v /        v
     }
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
     MultiVerify(
-        dpr, "vertex_ranking.betweenness_centrality", graph, nodes, normalize=False,
+        dpr, "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)
 
 
@@ -88,5 +88,5 @@ v /      |          v
     }
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
     MultiVerify(
-        dpr, "vertex_ranking.betweenness_centrality", graph, nodes, normalize=False,
+        dpr, "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)

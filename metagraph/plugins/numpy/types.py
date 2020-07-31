@@ -67,7 +67,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
         ):
             assert (
                 obj1.num_nodes == obj2.num_nodes
-            ), f"size mismatch: {v1.num_nodes} != {v2.num_nodes}"
+            ), f"size mismatch: {obj1.num_nodes} != {obj2.num_nodes}"
             if obj1.mask is not None and obj2.mask is not None:
                 assert (obj1.mask == obj2.mask).all(), f"node sets do not match"
             elif obj1.mask is not None:

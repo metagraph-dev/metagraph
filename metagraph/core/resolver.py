@@ -17,8 +17,9 @@ from .plugin import (
 )
 from .planning import MultiStepTranslator, AlgorithmPlan
 from .entrypoints import load_plugins
-from metagraph import config
-from metagraph.types import NodeID
+from . import typing as mgtyping
+from .. import config
+from ..types import NodeID
 import numpy as np
 
 
@@ -420,35 +421,37 @@ class Resolver:
                         )
 
     def _check_abstract_type(self, abst_algo, obj, msg):
-        if getattr(obj, "__origin__", None) == Union:
-            obj_args = getattr(obj, "__args__", None)
-            none_type = type(None)
-            if len(obj_args) == 2 and none_type in obj_args:
-                obj = obj_args[0] if none_type == obj_args[1] else obj_args[1]
         if obj is Any or obj is NodeID:
             return obj, False
-        if getattr(obj, "__origin__", None) == abc.Callable:
-            return (
-                obj,
-                False,
-            )  # TODO something more robust as they still might pass in a non-func
+
+        origin = getattr(obj, "__origin__", None)
+        if origin == abc.Callable:
+            return obj, False
+        if origin == Union:
+            return mgtyping.Union[obj.__args__], True
+
         if type(obj) is type:
             if issubclass(obj, AbstractType):
                 return obj(), True
-        elif hasattr(obj, "__origin__") and obj.__origin__ in {
-            abc.Callable,
-            Union,
-        }:
+            # Non-abstract type class is assumed to be Python type
             return obj, False
-        elif not isinstance(obj, AbstractType):
-            wrong_type_str = f"an instance of type {type(obj)}"
-            # Improve messaging for typing module objects
-            if hasattr(obj, "__origin__") and hasattr(obj, "_name"):
-                wrong_type_str = f"typing.{obj._name}"
-            raise TypeError(
-                f"{abst_algo.func.__qualname__} {msg} may not be {wrong_type_str}"
-            )
-        return obj, False
+        if isinstance(obj, mgtyping.Combo):
+            if obj.kind not in {"python", "abstract"}:
+                raise TypeError(
+                    f"{abst_algo.func.__qualname__} {msg} may not have Concrete types not allowed in Union"
+                )
+            return obj, False
+        if isinstance(obj, AbstractType):
+            return obj, False
+
+        # All valid cases listed are listed above; if we got here, raise an error
+        wrong_type_str = f"an instance of type {type(obj)}"
+        # Improve messaging for typing module objects
+        if origin is not None and getattr(obj, "_name", None) is not None:
+            wrong_type_str = f"typing.{obj._name}"
+        raise TypeError(
+            f"{abst_algo.func.__qualname__} {msg} may not be {wrong_type_str}"
+        )
 
     def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
         """
@@ -490,18 +493,29 @@ class Resolver:
         return abst_algo
 
     def _normalize_concrete_type(self, conc_type, abst_type: AbstractType):
-        # handle Python classes used as concrete types
-        if isinstance(abst_type, AbstractType) and not isinstance(
+        changed = False
+        if isinstance(abst_type, mgtyping.Combo) and not isinstance(
+            conc_type, mgtyping.Combo
+        ):
+            if getattr(conc_type, "__origin__", None) == Union:
+                conc_type = mgtyping.Combo(conc_type.__args__, strict=abst_type.strict)
+            else:
+                conc_type = mgtyping.Combo(
+                    [conc_type], optional=abst_type.optional, strict=abst_type.strict
+                )
+            changed = True
+        elif isinstance(abst_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
         ):
+            # handle Python classes used as concrete types
             if conc_type in self.class_to_concrete:
-                return self.class_to_concrete[conc_type]()
+                conc_type = self.class_to_concrete[conc_type]()
+                changed = True
             else:
                 raise TypeError(
                     f"'{conc_type}' is not a concrete type of '{abst_type}'"
                 )
-        else:
-            return conc_type
+        return conc_type, changed
 
     def _normalize_concrete_algorithm_signature(
         self, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
@@ -512,7 +526,6 @@ class Resolver:
         Guard against instances of anything other than ConcreteType
         Guard against mismatched signatures vs the abstract signature
         """
-        # TODO: update this
         abst_sig = abstract.__signature__
         conc_sig = concrete.__signature__
 
@@ -523,6 +536,9 @@ class Resolver:
             raise TypeError(
                 f"number of parameters does not match between {abstract.name} and {concrete.func.__qualname__}"
             )
+
+        params_modified = []
+        any_changed = False
         for abst_param, conc_param in zip(abst_params, conc_params):
             # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
             if conc_param.default is not inspect._empty:
@@ -531,23 +547,36 @@ class Resolver:
                 )
 
             abst_type = abst_param.annotation
-            conc_type = self._normalize_concrete_type(
+            conc_type, changed = self._normalize_concrete_type(
                 conc_type=conc_param.annotation, abst_type=abst_type
             )
+            if changed:
+                conc_param = conc_param.replace(annotation=conc_type)
+                any_changed = True
             if abst_param.name != conc_param.name:
                 raise TypeError(
                     f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
                 )
 
-            if not isinstance(conc_type, ConcreteType):
-                # regular Python types need to match exactly
-                if abst_type != conc_type:
+            if isinstance(conc_type, mgtyping.Combo):
+                if abst_type.optional != conc_type.optional:
                     raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                        f"{conc_type} does not match optional flag in {abst_type}"
                     )
-                # TODO: handle Callable
-            else:
-                # TODO: handle Union
+                unmatched_types = []
+                # Verify that each item in conc_type matches at least one item in abst_type
+                for ct in conc_type.types:
+                    is_concrete = isinstance(ct, ConcreteType)
+                    for at in abst_type.types:
+                        if is_concrete and issubclass(ct.abstract, at.__class__):
+                            break
+                        elif not is_concrete and ct == at:
+                            break
+                    else:
+                        unmatched_types.append(ct)
+                if unmatched_types:
+                    raise TypeError(f"{unmatched_types} not found in {abst_type}")
+            elif isinstance(conc_type, ConcreteType):
                 if not issubclass(conc_type.abstract, abst_type.__class__):
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
@@ -556,29 +585,46 @@ class Resolver:
                     raise TypeError(
                         f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
                     )
+            else:
+                # regular Python types need to match exactly
+                if abst_type != conc_type:
+                    raise TypeError(
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                    )
+            params_modified.append(conc_param)
         abst_ret = abst_sig.return_annotation
-        conc_ret = self._normalize_concrete_type(
+        conc_ret, changed = self._normalize_concrete_type(
             conc_type=conc_sig.return_annotation, abst_type=abst_ret
         )
+        any_changed |= changed
         # Normalize return type, which might be a tuple
         if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
             if len(abst_ret.__args__) != len(conc_ret.__args__):
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
                 )
+            ret_modified = []
             for conc_ret_sub_type, abst_ret_sub_type in zip(
                 conc_ret.__args__, abst_ret.__args__
             ):
-                conc_ret_sub_type_normalized = self._normalize_concrete_type(
+                conc_ret_sub_type_normalized, changed = self._normalize_concrete_type(
                     conc_type=conc_ret_sub_type, abst_type=abst_ret_sub_type
                 )
+                any_changed |= changed
                 self._check_concrete_algorithm_return_signature(
                     concrete, conc_ret_sub_type_normalized, abst_ret_sub_type
                 )
+                ret_modified.append(conc_ret_sub_type_normalized)
+            conc_ret.__args__ = tuple(ret_modified)
         else:
             self._check_concrete_algorithm_return_signature(
                 concrete, conc_ret, abst_ret
             )
+        if any_changed:
+            conc_sig = conc_sig.replace(
+                parameters=params_modified, return_annotation=conc_ret
+            )
+            concrete.__signature__ = conc_sig
 
     def _check_concrete_algorithm_return_signature(self, concrete, conc_ret, abst_ret):
         if isinstance(conc_ret, ConcreteType):
@@ -686,6 +732,60 @@ class Resolver:
             best_algo = valid_algos[0]
             return best_algo
 
+    def _check_valid_arg(self, arg_name, arg_value, param_type):
+        if param_type is Any:
+            return
+        param_class = type(param_type)
+        if param_class is type:
+            if not isinstance(arg_value, param_type):
+                return (
+                    f"{arg_name} must be of type {param_type.__name__}, "
+                    f"not {type(arg_value).__name__}"
+                )
+        if isinstance(param_type, AbstractType):
+            try:
+                this_typeclass = self.typeclass_of(arg_value)
+            except TypeError:
+                return f"{arg_name} must be of type {param_class.__name__}, not {type(arg_value)}"
+
+            # Check if arg_value has the right abstract type
+            if this_typeclass.abstract != param_class:
+                # Allow for unambiguous subcomponent
+                if param_class not in this_typeclass.abstract.unambiguous_subcomponents:
+                    return (
+                        f"{arg_name} must be of type {param_class.__name__}, "
+                        f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
+                    )
+
+            requested_properties = set(
+                k for k, v in param_type.prop_val.items() if v is not None
+            )
+            properties_dict = this_typeclass.compute_abstract_properties(
+                arg_value, requested_properties
+            )
+            this_abs_type = this_typeclass.abstract(**properties_dict)
+
+            unsatisfied_requirements = []
+            for abst_prop, required_value in param_type.prop_val.items():
+                if required_value is None:  # unspecified
+                    continue
+                if type(required_value) is tuple:
+                    if this_abs_type.prop_val[abst_prop] not in required_value:
+                        unsatisfied_requirements.append(
+                            f" -> `{abst_prop}` must be one of {required_value!r}"
+                        )
+                else:
+                    if this_abs_type.prop_val[abst_prop] != required_value:
+                        unsatisfied_requirements.append(
+                            f" -> `{abst_prop}` must be {required_value!r}"
+                        )
+            if unsatisfied_requirements:
+                return (
+                    f'"{arg_name}" with properties\n{this_abs_type.prop_val}\n'
+                    + f"does not meet requirements:\n"
+                    + "\n".join(unsatisfied_requirements)
+                )
+
     def call_algorithm(self, algo_name: str, *args, **kwargs):
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
@@ -698,58 +798,28 @@ class Resolver:
         parameters = bound_args.signature.parameters
         for arg_name, arg_value in bound_args.arguments.items():
             param_type = parameters[arg_name].annotation
-            if param_type is Any:
-                continue
-            param_class = type(param_type)
-            if param_class is type:
-                if not isinstance(arg_value, param_type):
-                    raise TypeError(
-                        f"{arg_name} must be of type {param_type.__name__}, "
-                        f"not {type(arg_value).__name__}"
-                    )
-            if isinstance(param_type, AbstractType):
-                this_typeclass = self.typeclass_of(arg_value)
-
-                # Check if arg_value has the right abstract type
-                if this_typeclass.abstract != param_class:
-                    # Allow for unambiguous subcomponent
-                    if (
-                        param_class
-                        not in this_typeclass.abstract.unambiguous_subcomponents
-                    ):
+            if isinstance(param_type, mgtyping.Combo):
+                if arg_value is None:
+                    if param_type.optional:
+                        continue
+                    else:
                         raise TypeError(
-                            f"{arg_name} must be of type {param_class.__name__}, "
-                            f"not {this_typeclass.abstract.__name__}::{this_typeclass.__name__}"
+                            f"{arg_name} is None, but the parameter is not Optional"
                         )
 
-                requested_properties = set(
-                    k for k, v in param_type.prop_val.items() if v is not None
-                )
-                properties_dict = this_typeclass.compute_abstract_properties(
-                    arg_value, requested_properties
-                )
-                this_abs_type = this_typeclass.abstract(**properties_dict)
-
-                unsatisfied_requirements = []
-                for abst_prop, required_value in param_type.prop_val.items():
-                    if required_value is None:  # unspecified
-                        continue
-                    if type(required_value) is tuple:
-                        if this_abs_type.prop_val[abst_prop] not in required_value:
-                            unsatisfied_requirements.append(
-                                f" -> `{abst_prop}` must be one of {required_value!r}"
-                            )
-                    else:
-                        if this_abs_type.prop_val[abst_prop] != required_value:
-                            unsatisfied_requirements.append(
-                                f" -> `{abst_prop}` must be {required_value!r}"
-                            )
-                if unsatisfied_requirements:
-                    raise ValueError(
-                        f'"{arg_name}" with properties\n{this_abs_type.prop_val}\n'
-                        + f"does not meet requirements:\n"
-                        + "\n".join(unsatisfied_requirements)
+                # Find any satisfiable value in the Combo
+                for pt in param_type.types:
+                    err_msg = self._check_valid_arg(arg_name, arg_value, pt)
+                    if not err_msg:
+                        break
+                else:
+                    raise TypeError(
+                        f"{arg_name} (type={type(arg_value)}) does not match any of {param_type}"
                     )
+            else:
+                err_msg = self._check_valid_arg(arg_name, arg_value, param_type)
+                if err_msg:
+                    raise TypeError(err_msg)
 
         if config.get("core.dispatch.allow_translation"):
             algo = self.find_algorithm(algo_name, *bound_args.args, **bound_args.kwargs)
@@ -792,4 +862,5 @@ class Dispatcher:
         print(f"\t{self.__signature__}")
         print("Implementations:")
         for ca in self._resolver.concrete_algorithms[self._algo_name]:
-            print(f"\t{ca.func.__annotations__}")
+            # print(f"\t{ca.func.__annotations__}")
+            print(f"\t{ca.__signature__}")
