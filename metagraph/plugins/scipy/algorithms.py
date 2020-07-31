@@ -4,14 +4,14 @@ from metagraph.plugins import has_scipy
 from .types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
 from .. import has_numba
 import numpy as np
-from typing import Tuple, Callable, Any
+from typing import Tuple, Callable, Any, Union
 
 if has_numba:
     import numba
 
 if has_scipy:
     import scipy.sparse as ss
-    from ..numpy.types import NumpyNodeMap, NumpyVector
+    from ..numpy.types import NumpyNodeMap, NumpyNodeSet, NumpyVector
 
     @concrete_algorithm("clustering.connected_components")
     def ss_connected_components(graph: ScipyGraph) -> NumpyNodeMap:
@@ -79,6 +79,71 @@ if has_scipy:
         bfs_ordered_nodes = graph.edges.node_list[bfs_ordered_incides]
         return NumpyVector(bfs_ordered_nodes)
 
+    def _reduce_sparse_matrix(
+        func: np.ufunc, sparse_matrix: ss.spmatrix
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        keep_mask = np.diff(sparse_matrix.indptr).astype(bool)
+        reduceat_indices = sparse_matrix.indptr[:-1][keep_mask]
+        reduced_values = func.reduceat(
+            sparse_matrix.data, reduceat_indices, dtype=object
+        )
+        return reduced_values, keep_mask
+
+    @concrete_algorithm("util.graph.aggregate_edges")
+    def ss_graph_aggregate_edges(
+        graph: ScipyGraph,
+        func: Callable[[Any, Any], Any],
+        initial_value: Any,
+        in_edges: bool,
+        out_edges: bool,
+    ) -> NumpyNodeMap:
+        print()
+        if in_edges or out_edges:
+            is_directed = ScipyGraph.Type.compute_abstract_properties(
+                graph, {"is_directed"}
+            )["is_directed"]
+            if not is_directed:
+                in_edges = True
+                out_edges = False
+        nrows = graph.edges.value.shape[0]
+        num_agg_values = nrows if graph.nodes is None else len(graph.nodes)
+        final_position_to_agg_value = np.full(num_agg_values, initial_value)
+        if not isinstance(func, np.ufunc):
+            func = np.frompyfunc(func, 2, 1)
+        matrix_position_to_agg_value = np.full(nrows, initial_value)
+        if in_edges:
+            csc_matrix = graph.edges.value.tocsc()
+            in_edges_aggregated_values, keep_mask = _reduce_sparse_matrix(
+                func, csc_matrix
+            )
+            matrix_position_to_agg_value[keep_mask] = func(
+                matrix_position_to_agg_value[keep_mask], in_edges_aggregated_values
+            )
+        if out_edges:
+            csr_matrix = graph.edges.value
+            out_edges_aggregated_values, keep_mask = _reduce_sparse_matrix(
+                func, csr_matrix
+            )
+            matrix_position_to_agg_value[keep_mask] = func(
+                matrix_position_to_agg_value[keep_mask], out_edges_aggregated_values
+            )
+        graph_node_ids = graph.edges.node_list if graph.nodes is None else graph.nodes
+        matrix_position_to_node_id = graph.edges.node_list
+        graph_node_ids_position_to_final_position = np.argsort(graph_node_ids)
+        final_position_to_graph_node_id = graph_node_ids[
+            graph_node_ids_position_to_final_position
+        ]
+        matrix_position_to_final_position = np.searchsorted(
+            final_position_to_graph_node_id, matrix_position_to_node_id
+        )
+        final_position_to_agg_value[
+            matrix_position_to_final_position
+        ] = matrix_position_to_agg_value
+        # Would we ever want to return a NumpyNodeMap via a mask?
+        return NumpyNodeMap(
+            final_position_to_agg_value, node_ids=final_position_to_graph_node_id
+        )
+
     @concrete_algorithm("util.graph.filter_edges")
     def ss_graph_filter_edges(
         graph: ScipyGraph, func: Callable[[Any], bool]
@@ -103,3 +168,9 @@ if has_scipy:
             result.edges.value.shape,
         )
         return result
+
+    # @concrete_algorithm("util.graph.build")
+    # def ss_graph_build(
+    #         edges: Union[ScipyEdgeSet, ScipyEdgeMap], nodes: Union[NumpyNodeSet, NumpyNodeMap, None]
+    # ) -> ScipyGraph:
+    #     return ScipyGraph(edges, nodes)
