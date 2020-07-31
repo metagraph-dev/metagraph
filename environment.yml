@@ -10,6 +10,8 @@ dependencies:
 
 # documentation
   - sphinx=3.0.4
+  - nbsphinx
+  - conda-forge::rst2pdf
   - conda-forge::pydata-sphinx-theme
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
