@@ -169,8 +169,8 @@ if has_scipy:
         )
         return result
 
-    @concrete_algorithm("util.graph.build")
-    def ss_graph_build(
-            edges: Union[ScipyEdgeSet, ScipyEdgeMap], nodes: Union[NumpyNodeSet, NumpyNodeMap, None]
-    ) -> ScipyGraph:
-        return ScipyGraph(edges, nodes)
+    # @concrete_algorithm("util.graph.build")
+    # def ss_graph_build(
+    #         edges: Union[ScipyEdgeSet, ScipyEdgeMap], nodes: Union[NumpyNodeSet, NumpyNodeMap, None]
+    # ) -> ScipyGraph:
+    #     return ScipyGraph(edges, nodes)
