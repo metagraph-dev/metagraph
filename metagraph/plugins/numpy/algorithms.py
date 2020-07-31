@@ -108,8 +108,6 @@ def np_nodemap_apply(x: NumpyNodeMap, func: Callable[[Any], Any]) -> NumpyNodeMa
 @concrete_algorithm("util.nodemap.reduce")
 def np_nodemap_reduce(x: NumpyNodeMap, func: Callable[[Any, Any], Any]) -> Any:
     present_values = x.value if x.mask is None else x.value[x.mask]
-    return (
-        func.reduce(present_values)
-        if isinstance(func, np.ufunc)
-        else reduce(func, present_values)
-    )
+    if not isinstance(func, np.ufunc):
+        func = np.frompyfunc(func, 2, 1)
+    return func.reduce(present_values)

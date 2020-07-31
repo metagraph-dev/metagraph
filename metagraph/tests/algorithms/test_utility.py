@@ -294,3 +294,29 @@ v        v /        v
     MultiVerify(
         dpr, "util.graph.add_uniform_weight", graph, weight_delta
     ).assert_equals(expected_answer)
+
+
+# def test_graph_build(default_plugin_resolver):
+#     """
+# 1 --1--- 5      2
+# |     _/ |
+# |   _9   |
+# 3  /     2
+# | /      |
+# 3 --4--- 4      0
+#     """
+#     dpr = default_plugin_resolver
+#     graph_ss_matrix = ss.csr_matrix(
+#         np.array(
+#             [[0, 1, 3, 0], [1, 0, 9, 2], [3, 9, 0, 4], [0, 2, 4, 0]], dtype=np.int64
+#         )
+#     )
+#     expected_answer = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix)
+#     edges = dpr.wrappers.EdgeSet.ScipyEdgeSet(graph_ss_matrix, [1,5,3,4])
+#     nodes = dpr.wrappers.NodeSet.NumpyNodeSet(np.array([1, 0, 1], dtype=bool))
+#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(
+#         expected_answer
+#     )
+#     # @todo test edgeset + nodemap
+#     # @todo test edgemap + nodeset
+#     # @todo test edgemap + nodemap

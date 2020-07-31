@@ -155,7 +155,7 @@ if has_networkx:
                 graph, {"is_directed"}
             )["is_directed"]
             if not is_directed:
-                in_edges = out_edges = in_edges or out_edges
+                in_edges = out_edges = True
         result_dict = {node: initial_value for node in graph.value.nodes}
         for start_node, end_node, weight in graph.value.edges.data(
             graph.edge_weight_label
