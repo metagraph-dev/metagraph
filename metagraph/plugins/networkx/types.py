@@ -26,7 +26,14 @@ if has_networkx:
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label
             self._assert_instance(nx_graph, nx.Graph)
-            
+
+        def copy(self):
+            return NetworkXGraph(
+                copy.deepcopy(self.value),
+                self.node_weight_label,
+                self.edge_weight_label,
+            )
+
         def copy(self):
             return NetworkXGraph(
                 copy.deepcopy(self.value),
@@ -48,7 +55,7 @@ if has_networkx:
             for type_ in (float, int, bool):
                 if type_ in all_types:
                     return str(type_.__name__)
-                
+
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
