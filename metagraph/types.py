@@ -114,12 +114,10 @@ class Graph(AbstractType):
 class BipartiteGraph(AbstractType):
     properties = {
         "is_directed": [True, False],
-        "node_type": [
-            "set",
-            "map",
-            "table",
-        ],  # should be a list so both node sets can have independent types
-        "node_dtype": DTYPE_CHOICES + [None],
+        "node0_type": ["set", "map", "table"],
+        "node1_type": ["set", "map", "table"],
+        "node0_dtype": DTYPE_CHOICES + [None],
+        "node1_dtype": DTYPE_CHOICES + [None],
         "edge_type": ["set", "map", "table"],
         "edge_dtype": DTYPE_CHOICES + [None],
         "edge_has_negative_weights": [True, False, None],

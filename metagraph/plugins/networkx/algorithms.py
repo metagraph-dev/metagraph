@@ -7,7 +7,7 @@ from typing import Tuple
 if has_networkx:
     import networkx as nx
     import numpy as np
-    from .types import NetworkXGraph
+    from .types import NetworkXGraph, NetworkXBipartiteGraph
     from ..python.types import PythonNodeMap, PythonNodeSet
     from ..numpy.types import NumpyVector
 
@@ -142,6 +142,17 @@ if has_networkx:
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
         )
         return NumpyVector(bfs_ordered_node_array)
+
+    @concrete_algorithm("bipartite.graph_projection")
+    def nx_graph_projection(
+        bgraph: NetworkXBipartiteGraph, nodes_retained: int
+    ) -> NetworkXGraph:
+        g_proj = nx.projected_graph(bgraph.value, bgraph.nodes[nodes_retained])
+        return NetworkXGraph(
+            g_proj,
+            node_weight_label=bgraph.node_weight_label,
+            edge_weight_label=bgraph.edge_weight_label,
+        )
 
 
 if has_networkx and has_community:
