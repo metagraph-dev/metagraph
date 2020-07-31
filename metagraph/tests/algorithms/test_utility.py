@@ -1,6 +1,7 @@
 from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
 import numpy as np
+import scipy.sparse as ss
 from . import MultiVerify
 
 
@@ -296,7 +297,87 @@ v        v /        v
     ).assert_equals(expected_answer)
 
 
+def test_graph_build(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    # Edge Map + Node Set
+    """
+1 --1--- 5      2
+|     _/ |
+|   _9   |
+3  /     2
+| /      |
+3 --4--- 4      0
+    """
+    graph_ss_matrix = ss.csr_matrix(
+        np.array(
+            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0],], dtype=np.int64
+        )
+    )
+    edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
+    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
+    MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
+
+    # Edge Map + Node Map
+    """
+1(10) --1--- 5(50)      2(99)
+|           /  |
+|    ___9__/   |
+3   /          2
+|  /           |
+3(30) --4--- 4(40)      0(99)
+    """
+    graph_ss_matrix = ss.csr_matrix(
+        np.array(
+            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0],], dtype=np.int64
+        )
+    )
+    edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
+    node_map_data = np.array([99, 10, 99, 30, 40, 50])
+    nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data)
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
+    MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
+
+    # Edge Set + Node Map
+    """
+1(10) ------ 5(50)      2(99)
+|           /  |
+|    ______/   |
+|   /          |
+|  /           |
+3(30) ------ 4(40)      0(99)
+    """
+    graph_ss_matrix = ss.csr_matrix(
+        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0],], dtype=bool)
+    )
+    edges = dpr.wrappers.EdgeSet.ScipyEdgeSet(graph_ss_matrix, [1, 3, 4, 5])
+    node_map_data = np.array([99, 10, 99, 30, 40, 50])
+    nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data)
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
+    MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
+
+    # Edge Set + Node Set
+    """
+1 ------ 5      2
+|     _/ |
+|   _/   |
+|  /     |
+| /      |
+3 ------ 4      0
+    """
+    graph_ss_matrix = ss.csr_matrix(
+        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0],], dtype=bool)
+    )
+    edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
+    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
+    MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
+
+
+# TODO This test tests that the concrete types don't depend on node lists being sorted; enable when node list order-independence is implemented
 # def test_graph_build(default_plugin_resolver):
+#     dpr = default_plugin_resolver
+#     # Edge Map + Node Set
 #     """
 # 1 --1--- 5      2
 # |     _/ |
@@ -305,18 +386,48 @@ v        v /        v
 # | /      |
 # 3 --4--- 4      0
 #     """
-#     dpr = default_plugin_resolver
 #     graph_ss_matrix = ss.csr_matrix(
 #         np.array(
-#             [[0, 1, 3, 0], [1, 0, 9, 2], [3, 9, 0, 4], [0, 2, 4, 0]], dtype=np.int64
+#             [[0, 1, 3, 0],
+#              [1, 0, 9, 2],
+#              [3, 9, 0, 4],
+#              [0, 2, 4, 0]
+#             ], dtype=np.int64
 #         )
 #     )
-#     expected_answer = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix)
-#     edges = dpr.wrappers.EdgeSet.ScipyEdgeSet(graph_ss_matrix, [1,5,3,4])
-#     nodes = dpr.wrappers.NodeSet.NumpyNodeSet(np.array([1, 0, 1], dtype=bool))
+#     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1,5,3,4])
+#     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+#     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
 #     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(
 #         expected_answer
 #     )
-#     # @todo test edgeset + nodemap
-#     # @todo test edgemap + nodeset
-#     # @todo test edgemap + nodemap
+
+#     # Edge Map + Node Map
+#     """
+# 1(10) --1--- 5(50)      2
+# |           /  |
+# |    ___9__/   |
+# 3   /          2
+# |  /           |
+# 3(30) --4--- 4(40)      0
+#     """
+#     graph_ss_matrix = ss.csr_matrix(
+#         np.array(
+#             [[0, 1, 3, 0],
+#              [1, 0, 9, 2],
+#              [3, 9, 0, 4],
+#              [0, 2, 4, 0]
+#             ], dtype=np.int64
+#         )
+#     )
+#     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1,5,3,4])
+#     mask = np.array([0,1,0,1,1,1], dtype=bool)
+#     node_map_data = np.empty(6)
+#     node_map_data[mask] = np.array([10, 30, 40, 50])
+#     nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data, mask=mask)
+#     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
+#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(
+#         expected_answer
+#     )
+#     # TODO test edgeset + nodemap
+#     # TODO test edgeset + nodeset

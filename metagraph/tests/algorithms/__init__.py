@@ -148,10 +148,10 @@ class MultiVerify:
                         compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
                     )
                 except AssertionError:
-                    print(compare_val)
-                    print(compare_val.value)
-                    print(expected_val)
-                    print(expected_val.value)
+                    print(f"compare_val        {compare_val}")
+                    print(f"compare_val.value  {compare_val.value}")
+                    print(f"expected_val       {expected_val}")
+                    print(f"expected_val.value {expected_val.value}")
                     raise
             except TypeError:
                 raise UnsatisfiableAlgorithmError(
