@@ -120,7 +120,7 @@ if has_networkx:
     @concrete_algorithm("centrality.betweenness")
     def nx_betweenness_centrality(
         graph: NetworkXGraph,
-        nodes: NumpyVector,
+        nodes: PythonNodeSet,
         normalize: bool,
         # include_endpoints: bool,
     ) -> PythonNodeMap:
