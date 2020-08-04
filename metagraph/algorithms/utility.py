@@ -55,7 +55,9 @@ def graph_aggregate_edges(
     out_edges: bool = True,
 ) -> NodeMap:
     """
-    in_edges and out_edges aren't used unless the graph is directed
+    if in_edges == out_edges == False, every node is mapped to initial_value 
+    if the graph is undirected and either in_edges == True or out_edges == True, we aggregate over all of the edges for each node exactly once to avoid double counting
+    if the graph is directed, in_edges and out_edges specify which edge types to aggregate over for a given node
     """
     pass
 
@@ -71,12 +73,12 @@ def graph_filter_edges(
     pass
 
 
-@abstract_algorithm("util.graph.add_uniform_weight")
-def graph_add_uniform_weight(
-    graph: Graph(edge_type="set"), weight: Any = 1
+@abstract_algorithm("util.graph.assign_uniform_weight")
+def graph_assign_uniform_weight(
+    graph: Graph, weight: Any = 1
 ) -> Graph(edge_type="map"):
     """
-    Adds a fixed amount to every edge weight.
+    Make all the edge weights of a (possibly unweighted) have uniform magnitude.
     """
     pass
 
