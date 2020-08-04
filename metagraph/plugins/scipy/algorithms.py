@@ -98,7 +98,6 @@ if has_scipy:
         in_edges: bool,
         out_edges: bool,
     ) -> NumpyNodeMap:
-        print()
         if in_edges or out_edges:
             is_directed = ScipyGraph.Type.compute_abstract_properties(
                 graph, {"is_directed"}
@@ -128,7 +127,7 @@ if has_scipy:
             matrix_position_to_agg_value[keep_mask] = func(
                 matrix_position_to_agg_value[keep_mask], out_edges_aggregated_values
             )
-        # TODO This doesn't assume sortedness of any node list ; make these other data structures not require sored node lists as that is expensive for large graphs
+        # TODO This doesn't assume sortedness of any node list ; make these other data structures not require sorted node lists as that is expensive for large graphs
         graph_node_ids = graph.edges.node_list if graph.nodes is None else graph.nodes
         matrix_position_to_node_id = graph.edges.node_list
         graph_node_ids_position_to_final_position = np.argsort(graph_node_ids)
