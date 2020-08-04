@@ -46,6 +46,9 @@ v        v /        v
     MultiVerify(
         dpr, "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)
+    MultiVerify(dpr, "centrality.betweenness", graph, normalize=False,).assert_equals(
+        expected_answer
+    )
 
 
 def test_betweenness_centrality_multiple_hubs(default_plugin_resolver):
@@ -90,3 +93,6 @@ v /      |          v
     MultiVerify(
         dpr, "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)
+    MultiVerify(dpr, "centrality.betweenness", graph, normalize=False,).assert_equals(
+        expected_answer
+    )

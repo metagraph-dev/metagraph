@@ -177,3 +177,11 @@ if has_scipy:
         nodes: Union[PythonNodeSet, NumpyNodeMap, None],
     ) -> ScipyGraph:
         return ScipyGraph(edges, nodes)
+
+    @concrete_algorithm("util.edge_map.from_edge_set")
+    def ss_edge_map_from_edge_set(
+        edge_set: ScipyEdgeSet, default_value: Any,
+    ) -> ScipyEdgeMap:
+        new_matrix = edge_set.value.copy()
+        new_matrix.data.fill(default_value)
+        return ScipyEdgeMap(new_matrix, edge_set.node_list.copy(), edge_set.transposed)
