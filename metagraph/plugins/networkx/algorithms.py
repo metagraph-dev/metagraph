@@ -205,7 +205,7 @@ if has_networkx:
     ) -> NetworkXGraph:
         result_nx_graph = graph.value.copy()
         for _, _, edge_attributes in result_nx_graph.edges.data():
-            edge_attributes[graph.edge_weight_label] += weight
+            edge_attributes[graph.edge_weight_label] = weight
         return NetworkXGraph(
             result_nx_graph, graph.node_weight_label, graph.edge_weight_label
         )

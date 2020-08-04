@@ -162,14 +162,13 @@ if has_scipy:
 
     @concrete_algorithm("util.graph.assign_uniform_weight")
     def ss_graph_assign_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
-        result = graph.copy()
-        nonzero_row_col_tuple = result.edges.value.nonzero()
-        num_nonzero_elems = len(nonzero_row_col_tuple[0])
-        result.edges.value = result.edges.value + ss.csr_matrix(
-            (np.full(num_nonzero_elems, weight), nonzero_row_col_tuple),
-            result.edges.value.shape,
+        matrix = graph.edges.value.copy()
+        matrix.data.fill(weight)
+        edge_map = ScipyEdgeMap(
+            matrix, node_list=graph.edges.node_list, transposed=graph.edges.transposed
         )
-        return result
+        nodes = None if graph.nodes is None else graph.nodes.copy()
+        return ScipyGraph(edge_map, nodes=nodes)
 
     @concrete_algorithm("util.graph.build")
     def ss_graph_build(
