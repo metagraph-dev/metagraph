@@ -74,6 +74,13 @@ if has_scipy:
                 node_list = np.array(node_list)
             self.node_list = node_list
 
+        def copy(self):
+            return ScipyEdgeSet(
+                self.value.copy(),
+                node_list=self.node_list.copy(),
+                transposed=self.transposed,
+            )
+
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
@@ -135,7 +142,19 @@ if has_scipy:
                 node_list = np.arange(nrows)
             elif not isinstance(node_list, np.ndarray):
                 node_list = np.array(node_list)
+            self._assert(
+                nrows == len(node_list),
+                f"node list size ({len(node_list)}) and data matrix ({nrows}) size don't match.",
+            )
             self.node_list = node_list
+
+        def copy(self):
+            node_list = (
+                self.node_list if self.node_list is None else self.node_list.copy()
+            )
+            return ScipyEdgeMap(
+                self.value.copy(), node_list=node_list, transposed=self.transposed
+            )
 
         @property
         def format(self):
@@ -213,8 +232,7 @@ if has_scipy:
     class ScipyGraph(CompositeGraphWrapper, abstract=Graph):
         def __init__(self, edges, nodes=None):
             # Import here to avoid circular import
-            from ..python.types import PythonNodeSet
-            from ..numpy.types import NumpyNodeMap
+            from ..numpy.types import NumpyNodeSet, NumpyNodeMap
 
             # Auto convert simple matrix to EdgeMap
             # Anything more complicated requires explicit creation of the EdgeMap or EdgeSet
@@ -224,4 +242,8 @@ if has_scipy:
             super().__init__(edges, nodes)
             self._assert_instance(edges, (ScipyEdgeSet, ScipyEdgeMap))
             if nodes is not None:
-                self._assert_instance(nodes, (PythonNodeSet, NumpyNodeMap))
+                self._assert_instance(nodes, (NumpyNodeSet, NumpyNodeMap))
+
+        def copy(self):
+            nodes = self.nodes if self.nodes is None else self.nodes.copy()
+            return ScipyGraph(self.edges.copy(), nodes=nodes)

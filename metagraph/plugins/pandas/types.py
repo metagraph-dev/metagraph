@@ -50,6 +50,11 @@ if has_pandas:
             src_nodes, dst_nodes = self.index.levels
             return len(src_nodes | dst_nodes)
 
+        def copy(self):
+            return PandasEdgeSet(
+                self.value.copy(), self.src_label, self.dst_label, self.is_directed
+            )
+
         class TypeMixin:
             @classmethod
             def assert_equal(
@@ -115,6 +120,15 @@ if has_pandas:
         def num_nodes(self):
             src_nodes, dst_nodes = self.index.levels
             return len(src_nodes | dst_nodes)
+
+        def copy(self):
+            return PandasEdgeMap(
+                self.value.copy(),
+                self.src_label,
+                self.dst_label,
+                self.weight_label,
+                is_directed=self.is_directed,
+            )
 
         class TypeMixin:
             @classmethod

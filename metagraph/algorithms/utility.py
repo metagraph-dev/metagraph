@@ -40,21 +40,36 @@ def nodemap_reduce(x: NodeMap, func: Callable[[Any, Any], Any]) -> Any:
 def graph_aggregate_edges(
     graph: Graph(edge_type="map"),
     func: Callable[[Any, Any], Any],
-    in_edges=False,
-    out_edges=True,
+    initial_value: Any,
+    in_edges: bool = False,
+    out_edges: bool = True,
 ) -> NodeMap:
+    """
+    if in_edges == out_edges == False, every node is mapped to initial_value 
+    if the graph is undirected and either in_edges == True or out_edges == True, we aggregate over all of the edges for each node exactly once to avoid double counting
+    if the graph is directed, in_edges and out_edges specify which edge types to aggregate over for a given node
+    """
     pass
 
 
 @abstract_algorithm("util.graph.filter_edges")
-def graph_filter_edges(graph: Graph, func: Callable[[Any], bool]) -> Graph:
+def graph_filter_edges(
+    graph: Graph(edge_type="map"), func: Callable[[Any], bool]
+) -> Graph:
+    """
+    func takes the edge weight and returns a bool
+    Edges are removed, but nodes are kept (this may result in orphan nodes).
+    """
     pass
 
 
-@abstract_algorithm("util.graph.add_uniform_weight")
-def graph_add_uniform_weight(
-    graph: Graph(edge_type="set"), weight: Any = 1
+@abstract_algorithm("util.graph.assign_uniform_weight")
+def graph_assign_uniform_weight(
+    graph: Graph, weight: Any = 1
 ) -> Graph(edge_type="map"):
+    """
+    Make all the edge weights of a (possibly unweighted) have uniform magnitude.
+    """
     pass
 
 
