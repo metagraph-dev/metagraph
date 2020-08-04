@@ -61,12 +61,12 @@ def graph_filter_edges(
     pass
 
 
-@abstract_algorithm("util.graph.add_uniform_weight")
-def graph_add_uniform_weight(
+@abstract_algorithm("util.graph.assign_uniform_weight")
+def graph_assign_uniform_weight(
     graph: Graph(edge_type="set"), weight: Any = 1
 ) -> Graph(edge_type="map"):
     """
-    Adds a fixed amount to every edge weight.
+    Gives an unweighted graph weights of uniform magnitude.
     """
     pass
 

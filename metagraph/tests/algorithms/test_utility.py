@@ -245,7 +245,7 @@ v        v /        v
     )
 
 
-def test_add_uniform_weight(default_plugin_resolver):
+def test_assign_uniform_weight(default_plugin_resolver):
     """
 0 <--2-- 1        5 --10-> 6
 |      ^ |      ^ ^      / 
@@ -293,7 +293,7 @@ v        v /        v
     )
     expected_answer = dpr.wrappers.Graph.NetworkXGraph(expected_answer_nx_graph)
     MultiVerify(
-        dpr, "util.graph.add_uniform_weight", graph, weight_delta
+        dpr, "util.graph.assign_uniform_weight", graph, weight_delta
     ).assert_equals(expected_answer)
 
 
