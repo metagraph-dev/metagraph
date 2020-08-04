@@ -61,20 +61,18 @@ if has_scipy and has_networkx:
         else:
             nodes = None
         orphan_nodes = list(nx.isolates(x.value))
-        nx_graph_minus_orphans = x.value.copy()
         for orphan_node in orphan_nodes:
-            nx_graph_minus_orphans.remove_node(orphan_node)
-            ordered_nodes.remove(orphan_node)
+            ordered_nodes.remove(
+                orphan_node
+            )  # TODO this is O(n), take advantage of sortedness to do this in O(log n)
         if aprops["edge_type"] == "map":
             m = nx.convert_matrix.to_scipy_sparse_matrix(
-                nx_graph_minus_orphans,
-                nodelist=ordered_nodes,
-                weight=x.edge_weight_label,
+                x.value, nodelist=ordered_nodes, weight=x.edge_weight_label,
             )
             edges = ScipyEdgeMap(m, ordered_nodes)
         else:
             m = nx.convert_matrix.to_scipy_sparse_matrix(
-                nx_graph_minus_orphans, nodelist=ordered_nodes
+                x.value, nodelist=ordered_nodes
             )
             edges = ScipyEdgeSet(m, ordered_nodes)
         return ScipyGraph(edges, nodes)
