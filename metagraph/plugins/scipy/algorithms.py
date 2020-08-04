@@ -160,8 +160,8 @@ if has_scipy:
         result_graph_nodes = graph.nodes if graph.nodes is None else graph.nodes.copy()
         return ScipyGraph(result_edge_map, result_graph_nodes)
 
-    @concrete_algorithm("util.graph.add_uniform_weight")
-    def ss_graph_add_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
+    @concrete_algorithm("util.graph.assign_uniform_weight")
+    def ss_graph_assign_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
         result = graph.copy()
         nonzero_row_col_tuple = result.edges.value.nonzero()
         num_nonzero_elems = len(nonzero_row_col_tuple[0])
