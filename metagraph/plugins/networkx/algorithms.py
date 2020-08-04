@@ -187,7 +187,17 @@ if has_networkx:
         graph: NetworkXGraph, func: Callable[[Any], bool]
     ) -> NetworkXGraph:
         result_nx_graph = type(graph.value)()
-        result_nx_graph.add_nodes_from(graph.value.nodes())
+        result_nx_graph.add_nodes_from(
+            (
+                (
+                    node,
+                    {}
+                    if node_weight is None
+                    else {graph.node_weight_label: node_weight},
+                )
+                for node, node_weight in graph.value.nodes(data=graph.node_weight_label)
+            )
+        )
         ebunch = filter(
             lambda uvw_triple: func(uvw_triple[-1]),
             graph.value.edges.data(graph.edge_weight_label),
