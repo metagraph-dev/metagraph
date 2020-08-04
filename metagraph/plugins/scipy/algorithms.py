@@ -2,12 +2,16 @@ import numpy as np
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_scipy
 from .types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
-from typing import Tuple
+from .. import has_numba
+import numpy as np
+from typing import Tuple, Callable, Any, Union
 
+if has_numba:
+    import numba
 
 if has_scipy:
     import scipy.sparse as ss
-    from ..numpy.types import NumpyNodeMap, NumpyVector
+    from ..numpy.types import NumpyNodeMap, NumpyNodeSet, NumpyVector
 
     @concrete_algorithm("clustering.connected_components")
     def ss_connected_components(graph: ScipyGraph) -> NumpyNodeMap:
@@ -74,3 +78,108 @@ if has_scipy:
         )
         bfs_ordered_nodes = graph.edges.node_list[bfs_ordered_incides]
         return NumpyVector(bfs_ordered_nodes)
+
+    def _reduce_sparse_matrix(
+        func: np.ufunc, sparse_matrix: ss.spmatrix
+    ) -> Tuple[np.ndarray, np.ndarray]:
+        keep_mask = np.diff(sparse_matrix.indptr).astype(bool)
+        reduceat_indices = sparse_matrix.indptr[:-1][keep_mask]
+        reduced_values = func.reduceat(
+            sparse_matrix.data, reduceat_indices, dtype=object
+        )
+        return reduced_values, keep_mask
+
+    @concrete_algorithm("util.graph.aggregate_edges")
+    def ss_graph_aggregate_edges(
+        graph: ScipyGraph,
+        func: Callable[[Any, Any], Any],
+        initial_value: Any,
+        in_edges: bool,
+        out_edges: bool,
+    ) -> NumpyNodeMap:
+        if in_edges or out_edges:
+            is_directed = ScipyGraph.Type.compute_abstract_properties(
+                graph, {"is_directed"}
+            )["is_directed"]
+            if not is_directed:
+                in_edges = True
+                out_edges = False
+        nrows = graph.edges.value.shape[0]
+        num_agg_values = nrows if graph.nodes is None else len(graph.nodes)
+        final_position_to_agg_value = np.full(num_agg_values, initial_value)
+        if not isinstance(func, np.ufunc):
+            func = np.frompyfunc(func, 2, 1)
+        matrix_position_to_agg_value = np.full(nrows, initial_value)
+        if in_edges:
+            csc_matrix = graph.edges.value.tocsc()
+            in_edges_aggregated_values, keep_mask = _reduce_sparse_matrix(
+                func, csc_matrix
+            )
+            matrix_position_to_agg_value[keep_mask] = func(
+                matrix_position_to_agg_value[keep_mask], in_edges_aggregated_values
+            )
+        if out_edges:
+            csr_matrix = graph.edges.value
+            out_edges_aggregated_values, keep_mask = _reduce_sparse_matrix(
+                func, csr_matrix
+            )
+            matrix_position_to_agg_value[keep_mask] = func(
+                matrix_position_to_agg_value[keep_mask], out_edges_aggregated_values
+            )
+        # TODO This doesn't assume sortedness of any node list ; make these other data structures not require sorted node lists as that is expensive for large graphs
+        graph_node_ids = graph.edges.node_list if graph.nodes is None else graph.nodes
+        matrix_position_to_node_id = graph.edges.node_list
+        graph_node_ids_position_to_final_position = np.argsort(graph_node_ids)
+        final_position_to_graph_node_id = graph_node_ids[
+            graph_node_ids_position_to_final_position
+        ]
+        matrix_position_to_final_position = np.searchsorted(
+            final_position_to_graph_node_id, matrix_position_to_node_id
+        )
+        final_position_to_agg_value[
+            matrix_position_to_final_position
+        ] = matrix_position_to_agg_value
+        # Would we ever want to return a NumpyNodeMap via a mask?
+        return NumpyNodeMap(
+            final_position_to_agg_value, node_ids=final_position_to_graph_node_id
+        )
+
+    @concrete_algorithm("util.graph.filter_edges")
+    def ss_graph_filter_edges(
+        graph: ScipyGraph, func: Callable[[Any], bool]
+    ) -> ScipyGraph:
+        # TODO consider caching this somewhere or enforcing that only vectorized functions are given
+        func_vectorized = numba.vectorize(func) if has_numba else np.vectorize(func)
+        # TODO Explicitly handle the CSR case
+        result_matrix = (
+            graph.edges.value.copy()
+            if isinstance(graph.edges.value, ss.coo_matrix)
+            else graph.edges.value.tocoo(copy=True)
+        )
+        result_edge_map = ScipyEdgeMap(
+            result_matrix, graph.edges.node_list, graph.edges.transposed
+        )
+        to_keep_mask = func_vectorized(result_edge_map.value.data)
+        if not to_keep_mask.all():
+            result_edge_map.value.row = result_edge_map.value.row[to_keep_mask]
+            result_edge_map.value.col = result_edge_map.value.col[to_keep_mask]
+            result_edge_map.value.data = result_edge_map.value.data[to_keep_mask]
+        result_graph_nodes = None if graph.nodes is None else graph.nodes.copy()
+        return ScipyGraph(result_edge_map, result_graph_nodes)
+
+    @concrete_algorithm("util.graph.assign_uniform_weight")
+    def ss_graph_assign_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
+        matrix = graph.edges.value.copy()
+        matrix.data.fill(weight)
+        edge_map = ScipyEdgeMap(
+            matrix, node_list=graph.edges.node_list, transposed=graph.edges.transposed
+        )
+        nodes = None if graph.nodes is None else graph.nodes.copy()
+        return ScipyGraph(edge_map, nodes=nodes)
+
+    @concrete_algorithm("util.graph.build")
+    def ss_graph_build(
+        edges: Union[ScipyEdgeSet, ScipyEdgeMap],
+        nodes: Union[NumpyNodeSet, NumpyNodeMap, None],
+    ) -> ScipyGraph:
+        return ScipyGraph(edges, nodes)

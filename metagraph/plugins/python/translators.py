@@ -13,8 +13,14 @@ def nodemap_to_nodeset(x: PythonNodeMap, **props) -> PythonNodeSet:
 def nodemap_from_numpy(x: NumpyNodeMap, **props) -> PythonNodeMap:
     cast = dtype_casting[dtypes.dtypes_simplified[x.value.dtype]]
     npdata = x.value
-    nplookup = x.id2pos
-    data = {label: cast(npdata[idx]) for label, idx in nplookup.items()}
+    if x.mask is not None:
+        nplookup = np.flatnonzero(x.mask)
+        data = {idx: cast(npdata[idx]) for idx in nplookup}
+    elif x.id2pos is not None:
+        nplookup = x.id2pos
+        data = {label: cast(npdata[idx]) for label, idx in nplookup.items()}
+    else:
+        data = {label: cast(npdata_elem) for label, npdata_elem in enumerate(npdata)}
     return PythonNodeMap(data)
 
 
