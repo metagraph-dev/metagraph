@@ -314,7 +314,7 @@ def test_graph_build(default_plugin_resolver):
         )
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
 
@@ -369,7 +369,7 @@ def test_graph_build(default_plugin_resolver):
         np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0],], dtype=bool)
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
 
@@ -396,7 +396,7 @@ def test_graph_build(default_plugin_resolver):
 #         )
 #     )
 #     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1,5,3,4])
-#     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+#     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
 #     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
 #     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(
 #         expected_answer
