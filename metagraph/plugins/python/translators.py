@@ -15,7 +15,7 @@ def nodemap_from_numpy(x: NumpyNodeMap, **props) -> PythonNodeMap:
     npdata = x.value
     if x.mask is not None:
         nplookup = np.flatnonzero(x.mask)
-        data = {label: cast(npdata[idx]) for label, idx in enumerate(nplookup)}
+        data = {idx: cast(npdata[idx]) for idx in nplookup}
     elif x.id2pos is not None:
         nplookup = x.id2pos
         data = {label: cast(npdata[idx]) for label, idx in nplookup.items()}
