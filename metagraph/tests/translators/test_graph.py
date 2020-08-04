@@ -1,5 +1,6 @@
 import pytest
 from metagraph.tests.util import default_plugin_resolver
+from metagraph.plugins.numpy.types import NumpyNodeSet
 from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet, ScipyGraph
 from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.graphblas.types import GrblasEdgeMap

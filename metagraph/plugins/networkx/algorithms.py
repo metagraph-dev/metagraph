@@ -166,20 +166,21 @@ if has_networkx:
         in_edges: bool,
         out_edges: bool,
     ) -> PythonNodeMap:
-        if not (in_edges == out_edges):
-            is_directed = NetworkXGraph.Type.compute_abstract_properties(
-                graph, {"is_directed"}
-            )["is_directed"]
-            if not is_directed:
-                in_edges = out_edges = True
         result_dict = {node: initial_value for node in graph.value.nodes}
-        for start_node, end_node, weight in graph.value.edges.data(
-            graph.edge_weight_label
-        ):
-            if out_edges:
-                result_dict[start_node] = func(weight, result_dict[start_node])
-            if in_edges:
-                result_dict[end_node] = func(weight, result_dict[end_node])
+        if in_edges or out_edges:
+            if in_edges != out_edges:
+                is_directed = NetworkXGraph.Type.compute_abstract_properties(
+                    graph, {"is_directed"}
+                )["is_directed"]
+                if not is_directed:
+                    in_edges = out_edges = True
+            for start_node, end_node, weight in graph.value.edges.data(
+                graph.edge_weight_label
+            ):
+                if out_edges:
+                    result_dict[start_node] = func(weight, result_dict[start_node])
+                if in_edges:
+                    result_dict[end_node] = func(weight, result_dict[end_node])
         return PythonNodeMap(result_dict)
 
     @concrete_algorithm("util.graph.filter_edges")
@@ -187,41 +188,25 @@ if has_networkx:
         graph: NetworkXGraph, func: Callable[[Any], bool]
     ) -> NetworkXGraph:
         result_nx_graph = type(graph.value)()
-        result_nx_graph.add_nodes_from(graph.value.nodes())
+        result_nx_graph.add_nodes_from(graph.value.nodes.data())
         ebunch = filter(
             lambda uvw_triple: func(uvw_triple[-1]),
-            graph.value.edges.data(graph.edge_weight_label),
+            graph.value.edges.data(data=graph.edge_weight_label),
         )
-        result_nx_graph.add_weighted_edges_from(ebunch)
+        result_nx_graph.add_weighted_edges_from(ebunch, weight=graph.edge_weight_label)
         return NetworkXGraph(
             result_nx_graph,
             node_weight_label=graph.node_weight_label,
             edge_weight_label=graph.edge_weight_label,
         )
 
-    @concrete_algorithm("util.graph.add_uniform_weight")
-    def nx_graph_add_uniform_weight(graph: NetworkXGraph, weight: Any) -> NetworkXGraph:
+    @concrete_algorithm("util.graph.assign_uniform_weight")
+    def nx_graph_assign_uniform_weight(
+        graph: NetworkXGraph, weight: Any
+    ) -> NetworkXGraph:
         result_nx_graph = graph.value.copy()
         for _, _, edge_attributes in result_nx_graph.edges.data():
-            edge_attributes[graph.edge_weight_label] += weight
-        return NetworkXGraph(
-            result_nx_graph, graph.node_weight_label, graph.edge_weight_label
-        )
-
-    @concrete_algorithm("util.graph.add_uniform_weight")
-    def nx_graph_add_uniform_weight(graph: NetworkXGraph, weight: Any) -> NetworkXGraph:
-        result_nx_graph = graph.value.copy()
-        for _, _, edge_attributes in result_nx_graph.edges.data():
-            edge_attributes[graph.edge_weight_label] += weight
-        return NetworkXGraph(
-            result_nx_graph, graph.node_weight_label, graph.edge_weight_label
-        )
-
-    @concrete_algorithm("util.graph.add_uniform_weight")
-    def nx_graph_add_uniform_weight(graph: NetworkXGraph, weight: Any) -> NetworkXGraph:
-        result_nx_graph = graph.value.copy()
-        for _, _, edge_attributes in result_nx_graph.edges.data():
-            edge_attributes[graph.edge_weight_label] += weight
+            edge_attributes[graph.edge_weight_label] = weight
         return NetworkXGraph(
             result_nx_graph, graph.node_weight_label, graph.edge_weight_label
         )
