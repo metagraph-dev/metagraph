@@ -27,16 +27,9 @@ author = "Anaconda, Inc"
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    "sphinx.ext.autodoc",
-    "rst2pdf.pdfbuilder",
-]
-html_css_files = [
-    "css/custom.css",
-]
-html_js_files = [
-    "js/custom.js",
-]
+extensions = ["sphinx.ext.autodoc", "rst2pdf.pdfbuilder", "nbsphinx"]
+html_css_files = ["css/custom.css"]
+html_js_files = ["js/custom.js"]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ["_templates"]
@@ -60,16 +53,38 @@ html_logo = "_static/metagraph_small.png"
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-html_theme_options = {
-    "github_url": "https://github.com/ContinuumIO/metagraph",
-}
+html_theme_options = {"github_url": "https://github.com/ContinuumIO/metagraph"}
 
 # -- Options for PDF output -------------------------------------------------
 
 # Grouping the document tree into PDF files. List of tuples
 # (source start file, target name, title, author, options).
 pdf_documents = [
-    ("index", "Metagraph Documentation", "Metagraph Documentation", "Anaconda, Inc."),
+    ("index", "Metagraph Documentation", "Metagraph Documentation", "Anaconda, Inc.")
 ]
 
 pdf_use_index = False
+
+### nbsphinx config
+nbsphinx_input_prompt = "%.0s"  # suppress prompt
+nbsphinx_output_prompt = "%.0s"  # suppress prompt
+
+# from
+nbsphinx_prolog = r"""
+{% set nbname = env.doc2path(env.docname, base=False) %}
+
+.. raw:: html
+
+
+      <p class="text-right font-italic">
+        This page was generated from
+        <a href="../{{ nbname|e }}">{{ nbname|e }}</a>.
+      </p>
+
+
+.. raw:: latex
+
+    \nbsphinxstartnotebook{\scriptsize\noindent\strut
+    \textcolor{gray}{The following section was generated from
+    \sphinxcode{\sphinxupquote{\strut {{ nbname | escape_latex }}}} \dotfill}}
+"""
