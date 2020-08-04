@@ -65,10 +65,10 @@ def graph_filter_edges(
 
 @abstract_algorithm("util.graph.assign_uniform_weight")
 def graph_assign_uniform_weight(
-    graph: Graph(edge_type="set"), weight: Any = 1
+    graph: Graph, weight: Any = 1
 ) -> Graph(edge_type="map"):
     """
-    Gives an unweighted graph weights of uniform magnitude.
+    Make all the edge weights of a (possibly unweighted) have uniform magnitude.
     """
     pass
 
