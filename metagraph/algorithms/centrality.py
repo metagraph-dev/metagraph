@@ -6,7 +6,7 @@ from metagraph.types import Graph, NodeMap, NodeSet, NodeID
 @abstract_algorithm("centrality.betweenness")
 def betweenness_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
-    nodes: mg.Optional[NodeSet],
+    nodes: mg.Optional[NodeSet] = None,
     normalize: bool = False,
 ) -> NodeMap:
     pass  # pragma: no cover
