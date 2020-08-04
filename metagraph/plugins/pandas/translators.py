@@ -33,6 +33,7 @@ if has_pandas and has_scipy:
     def pandas_edgemap_to_scipy_edgemap(x: PandasEdgeMap, **props) -> ScipyEdgeMap:
         is_directed = x.is_directed
         node_list = pd.unique(x.value[[x.src_label, x.dst_label]].values.ravel("K"))
+        node_list.sort()
         num_nodes = len(node_list)
         id2pos = dict(map(reversed, enumerate(node_list)))
         get_id_pos = lambda node_id: id2pos[node_id]
@@ -70,6 +71,7 @@ if has_pandas and has_scipy:
     def pandas_edgeset_to_scipy_edgeset(x: PandasEdgeSet, **props) -> ScipyEdgeSet:
         is_directed = x.is_directed
         node_list = pd.unique(x.value[[x.src_label, x.dst_label]].values.ravel("K"))
+        node_list.sort()
         num_nodes = len(node_list)
         id2pos = dict(map(reversed, enumerate(node_list)))
         get_id_pos = lambda node_id: id2pos[node_id]
