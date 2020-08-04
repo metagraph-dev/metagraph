@@ -11,7 +11,6 @@ if has_numba:
 
 if has_scipy:
     import scipy.sparse as ss
-    from ..python.types import PythonNodeSet
     from ..numpy.types import NumpyNodeMap, NumpyNodeSet, NumpyVector
 
     @concrete_algorithm("clustering.connected_components")
@@ -181,6 +180,6 @@ if has_scipy:
     @concrete_algorithm("util.graph.build")
     def ss_graph_build(
         edges: Union[ScipyEdgeSet, ScipyEdgeMap],
-        nodes: Union[PythonNodeSet, NumpyNodeMap, None],
+        nodes: Union[NumpyNodeSet, NumpyNodeMap, None],
     ) -> ScipyGraph:
         return ScipyGraph(edges, nodes)

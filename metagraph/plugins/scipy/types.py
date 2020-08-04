@@ -232,8 +232,7 @@ if has_scipy:
     class ScipyGraph(CompositeGraphWrapper, abstract=Graph):
         def __init__(self, edges, nodes=None):
             # Import here to avoid circular import
-            from ..python.types import PythonNodeSet
-            from ..numpy.types import NumpyNodeMap
+            from ..numpy.types import NumpyNodeSet, NumpyNodeMap
 
             # Auto convert simple matrix to EdgeMap
             # Anything more complicated requires explicit creation of the EdgeMap or EdgeSet
@@ -243,7 +242,7 @@ if has_scipy:
             super().__init__(edges, nodes)
             self._assert_instance(edges, (ScipyEdgeSet, ScipyEdgeMap))
             if nodes is not None:
-                self._assert_instance(nodes, (PythonNodeSet, NumpyNodeMap))
+                self._assert_instance(nodes, (NumpyNodeSet, NumpyNodeMap))
 
         def copy(self):
             nodes = self.nodes if self.nodes is None else self.nodes.copy()

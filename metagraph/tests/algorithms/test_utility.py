@@ -45,7 +45,7 @@ def test_nodeset_sort(default_plugin_resolver):
 def test_nodemap_select(default_plugin_resolver):
     dpr = default_plugin_resolver
     node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
-    node_set = dpr.wrappers.NodeSet.PythonNodeSet({2, 3})
+    node_set = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids={2, 3})
     correct_answer = dpr.wrappers.NodeMap.PythonNodeMap({2: 22, 3: 33})
     MultiVerify(dpr, "util.nodemap.select", node_map, node_set).assert_equals(
         correct_answer
@@ -314,7 +314,7 @@ def test_graph_build(default_plugin_resolver):
         )
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
+    nodes = dpr.wrappers.NodeSet.NumpyNodeSet(mask=np.ones(6, dtype=bool))
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
 
@@ -369,7 +369,7 @@ def test_graph_build(default_plugin_resolver):
         np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0],], dtype=bool)
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
+    nodes = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids=np.array([0, 1, 2, 3, 4, 5]))
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(expected_answer)
 

@@ -44,6 +44,13 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
         return copied_node_set
 
+    def __iter__(self):
+        if self.mask is not None:
+            iterable = np.flatnonzero(self.mask)
+        else:
+            iterable = self.node_array
+        return iterable
+
     def __contains__(self, key):
         if mask is not None:
             return 0 <= key < len(self.mask) and self.mask[key]
