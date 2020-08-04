@@ -162,13 +162,17 @@ if has_networkx:
         in_edges: bool,
         out_edges: bool,
     ) -> PythonNodeMap:
-        if not (in_edges == out_edges):
+        result_dict = {node: initial_value for node in graph.value.nodes}
+        if not in_edges and not out_edges:
+            return PythonNodeMap(result_dict)
+        if (
+            in_edges != out_edges
+        ):  # if either is True and graph is undirected, set both to True
             is_directed = NetworkXGraph.Type.compute_abstract_properties(
                 graph, {"is_directed"}
             )["is_directed"]
             if not is_directed:
                 in_edges = out_edges = True
-        result_dict = {node: initial_value for node in graph.value.nodes}
         for start_node, end_node, weight in graph.value.edges.data(
             graph.edge_weight_label
         ):
