@@ -39,9 +39,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
 
     def copy(self):
         if self.mask is not None:
-            copied_node_set = NumpyNodeSet(
-                mask=self.mask if self.mask is None else self.mask.copy()
-            )
+            copied_node_set = NumpyNodeSet(mask=self.mask.copy())
         else:
             copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
         return copied_node_set
@@ -112,7 +110,7 @@ class NumpyVector(Wrapper, abstract=Vector):
 
     def copy(self):
         return NumpyVector(
-            self.value.copy(), mask=self.mask if self.mask is None else self.mask.copy()
+            self.value.copy(), mask=None if self.mask is None else self.mask.copy()
         )
 
     class TypeMixin:
@@ -236,8 +234,8 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return len(self.value)
 
     def copy(self):
-        mask = self.mask if self.mask is None else self.mask.copy()
-        node_ids = self.id2pos if self.id2pos is None else self.id2pos.copy()
+        mask = None if self.mask is None else self.mask.copy()
+        node_ids = None if self.id2pos is None else self.id2pos.copy()
         copied_node_map = NumpyNodeMap(self.value.copy(), mask=mask, node_ids=node_ids)
         return copied_node_map
 
@@ -342,7 +340,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         return self.value.shape
 
     def copy(self):
-        mask = self.mask if self.mask is None else self.mask.copy()
+        mask = None if self.mask is None else self.mask.copy()
         return NumpyMatrix(self.value.copy(), mask=mask)
 
     class TypeMixin:
