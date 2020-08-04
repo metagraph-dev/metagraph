@@ -1,7 +1,6 @@
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_networkx, has_grblas
-from metagraph.plugins.numpy.types import NumpyNodeMap
-from metagraph.plugins.python.types import PythonNodeSet
+from metagraph.plugins.numpy.types import NumpyNodeSet, NumpyNodeMap
 import numpy as np
 
 if has_scipy:
@@ -55,16 +54,12 @@ if has_scipy and has_networkx:
             else:
                 nodes = NumpyNodeMap(node_vals, node_ids=np.array(ordered_nodes))
         elif not is_sequential:
-            nodes = PythonNodeSet(
-                set(ordered_nodes)
-            )  # TODO: change this to NumpyNodeSet
+            nodes = NumpyNodeSet(np.array(ordered_nodes))
         else:
             nodes = None
         orphan_nodes = list(nx.isolates(x.value))
-        for orphan_node in orphan_nodes:
-            ordered_nodes.remove(
-                orphan_node
-            )  # TODO this is O(n), take advantage of sortedness to do this in O(log n)
+        for orphan_node in orphan_nodes:  # TODO this is O(n^2)
+            ordered_nodes.remove(orphan_node)
         if aprops["edge_type"] == "map":
             m = nx.convert_matrix.to_scipy_sparse_matrix(
                 x.value, nodelist=ordered_nodes, weight=x.edge_weight_label,
@@ -107,10 +102,10 @@ if has_scipy and has_networkx:
             nx.relabel_nodes(nx_graph, pos2id, False)
 
         if x.nodes is not None:
-            if isinstance(x.nodes, PythonNodeSet):
-                nx_graph.add_nodes_from(x.nodes.value)
+            if isinstance(x.nodes, NumpyNodeSet):
+                nx_graph.add_nodes_from(x.nodes)
             elif isinstance(x.nodes, NumpyNodeMap):
-                # TODO consider making __iter__ a required method for NodeMap implementations or making __getitem__ handle sets of ids to simplify this sort of code
+                # TODO make __iter__ a required method for NodeMap implementations or making __getitem__ handle sets of ids to simplify this sort of code
                 make_weight_dict = lambda weight: {"weight": weight}
                 if x.nodes.mask is not None:
                     ids = np.flatnonzero(x.nodes.mask)
