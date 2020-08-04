@@ -151,12 +151,21 @@ if has_scipy:
     ) -> ScipyGraph:
         # TODO consider caching this somewhere or enforcing that only vectorized functions are given
         func_vectorized = numba.vectorize(func) if has_numba else np.vectorize(func)
-        result_edge_map = graph.edges.copy()
-        to_remove_mask = ~func_vectorized(result_edge_map.value.data)
-        if to_remove_mask.any():
-            result_edge_map.value.data[to_remove_mask] = 0
-            result_edge_map.value.eliminate_zeros()
-        result_graph_nodes = graph.nodes if graph.nodes is None else graph.nodes.copy()
+        # TODO Explicitly handle the CSR case
+        result_matrix = (
+            graph.edges.value.copy()
+            if isinstance(graph.edges.value, ss.coo_matrix)
+            else graph.edges.value.tocoo(copy=True)
+        )
+        result_edge_map = ScipyEdgeMap(
+            result_matrix, graph.edges.node_list, graph.edges.transposed
+        )
+        to_keep_mask = func_vectorized(result_edge_map.value.data)
+        if not to_keep_mask.all():
+            result_edge_map.value.row = result_edge_map.value.row[to_keep_mask]
+            result_edge_map.value.col = result_edge_map.value.col[to_keep_mask]
+            result_edge_map.value.data = result_edge_map.value.data[to_keep_mask]
+        result_graph_nodes = None if graph.nodes is None else graph.nodes.copy()
         return ScipyGraph(result_edge_map, result_graph_nodes)
 
     @concrete_algorithm("util.graph.assign_uniform_weight")
