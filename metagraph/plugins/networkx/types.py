@@ -34,14 +34,6 @@ if has_networkx:
                 self.edge_weight_label,
             )
 
-        def _determine_dtype(self, all_values):
-            all_types = {type(v) for v in all_values}
-            if not all_types or (all_types - {float, int, bool}):
-                return "str"
-            for type_ in (float, int, bool):
-                if type_ in all_types:
-                    return str(type_.__name__)
-
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
