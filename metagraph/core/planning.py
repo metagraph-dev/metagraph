@@ -290,16 +290,38 @@ class AlgorithmPlan:
         elif getattr(param_type, "__origin__", None) == abc.Callable:
             if not callable(arg_value):
                 raise TypeError(f"{arg_name} must be Callable, not {type(arg_value)}")
+            # TODO consider using typing.get_type_hints
             arg_value_func_params_desired_types = param_type.__args__[:-1]
-            arg_value_func_params = inspect.signature(arg_value).parameters.values()
-            arg_value_func_params_actual_types = (
-                param.annotation for param in arg_value_func_params
-            )
-            for actual_type, desired_type in zip(
-                arg_value_func_params_actual_types, arg_value_func_params_desired_types
-            ):
-                if actual_type != inspect._empty:
-                    if not issubclass(actual_type, desired_type):
+            arg_value_func_desired_return_type = param_type.__args__[-1]
+            if isinstance(arg_value, np.ufunc):
+                if len(arg_value_func_params_desired_types) != arg_value.nin:
+                    return param_type
+                # TODO use arg_value.nout to compare to arg_value_func_desired_return_type
+                if arg_value.signature is not None:
+                    pass  # TODO handle this case
+            else:
+                arg_value_signature = inspect.signature(arg_value)
+                arg_value_func_params = arg_value_signature.parameters.values()
+                arg_value_func_params_actual_types = (
+                    param.annotation for param in arg_value_func_params
+                )
+                for actual_type, desired_type in zip(
+                    arg_value_func_params_actual_types,
+                    arg_value_func_params_desired_types,
+                ):
+                    if (
+                        actual_type != inspect._empty
+                    ):  # free pass if no type declaration
+                        if not issubclass(actual_type, desired_type):
+                            return param_type
+                arg_value_func_actual_return_type = (
+                    arg_value_signature.return_annotation
+                )
+                if arg_value_func_actual_return_type != inspect._empty:
+                    if not issubclass(
+                        arg_value_func_actual_return_type,
+                        arg_value_func_desired_return_type,
+                    ):
                         return param_type
         else:
             if not isinstance(arg_value, param_type):
