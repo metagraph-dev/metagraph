@@ -55,7 +55,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
         return array
 
     def __iter__(self):
-        return self.nodes()
+        return iter(self.nodes())
 
     def __contains__(self, key):
         if mask is not None:
