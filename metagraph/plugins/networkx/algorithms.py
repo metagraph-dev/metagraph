@@ -120,14 +120,18 @@ if has_networkx:
     @concrete_algorithm("centrality.betweenness")
     def nx_betweenness_centrality(
         graph: NetworkXGraph,
-        nodes: NumpyVector,
+        nodes: mg.Optional[PythonNodeSet],
         normalize: bool,
         # include_endpoints: bool,
     ) -> PythonNodeMap:
+        if nodes is None:
+            nodes = set(graph.value.nodes())
+        else:
+            nodes = nodes.value
         node_to_score_map = nx.betweenness_centrality_subset(
             graph.value,
-            sources=nodes.value,
-            targets=nodes.value,
+            sources=nodes,
+            targets=nodes,
             normalized=normalize,
             weight=graph.edge_weight_label,
             # endpoints=include_endpoints,

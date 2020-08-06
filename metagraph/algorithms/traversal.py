@@ -7,6 +7,7 @@ from typing import Tuple
 def bellman_ford(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID
 ) -> Tuple[NodeMap, NodeMap]:
+    """Output is (Parents, Distance)"""
     pass
 
 
@@ -14,6 +15,7 @@ def bellman_ford(
 def all_pairs_shortest_paths(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"})
 ) -> Tuple[Graph, Graph]:
+    """Output is (Parents, Distance)"""
     pass
 
 
@@ -40,4 +42,5 @@ def dijkstra(
     ),
     source_node: NodeID,
 ) -> Tuple[NodeMap, NodeMap]:
+    """Output is (Parents, Distance)"""
     pass

@@ -32,7 +32,7 @@ written as well as performance characteristics of those algorithms.
 
 Metagraph's approach is to automatically translate between different data representations,
 and then call the algorithm which operates on that new representation. For example, a
-pandas edge list can be translated to a NetworkX Graph, and then a NetworkX algorithm is
+pandas edge list can be converted to a NetworkX Graph, and then a NetworkX algorithm is
 called.
 
 There is a cost to translating, but depending on the size of the graph, the cost of running
