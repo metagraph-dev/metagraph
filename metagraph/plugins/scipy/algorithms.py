@@ -127,7 +127,9 @@ if has_scipy:
                 matrix_position_to_agg_value[keep_mask], out_edges_aggregated_values
             )
         # TODO This doesn't assume sortedness of any node list ; make these other data structures not require sorted node lists as that is expensive for large graphs
-        graph_node_ids = graph.edges.node_list if graph.nodes is None else graph.nodes
+        graph_node_ids = (
+            graph.edges.node_list if graph.nodes is None else graph.nodes.nodes()
+        )
         matrix_position_to_node_id = graph.edges.node_list
         graph_node_ids_position_to_final_position = np.argsort(graph_node_ids)
         final_position_to_graph_node_id = graph_node_ids[
@@ -183,3 +185,11 @@ if has_scipy:
         nodes: Union[NumpyNodeSet, NumpyNodeMap, None],
     ) -> ScipyGraph:
         return ScipyGraph(edges, nodes)
+
+    @concrete_algorithm("util.edge_map.from_edgeset")
+    def ss_edge_map_from_edgeset(
+        edgeset: ScipyEdgeSet, default_value: Any,
+    ) -> ScipyEdgeMap:
+        new_matrix = edgeset.value.copy()
+        new_matrix.data.fill(default_value)
+        return ScipyEdgeMap(new_matrix, edgeset.node_list.copy(), edgeset.transposed)

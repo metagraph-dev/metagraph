@@ -44,12 +44,18 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
         return copied_node_set
 
-    def __iter__(self):
+    def __len__(self):
+        return self.num_nodes
+
+    def nodes(self):
         if self.mask is not None:
-            iterable = np.flatnonzero(self.mask)
+            array = np.flatnonzero(self.mask)
         else:
-            iterable = self.node_array
-        return iterable
+            array = self.node_array
+        return array
+
+    def __iter__(self):
+        return iter(self.nodes())
 
     def __contains__(self, key):
         if mask is not None:
@@ -245,6 +251,17 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         node_ids = None if self.id2pos is None else self.id2pos.copy()
         copied_node_map = NumpyNodeMap(self.value.copy(), mask=mask, node_ids=node_ids)
         return copied_node_map
+
+    def nodes(self, copy=False):
+        if self.mask is not None:
+            node_array = np.flatnonzero(self.mask)
+        elif self.pos2id is not None:
+            node_array = self.pos2id
+            if copy:
+                node_array = node_array.copy()
+        else:
+            node_array = np.arange(len(self.value))
+        return node_array
 
     def __contains__(self, key):
         if mask is not None:
