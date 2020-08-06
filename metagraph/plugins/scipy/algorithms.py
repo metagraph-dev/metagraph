@@ -186,10 +186,10 @@ if has_scipy:
     ) -> ScipyGraph:
         return ScipyGraph(edges, nodes)
 
-    @concrete_algorithm("util.edge_map.from_edge_set")
-    def ss_edge_map_from_edge_set(
-        edge_set: ScipyEdgeSet, default_value: Any,
+    @concrete_algorithm("util.edge_map.from_edgeset")
+    def ss_edge_map_from_edgeset(
+        edgeset: ScipyEdgeSet, default_value: Any,
     ) -> ScipyEdgeMap:
-        new_matrix = edge_set.value.copy()
+        new_matrix = edgeset.value.copy()
         new_matrix.data.fill(default_value)
-        return ScipyEdgeMap(new_matrix, edge_set.node_list.copy(), edge_set.transposed)
+        return ScipyEdgeMap(new_matrix, edgeset.node_list.copy(), edgeset.transposed)
