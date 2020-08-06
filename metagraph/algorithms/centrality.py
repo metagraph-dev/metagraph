@@ -1,11 +1,12 @@
+import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, NodeMap, Vector, NodeID
+from metagraph.types import Graph, NodeSet, NodeMap, NodeID
 
 
 @abstract_algorithm("centrality.betweenness")
 def betweenness_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
-    nodes: Vector = None,
+    nodes: mg.Optional[NodeSet] = None,
     normalize: bool = False,
 ) -> NodeMap:
     pass  # pragma: no cover

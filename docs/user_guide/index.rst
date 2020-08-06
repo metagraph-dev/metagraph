@@ -20,6 +20,7 @@ interacting with external plugins, but does not cover writing plugins. See the
    properties
    translators
    types
+   type_list
    algorithms
    algorithm_list
    data_loading_and_export

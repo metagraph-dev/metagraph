@@ -6,10 +6,6 @@ Metagraph is a pure-python library, making it easy to install with ``pip`` or ``
 However, Metagraph interfaces with many extension libraries where installation using ``pip``
 can be more challenging. For this reason, we recommend installing using ``conda``.
 
-.. note::
-    This *will* be the way to install once Metagraph has been open sourced. Until then, these
-    instructions will not work.
-
 
 Python version support
 ----------------------
@@ -51,7 +47,8 @@ Beyond the required dependencies above, additional dependencies are recommended 
 formats and basic algorithm coverage.
 
   - `networkx <https://networkx.github.io/>`_
-  - `grblas <https://github.com/jim22k/grblas/>`_
+  - `pandas <https://pandas.pydata.org/>`_
+  - `grblas <https://github.com/metagraph-dev/grblas/>`_
 
 A list of additional plugins to provide type and algorithm coverage for more libraries and hardware
 can be found in the list of :ref:`community plugins<existing_plugins>`.

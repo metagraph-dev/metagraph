@@ -57,9 +57,8 @@ if has_scipy and has_networkx:
             nodes = NumpyNodeSet(np.array(ordered_nodes))
         else:
             nodes = None
-        orphan_nodes = list(nx.isolates(x.value))
-        for orphan_node in orphan_nodes:  # TODO this is O(n^2)
-            ordered_nodes.remove(orphan_node)
+        orphan_nodes = set(nx.isolates(x.value))
+        ordered_nodes = [n for n in ordered_nodes if n not in orphan_nodes]
         if aprops["edge_type"] == "map":
             m = nx.convert_matrix.to_scipy_sparse_matrix(
                 x.value, nodelist=ordered_nodes, weight=x.edge_weight_label,
@@ -74,28 +73,26 @@ if has_scipy and has_networkx:
 
     @translator
     def graph_to_networkx(x: ScipyGraph, **props) -> NetworkXGraph:
-        is_directed = ScipyGraph.Type.compute_abstract_properties(x, {"is_directed"})[
-            "is_directed"
-        ]
+        from ..python.translators import dtype_casting
+
+        aprops = ScipyGraph.Type.compute_abstract_properties(
+            x, {"is_directed", "edge_type", "edge_dtype"}
+        )
 
         nx_graph = nx.from_scipy_sparse_matrix(
             x.edges.value,
-            create_using=nx.DiGraph if is_directed else nx.Graph,
+            create_using=nx.DiGraph if aprops["is_directed"] else nx.Graph,
             edge_attribute="weight",
         )
 
-        def _simplify_type(obj):
-            simplified_obj = obj
-            if np.issubdtype(type(obj), np.dtype(str).type):
-                simplified_obj = str(simplified_obj)
-            elif np.issubdtype(type(obj), np.dtype(int).type):
-                simplified_obj = int(simplified_obj)
-            elif np.issubdtype(type(obj), np.dtype(float).type):
-                simplified_obj = float(simplified_obj)
-            return simplified_obj
-
-        for _, _, attr in nx_graph.edges(data=True):
-            attr["weight"] = _simplify_type(attr["weight"])
+        if aprops["edge_type"] == "set":
+            # Remove weight attribute
+            for _, _, attr in nx_graph.edges(data=True):
+                del attr["weight"]
+        else:
+            caster = dtype_casting[aprops["edge_dtype"]]
+            for _, _, attr in nx_graph.edges(data=True):
+                attr["weight"] = caster(attr["weight"])
 
         if x.edges.node_list is not None:
             pos2id = dict(enumerate(x.edges.node_list))
