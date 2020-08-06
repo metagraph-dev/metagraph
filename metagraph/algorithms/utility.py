@@ -9,6 +9,11 @@ def nodeset_choose_random(x: NodeSet, k: int) -> NodeSet:
     pass
 
 
+@abstract_algorithm("util.nodeset.from_vector")
+def nodeset_from_vector(x: Vector) -> NodeSet:
+    pass
+
+
 @abstract_algorithm("util.nodemap.sort")
 def nodemap_sort(
     x: NodeMap, ascending: bool = True, limit: mg.Optional[int] = None
@@ -33,6 +38,11 @@ def nodemap_apply(x: NodeMap, func: Callable[[Any], Any]) -> NodeMap:
 
 @abstract_algorithm("util.nodemap.reduce")
 def nodemap_reduce(x: NodeMap, func: Callable[[Any, Any], Any]) -> Any:
+    pass
+
+
+@abstract_algorithm("util.edge_map.from_edgeset")
+def edge_map_from_edgeset(edgeset: EdgeSet, default_value: Any,) -> EdgeMap:
     pass
 
 

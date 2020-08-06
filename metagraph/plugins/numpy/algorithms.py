@@ -17,6 +17,14 @@ def np_nodeset_choose_random(x: NumpyNodeSet, k: int) -> NumpyNodeSet:
     return NumpyNodeSet(random_elements)
 
 
+@concrete_algorithm("util.nodeset.from_vector")
+def np_nodeset_from_vector(x: NumpyVector) -> NumpyNodeSet:
+    data = x.value
+    if x.mask is not None:
+        data = data[x.mask]
+    return NumpyNodeSet(node_ids=data)
+
+
 @concrete_algorithm("util.nodemap.sort")
 def np_nodemap_sort(
     x: NumpyNodeMap, ascending: bool, limit: Optional[int]
