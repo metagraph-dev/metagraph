@@ -441,14 +441,14 @@ def test_graph_build(default_plugin_resolver):
 #     # TODO test edgeset + nodeset
 
 
-def test_edge_map_from_edge_set(default_plugin_resolver):
+def test_edge_map_from_edgeset(default_plugin_resolver):
     dpr = default_plugin_resolver
     #    0 2 7
     # 0 [    1]
     # 2 [    1]
     # 7 [1 1  ]
     matrix = ss.coo_matrix(([1, 1, 1, 1], ([0, 1, 2, 2], [2, 2, 0, 1])), dtype=np.int64)
-    edge_set = dpr.wrappers.EdgeSet.ScipyEdgeSet(matrix, [0, 2, 7])
+    edgeset = dpr.wrappers.EdgeSet.ScipyEdgeSet(matrix, [0, 2, 7])
     #    0 2 7
     # 0 [    9]
     # 2 [    9]
@@ -457,6 +457,6 @@ def test_edge_map_from_edge_set(default_plugin_resolver):
         ([9, 9, 9, 9], ([0, 1, 2, 2], [2, 2, 0, 1])), dtype=np.int64
     )
     expected_answer = dpr.wrappers.EdgeMap.ScipyEdgeMap(expected_matrix, [0, 2, 7])
-    MultiVerify(dpr, "util.edge_map.from_edge_set", edge_set, 9).assert_equals(
+    MultiVerify(dpr, "util.edge_map.from_edgeset", edgeset, 9).assert_equals(
         expected_answer
     )

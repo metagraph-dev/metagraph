@@ -41,8 +41,8 @@ def nodemap_reduce(x: NodeMap, func: Callable[[Any, Any], Any]) -> Any:
     pass
 
 
-@abstract_algorithm("util.edge_map.from_edge_set")
-def edge_map_from_edge_set(edge_set: EdgeSet, default_value: Any,) -> EdgeMap:
+@abstract_algorithm("util.edge_map.from_edgeset")
+def edge_map_from_edgeset(edgeset: EdgeSet, default_value: Any,) -> EdgeMap:
     pass
 
 
