@@ -79,7 +79,7 @@ if has_grblas:
 
         @property
         def num_nodes(self):
-            return len(self.value)
+            return self.value.nvals
 
         def __contains__(self, key):
             return 0 <= key < len(self.value) and self.value[key].value is not None
@@ -99,7 +99,6 @@ if has_grblas:
                 abs_tol=None,
             ):
                 v1, v2 = obj1.value, obj2.value
-                assert v1.size == v2.size, f"size mismatch: {v1.size} != {v2.size}"
                 assert (
                     v1.nvals == v2.nvals
                 ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
