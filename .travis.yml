@@ -5,6 +5,7 @@ sudo: false
 language: python
 python:
     - "3.7"
+    - "3.8"
 install:
     # https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/use-conda-with-travis-ci.html
     - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
@@ -14,7 +15,7 @@ install:
     - conda config --set always_yes yes --set changeps1 no
     - conda update -q conda
     - conda info -a
-    - conda env create -f environment.yml
+    - conda env create -f continuous_integration/environment-${TRAVIS_PYTHON_VERSION}.yml
     - conda activate mg
     - pip install -e .
 
