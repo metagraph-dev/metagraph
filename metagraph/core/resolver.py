@@ -711,7 +711,9 @@ class Resolver:
         def total_num_translations(plan):
             return sum(len(t) for t in plan.required_translations.values())
 
-        solutions.sort(key=lambda x: total_num_translations(x))
+        # TODO: improve this in the future. for now, use total number of translations
+        #       as well as algorithm name to ensure repeatability of solutions
+        solutions.sort(key=lambda x: (total_num_translations(x), x.algo.func.__name__))
 
         return solutions
 

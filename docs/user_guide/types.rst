@@ -22,38 +22,6 @@ a ``PythonVectorType`` can be created which knows how to compute a dtype given a
 In this example, the Python ``list`` knows nothing about the ``PythonVectorType`` class, while the
 ``PythonVectorType`` **does** know about the Python ``list``.
 
-.. _wrappers:
-
-Wrappers
---------
-
-Sometimes, the data object by itself does not contain enough information to be fully understood
-by Metagraph. A wrapper is needed around the data object. This wrapper will still need a separate
-Type which describes it.
-
-To avoid requiring plugin authors to write a lot of boilerplate code, developers can use wrappers which
-provide a streamlined way to wrap data objects and auto-create a corresponding Type.
-
-A wrapper must subclass ``Wrapper`` and indicate the abstract type it belongs to. It should have its own
-constructor and otherwise add methods and attributes as necessary to satisfy the concept of the abstract
-type.
-
-Wrappers are somewhat magical in their behavior. To avoid the need to write a separate concrete type
-for each wrapper, the following methods are written as part of the wrapper, but are automagically
-moved to be part of the auto-constructed concrete type:
-
-  - is_satisfied_by
-  - is_satisfied_by_value
-  - is_typeclass_of
-  - _compute_abstract_properties
-  - _compute_concrete_properties
-  - get_type
-  - assert_equal
-
-This can create some confusion when reading the code for these methods because ``self`` refers
-to the concrete type, not the wrapper object. Instead, the wrapper object will be passed into
-these methods to be evaluated by the concrete type.
-
 
 Abstract Types
 --------------
@@ -143,70 +111,35 @@ Concrete properties are defined in the ``allowed_props`` attribute. If this is s
 Finally, it is recommended to write the ``assert_equal`` method for comparing two data objects
 of this type. Doing so allows these objects to be used in testing.
 
-Core Types
-----------
+.. _wrappers:
 
-The following are core types in Metagraph. Below each is a description and list of concrete types.
-Each concrete type indicates its ``value_type``.
+Wrappers
+--------
 
-Vector
-~~~~~~
+Often, the data object by itself does not contain enough information to be fully understood
+by Metagraph. A wrapper is needed around the data object to contain additional information.
+This wrapper will still need a separate Type which describes it.
 
-1-D homogeneous array of data
+To aid plugin authors, a standard pattern exists to create wrappers. A wrapper must subclass
+``Wrapper`` and indicate the abstract type it belongs to. It should have its own constructor
+and otherwise add methods and attributes as necessary to satisfy the concept of the abstract
+type.
 
-- GrblasVectorType -> grblas.Vector
-- NumpyVectorType -> NumpyVector wrapper
+Within the wrapper class definition, an inner class named ``TypeMixin`` must be written.
+This inner class is created exactly like ``ConcreteType`` except for the following:
 
-Matrix
-~~~~~~
+- It does not subclass ``ConcreteType``
+- It does not define the abstract class (that is done in the Wrapper definition)
+- It does not define ``value_type``
 
-2-D homogeneous array of data
+All other parts of ``ConcreteType`` *are* defined within the inner ``TypeMixin`` class:
 
-- GrblasMatrixType -> grblas.Matrix
-- NumpyMatrixType -> NumpyMatrix wrapper
-- ScipyMatrixType -> scipy.sparse.spmatrix
+- allowed_props
+- _compute_abstract_properties
+- _compute_concrete_properties
+- assert_equal
+- etc.
 
-DataFrame
-~~~~~~~~~
-
-2-D table of data where each column has a unique name and may have a unique dtype.
-
-- PandasDataFrameType -> pandas.DataFrame
-
-NodeSet
-~~~~~~~
-
-A set of nodes.
-
-- GrblasNodeSetType -> GrblasNodeSet wrapper
-- PythonNodeSetType -> PythonNodeSet wrapper
-
-NodeMap
-~~~~~~~
-
-A set of nodes, with each node containing an associated value.
-
-- CompactNumpyNodeMapType -> CompactNumpyNodeMap wrapper
-- GrlbasNodeMapType -> GrlbasNodeMap wrapper
-- NumpyNodeMapType -> NumpyNodeMap wrapper
-- PythonNodeMapType -> PythonNodeMap wrapper
-
-EdgeSet
-~~~~~~~
-
-A set of edges connecting nodes.
-
-- GrblasEdgeSetType -> GrblasEdgeSet wrapper
-- NetworkXEdgeSetType -> NetworkXEdgeSet wrapper
-- PandasEdgeSetType -> PandasEdgeSet wrapper
-- ScipyEdgeSetType -> ScipyEdgeSet wrapper
-
-EdgeMap
-~~~~~~~
-
-A set of edges connecting nodes. Each edge is associated with a value (i.e. weight).
-
-- GrblasEdgeMapType -> GrblasEdgeMap wrapper
-- NetworkXEdgeMapType -> NetworkXEdgeMap wrapper
-- PandasEdgeMapType -> PandasEdgeMap wrapper
-- ScipyEdgeMapType -> ScipyEdgeMap wrapper
+When the wrapper is registered with Metagraph, this ``TypeMixin`` class will be converted into
+a proper ``ConcreteType`` and set as the ``.Type`` attribute on the wrapper. The ``value_type``
+will be set pointing to the wrapper class, linking the two objects.

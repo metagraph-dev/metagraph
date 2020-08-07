@@ -61,24 +61,10 @@ def test_pandas_edge():
         PandasEdgeMap.Type.assert_equal(
             PandasEdgeMap(df), PandasEdgeMap(extra), iprops, iprops, {}, {}
         )
-    # Undirected vs Directed
-    with pytest.raises(AssertionError):
-        PandasEdgeMap.Type.assert_equal(
-            PandasEdgeMap(df),
-            PandasEdgeMap(df, is_directed=False),
-            {"is_directed": True},
-            {"is_directed": False},
-            {},
-            {},
-        )
-    PandasEdgeMap.Type.assert_equal(
-        PandasEdgeMap(df, is_directed=False),
-        PandasEdgeMap(df, is_directed=False),
-        {**iprops, "is_directed": False},
-        {**iprops, "is_directed": False},
-        {},
-        {},
-    )
+    # Undirected cannot have duplicates
+    with pytest.raises(ValueError):
+        PandasEdgeMap(df, is_directed=False)
+
     # Different weight_label
     wgt = df.copy()
     wgt = wgt.rename(columns={"weight": "WGT"})
