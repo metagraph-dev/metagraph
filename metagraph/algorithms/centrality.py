@@ -1,6 +1,6 @@
 import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, NodeSet, NodeMap, NodeID
+from metagraph.types import Graph, NodeMap, NodeSet, NodeID
 
 
 @abstract_algorithm("centrality.betweenness")
