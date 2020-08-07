@@ -10,3 +10,9 @@ formats:
 
 conda:
   environment: environment.yml
+
+python:
+  version: 3.7  # this doesn't do anything
+  install:
+    - method: pip
+      path: .
