@@ -58,7 +58,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
         return iter(self.nodes())
 
     def __contains__(self, key):
-        if mask is not None:
+        if self.mask is not None:
             return 0 <= key < len(self.mask) and self.mask[key]
         else:
             return key in self.node_set
@@ -264,7 +264,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         return node_array
 
     def __contains__(self, key):
-        if mask is not None:
+        if self.mask is not None:
             return 0 <= key < len(self.mask) and self.mask[key]
         else:
             return key in self.id2pos

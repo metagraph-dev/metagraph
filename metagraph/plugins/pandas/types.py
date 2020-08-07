@@ -45,6 +45,15 @@ if has_pandas:
             # Build the MultiIndex representing the edges
             self.index = df.set_index([src_label, dst_label]).index
 
+            if not is_directed:
+                # Ensure no duplicates
+                rev_index = df.set_index([dst_label, src_label]).index
+                dups = self.index & rev_index
+                if len(dups) > 0:
+                    raise ValueError(
+                        f"is_directed=False, but duplicate edges found: {dups}"
+                    )
+
         @property
         def num_nodes(self):
             src_nodes, dst_nodes = self.index.levels
@@ -52,7 +61,10 @@ if has_pandas:
 
         def copy(self):
             return PandasEdgeSet(
-                self.value.copy(), self.src_label, self.dst_label, self.is_directed
+                self.value.copy(),
+                self.src_label,
+                self.dst_label,
+                is_directed=self.is_directed,
             )
 
         class TypeMixin:
@@ -115,6 +127,15 @@ if has_pandas:
             )
             # Build the MultiIndex representing the edges
             self.index = df.set_index([src_label, dst_label]).index
+
+            if not is_directed:
+                # Ensure no duplicates
+                rev_index = df.set_index([dst_label, src_label]).index
+                dups = self.index & rev_index
+                if len(dups) > 0:
+                    raise ValueError(
+                        f"is_directed=False, but duplicate edges found: {dups}"
+                    )
 
         @property
         def num_nodes(self):

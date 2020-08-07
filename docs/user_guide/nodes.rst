@@ -1,3 +1,5 @@
+.. _nodes:
+
 Nodes
 =====
 
@@ -16,6 +18,8 @@ id will remain consistent.
 This consistency applies even when creating new data objects as a result of running an algorithm.
 For example, running pagerank on an EdgeMap will return a NodeMap with node ids that remain
 consistent based on the original EdgeMap.
+
+.. _node_labels:
 
 Node Labels
 -----------
