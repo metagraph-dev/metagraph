@@ -125,13 +125,13 @@ if has_networkx:
         # include_endpoints: bool,
     ) -> PythonNodeMap:
         if nodes is None:
-            nodes = set(graph.value.nodes())
+            sources = targets = graph.value.nodes
         else:
-            nodes = nodes.value
+            sources = targets = nodes.value
         node_to_score_map = nx.betweenness_centrality_subset(
             graph.value,
-            sources=nodes,
-            targets=nodes,
+            sources=sources,
+            targets=targets,
             normalized=normalize,
             weight=graph.edge_weight_label,
             # endpoints=include_endpoints,

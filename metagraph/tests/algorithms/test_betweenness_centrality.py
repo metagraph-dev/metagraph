@@ -46,6 +46,9 @@ v        v /        v
     MultiVerify(
         dpr, "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)
+    MultiVerify(dpr, "centrality.betweenness", graph, normalize=False,).assert_equals(
+        expected_answer
+    )
 
 
 def test_betweenness_centrality_multiple_hubs(default_plugin_resolver):
@@ -75,6 +78,7 @@ v /      |          v
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5, 6, 7})
     expected_answer_unwrapped = {
         0: 0.0,
         1: 6.0,
@@ -86,6 +90,9 @@ v /      |          v
         7: 0.0,
     }
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
+    MultiVerify(
+        dpr, "centrality.betweenness", graph, nodes, normalize=False,
+    ).assert_equals(expected_answer)
     MultiVerify(dpr, "centrality.betweenness", graph, normalize=False,).assert_equals(
         expected_answer
     )

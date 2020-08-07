@@ -7,13 +7,7 @@ from ..python.types import PythonNodeMap, PythonNodeSet
 
 @translator
 def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
-    if x.mask is not None:
-        node_set = NumpyNodeSet(np.flatnonzero(x.mask))
-    elif x.pos2id is not None:
-        node_set = NumpyNodeSet(x.pos2id)
-    else:
-        node_set = NumpyNodeSet(np.arange(len(x.value)))
-    return node_set
+    return NumpyNodeSet(x.nodes(copy=True))
 
 
 @translator

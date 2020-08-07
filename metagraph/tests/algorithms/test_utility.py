@@ -21,6 +21,14 @@ def test_nodeset_choose_random(default_plugin_resolver):
     )
 
 
+def test_nodeset_from_vector(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    np_node_vector = dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3]))
+    MultiVerify(dpr, "util.nodeset.from_vector", np_node_vector).assert_equals(
+        dpr.wrappers.NodeSet.NumpyNodeSet(mask=np.array([0, 1, 1, 1], dtype=bool))
+    )
+
+
 def test_nodeset_sort(default_plugin_resolver):
     dpr = default_plugin_resolver
     py_node_map_unwrapped = {index: index * 100 for index in range(1, 8)}
@@ -431,3 +439,24 @@ def test_graph_build(default_plugin_resolver):
 #     )
 #     # TODO test edgeset + nodemap
 #     # TODO test edgeset + nodeset
+
+
+def test_edge_map_from_edgeset(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    #    0 2 7
+    # 0 [    1]
+    # 2 [    1]
+    # 7 [1 1  ]
+    matrix = ss.coo_matrix(([1, 1, 1, 1], ([0, 1, 2, 2], [2, 2, 0, 1])), dtype=np.int64)
+    edgeset = dpr.wrappers.EdgeSet.ScipyEdgeSet(matrix, [0, 2, 7])
+    #    0 2 7
+    # 0 [    9]
+    # 2 [    9]
+    # 7 [9 9  ]
+    expected_matrix = ss.coo_matrix(
+        ([9, 9, 9, 9], ([0, 1, 2, 2], [2, 2, 0, 1])), dtype=np.int64
+    )
+    expected_answer = dpr.wrappers.EdgeMap.ScipyEdgeMap(expected_matrix, [0, 2, 7])
+    MultiVerify(dpr, "util.edge_map.from_edgeset", edgeset, 9).assert_equals(
+        expected_answer
+    )

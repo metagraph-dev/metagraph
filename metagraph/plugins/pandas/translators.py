@@ -12,6 +12,7 @@ if has_pandas:
 
 if has_pandas and has_scipy:
     import pandas as pd
+    import scipy.sparse as ss
     from ..scipy.types import ScipyEdgeMap, ScipyEdgeSet
 
     @translator
