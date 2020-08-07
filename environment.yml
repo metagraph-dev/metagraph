@@ -11,7 +11,7 @@ dependencies:
 # documentation
   - sphinx=3.0.4
   - nbsphinx
-  - jupyter_client
+  - notebook
   - conda-forge::pydata-sphinx-theme
   - pip
   - pip:
