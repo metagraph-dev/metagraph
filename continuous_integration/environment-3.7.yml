@@ -1,0 +1,27 @@
+name: mg
+dependencies:
+# dev environment
+  - python=3.7
+  - coverage
+  - pytest
+  - pytest-cov
+  - black
+  - conda-forge::pre-commit
+
+# documentation
+  - sphinx=3.0.4
+  - nbsphinx
+  - conda-forge::pydata-sphinx-theme
+  - pip
+  - pip:
+    - rst2pdf
+
+# metagraph dependencies (so setup.py develop doesn't pip install them)
+  - importlib_metadata
+  - numpy
+  - networkx
+  - pandas
+  - conda-forge::python-louvain
+  - scipy
+  - conda-forge::donfig
+  - conda-forge::grblas
