@@ -23,5 +23,9 @@ script:
     - pytest
     - black --check --diff metagraph
 
+after_success:
+    - conda install -c conda-forge coveralls
+    - coveralls
+
 notifications:
     email: false
