@@ -13,19 +13,26 @@ install:
     - source "$HOME/miniconda/etc/profile.d/conda.sh"
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda
+    - conda update -q conda conda-build anaconda-client
     - conda info -a
     - conda env create -f continuous_integration/environment-${TRAVIS_PYTHON_VERSION}.yml
     - conda activate mg
     - pip install -e .
 
 script:
-    - pytest
     - black --check --diff metagraph
+    - pytest
+    - conda build -c defaults -c conda-forge --python ${TRAVIS_PYTHON_VERSION} continuous_integration/conda
 
 after_success:
     - conda install -c conda-forge coveralls
     - coveralls
+    - OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${TRAVIS_PYTHON_VERSION} continuous_integration/conda)
+    - anaconda -t $ANACONDA_TOKEN upload -u metagraph -l dev --no-progress --force --no-register $OUTPUT
 
 notifications:
     email: false
+
+env:
+  global:
+    secure: "J1ds4CIEhYGvx4myfc81snvPUEpQzRd6qwTnjHPB0RJUycpIL6+vS2vV1cTRhENIvsm7SOHiyTV2FQLIBaT869Jqcgcb/kY/WnBITE97q5WNkkik7QXzwfzu6xv/orm32LHSrU4jhsKcJoLynq9KwmY4QwRUpm33O6Um8Ch7RMG/R2EmzaZfIirDDp15SJC3NSY2GXSpKqvc0AfsxYmFQLxsRVdeAvOYVm13YpZPYahbYZhQEmM78Odbhb4uBeOOZOnk7L8lxdiZ5pkpZhmT9Ae6PCbZ2ygwul5qEf4O3z6m9w3m8E3IvbngTa3rTvJtw4T/jAkxAAzc3bsqALLW9X6notHHH9NzQrqvWz1bGJVwjgScYn0yIr60drYfUfi0Kh6AmWm9+W0bHSNr1MCg/LfgROxUvOlCVAVUK3oZOJdskHGgO1I/UDdUVzKs41uxEch4BVx7mDKhLQjhh2pde61c6TjmaLj82kpssYGX7549OWPoCWOOka6VTBjIfYBAnF5d2LV1nXA6OPIMNx1RCd9bs0EXmhSrbJqQSE0tJZbA047+q5dM0+Y3ae66t0VCKT4kdov2T5y0nliPI6ECxyBqgJlMfOOu9XMWKZvtZSsARabH2cp6FLCcfidUbb2jWSEXaqMbfu8hLp/SrnZnb388QcRewEVETCoJUSkDCy4="
