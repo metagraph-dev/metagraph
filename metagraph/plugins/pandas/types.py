@@ -69,6 +69,19 @@ if has_pandas:
 
         class TypeMixin:
             @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ret = known_props.copy()
+
+                # fast properties
+                for prop in {"is_directed"} - ret.keys():
+                    if prop == "is_directed":
+                        ret[prop] = obj.is_directed
+
+                return ret
+
+            @classmethod
             def assert_equal(
                 cls,
                 obj1,
