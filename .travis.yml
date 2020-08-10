@@ -28,6 +28,7 @@ script:
 after_success:
     - conda install -c conda-forge coveralls
     - coveralls
+    - conda deactivate
     - OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${TRAVIS_PYTHON_VERSION} continuous_integration/conda)
     - anaconda -t $ANACONDA_TOKEN upload -u metagraph -l dev --no-progress --force --no-register $OUTPUT
 
