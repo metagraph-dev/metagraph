@@ -17,7 +17,7 @@ requirements:
   run:
     - python >=3.7
     - importlib_metadata
-    - numpy
+    - numpy >=1.15
     - networkx
     - pandas
     - python-louvain
