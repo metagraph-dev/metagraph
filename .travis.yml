@@ -24,8 +24,6 @@ script:
     - black --check --diff metagraph
     - pytest
     - conda build -c defaults -c conda-forge --python ${TRAVIS_PYTHON_VERSION} continuous_integration/conda
-
-after_success:
     - conda install -c conda-forge coveralls
     - coveralls
     - conda install -q anaconda-client
