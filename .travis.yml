@@ -13,7 +13,7 @@ install:
     - source "$HOME/miniconda/etc/profile.d/conda.sh"
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda
+    - conda update -q conda conda-build
     - conda info -a
     - conda env create -f continuous_integration/environment-${TRAVIS_PYTHON_VERSION}.yml
     - conda activate mg
@@ -27,7 +27,7 @@ script:
 after_success:
     - conda install -c conda-forge coveralls
     - coveralls
-    - conda install -q conda-build anaconda-client
+    - conda install -q anaconda-client
     - OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${TRAVIS_PYTHON_VERSION} continuous_integration/conda)
     - anaconda -t $ANACONDA_TOKEN upload -u metagraph -l dev --no-progress --force --no-register $OUTPUT
 
