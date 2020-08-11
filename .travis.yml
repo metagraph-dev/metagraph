@@ -13,7 +13,8 @@ install:
     - source "$HOME/miniconda/etc/profile.d/conda.sh"
     - hash -r
     - conda config --set always_yes yes --set changeps1 no
-    - conda update -q conda conda-build
+    - conda update -q conda
+    - conda install -q conda-build
     - conda info -a
     - conda env create -f continuous_integration/environment-${TRAVIS_PYTHON_VERSION}.yml
     - conda activate mg
