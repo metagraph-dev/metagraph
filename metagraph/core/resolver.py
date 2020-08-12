@@ -73,20 +73,33 @@ class PlanNamespace:
         self._resolver = resolver
         self.algos = Namespace()
 
-    def translate(self, value, dst_type, **props):
-        """
-        Print the steps taken to go from type of value to dst_type
-        """
+    def _get_translator(self, value, dst_type, **props):
         src_type = self._resolver.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(
             self._resolver, src_type, dst_type
         )
+        return translator
+
+    def translate(self, value, dst_type, **props):
+        """
+        Print the steps taken to go from type of value to dst_type
+        """
+        translator = self._get_translator(value, dst_type, **props)
         if translator is None:
             print(
                 f"No translation path found for {src_type.__name__} -> {dst_type.__name__}"
             )
         else:
             translator.display()
+
+    def num_translations(self, value, dst_type, **props):
+        """
+        Return the number of translations needed to convert value to dst_type
+        """
+        translator = self._get_translator(value, dst_type, **props)
+        if translator is not None:
+            translator.display()
+        return float("inf") if translator is None else len(translator)
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
         valid_algos = self._resolver.find_algorithm_solutions(
