@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any
+from typing import List, Dict, Optional, Any
 from .plugin import ConcreteType
 from .typing import Combo
 from collections import abc
@@ -163,10 +163,12 @@ class AlgorithmPlan:
         resolver,
         concrete_algorithm,
         required_translations: Dict[str, MultiStepTranslator],
+        build_problem_messages: List[str],
     ):
         self.resolver = resolver
         self.algo = concrete_algorithm
         self.required_translations = required_translations
+        self.build_problem_messages = build_problem_messages
 
     def __repr__(self):
         sig = self.algo.__signature__
@@ -177,18 +179,21 @@ class AlgorithmPlan:
             "Argument Translations",
             "---------------------",
         ]
-        for varname in sig.parameters:
-            if varname in self.required_translations:
-                s.append(f"** {varname} **  {self.required_translations[varname]}")
-            else:
-                s.append(f"** {varname} **")
-                anni = sig.parameters[varname].annotation
-                if type(anni) is Wrapper:
-                    s.append(f"{anni.__name__}")
-                elif type(anni) is type:
-                    s.append(f"{anni.__name__}")
+        if len(self.build_problem_messages) != 0:
+            s += self.build_problem_messages
+        else:
+            for varname in sig.parameters:
+                if varname in self.required_translations:
+                    s.append(f"** {varname} **  {self.required_translations[varname]}")
                 else:
-                    s.append(f"{anni.__class__.__name__}")
+                    s.append(f"** {varname} **")
+                    anni = sig.parameters[varname].annotation
+                    if type(anni) is Wrapper:
+                        s.append(f"{anni.__name__}")
+                    elif type(anni) is type:
+                        s.append(f"{anni.__name__}")
+                    else:
+                        s.append(f"{anni.__class__.__name__}")
         s.append("---------------------")
         return "\n".join(s)
 
@@ -196,6 +201,13 @@ class AlgorithmPlan:
         return self.__repr__()
 
     def __call__(self, *args, **kwargs):
+        if len(self.build_problem_messages) != 0:
+            conglomerate_build_problem_message = "".join(
+                ["\n    " + msg for msg in self.build_problem_messages]
+            )
+            raise ValueError(
+                f"Algorithm not callable because: {conglomerate_build_problem_message}"
+            )
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
         args, kwargs = self.apply_abstract_defaults(
             self.resolver, self.algo.abstract_name, *args, **kwargs
@@ -221,6 +233,7 @@ class AlgorithmPlan:
             resolver, concrete_algorithm.abstract_name, *args, **kwargs
         )
         required_translations = {}
+        build_problem_messages = []
         sig = concrete_algorithm.__signature__
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
@@ -232,7 +245,7 @@ class AlgorithmPlan:
                 # If argument type is okay, no need to add an adjustment
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
-                #   If no translator is found, return None to indicate failure
+                #   If no translator is found, add message to build_problem_messages
                 translation_param_type = cls._check_arg_type(
                     resolver, arg_name, arg_value, param_type
                 )
@@ -242,15 +255,20 @@ class AlgorithmPlan:
                         resolver, src_type, translation_param_type
                     )
                     if translator.unsatisfiable:
+                        failure_message = f"Failed to find translator for {arg_name}"
+                        build_problem_messages.append(failure_message)
                         if config.get("core.planner.build.verbose", False):
-                            print(f"Failed to find translator for {arg_name}")
-                        return
-                    required_translations[arg_name] = translator
-            return AlgorithmPlan(resolver, concrete_algorithm, required_translations)
+                            print(failure_message)
+                    else:
+                        required_translations[arg_name] = translator
         except TypeError as e:
+            failure_message = "Failed to find plan due to TypeError:\n{e}"
+            build_problem_messages.append(failure_message)
             if config.get("core.planner.build.verbose", False):
-                print("Failed to find plan due to TypeError:\n{e}")
-            return
+                print(failure_message)
+        return AlgorithmPlan(
+            resolver, concrete_algorithm, required_translations, build_problem_messages
+        )
 
     @staticmethod
     def _check_arg_type(resolver, arg_name, arg_value, param_type):
