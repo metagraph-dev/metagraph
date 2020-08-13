@@ -13,25 +13,33 @@ class MultiStepTranslator:
         self.src_type = src_type
         self.translators = []
         self.dst_types = []
+        self.unsatisfiable = False
 
     def __len__(self):
+        if self.unsatisfiable:
+            raise ValueError(
+                "No translation path found for {src_type.__name__} -> {self.dst_types[-1].__name__}"
+            )
         return len(self.translators)
 
     def __iter__(self):
+        if self.unsatisfiable:
+            raise ValueError(
+                "No translation path found for {src_type.__name__} -> {self.dst_types[-1].__name__}"
+            )
         return iter(self.translators)
 
     def __repr__(self):
-        if self.src_type is None or not self.dst_types:
-            return f"{self.__class__.__name__}"
-        return f"{self.__class__.__name__}({self.src_type.__name__} -> {self.dst_types[-1].__name__})"
-
-    def __str__(self):
-        if len(self) == 0:
-            return "No translation required"
-
         s = []
+        s.append("[Multi-step Translation]")
+
+        if self.unsatisfiable:
+            s.append("Translation unsatisfiable")
+
+        if len(self) == 0:
+            s.append("No translation required")
+
         if len(self) > 1:
-            s.append("[Multi-step Translation]")
             s.append(f"(start)  {self.src_type.__name__}")
             for i, nxt_type in enumerate(self.dst_types[:-1]):
                 s.append(f"         {'  ' * i}  -> {nxt_type.__name__}")
@@ -40,6 +48,9 @@ class MultiStepTranslator:
             s.append("[Direct Translation]")
             s.append(f"{self.src_type.__name__} -> {self.dst_types[-1].__name__}")
         return "\n".join(s)
+
+    def __str__(self):
+        return self.__repr__()
 
     def add_before(self, translator, dst_type):
         self.translators.insert(0, translator)
@@ -50,6 +61,11 @@ class MultiStepTranslator:
         self.dst_types.append(dst_type)
 
     def __call__(self, src, **props):
+        if self.unsatisfiable:
+            raise ValueError(
+                "No translation path found for {src_type.__name__} -> {self.dst_types[-1].__name__}"
+            )
+
         if not self.translators:
             return src
 
@@ -68,7 +84,7 @@ class MultiStepTranslator:
     @classmethod
     def find_translation(
         cls, resolver, src_type, dst_type, *, exact=False
-    ) -> Optional["MultiStepTranslator"]:
+    ) -> "MultiStepTranslator":
         if isinstance(dst_type, type) and not issubclass(dst_type, ConcreteType):
             dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
 
@@ -77,10 +93,11 @@ class MultiStepTranslator:
 
         if exact:
             trns = resolver.translators.get((src_type, dst_type), None)
-            if trns is None:
-                return
             mst = MultiStepTranslator(src_type)
-            mst.add_after(trns, dst_type)
+            if trns is None:
+                mst.unsatisfiable = True
+            else:
+                mst.add_after(trns, dst_type)
             return mst
 
         abstract = dst_type.abstract
@@ -117,15 +134,17 @@ class MultiStepTranslator:
         # Lookup shortest path from stored results
         packed_data = resolver.translation_matrices[abstract]
         concrete_list, concrete_lookup, sssp, predecessors = packed_data
+        mst = MultiStepTranslator(src_type)
         try:
             sidx = concrete_lookup[src_type]
             didx = concrete_lookup[dst_type]
         except KeyError:
-            return None
+            mst.unsatisfiable = True
+            return mst
         if sssp[sidx, didx] == np.inf:
-            return None
+            mst.unsatisfiable = True
+            return mst
         # Path exists; use predecessor matrix to build up required transformations
-        mst = MultiStepTranslator(src_type)
         while sidx != didx:
             parent_idx = predecessors[sidx, didx]
             next_translator = resolver.translators[
@@ -150,9 +169,6 @@ class AlgorithmPlan:
         self.required_translations = required_translations
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.algo.__name__}, {self.required_translations})"
-
-    def __str__(self):
         sig = self.algo.__signature__
         s = [
             f"{self.algo.__name__}",
@@ -175,6 +191,9 @@ class AlgorithmPlan:
                     s.append(f"{anni.__class__.__name__}")
         s.append("---------------------")
         return "\n".join(s)
+
+    def __str__(self):
+        return self.__repr__()
 
     def __call__(self, *args, **kwargs):
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
@@ -222,7 +241,7 @@ class AlgorithmPlan:
                     translator = MultiStepTranslator.find_translation(
                         resolver, src_type, translation_param_type
                     )
-                    if translator is None:
+                    if translator.unsatisfiable:
                         if config.get("core.planner.build.verbose", False):
                             print(f"Failed to find translator for {arg_name}")
                         return

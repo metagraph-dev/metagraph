@@ -457,7 +457,7 @@ def test_find_translator(example_resolver):
         trns = MultiStepTranslator.find_translation(
             example_resolver, src_type, dst_type, exact=True
         )
-        if trns is not None:
+        if not trns.unsatisfiable:
             assert len(trns.translators) == 1
             return trns.translators[0]
 
@@ -488,16 +488,13 @@ def test_translate(example_resolver):
     assert example_resolver.translate(4, int) == 4
 
 
-def test_translate_plan(example_resolver, capsys):
+def test_translate_plan(example_resolver):
     from .util import StrNum, OtherType
 
-    capsys.readouterr()
-    example_resolver.plan.translate(4, StrNum.Type)
-    captured = capsys.readouterr()
-    assert captured.out == "[Direct Translation]\nIntType -> StrNumType\n"
-    example_resolver.plan.translate(4, OtherType)
-    captured = capsys.readouterr()
-    assert captured.out == "No translation path found for IntType -> OtherType\n"
+    translator = example_resolver.plan.translate(4, StrNum.Type)
+    assert len(translator) == 1
+    translator = example_resolver.plan.translate(4, OtherType)
+    assert translator.unsatisfiable
 
 
 def test_find_algorithm(example_resolver):
