@@ -49,7 +49,7 @@ class MultiStepTranslator:
         self.translators.append(translator)
         self.dst_types.append(dst_type)
 
-    def __call__(self, src, **props):
+    def __call__(self, src, *, resolver=None, **props):
         if not self.translators:
             return src
 
@@ -57,9 +57,9 @@ class MultiStepTranslator:
             self.display()
 
         for translator in self.translators[:-1]:
-            src = translator(src)
+            src = translator(src, resolver=resolver)
         # Finish by reaching destination along with required properties
-        dst = self.translators[-1](src, **props)
+        dst = self.translators[-1](src, resolver=resolver, **props)
         return dst
 
     def display(self):
@@ -186,7 +186,7 @@ class AlgorithmPlan:
         bound_args.apply_defaults()
         for varname in self.required_translations:
             bound_args.arguments[varname] = self.required_translations[varname](
-                bound_args.arguments[varname]
+                bound_args.arguments[varname], resolver=self.resolver
             )
         return self.algo(*bound_args.args, **bound_args.kwargs)
 

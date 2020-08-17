@@ -31,6 +31,19 @@ The primary rule of translators is that translation can only happen
 between objects of the same abstract type. There are exceptions to this rule,
 but this is the main usage of translators in Metagraph.
 
+Using the Resolver in a Translator
+----------------------------------
+
+If a translator ever needs access to the `Resolver` object which called it,
+set the `include_resolver` flag in the decorator and include a "resolver" keyword argument
+in the signature.
+
+.. code-block:: python
+
+    @translator(include_resolver=True)
+    def my_translator(x: NumpyNodeMap, *, resolver, **props) -> MyCustomNodeMap:
+        # resolver is now available
+
 Unambiguous Subcomponents
 -------------------------
 

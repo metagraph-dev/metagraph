@@ -1,6 +1,6 @@
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_grblas
-from typing import Tuple, Iterable, Any
+from typing import Tuple, Iterable, Any, Union
 
 if has_grblas:
     import grblas as gb
@@ -12,7 +12,6 @@ if has_grblas:
         GrblasNodeSet,
         GrblasVectorType,
     )
-    from ..python.types import PythonNodeSet
 
     @concrete_algorithm("cluster.triangle_count")
     def grblas_triangle_count(graph: GrblasGraph) -> int:
@@ -64,3 +63,10 @@ if has_grblas:
             if err < N * tolerance:
                 break
         return GrblasNodeMap(r)
+
+    @concrete_algorithm("util.graph.build")
+    def grblas_graph_build(
+        edges: Union[GrblasEdgeSet, GrblasEdgeMap],
+        nodes: Union[GrblasNodeSet, GrblasNodeMap, None],
+    ) -> GrblasGraph:
+        return GrblasGraph(edges, nodes)

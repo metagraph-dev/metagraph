@@ -152,6 +152,7 @@ class MultiVerify:
                     print(f"compare_val.value  {compare_val.value}")
                     print(f"expected_val       {expected_val}")
                     print(f"expected_val.value {expected_val.value}")
+                    # breakpoint()
                     raise
             except TypeError:
                 raise UnsatisfiableAlgorithmError(

@@ -23,10 +23,6 @@ from ..types import NodeID
 import numpy as np
 
 
-class ResolveFailureError(Exception):
-    pass
-
-
 class NamespaceError(Exception):
     pass
 
@@ -692,7 +688,7 @@ class Resolver:
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator is None:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
-        return translator(value, **props)
+        return translator(value, resolver=self, **props)
 
     def find_algorithm_solutions(
         self, algo_name: str, *args, **kwargs

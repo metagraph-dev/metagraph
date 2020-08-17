@@ -35,6 +35,7 @@ if has_pandas:
         def __init__(
             self, df, src_label="source", dst_label="target", *, is_directed=True
         ):
+            super().__init__()
             self._assert_instance(df, pd.DataFrame)
             self.value = df
             self.is_directed = is_directed
@@ -127,6 +128,7 @@ if has_pandas:
                                           will raise an error
             :param node_label:
             """
+            super().__init__()
             self._assert_instance(df, pd.DataFrame)
             self.value = df
             self.is_directed = is_directed

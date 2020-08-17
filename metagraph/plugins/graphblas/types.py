@@ -74,6 +74,7 @@ if has_grblas:
 
     class GrblasNodeSet(NodeSetWrapper, abstract=NodeSet):
         def __init__(self, data):
+            super().__init__()
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
@@ -111,6 +112,7 @@ if has_grblas:
 
     class GrblasNodeMap(NodeMapWrapper, abstract=NodeMap):
         def __init__(self, data):
+            super().__init__()
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
@@ -215,17 +217,26 @@ if has_grblas:
             else:
                 assert obj1.isequal(obj2, check_dtype=True)
 
+    def find_active_nodes(m):
+        """
+        Given a grblas.Matrix, returns a list of the active nodes
+        Active nodes are defined as having an edge. i.e. non-orphan nodes
+        """
+        v = m.reduce_rows(grblas.monoid.any).new()
+        h = m.reduce_columns(grblas.monoid.any).new()
+        v << v.ewise_add(h, grblas.monoid.any)
+        idx, _ = v.to_values()
+        return list(idx)
+
     class GrblasEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         def __init__(
             self, data, transposed=False,
         ):
+            super().__init__()
             self._assert_instance(data, grblas.Matrix)
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
             self.transposed = transposed
-
-        def show(self):
-            return self.value.show()
 
         class TypeMixin:
             @classmethod
@@ -271,13 +282,11 @@ if has_grblas:
         def __init__(
             self, data, transposed=False,
         ):
+            super().__init__()
             self._assert_instance(data, grblas.Matrix)
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
             self.transposed = transposed
-
-        def show(self):
-            return self.value.show()
 
         class TypeMixin:
             @classmethod
