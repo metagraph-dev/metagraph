@@ -34,11 +34,11 @@ class MultiStepTranslator:
         if self.unsatisfiable_dst_type is not None:
             s.append("[Unsatisfiable Translation]")
             s.append(
-                "Translation to {self.unsatisfiable_dst_type.__name__} unsatisfiable"
+                "Translation {self.src_type.__name__} -> {self.unsatisfiable_dst_type.__name__} unsatisfiable"
             )
         elif len(self) == 0:
             s.append("[Null Translation]")
-            s.append("No translation required")
+            s.append("No translation required from {self.src_type.__name__} to itself")
         elif len(self) > 1:
             s.append("[Multi-step Translation]")
             s.append(f"(start)  {self.src_type.__name__}")
