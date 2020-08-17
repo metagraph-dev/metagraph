@@ -71,18 +71,13 @@ class PlanNamespace:
 
     def translate(self, value, dst_type, **props):
         """
-        Print the steps taken to go from type of value to dst_type
+        Return translator to translate from type of value to dst_type
         """
         src_type = self._resolver.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(
             self._resolver, src_type, dst_type
         )
-        if translator is None:
-            print(
-                f"No translation path found for {src_type.__name__} -> {dst_type.__name__}"
-            )
-        else:
-            translator.display()
+        return translator
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
         valid_algos = self._resolver.find_algorithm_solutions(
@@ -686,7 +681,7 @@ class Resolver:
         """Convert a value to a new concrete type using translators"""
         src_type = self.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
-        if translator is None:
+        if translator.unsatisfiable:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
         return translator(value, resolver=self, **props)
 
@@ -700,7 +695,7 @@ class Resolver:
         solutions: List[AlgorithmPlan] = []
         for concrete_algo in self.concrete_algorithms.get(algo_name, {}):
             plan = AlgorithmPlan.build(self, concrete_algo, *args, **kwargs)
-            if plan is not None:
+            if not plan.unsatisfiable:
                 solutions.append(plan)
 
         # Sort by fewest number of translations required

@@ -29,7 +29,7 @@ def test_nodeset_from_vector(default_plugin_resolver):
     )
 
 
-def test_nodeset_sort(default_plugin_resolver):
+def test_nodemap_sort(default_plugin_resolver):
     dpr = default_plugin_resolver
     py_node_map_unwrapped = {index: index * 100 for index in range(1, 8)}
     py_node_map = dpr.wrappers.NodeMap.PythonNodeMap(py_node_map_unwrapped)

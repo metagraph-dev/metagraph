@@ -1,4 +1,4 @@
-from typing import Dict, Optional, Any
+from typing import List, Dict, Optional, Any
 from .plugin import ConcreteType
 from .typing import Combo
 from collections import abc
@@ -9,28 +9,40 @@ from metagraph import config, Wrapper, NodeID
 
 
 class MultiStepTranslator:
-    def __init__(self, src_type):
+    def __init__(self, src_type, final_type):
         self.src_type = src_type
         self.translators = []
         self.dst_types = []
+        self.final_type = final_type
+        self.unsatisfiable = False
 
     def __len__(self):
+        if self.unsatisfiable:
+            raise ValueError(
+                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+            )
         return len(self.translators)
 
     def __iter__(self):
+        if self.unsatisfiable:
+            raise ValueError(
+                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+            )
         return iter(self.translators)
 
     def __repr__(self):
-        if self.src_type is None or not self.dst_types:
-            return f"{self.__class__.__name__}"
-        return f"{self.__class__.__name__}({self.src_type.__name__} -> {self.dst_types[-1].__name__})"
-
-    def __str__(self):
-        if len(self) == 0:
-            return "No translation required"
-
         s = []
-        if len(self) > 1:
+        if self.unsatisfiable:
+            s.append("[Unsatisfiable Translation]")
+            s.append(
+                "Translation {self.src_type.__name__} -> {self.final_type.__name__} unsatisfiable"
+            )
+        elif len(self) == 0:
+            s.append("[Null Translation]")
+            s.append(
+                "No translation required from {self.src_type.__name__} -> {self.final_type.__name__}"
+            )
+        elif len(self) > 1:
             s.append("[Multi-step Translation]")
             s.append(f"(start)  {self.src_type.__name__}")
             for i, nxt_type in enumerate(self.dst_types[:-1]):
@@ -41,6 +53,9 @@ class MultiStepTranslator:
             s.append(f"{self.src_type.__name__} -> {self.dst_types[-1].__name__}")
         return "\n".join(s)
 
+    def __str__(self):
+        return self.__repr__()
+
     def add_before(self, translator, dst_type):
         self.translators.insert(0, translator)
         self.dst_types.insert(0, dst_type)
@@ -50,6 +65,11 @@ class MultiStepTranslator:
         self.dst_types.append(dst_type)
 
     def __call__(self, src, *, resolver=None, **props):
+        if self.unsatisfiable:
+            raise ValueError(
+                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+            )
+
         if not self.translators:
             return src
 
@@ -68,7 +88,7 @@ class MultiStepTranslator:
     @classmethod
     def find_translation(
         cls, resolver, src_type, dst_type, *, exact=False
-    ) -> Optional["MultiStepTranslator"]:
+    ) -> "MultiStepTranslator":
         if isinstance(dst_type, type) and not issubclass(dst_type, ConcreteType):
             dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
 
@@ -77,10 +97,11 @@ class MultiStepTranslator:
 
         if exact:
             trns = resolver.translators.get((src_type, dst_type), None)
+            mst = MultiStepTranslator(src_type, dst_type)
             if trns is None:
-                return
-            mst = MultiStepTranslator(src_type)
-            mst.add_after(trns, dst_type)
+                mst.unsatisfiable = True
+            else:
+                mst.add_after(trns, dst_type)
             return mst
 
         abstract = dst_type.abstract
@@ -117,15 +138,17 @@ class MultiStepTranslator:
         # Lookup shortest path from stored results
         packed_data = resolver.translation_matrices[abstract]
         concrete_list, concrete_lookup, sssp, predecessors = packed_data
+        mst = MultiStepTranslator(src_type, dst_type)
         try:
             sidx = concrete_lookup[src_type]
             didx = concrete_lookup[dst_type]
         except KeyError:
-            return None
+            mst.unsatisfiable = True
+            return mst
         if sssp[sidx, didx] == np.inf:
-            return None
+            mst.unsatisfiable = True
+            return mst
         # Path exists; use predecessor matrix to build up required transformations
-        mst = MultiStepTranslator(src_type)
         while sidx != didx:
             parent_idx = predecessors[sidx, didx]
             next_translator = resolver.translators[
@@ -144,15 +167,18 @@ class AlgorithmPlan:
         resolver,
         concrete_algorithm,
         required_translations: Dict[str, MultiStepTranslator],
+        err_msgs: List[str],
     ):
         self.resolver = resolver
         self.algo = concrete_algorithm
         self.required_translations = required_translations
+        self.err_msgs = err_msgs
+
+    @property
+    def unsatisfiable(self):
+        return len(self.err_msgs) != 0
 
     def __repr__(self):
-        return f"{self.__class__.__name__}({self.algo.__name__}, {self.required_translations})"
-
-    def __str__(self):
         sig = self.algo.__signature__
         s = [
             f"{self.algo.__name__}",
@@ -161,22 +187,31 @@ class AlgorithmPlan:
             "Argument Translations",
             "---------------------",
         ]
-        for varname in sig.parameters:
-            if varname in self.required_translations:
-                s.append(f"** {varname} **  {self.required_translations[varname]}")
-            else:
-                s.append(f"** {varname} **")
-                anni = sig.parameters[varname].annotation
-                if type(anni) is Wrapper:
-                    s.append(f"{anni.__name__}")
-                elif type(anni) is type:
-                    s.append(f"{anni.__name__}")
+        if self.unsatisfiable:
+            s += self.err_msgs
+        else:
+            for varname in sig.parameters:
+                if varname in self.required_translations:
+                    s.append(f"** {varname} **  {self.required_translations[varname]}")
                 else:
-                    s.append(f"{anni.__class__.__name__}")
+                    s.append(f"** {varname} **")
+                    anni = sig.parameters[varname].annotation
+                    if type(anni) is Wrapper:
+                        s.append(f"{anni.__name__}")
+                    elif type(anni) is type:
+                        s.append(f"{anni.__name__}")
+                    else:
+                        s.append(f"{anni.__class__.__name__}")
         s.append("---------------------")
         return "\n".join(s)
 
+    def __str__(self):
+        return self.__repr__()
+
     def __call__(self, *args, **kwargs):
+        if self.unsatisfiable:
+            combined_err_msg = "".join(["\n    " + msg for msg in self.err_msgs])
+            raise ValueError(f"Algorithm not callable because: {combined_err_msg}")
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
         args, kwargs = self.apply_abstract_defaults(
             self.resolver, self.algo.abstract_name, *args, **kwargs
@@ -202,6 +237,7 @@ class AlgorithmPlan:
             resolver, concrete_algorithm.abstract_name, *args, **kwargs
         )
         required_translations = {}
+        err_msgs = []
         sig = concrete_algorithm.__signature__
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
@@ -213,7 +249,7 @@ class AlgorithmPlan:
                 # If argument type is okay, no need to add an adjustment
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
-                #   If no translator is found, return None to indicate failure
+                #   If no translator is found, add message to err_msgs
                 translation_param_type = cls._check_arg_type(
                     resolver, arg_name, arg_value, param_type
                 )
@@ -222,16 +258,21 @@ class AlgorithmPlan:
                     translator = MultiStepTranslator.find_translation(
                         resolver, src_type, translation_param_type
                     )
-                    if translator is None:
+                    if translator.unsatisfiable:
+                        failure_message = f"Failed to find translator to {translator.final_type.__name__} for {arg_name}"
+                        err_msgs.append(failure_message)
                         if config.get("core.planner.build.verbose", False):
-                            print(f"Failed to find translator for {arg_name}")
-                        return
-                    required_translations[arg_name] = translator
-            return AlgorithmPlan(resolver, concrete_algorithm, required_translations)
+                            print(failure_message)
+                    else:
+                        required_translations[arg_name] = translator
         except TypeError as e:
+            failure_message = "Failed to find plan due to TypeError:\n{e}"
+            err_msgs.append(failure_message)
             if config.get("core.planner.build.verbose", False):
-                print("Failed to find plan due to TypeError:\n{e}")
-            return
+                print(failure_message)
+        return AlgorithmPlan(
+            resolver, concrete_algorithm, required_translations, err_msgs
+        )
 
     @staticmethod
     def _check_arg_type(resolver, arg_name, arg_value, param_type):
