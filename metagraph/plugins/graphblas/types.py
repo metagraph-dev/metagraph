@@ -224,9 +224,6 @@ if has_grblas:
             self.value = data
             self.transposed = transposed
 
-        def show(self):
-            return self.value.show()
-
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(
@@ -275,9 +272,6 @@ if has_grblas:
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
             self.transposed = transposed
-
-        def show(self):
-            return self.value.show()
 
         class TypeMixin:
             @classmethod
