@@ -31,17 +31,16 @@ class MultiStepTranslator:
 
     def __repr__(self):
         s = []
-        s.append("[Multi-step Translation]")
-
         if self.unsatisfiable_dst_type is not None:
+            s.append("[Unsatisfiable Translation]")
             s.append(
                 "Translation to {self.unsatisfiable_dst_type.__name__} unsatisfiable"
             )
-
-        if len(self) == 0:
+        elif len(self) == 0:
+            s.append("[Null Translation]")
             s.append("No translation required")
-
-        if len(self) > 1:
+        elif len(self) > 1:
+            s.append("[Multi-step Translation]")
             s.append(f"(start)  {self.src_type.__name__}")
             for i, nxt_type in enumerate(self.dst_types[:-1]):
                 s.append(f"         {'  ' * i}  -> {nxt_type.__name__}")
