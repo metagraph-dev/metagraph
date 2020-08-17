@@ -13,13 +13,13 @@ from metagraph.core.plugin import (
 )
 
 
-from .util import site_dir, bad_site_dir
+from .util import site_dir, bad_site_dir, bad_site_dir2
 
 
 ABSTRACT_KINDS = {
     "abstract_types": (issubclass, AbstractType),
     "abstract_algorithms": (isinstance, AbstractAlgorithm),
-    "concrete_types": (isinstance, ConcreteAlgorithm),
+    "concrete_algorithms": (isinstance, ConcreteAlgorithm),
     "concrete_types": (issubclass, ConcreteType),
     "wrappers": (issubclass, Wrapper),
     "translators": (isinstance, Translator),
@@ -35,6 +35,11 @@ def test_load_registry(site_dir):
             assert test_func(obj, kind_class)
 
 
-def test_load_failure(bad_site_dir):
+def test_load_duplicate_name(site_dir, bad_site_dir):
+    with pytest.raises(ValueError, match="plugin1 already registered"):
+        metagraph.core.entrypoints.load_plugins()
+
+
+def test_load_bad_entrypoint_name(bad_site_dir2):
     with pytest.raises(metagraph.core.entrypoints.EntryPointsError):
         plugins = metagraph.core.entrypoints.load_plugins()

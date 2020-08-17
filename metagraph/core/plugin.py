@@ -475,7 +475,7 @@ class Translator:
             return self.func(src, **props)
 
 
-def translator(func: Callable = None, *, include_resolver=False):
+def translator(func: Callable = None, *, include_resolver: bool = False):
     """
     decorator which can be called as either:
     >>> @translator
@@ -548,24 +548,44 @@ class ConcreteAlgorithm:
     types (which are not converted) must match exactly.
     """
 
-    def __init__(self, func: Callable, abstract_name: str, *, version: int = 0):
+    def __init__(
+        self,
+        func: Callable,
+        abstract_name: str,
+        *,
+        version: int = 0,
+        include_resolver: bool = False,
+    ):
         self.func = func
         self.abstract_name = abstract_name
         self.version = version
+        self._include_resolver = include_resolver
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
         self.__original_signature__ = inspect.signature(self.func)
         self.__signature__ = normalize_signature(self.__original_signature__)
 
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+    def __call__(self, *args, resolver=None, **kwargs):
+        if self._include_resolver:
+            if resolver is None:
+                raise ValueError(
+                    "`resolver` is None, but is required by concrete algorithm"
+                )
+            return self.func(*args, resolver=resolver, **kwargs)
+        else:
+            return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name: str, *, version: int = 0):
+def concrete_algorithm(
+    abstract_name: str, *, version: int = 0, include_resolver: bool = False
+):
     def _concrete_decorator(func: Callable):
         return ConcreteAlgorithm(
-            func=func, abstract_name=abstract_name, version=version
+            func=func,
+            abstract_name=abstract_name,
+            version=version,
+            include_resolver=include_resolver,
         )
 
     _concrete_decorator.version = version

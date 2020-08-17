@@ -27,6 +27,11 @@ def bad_site_dir():
     yield from make_site_dir_fixture("bad_site_dir")
 
 
+@pytest.fixture
+def bad_site_dir2():
+    yield from make_site_dir_fixture("bad_site_dir2")
+
+
 class MyAbstractType(plugin.AbstractType):
     pass
 
@@ -80,7 +85,7 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
-            return NotImplemented
+            return NotImplemented  # pragma: no cover
         return self.value == other.value
 
     class TypeMixin:

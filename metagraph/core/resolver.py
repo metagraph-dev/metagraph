@@ -683,7 +683,7 @@ class Resolver:
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator.unsatisfiable:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
-        return translator(value, resolver=self, **props)
+        return translator(value, **props)
 
     def find_algorithm_solutions(
         self, algo_name: str, *args, **kwargs

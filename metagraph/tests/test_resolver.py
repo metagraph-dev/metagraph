@@ -249,7 +249,7 @@ def test_union_signatures():
         e: typing.Optional[typing.Union[Abstract1, Abstract2]],
         f: typing.Optional[Abstract2],
     ) -> int:
-        pass
+        pass  # pragma: no cover
 
     @abstract_algorithm("testing.mg_union_types")
     def mg_union_types(
@@ -260,7 +260,7 @@ def test_union_signatures():
         e: mg.Optional[mg.Union[Abstract1, Abstract2]],
         f: mg.Optional[Abstract2],
     ) -> int:
-        pass
+        pass  # pragma: no cover
 
     @abstract_algorithm("testing.mg_union_instances")
     def mg_union_instances(
@@ -268,7 +268,7 @@ def test_union_signatures():
         b: mg.Optional[mg.Union[Abstract1(), Abstract2()]],
         c: mg.Optional[Abstract2()],
     ) -> int:
-        pass
+        pass  # pragma: no cover
 
     registry = PluginRegistry("test_union_signatures_good")
     registry.register(Abstract1)
@@ -281,13 +281,13 @@ def test_union_signatures():
     res_good.register(registry.plugins)
 
     @abstract_algorithm("testing.typing_union_mixed")
-    def typing_union_mixed(a: typing.Union[int, Abstract1]) -> int:
+    def typing_union_mixed(a: typing.Union[int, Abstract1]) -> int:  # pragma: no cover
         pass
 
     with pytest.raises(TypeError, match="Cannot mix"):
 
         @abstract_algorithm("testing.mg_union_mixed")
-        def mg_union_mixed(a: mg.Union[int, Abstract1]) -> int:
+        def mg_union_mixed(a: mg.Union[int, Abstract1]) -> int:  # pragma: no cover
             pass
 
     registry = PluginRegistry("test_union_signatures_bad")
@@ -482,10 +482,19 @@ def test_translate(example_resolver):
     def int_to_int(src: int, **props) -> int:  # pragma: no cover
         return src
 
+    @translator(include_resolver=True)
+    def float_to_float_resolver(
+        src: float, *, resolver, **props
+    ) -> float:  # pragma: no cover
+        assert isinstance(resolver, Resolver)
+        return src
+
     registry = PluginRegistry("test_translate_default_plugin")
     registry.register(int_to_int)
+    registry.register(float_to_float_resolver)
     example_resolver.register(registry.plugins)
     assert example_resolver.translate(4, int) == 4
+    assert example_resolver.translate(4.4, float) == 4.4
 
 
 def test_translate_plan(example_resolver):
@@ -656,7 +665,9 @@ def test_plugin_specific_concrete_algorithms():
                     getattr(plugin_tree, plugin_tree_name),
                 )
         else:
-            raise ValueError(f"Unexpected type {type(resolver_tree)}")
+            raise ValueError(
+                f"Unexpected type {type(resolver_tree)}"
+            )  # pragma: no cover
         return
 
     tree_names = [
@@ -718,15 +729,15 @@ def test_duplicate_plugin():
 
     @abstract_algorithm("test_duplciate_plugin.test_abstract_algo")
     def abstract_algo1(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     @concrete_algorithm("test_duplciate_plugin.test_abstract_algo")
     def concrete_algo1(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     @concrete_algorithm("test_duplciate_plugin.test_abstract_algo")
     def concrete_algo2(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     res = Resolver()
     with pytest.raises(
@@ -814,17 +825,17 @@ def test_wrapper_insufficient_properties():
     class TestNodes(AbstractType):
         @Wrapper.required_method
         def __getitem__(self, label):
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
 
         @Wrapper.required_property
         def num_nodes(self):
-            raise NotImplementedError()
+            raise NotImplementedError()  # pragma: no cover
 
     with pytest.raises(TypeError, match="is missing required wrapper method"):
 
         class Wrapper1(Wrapper, abstract=TestNodes):
             def num_nodes(self):
-                return "dummy"
+                return "dummy"  # pragma: no cover
 
             class TypeMixin:
                 pass
@@ -833,7 +844,7 @@ def test_wrapper_insufficient_properties():
 
         class Wrapper1(Wrapper, abstract=TestNodes):
             def __getitem__(self, label):
-                return "dummy"
+                return "dummy"  # pragma: no cover
 
             class TypeMixin:
                 pass
@@ -844,7 +855,7 @@ def test_wrapper_insufficient_properties():
             num_nodes = "string that is not a property or function"
 
             def __getitem__(self, label):
-                return "dummy"
+                return "dummy"  # pragma: no cover
 
             class TypeMixin:
                 pass
@@ -853,19 +864,19 @@ def test_wrapper_insufficient_properties():
 def test_algorithm_versions():
     @abstract_algorithm("test_algorithm_versions.test_abstract_algo")
     def abstract_algo1(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     @abstract_algorithm("test_algorithm_versions.test_abstract_algo", version=1)
     def abstract_algo2(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     @concrete_algorithm("test_algorithm_versions.test_abstract_algo")
     def concrete_algo1(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     @concrete_algorithm("test_algorithm_versions.test_abstract_algo", version=1)
     def concrete_algo2(input_int: int):
-        pass
+        pass  # pragma: no cover
 
     # Sanity check
     res = Resolver()
