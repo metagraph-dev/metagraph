@@ -13,19 +13,19 @@ class MultiStepTranslator:
         self.src_type = src_type
         self.translators = []
         self.dst_types = []
-        self.unsatisfiable = False
+        self.unsatisfiable_dst_type = None
 
     def __len__(self):
-        if self.unsatisfiable:
+        if self.unsatisfiable_dst_type is not None:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.dst_types[-1].__name__}"
+                "No translation path found for {src_type.__name__} -> {self.unsatisfiable_dst_type.__name__}"
             )
         return len(self.translators)
 
     def __iter__(self):
-        if self.unsatisfiable:
+        if self.unsatisfiable_dst_type is not None:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.dst_types[-1].__name__}"
+                "No translation path found for {src_type.__name__} -> {self.unsatisfiable_dst_type.__name__}"
             )
         return iter(self.translators)
 
@@ -33,8 +33,10 @@ class MultiStepTranslator:
         s = []
         s.append("[Multi-step Translation]")
 
-        if self.unsatisfiable:
-            s.append("Translation unsatisfiable")
+        if self.unsatisfiable_dst_type is not None:
+            s.append(
+                "Translation to {self.unsatisfiable_dst_type.__name__} unsatisfiable"
+            )
 
         if len(self) == 0:
             s.append("No translation required")
@@ -61,9 +63,9 @@ class MultiStepTranslator:
         self.dst_types.append(dst_type)
 
     def __call__(self, src, **props):
-        if self.unsatisfiable:
+        if self.unsatisfiable_dst_type is not None:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.dst_types[-1].__name__}"
+                "No translation path found for {src_type.__name__} -> {self.unsatisfiable_dst_type.__name__}"
             )
 
         if not self.translators:
@@ -95,7 +97,7 @@ class MultiStepTranslator:
             trns = resolver.translators.get((src_type, dst_type), None)
             mst = MultiStepTranslator(src_type)
             if trns is None:
-                mst.unsatisfiable = True
+                mst.unsatisfiable_dst_type = dst_type
             else:
                 mst.add_after(trns, dst_type)
             return mst
@@ -139,10 +141,10 @@ class MultiStepTranslator:
             sidx = concrete_lookup[src_type]
             didx = concrete_lookup[dst_type]
         except KeyError:
-            mst.unsatisfiable = True
+            mst.unsatisfiable_dst_type = dst_type
             return mst
         if sssp[sidx, didx] == np.inf:
-            mst.unsatisfiable = True
+            mst.unsatisfiable_dst_type = dst_type
             return mst
         # Path exists; use predecessor matrix to build up required transformations
         while sidx != didx:
@@ -254,8 +256,8 @@ class AlgorithmPlan:
                     translator = MultiStepTranslator.find_translation(
                         resolver, src_type, translation_param_type
                     )
-                    if translator.unsatisfiable:
-                        failure_message = f"Failed to find translator for {arg_name}"
+                    if translator.unsatisfiable_dst_type is not None:
+                        failure_message = f"Failed to find translator to {translator.unsatisfiable_dst_type.__name__} for {arg_name}"
                         build_problem_messages.append(failure_message)
                         if config.get("core.planner.build.verbose", False):
                             print(failure_message)
