@@ -9,36 +9,39 @@ from metagraph import config, Wrapper, NodeID
 
 
 class MultiStepTranslator:
-    def __init__(self, src_type):
+    def __init__(self, src_type, final_type):
         self.src_type = src_type
         self.translators = []
         self.dst_types = []
-        self.unsatisfiable_dst_type = None
+        self.final_type = final_type
+        self.unsatisfiable = False
 
     def __len__(self):
-        if self.unsatisfiable_dst_type is not None:
+        if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.unsatisfiable_dst_type.__name__}"
+                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
             )
         return len(self.translators)
 
     def __iter__(self):
-        if self.unsatisfiable_dst_type is not None:
+        if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.unsatisfiable_dst_type.__name__}"
+                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
             )
         return iter(self.translators)
 
     def __repr__(self):
         s = []
-        if self.unsatisfiable_dst_type is not None:
+        if self.unsatisfiable:
             s.append("[Unsatisfiable Translation]")
             s.append(
-                "Translation {self.src_type.__name__} -> {self.unsatisfiable_dst_type.__name__} unsatisfiable"
+                "Translation {self.src_type.__name__} -> {self.final_type.__name__} unsatisfiable"
             )
         elif len(self) == 0:
             s.append("[Null Translation]")
-            s.append("No translation required from {self.src_type.__name__} to itself")
+            s.append(
+                "No translation required from {self.src_type.__name__} -> {self.final_type.__name__}"
+            )
         elif len(self) > 1:
             s.append("[Multi-step Translation]")
             s.append(f"(start)  {self.src_type.__name__}")
@@ -62,9 +65,9 @@ class MultiStepTranslator:
         self.dst_types.append(dst_type)
 
     def __call__(self, src, **props):
-        if self.unsatisfiable_dst_type is not None:
+        if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.unsatisfiable_dst_type.__name__}"
+                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
             )
 
         if not self.translators:
@@ -94,9 +97,9 @@ class MultiStepTranslator:
 
         if exact:
             trns = resolver.translators.get((src_type, dst_type), None)
-            mst = MultiStepTranslator(src_type)
+            mst = MultiStepTranslator(src_type, dst_type)
             if trns is None:
-                mst.unsatisfiable_dst_type = dst_type
+                mst.unsatisfiable = True
             else:
                 mst.add_after(trns, dst_type)
             return mst
@@ -135,15 +138,15 @@ class MultiStepTranslator:
         # Lookup shortest path from stored results
         packed_data = resolver.translation_matrices[abstract]
         concrete_list, concrete_lookup, sssp, predecessors = packed_data
-        mst = MultiStepTranslator(src_type)
+        mst = MultiStepTranslator(src_type, dst_type)
         try:
             sidx = concrete_lookup[src_type]
             didx = concrete_lookup[dst_type]
         except KeyError:
-            mst.unsatisfiable_dst_type = dst_type
+            mst.unsatisfiable = True
             return mst
         if sssp[sidx, didx] == np.inf:
-            mst.unsatisfiable_dst_type = dst_type
+            mst.unsatisfiable = True
             return mst
         # Path exists; use predecessor matrix to build up required transformations
         while sidx != didx:
@@ -255,8 +258,8 @@ class AlgorithmPlan:
                     translator = MultiStepTranslator.find_translation(
                         resolver, src_type, translation_param_type
                     )
-                    if translator.unsatisfiable_dst_type is not None:
-                        failure_message = f"Failed to find translator to {translator.unsatisfiable_dst_type.__name__} for {arg_name}"
+                    if translator.unsatisfiable:
+                        failure_message = f"Failed to find translator to {translator.final_type.__name__} for {arg_name}"
                         err_msgs.append(failure_message)
                         if config.get("core.planner.build.verbose", False):
                             print(failure_message)

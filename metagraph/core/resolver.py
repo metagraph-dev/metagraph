@@ -685,7 +685,7 @@ class Resolver:
         """Convert a value to a new concrete type using translators"""
         src_type = self.typeclass_of(value)
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
-        if translator.unsatisfiable_dst_type is not None:
+        if translator.unsatisfiable:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
         return translator(value, **props)
 

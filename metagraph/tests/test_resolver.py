@@ -457,7 +457,7 @@ def test_find_translator(example_resolver):
         trns = MultiStepTranslator.find_translation(
             example_resolver, src_type, dst_type, exact=True
         )
-        if trns.unsatisfiable_dst_type is None:
+        if not trns.unsatisfiable:
             assert len(trns.translators) == 1
             return trns.translators[0]
 
@@ -492,9 +492,12 @@ def test_translate_plan(example_resolver):
     from .util import StrNum, OtherType
 
     translator = example_resolver.plan.translate(4, StrNum.Type)
+    assert not translator.unsatisfiable
+    assert translator.final_type == StrNum.Type
     assert len(translator) == 1
     translator = example_resolver.plan.translate(4, OtherType)
-    assert translator.unsatisfiable_dst_type == OtherType
+    assert translator.unsatisfiable
+    assert translator.final_type == OtherType
 
 
 def test_find_algorithm(example_resolver):
