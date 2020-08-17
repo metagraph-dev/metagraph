@@ -164,12 +164,16 @@ class AlgorithmPlan:
         resolver,
         concrete_algorithm,
         required_translations: Dict[str, MultiStepTranslator],
-        build_problem_messages: List[str],
+        err_msgs: List[str],
     ):
         self.resolver = resolver
         self.algo = concrete_algorithm
         self.required_translations = required_translations
-        self.build_problem_messages = build_problem_messages
+        self.err_msgs = err_msgs
+
+    @property
+    def unsatisfiable(self):
+        return len(self.err_msgs) != 0
 
     def __repr__(self):
         sig = self.algo.__signature__
@@ -180,8 +184,8 @@ class AlgorithmPlan:
             "Argument Translations",
             "---------------------",
         ]
-        if len(self.build_problem_messages) != 0:
-            s += self.build_problem_messages
+        if self.unsatisfiable:
+            s += self.err_msgs
         else:
             for varname in sig.parameters:
                 if varname in self.required_translations:
@@ -202,13 +206,9 @@ class AlgorithmPlan:
         return self.__repr__()
 
     def __call__(self, *args, **kwargs):
-        if len(self.build_problem_messages) != 0:
-            conglomerate_build_problem_message = "".join(
-                ["\n    " + msg for msg in self.build_problem_messages]
-            )
-            raise ValueError(
-                f"Algorithm not callable because: {conglomerate_build_problem_message}"
-            )
+        if self.unsatisfiable:
+            combined_err_msg = "".join(["\n    " + msg for msg in self.err_msgs])
+            raise ValueError(f"Algorithm not callable because: {combined_err_msg}")
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
         args, kwargs = self.apply_abstract_defaults(
             self.resolver, self.algo.abstract_name, *args, **kwargs
@@ -234,7 +234,7 @@ class AlgorithmPlan:
             resolver, concrete_algorithm.abstract_name, *args, **kwargs
         )
         required_translations = {}
-        build_problem_messages = []
+        err_msgs = []
         sig = concrete_algorithm.__signature__
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
@@ -246,7 +246,7 @@ class AlgorithmPlan:
                 # If argument type is okay, no need to add an adjustment
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
-                #   If no translator is found, add message to build_problem_messages
+                #   If no translator is found, add message to err_msgs
                 translation_param_type = cls._check_arg_type(
                     resolver, arg_name, arg_value, param_type
                 )
@@ -257,18 +257,18 @@ class AlgorithmPlan:
                     )
                     if translator.unsatisfiable_dst_type is not None:
                         failure_message = f"Failed to find translator to {translator.unsatisfiable_dst_type.__name__} for {arg_name}"
-                        build_problem_messages.append(failure_message)
+                        err_msgs.append(failure_message)
                         if config.get("core.planner.build.verbose", False):
                             print(failure_message)
                     else:
                         required_translations[arg_name] = translator
         except TypeError as e:
             failure_message = "Failed to find plan due to TypeError:\n{e}"
-            build_problem_messages.append(failure_message)
+            err_msgs.append(failure_message)
             if config.get("core.planner.build.verbose", False):
                 print(failure_message)
         return AlgorithmPlan(
-            resolver, concrete_algorithm, required_translations, build_problem_messages
+            resolver, concrete_algorithm, required_translations, err_msgs
         )
 
     @staticmethod

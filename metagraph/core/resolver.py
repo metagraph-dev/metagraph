@@ -699,7 +699,7 @@ class Resolver:
         solutions: List[AlgorithmPlan] = []
         for concrete_algo in self.concrete_algorithms.get(algo_name, {}):
             plan = AlgorithmPlan.build(self, concrete_algo, *args, **kwargs)
-            if len(plan.build_problem_messages) == 0:
+            if not plan.unsatisfiable:
                 solutions.append(plan)
 
         # Sort by fewest number of translations required
