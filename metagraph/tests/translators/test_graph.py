@@ -13,7 +13,7 @@ import pandas as pd
 import numpy as np
 
 
-def test_networkx_scipy_edgemap(default_plugin_resolver):
+def test_networkx_scipy_graph_from_edgemap(default_plugin_resolver):
     dpr = default_plugin_resolver
     g = nx.DiGraph()
     g.add_weighted_edges_from([(2, 2, 1), (2, 7, 2), (7, 7, 0), (7, 0, 3), (0, 7, 3)])
@@ -31,7 +31,7 @@ def test_networkx_scipy_edgemap(default_plugin_resolver):
     dpr.assert_equal(y, intermediate)
 
 
-def test_networkx_scipy_edgeset(default_plugin_resolver):
+def test_networkx_scipy_graph_from_edgeset(default_plugin_resolver):
     dpr = default_plugin_resolver
     g = nx.DiGraph()
     g.add_edges_from([(2, 2), (2, 7), (7, 7), (7, 0), (0, 7)])
@@ -49,7 +49,7 @@ def test_networkx_scipy_edgeset(default_plugin_resolver):
     dpr.assert_equal(y, intermediate)
 
 
-def test_scipy_graphblas(default_plugin_resolver):
+def test_scipy_graphblas_edgemap(default_plugin_resolver):
     dpr = default_plugin_resolver
     #    0 2 7
     # 0 [1 2  ]
