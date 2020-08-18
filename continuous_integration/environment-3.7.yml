@@ -6,15 +6,6 @@ dependencies:
   - pytest
   - pytest-cov
   - black
-  - conda-forge::pre-commit
-
-# documentation
-  - sphinx=3.0.4
-  - nbsphinx
-  - conda-forge::pydata-sphinx-theme
-  - pip
-  - pip:
-    - rst2pdf
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata
