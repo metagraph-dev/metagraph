@@ -34,8 +34,8 @@ but this is the main usage of translators in Metagraph.
 Using the Resolver in a Translator
 ----------------------------------
 
-If a translator ever needs access to the `Resolver` object which called it,
-set the `include_resolver` flag in the decorator and include a "resolver" keyword argument
+If a translator ever needs access to the ``Resolver`` object which called it,
+set the ``include_resolver`` flag in the decorator and include a ``resolver`` keyword argument
 in the signature.
 
 .. code-block:: python
