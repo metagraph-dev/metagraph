@@ -81,6 +81,20 @@ concrete type and return.
 *Open issue:* How to add custom parameters that can be passed when calling exact algorithms?
 
 
+Using the Resolver in Concrete Algorithms
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+If a concrete algorithm needs access to the ``Resolver`` object which called it,
+set the ``include_resolver`` flag in the decorator and include a ``resolver`` keyword argument
+in the signature.
+
+.. code-block:: python
+
+    @concrete_algorithm("path.to.algorithm", include_resolver=True)
+    def my_conc_algo(x: NumpyNodeMap, *, resolver) -> int:
+        # resolver is now available
+
+
 Union and Optional types
 ------------------------
 

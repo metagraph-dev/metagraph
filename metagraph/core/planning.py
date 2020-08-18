@@ -9,7 +9,8 @@ from metagraph import config, Wrapper, NodeID
 
 
 class MultiStepTranslator:
-    def __init__(self, src_type, final_type):
+    def __init__(self, resolver, src_type, final_type):
+        self.resolver = resolver
         self.src_type = src_type
         self.translators = []
         self.dst_types = []
@@ -77,9 +78,9 @@ class MultiStepTranslator:
             self.display()
 
         for translator in self.translators[:-1]:
-            src = translator(src)
+            src = translator(src, resolver=self.resolver)
         # Finish by reaching destination along with required properties
-        dst = self.translators[-1](src, **props)
+        dst = self.translators[-1](src, resolver=self.resolver, **props)
         return dst
 
     def display(self):
@@ -97,7 +98,7 @@ class MultiStepTranslator:
 
         if exact:
             trns = resolver.translators.get((src_type, dst_type), None)
-            mst = MultiStepTranslator(src_type, dst_type)
+            mst = MultiStepTranslator(resolver, src_type, dst_type)
             if trns is None:
                 mst.unsatisfiable = True
             else:
@@ -138,7 +139,7 @@ class MultiStepTranslator:
         # Lookup shortest path from stored results
         packed_data = resolver.translation_matrices[abstract]
         concrete_list, concrete_lookup, sssp, predecessors = packed_data
-        mst = MultiStepTranslator(src_type, dst_type)
+        mst = MultiStepTranslator(resolver, src_type, dst_type)
         try:
             sidx = concrete_lookup[src_type]
             didx = concrete_lookup[dst_type]
@@ -223,7 +224,7 @@ class AlgorithmPlan:
             bound_args.arguments[varname] = self.required_translations[varname](
                 bound_args.arguments[varname]
             )
-        return self.algo(*bound_args.args, **bound_args.kwargs)
+        return self.algo(*bound_args.args, resolver=self.resolver, **bound_args.kwargs)
 
     def display(self):
         print(self)

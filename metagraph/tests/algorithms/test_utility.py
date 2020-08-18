@@ -318,7 +318,7 @@ def test_graph_build(default_plugin_resolver):
     """
     graph_ss_matrix = ss.csr_matrix(
         np.array(
-            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0],], dtype=np.int64
+            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0]], dtype=np.int64
         )
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
@@ -337,7 +337,7 @@ def test_graph_build(default_plugin_resolver):
     """
     graph_ss_matrix = ss.csr_matrix(
         np.array(
-            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0],], dtype=np.int64
+            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0]], dtype=np.int64
         )
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
@@ -356,7 +356,7 @@ def test_graph_build(default_plugin_resolver):
 3(30) ------ 4(40)      0(99)
     """
     graph_ss_matrix = ss.csr_matrix(
-        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0],], dtype=bool)
+        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0]], dtype=bool)
     )
     edges = dpr.wrappers.EdgeSet.ScipyEdgeSet(graph_ss_matrix, [1, 3, 4, 5])
     node_map_data = np.array([99, 10, 99, 30, 40, 50])
@@ -374,7 +374,7 @@ def test_graph_build(default_plugin_resolver):
 3 ------ 4      0
     """
     graph_ss_matrix = ss.csr_matrix(
-        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0],], dtype=bool)
+        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0]], dtype=bool)
     )
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
     nodes = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids=np.array([0, 1, 2, 3, 4, 5]))

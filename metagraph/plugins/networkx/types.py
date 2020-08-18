@@ -22,6 +22,7 @@ if has_networkx:
         def __init__(
             self, nx_graph, node_weight_label="weight", edge_weight_label="weight"
         ):
+            super().__init__()
             self.value = nx_graph
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label
@@ -162,6 +163,7 @@ if has_networkx:
             :param node_weight_label:
             :param edge_weight_label:
             """
+            super().__init__()
             self.value = nx_graph
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label

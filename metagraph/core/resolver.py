@@ -23,10 +23,6 @@ from ..types import NodeID
 import numpy as np
 
 
-class ResolveFailureError(Exception):
-    pass
-
-
 class NamespaceError(Exception):
     pass
 

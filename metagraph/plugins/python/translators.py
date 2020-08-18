@@ -1,12 +1,21 @@
 from metagraph import translator, dtypes
 from metagraph.plugins import has_grblas
 from .types import PythonNodeMap, PythonNodeSet, dtype_casting
-from ..numpy.types import NumpyNodeMap
+from ..numpy.types import NumpyNodeMap, NumpyNodeSet
+import numpy as np
 
 
 @translator
 def nodemap_to_nodeset(x: PythonNodeMap, **props) -> PythonNodeSet:
     return PythonNodeSet(set(x.value))
+
+
+@translator
+def nodeset_from_numpy(x: NumpyNodeSet, **props) -> PythonNodeSet:
+    if x.mask is None:
+        return PythonNodeSet(x.node_set)
+    else:
+        return PythonNodeSet(set(np.flatnonzero(x.mask)))
 
 
 @translator
@@ -22,6 +31,17 @@ def nodemap_from_numpy(x: NumpyNodeMap, **props) -> PythonNodeMap:
     else:
         data = {label: cast(npdata_elem) for label, npdata_elem in enumerate(npdata)}
     return PythonNodeMap(data)
+
+
+@translator
+def nodeset_from_numpy_nodemap(x: NumpyNodeMap, **props) -> PythonNodeSet:
+    if x.mask is not None:
+        nodes = set(np.flatnonzero(x.mask))
+    elif x.id2pos is not None:
+        nodes = set(x.id2pos)
+    else:
+        nodes = set(range(len(x.value)))
+    return PythonNodeSet(nodes)
 
 
 if has_grblas:

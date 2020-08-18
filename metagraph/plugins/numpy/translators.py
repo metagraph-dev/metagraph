@@ -11,27 +11,8 @@ def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
 
 
 @translator
-def nodeset_to_pynodeset(x: NumpyNodeSet, **props) -> PythonNodeSet:
-    if x.mask is None:
-        return PythonNodeSet(x.node_set)
-    else:
-        return PythonNodeSet(set(np.flatnonzero(x.mask)))
-
-
-@translator
-def pynodeset_to_nodeset(x: PythonNodeSet, **props) -> NumpyNodeSet:
+def nodeset_from_python(x: PythonNodeSet, **props) -> NumpyNodeSet:
     return NumpyNodeSet(np.array(sorted(x.value)))
-
-
-@translator
-def nodemap_to_pynodeset(x: NumpyNodeMap, **props) -> PythonNodeSet:
-    if x.mask is not None:
-        nodes = set(np.flatnonzero(x.mask))
-    elif x.id2pos is not None:
-        nodes = set(x.id2pos)
-    else:
-        nodes = set(range(len(x.value)))
-    return PythonNodeSet(nodes)
 
 
 @translator
@@ -63,7 +44,12 @@ if has_scipy:
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasVectorType, dtype_grblas_to_mg
+    from ..graphblas.types import (
+        GrblasVectorType,
+        GrblasNodeSet,
+        GrblasNodeMap,
+        dtype_grblas_to_mg,
+    )
 
     @translator
     def vector_from_graphblas(x: GrblasVectorType, **props) -> NumpyVector:
@@ -79,3 +65,14 @@ if has_grblas:
                 data[idx] = val
                 existing_mask[idx] = True
             return NumpyVector(data, mask=existing_mask)
+
+    @translator
+    def nodeset_from_graphblas(x: GrblasNodeSet, **props) -> NumpyNodeSet:
+        idx, _ = x.value.to_values()
+        return NumpyNodeSet(np.array(idx))
+
+    @translator
+    def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> NumpyNodeMap:
+        idx, vals = x.value.to_values()
+        vals = np.array(vals, dtype=dtype_grblas_to_mg[x.value.dtype.name])
+        return NumpyNodeMap(vals, node_ids=np.array(idx))

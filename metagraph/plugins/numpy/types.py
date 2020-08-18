@@ -7,6 +7,7 @@ from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
     def __init__(self, node_ids=None, *, mask=None):
+        super().__init__()
         self.node_array = None
         self.node_set = None
         self.mask = None
@@ -107,6 +108,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
 
 class NumpyVector(Wrapper, abstract=Vector):
     def __init__(self, data, mask=None):
+        super().__init__()
         self._assert_instance(data, np.ndarray)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
@@ -192,6 +194,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         Provide either mask or node_ids, not both.
         If there are not missing nodes, mask and node_ids are not required.
         """
+        super().__init__()
         self._assert_instance(data, np.ndarray)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
@@ -318,7 +321,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 nodes1 = obj1.pos2id
             else:
                 vals1 = obj1.value
-                nodes1 = np.array([])
+                nodes1 = np.arange(len(vals1))
             # Standardize obj2
             if obj2.mask is not None:
                 vals2 = obj2.value[obj2.mask]
@@ -328,7 +331,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 nodes2 = obj2.pos2id
             else:
                 vals2 = obj2.value
-                nodes2 = np.array([])
+                nodes2 = np.arange(len(vals2))
 
             # Compare
             assert len(nodes1) == len(
@@ -346,6 +349,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
 
 class NumpyMatrix(Wrapper, abstract=Matrix):
     def __init__(self, data, mask=None):
+        super().__init__()
         if type(data) is np.matrix:
             data = np.array(data, copy=False)
         self._assert_instance(data, np.ndarray)

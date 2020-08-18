@@ -1,5 +1,5 @@
 from metagraph import translator
-from metagraph.plugins import has_scipy, has_networkx, has_grblas
+from metagraph.plugins import has_scipy, has_networkx, has_grblas, has_pandas
 from metagraph.plugins.numpy.types import NumpyNodeSet, NumpyNodeMap
 import numpy as np
 
@@ -43,7 +43,7 @@ if has_scipy and has_networkx:
         )
         ordered_nodes = list(
             sorted(x.value.nodes())
-        )  # TODO do we necesarily have to sort? Expensive for large inputs
+        )  # TODO do we necessarily have to sort? Expensive for large inputs
         is_sequential = ordered_nodes[-1] == len(ordered_nodes) - 1
         if aprops["node_type"] == "map":
             node_vals = np.array(
@@ -71,62 +71,109 @@ if has_scipy and has_networkx:
             edges = ScipyEdgeSet(m, ordered_nodes)
         return ScipyGraph(edges, nodes)
 
-    @translator
-    def graph_to_networkx(x: ScipyGraph, **props) -> NetworkXGraph:
-        from ..python.translators import dtype_casting
-
-        aprops = ScipyGraph.Type.compute_abstract_properties(
-            x, {"is_directed", "edge_type", "edge_dtype"}
-        )
-
-        nx_graph = nx.from_scipy_sparse_matrix(
-            x.edges.value,
-            create_using=nx.DiGraph if aprops["is_directed"] else nx.Graph,
-            edge_attribute="weight",
-        )
-
-        if aprops["edge_type"] == "set":
-            # Remove weight attribute
-            for _, _, attr in nx_graph.edges(data=True):
-                del attr["weight"]
-        else:
-            caster = dtype_casting[aprops["edge_dtype"]]
-            for _, _, attr in nx_graph.edges(data=True):
-                attr["weight"] = caster(attr["weight"])
-
-        if x.edges.node_list is not None:
-            pos2id = dict(enumerate(x.edges.node_list))
-            nx.relabel_nodes(nx_graph, pos2id, False)
-
-        if x.nodes is not None:
-            if isinstance(x.nodes, NumpyNodeSet):
-                nx_graph.add_nodes_from(x.nodes)
-            elif isinstance(x.nodes, NumpyNodeMap):
-                # TODO make __iter__ a required method for NodeMap implementations or making __getitem__ handle sets of ids to simplify this sort of code
-                make_weight_dict = lambda weight: {"weight": weight}
-                if x.nodes.mask is not None:
-                    ids = np.flatnonzero(x.nodes.mask)
-                    attrs = map(make_weight_dict, x.nodes.value[x.nodes.mask])
-                    id2attr = dict(zip(ids, attrs))
-                elif x.nodes.id2pos is not None:
-                    id2attr = {
-                        node_id: make_weight_dict(x.nodes.value[pos])
-                        for node_id, pos in x.nodes.id2pos.items()
-                    }
-                else:
-                    id2attr = dict(enumerate(map(make_weight_dict, x.nodes.value)))
-                nx.set_node_attributes(nx_graph, id2attr, name="weight")
-
-        return NetworkXGraph(nx_graph)
-
 
 if has_scipy and has_grblas:
     import scipy.sparse as ss
     from .types import ScipyMatrixType
-    from ..graphblas.types import GrblasMatrixType
+    from ..graphblas.types import (
+        GrblasMatrixType,
+        GrblasGraph,
+        GrblasEdgeSet,
+        GrblasEdgeMap,
+        dtype_grblas_to_mg,
+        find_active_nodes,
+    )
 
     @translator
     def matrix_from_graphblas(x: GrblasMatrixType, **props) -> ScipyMatrixType:
         rows, cols, vals = x.to_values()
         mat = ss.coo_matrix((vals, (rows, cols)), x.shape)
         return mat
+
+    @translator
+    def edgeset_from_graphblas(x: GrblasEdgeSet, **props) -> ScipyEdgeSet:
+        active_nodes = find_active_nodes(x.value)
+        gm = x.value[active_nodes, active_nodes].new()
+        rows, cols, _ = gm.to_values()
+        sm = ss.coo_matrix(([True] * len(rows), (rows, cols)), dtype=bool)
+        return ScipyEdgeSet(sm, node_list=active_nodes)
+
+    @translator
+    def edgemap_from_graphblas(x: GrblasEdgeMap, **props) -> ScipyEdgeMap:
+        active_nodes = find_active_nodes(x.value)
+        gm = x.value[active_nodes, active_nodes].new()
+        rows, cols, vals = gm.to_values()
+        sm = ss.coo_matrix(
+            (vals, (rows, cols)), dtype=dtype_grblas_to_mg[x.value.dtype.name]
+        )
+        return ScipyEdgeMap(sm, node_list=active_nodes)
+
+    @translator(include_resolver=True)
+    def graph_from_graphblas(x: GrblasGraph, *, resolver, **props) -> ScipyGraph:
+        aprops = GrblasGraph.Type.compute_abstract_properties(
+            x, {"node_type", "edge_type"}
+        )
+        nodes = None
+        if aprops["node_type"] == "map":
+            nodes = resolver.translate(x.nodes, NumpyNodeMap)
+        elif aprops["node_type"] == "set":
+            if x.nodes is not None:
+                nodes = resolver.translate(x.nodes, NumpyNodeSet)
+
+        if aprops["edge_type"] == "map":
+            edges = resolver.translate(x.edges, ScipyEdgeMap)
+        elif aprops["edge_type"] == "set":
+            edges = resolver.translate(x.edges, ScipyEdgeSet)
+        else:
+            raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
+
+        return ScipyGraph(edges=edges, nodes=nodes)
+
+
+if has_scipy and has_pandas:
+    import pandas as pd
+    from ..pandas.types import PandasEdgeMap, PandasEdgeSet
+
+    @translator
+    def edgemap_from_pandas(x: PandasEdgeMap, **props) -> ScipyEdgeMap:
+        is_directed = x.is_directed
+        node_list = pd.unique(x.value[[x.src_label, x.dst_label]].values.ravel("K"))
+        node_list.sort()
+        num_nodes = len(node_list)
+        id2pos = dict(map(reversed, enumerate(node_list)))
+        get_id_pos = lambda node_id: id2pos[node_id]
+        source_positions = x.value[x.src_label].map(get_id_pos)
+        target_positions = x.value[x.dst_label].map(get_id_pos)
+        weights = x.value[x.weight_label]
+        if not is_directed:
+            source_positions, target_positions = (
+                pd.concat([source_positions, target_positions]),
+                pd.concat([target_positions, source_positions]),
+            )
+            weights = pd.concat([weights, weights])
+        matrix = ss.coo_matrix(
+            (weights, (source_positions, target_positions)),
+            shape=(num_nodes, num_nodes),
+        ).tocsr()
+        return ScipyEdgeMap(matrix, node_list)
+
+    @translator
+    def edgeset_from_pandas(x: PandasEdgeSet, **props) -> ScipyEdgeSet:
+        is_directed = x.is_directed
+        node_list = pd.unique(x.value[[x.src_label, x.dst_label]].values.ravel("K"))
+        node_list.sort()
+        num_nodes = len(node_list)
+        id2pos = dict(map(reversed, enumerate(node_list)))
+        get_id_pos = lambda node_id: id2pos[node_id]
+        source_positions = x.value[x.src_label].map(get_id_pos)
+        target_positions = x.value[x.dst_label].map(get_id_pos)
+        if not is_directed:
+            source_positions, target_positions = (
+                pd.concat([source_positions, target_positions]),
+                pd.concat([target_positions, source_positions]),
+            )
+        matrix = ss.coo_matrix(
+            (np.ones(len(source_positions)), (source_positions, target_positions)),
+            shape=(num_nodes, num_nodes),
+        ).tocsr()
+        return ScipyEdgeSet(matrix, node_list)

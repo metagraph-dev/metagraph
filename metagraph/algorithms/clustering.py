@@ -32,7 +32,7 @@ def collapse_by_label(
     labels: NodeMap,
     aggregator: Callable[[Any, Any], Any],
 ) -> Graph:
-    pass
+    pass  # pragma: no cover
 
 
 @abstract_algorithm("cluster.triangle_count")

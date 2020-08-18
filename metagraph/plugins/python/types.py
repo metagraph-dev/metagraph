@@ -12,6 +12,7 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
         """
         data: set of node ids
         """
+        super().__init__()
         self._assert_instance(data, set)
         self.value = data
 
@@ -50,6 +51,7 @@ class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
         """
         data: dict of node id: weight
         """
+        super().__init__()
         self._assert_instance(data, dict)
         self.value = data
 

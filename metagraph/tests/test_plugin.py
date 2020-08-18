@@ -49,7 +49,7 @@ def test_abstract_type():
         class ConcreteType1(
             plugin.ConcreteType, abstract=AbstractType1(k1="bad_k1_value")
         ):
-            pass
+            pass  # pragma: no cover
 
 
 def test_concrete_type():
@@ -141,14 +141,16 @@ def test_wrapper():
         plugin.Wrapper, abstract=MyNumericAbstractType
     ):
         def __init__(self, val):
-            self.value = val
+            super().__init__()
             self._assert_instance(val, str)
-            self._assert(0 == float(val), "'zero' is only valid value.")
-            assert isinstance(val, str)
+            self._assert(0 == float(val), "str '0' is the only valid value.")
 
         class TypeMixin:
             pass
 
+    # This should work
+    StrNumZeroOnlyDefaultErrorMessage("0")
+    # This will fail
     with pytest.raises(TypeError, match="is not an instance of"):
         StrNumZeroOnlyDefaultErrorMessage(0)
 

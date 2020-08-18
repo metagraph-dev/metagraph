@@ -2,6 +2,7 @@
 """
 import types
 import inspect
+from functools import partial
 from typing import Callable, List, Dict, Set, Any
 from .typecache import TypeCache, TypeInfo
 
@@ -393,6 +394,8 @@ class Wrapper(metaclass=MetaWrapper):
     The auto-created ConcreteType will be attached as `.Type` onto the wrapper class.
     """
 
+    _resolver = None
+
     def __init_subclass__(cls, *, abstract=None, register=True):
         if not register:
             cls._abstract = abstract
@@ -420,6 +423,9 @@ class Wrapper(metaclass=MetaWrapper):
         cls.Type.__doc__ = cls.__doc__
         # Point new Type class at this wrapper
         cls.Type.value_type = cls
+
+    def __init__(self):
+        pass
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):
@@ -453,31 +459,41 @@ class Translator:
     """Converts from one concrete type to another, enforcing properties on the
     destination if requested."""
 
-    def __init__(self, func: Callable):
+    def __init__(self, func: Callable, include_resolver: bool):
         self.func = func
+        self._include_resolver = include_resolver
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
 
-    def __call__(self, src, **props):
-        return self.func(src, **props)
+    def __call__(self, src, *, resolver=None, **props):
+        if self._include_resolver:
+            if resolver is None:
+                raise ValueError("`resolver` is None, but is required by translator")
+            return self.func(src, resolver=resolver, **props)
+        else:
+            return self.func(src, **props)
 
 
-def translator(func: Callable = None):
+def translator(func: Callable = None, *, include_resolver: bool = False):
     """
     decorator which can be called as either:
     >>> @translator
-    >>> def myfunc(): ...
+    >>> def myfunc(x: FromType, **props) -> ToType: ...
 
     We also handle the format
     >>> @translate()
-    >>> def myfunc(): ...
+    >>> def myfunc(x: FromType, **props) -> ToType: ...
+
+    If the resolver is needed as part of the translator, use this format
+    >>> @translate(include_resolver=True)
+    >>> def myfunc(x: FromType, *, resolver, **props) -> ToType: ...
     """
     # FIXME: signature checks?
     if func is None:
-        return Translator
+        return partial(Translator, include_resolver=include_resolver)
     else:
-        return Translator(func)
+        return Translator(func, include_resolver=include_resolver)
 
 
 def normalize_type(t):
@@ -532,24 +548,44 @@ class ConcreteAlgorithm:
     types (which are not converted) must match exactly.
     """
 
-    def __init__(self, func: Callable, abstract_name: str, *, version: int = 0):
+    def __init__(
+        self,
+        func: Callable,
+        abstract_name: str,
+        *,
+        version: int = 0,
+        include_resolver: bool = False,
+    ):
         self.func = func
         self.abstract_name = abstract_name
         self.version = version
+        self._include_resolver = include_resolver
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
         self.__original_signature__ = inspect.signature(self.func)
         self.__signature__ = normalize_signature(self.__original_signature__)
 
-    def __call__(self, *args, **kwargs):
-        return self.func(*args, **kwargs)
+    def __call__(self, *args, resolver=None, **kwargs):
+        if self._include_resolver:
+            if resolver is None:
+                raise ValueError(
+                    "`resolver` is None, but is required by concrete algorithm"
+                )
+            return self.func(*args, resolver=resolver, **kwargs)
+        else:
+            return self.func(*args, **kwargs)
 
 
-def concrete_algorithm(abstract_name: str, *, version: int = 0):
+def concrete_algorithm(
+    abstract_name: str, *, version: int = 0, include_resolver: bool = False
+):
     def _concrete_decorator(func: Callable):
         return ConcreteAlgorithm(
-            func=func, abstract_name=abstract_name, version=version
+            func=func,
+            abstract_name=abstract_name,
+            version=version,
+            include_resolver=include_resolver,
         )
 
     _concrete_decorator.version = version

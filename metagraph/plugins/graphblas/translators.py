@@ -1,7 +1,7 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas, has_scipy
-from ..numpy.types import NumpyVector, NumpyNodeMap
+from ..numpy.types import NumpyVector, NumpyNodeMap, NumpyNodeSet
 from ..python.types import PythonNodeSet
 
 
@@ -48,6 +48,16 @@ if has_grblas:
         nodes = list(sorted(x.value))
         size = nodes[-1] + 1
         vec = grblas.Vector.from_values(nodes, [1] * len(nodes), size=size)
+        return GrblasNodeSet(vec)
+
+    @translator
+    def nodeset_from_numpy(x: NumpyNodeSet, **props) -> GrblasNodeSet:
+        if x.mask is not None:
+            idx = np.flatnonzero(x.mask)
+        else:
+            idx = x.node_array
+        size = idx[-1] + 1
+        vec = grblas.Vector.from_values(idx, [True] * len(idx), size=size, dtype=bool)
         return GrblasNodeSet(vec)
 
     @translator
@@ -102,22 +112,22 @@ if has_grblas and has_scipy:
         )
         return GrblasEdgeMap(out, transposed=x.transposed)
 
-    @translator
-    def graph_from_scipy(x: ScipyGraph, **props) -> GrblasGraph:
+    @translator(include_resolver=True)
+    def graph_from_scipy(x: ScipyGraph, *, resolver, **props) -> GrblasGraph:
         aprops = ScipyGraph.Type.compute_abstract_properties(
             x, {"node_type", "edge_type"}
         )
         nodes = None
         if aprops["node_type"] == "map":
-            nodes = nodemap_from_numpy(x.nodes)
+            nodes = resolver.translate(x.nodes, GrblasNodeMap)
         elif aprops["node_type"] == "set":
             if x.nodes is not None:
-                nodes = nodeset_from_python(x.nodes)
+                nodes = resolver.translate(x.nodes, GrblasNodeSet)
 
         if aprops["edge_type"] == "map":
-            edges = edgemap_from_scipy(x.edges)
+            edges = resolver.translate(x.edges, GrblasEdgeMap)
         elif aprops["edge_type"] == "set":
-            edges = edgeset_from_scipy(x.edges)
+            edges = resolver.translate(x.edges, GrblasEdgeSet)
         else:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 

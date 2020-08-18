@@ -63,6 +63,7 @@ if has_scipy:
 
     class ScipyEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         def __init__(self, data, node_list=None, transposed=False):
+            super().__init__()
             self._assert_instance(data, ss.spmatrix)
             nrows, ncols = data.shape
             self._assert(nrows == ncols, "Adjacency Matrix must be square")
@@ -133,6 +134,7 @@ if has_scipy:
         def __init__(
             self, data, node_list=None, transposed=False,
         ):
+            super().__init__()
             self._assert_instance(data, ss.spmatrix)
             nrows, ncols = data.shape
             self._assert(nrows == ncols, "Adjacency Matrix must be square")

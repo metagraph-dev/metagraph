@@ -5,3 +5,4 @@ include metagraph/_version.py
 recursive-include metagraph *.yaml
 include metagraph/tests/site_dir/plugin1-1.0.0.dist-info/entry_points.txt
 include metagraph/tests/bad_site_dir/bad_plugin-1.0.0.dist-info/entry_points.txt
+include metagraph/tests/bad_site_dir2/bad_plugin-1.0.0.dist-info/entry_points.txt

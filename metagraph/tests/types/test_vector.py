@@ -48,8 +48,8 @@ def test_numpy():
     NumpyVector.Type.assert_equal(
         NumpyVector(np.array([1, 2, 3, 4]), mask=np.array([True, False, True, False])),
         NumpyVector(np.array([1, 2, 3, 22]), mask=np.array([True, False, True, False])),
-        {},
-        {},
+        {"dtype": "bool", "is_dense": False},
+        {"dtype": "bool", "is_dense": False},
         {},
         {},
     )
