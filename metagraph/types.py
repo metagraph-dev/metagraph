@@ -71,8 +71,8 @@ class NodeMap(AbstractType):
         raise NotImplementedError()
 
 
-class NodeTable(AbstractType):
-    unambiguous_subcomponents = {NodeSet}
+# class NodeTable(AbstractType):
+#     unambiguous_subcomponents = {NodeSet}
 
 
 #################################
@@ -91,9 +91,9 @@ class EdgeMap(AbstractType):
     unambiguous_subcomponents = {EdgeSet}
 
 
-class EdgeTable(AbstractType):
-    properties = {"is_directed": [True, False]}
-    unambiguous_subcomponents = {EdgeSet}
+# class EdgeTable(AbstractType):
+#     properties = {"is_directed": [True, False]}
+#     unambiguous_subcomponents = {EdgeSet}
 
 
 #################################
