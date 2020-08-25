@@ -35,6 +35,7 @@ app_html = r"""
     <div id="{DIV_ID}" />
     <script>
         var abstractTypesFor{DIV_ID} = {ABSTRACT_TYPES};
+        var pluginsFor{DIV_ID} = {PLUGINS};
         
         var div = document.querySelector('#{DIV_ID}');
         var shadow = div.attachShadow({mode: 'open'});
@@ -95,7 +96,16 @@ app_html = r"""
                  name="viewType" value="algorithms">
                 <label for="viewTypeAlgorithms3">Algorithms</label>
               </div>
-              <select name="abstractAlgorithms" id="abstractDropDown" style="visibility: hidden"></select>
+              <div>
+                <label for="pluginsDropDown">Filter by Plugin</label>
+                <select name="plugins" id="pluginsDropDown">
+                  <option name="">---</option>
+                </select>
+              </div>
+              <div style="visibility: hidden">
+                <label for="abstractDropDown">Source Type</label>
+                <select name="abstractTypes" id="abstractDropDown"></select>
+              </div>
               <div id="display"></div>
             </div>
         `;
@@ -145,12 +155,23 @@ app_html = r"""
         shadow.viewTypes = shadow.querySelector("#viewTypeTypes1");
         shadow.viewTranslators = shadow.querySelector("#viewTypeTranslators2");
         shadow.viewAlgorithms = shadow.querySelector("#viewTypeAlgorithms3");
+        shadow.pluginsDropDown = shadow.querySelector('#pluginsDropDown');
         shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
         shadow.display = shadow.querySelector("#display");
         shadow.websocket = new WebSocket("ws://127.0.0.1:{PORT}/");
         // Add back-reference on websocket
         shadow.websocket.owner = shadow;
 
+        pluginsFor{DIV_ID}.forEach(function(plug) {
+            var op = document.createElement('option');
+            op.value = plug;
+            op.innerHTML = plug;
+            shadow.pluginsDropDown.appendChild(op);
+        });
+        shadow.pluginsDropDown.onchange = function(event) {
+            allHandler(this.getRootNode());
+        }
+        
         abstractTypesFor{DIV_ID}.forEach(function(at) {
             var op = document.createElement('option');
             op.value = at;
@@ -158,26 +179,17 @@ app_html = r"""
             shadow.abstractDropDown.appendChild(op);
         });
         shadow.abstractDropDown.onchange = function(event) {
-            var shadow = this.getRootNode();
-            var sourceType = shadow.abstractDropDown.value;
-            shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: {source_type: sourceType}}));
+            allHandler(this.getRootNode());
         }
 
         var radioHandler = function (event) {
             var shadow = this.getRootNode();
-            shadow.abstractDropDown.style.visibility = "hidden";
-            if (shadow.viewTypes.checked) {
-                shadow.display.innerHTML = '';
-                shadow.websocket.send(JSON.stringify({function: "list_types"}));
-            } else if (shadow.viewTranslators.checked) {
-                shadow.display.innerHTML = '';
-                shadow.abstractDropDown.style.visibility = null;
-                var sourceType = shadow.abstractDropDown.value;
-                shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: {source_type: sourceType}}));
-            } else if (shadow.viewAlgorithms.checked) {
-                shadow.display.innerHTML = '';
-                shadow.websocket.send(JSON.stringify({function: "list_algorithms"}));
+            if (shadow.viewTranslators.checked) {
+                shadow.abstractDropDown.parentElement.style.visibility = null;
+            } else {
+                shadow.abstractDropDown.parentElement.style.visibility = "hidden";
             }
+            allHandler(shadow);
         }
         shadow.viewTypes.onchange = radioHandler;
         shadow.viewTranslators.onchange = radioHandler;
@@ -189,6 +201,27 @@ app_html = r"""
             // Remove everything as part of cleanup
             root.innerHTML = "";
         }
+        
+        var allHandler = function(shadow) {
+            var kwargs = {filters: {}};
+            var pluginFilter = shadow.pluginsDropDown.value;
+            if (pluginFilter != "---") {
+                kwargs['filters']['plugin'] = pluginFilter;
+            }
+        
+            if (shadow.viewTypes.checked) {
+                shadow.display.innerHTML = '';
+                shadow.websocket.send(JSON.stringify({function: "list_types", kwargs: kwargs}));
+            } else if (shadow.viewTranslators.checked) {
+                shadow.display.innerHTML = '';
+                kwargs['source_type'] = shadow.abstractDropDown.value;
+                shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: kwargs}));
+            } else if (shadow.viewAlgorithms.checked) {
+                shadow.display.innerHTML = '';
+                shadow.websocket.send(JSON.stringify({function: "list_algorithms", kwargs: kwargs}));
+            }
+        }
+        
         shadow.websocket.onmessage = function (event) {
             shadow = this.owner;
             data = JSON.parse(event.data);
@@ -246,11 +279,13 @@ def render_text(resolver, port, div=None):
         div = "RandomDiv_" + "".join(random.sample(string.ascii_letters, 16))
 
     abstract_types = json.dumps(api.get_abstract_types(resolver))
+    plugins = json.dumps(api.list_plugins(resolver))
 
     return (
         app_html.replace("{PORT}", str(port))
         .replace("{DIV_ID}", div)
         .replace("{ABSTRACT_TYPES}", abstract_types)
+        .replace("{PLUGINS}", plugins)
     )
 
 
