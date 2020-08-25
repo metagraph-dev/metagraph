@@ -146,6 +146,17 @@ class Resolver:
 
         self.plan = PlanNamespace(self)
 
+    def explore(self, embedded=None):
+        from ..explorer import service
+
+        if embedded is None:
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            embedded = loop.is_running()
+
+        return service.main(self, embedded)
+
     def register(self, plugins_by_name):
         """Register plugins for use with this resolver.
 

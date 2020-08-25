@@ -34,6 +34,8 @@ page_html = r"""
 app_html = r"""
     <div id="{DIV_ID}" />
     <script>
+        var abstractTypesFor{DIV_ID} = {ABSTRACT_TYPES};
+        
         var div = document.querySelector('#{DIV_ID}');
         var shadow = div.attachShadow({mode: 'open'});
         shadow.innerHTML = `
@@ -42,58 +44,144 @@ app_html = r"""
                     font-family: "Courier New", sans-serif;
                     text-align: center;
                 }
-                .buttons {
-                    font-size: 4em;
-                    display: flex;
-                    justify-content: center;
+                
+                /* Remove default bullets */
+                .treewidget ul {
+                  list-style-type: none;
                 }
-                .button, .value {
-                    line-height: 1;
-                    padding: 2rem;
-                    margin: 2rem;
-                    border: medium solid;
-                    min-height: 1em;
-                    min-width: 1em;
+                
+                /* Style the caret */
+                .treewidget .caret {
+                  cursor: pointer;
+                  user-select: none; /* Prevent text selection */
                 }
-                .button {
-                    cursor: pointer;
-                    user-select: none;
+                
+                /* Create the caret */
+                .treewidget .caret::before {
+                  content: "\u25B6";
+                  color: black;
+                  display: inline-block;
+                  margin-right: 6px;
                 }
-                .minus {
-                    color: red;
+                
+                /* Rotate the caret when clicked */
+                .treewidget .caret-down::before {
+                  transform: rotate(90deg);
                 }
-                .plus {
-                    color: green;
+                
+                /* Hide the nested list */
+                .treewidget .nested {
+                  display: none;
                 }
-                .value {
-                    min-width: 2em;
-                }
-                .state {
-                    font-size: 2em;
+                
+                /* Show the nested list when the user clicks on the caret */
+                .treewidget .active {
+                  display: block;
                 }
             </style>
-            <div class="buttons">
-                <div class="minus button">-</div>
-                <div class="value">?</div>
-                <div class="plus button">+</div>
+            
+            <div>
+              <button class="close button">Close</button>
+              <div>
+                <input type="radio" id="viewTypeTypes1"
+                 name="viewType" value="types">
+                <label for="viewTypeTypes1">Types</label>
+            
+                <input type="radio" id="viewTypeTranslators2"
+                 name="viewType" value="translators">
+                <label for="viewTypeTranslators2">Translators</label>
+            
+                <input type="radio" id="viewTypeAlgorithms3"
+                 name="viewType" value="algorithms">
+                <label for="viewTypeAlgorithms3">Algorithms</label>
+              </div>
+              <select name="abstractAlgorithms" id="abstractDropDown" style="visibility: hidden"></select>
+              <div id="display"></div>
             </div>
-            <div class="close button">Close</div>
         `;
 
-        shadow.minus = shadow.querySelector(".minus");
-        shadow.plus = shadow.querySelector(".plus");
-        shadow.value = shadow.querySelector(".value");
+        var buildTree = function(root, data, topLevel) {
+            if (topLevel) {
+                root.innerHTML = "";
+                var div = document.createElement('div');
+                div.className = 'treewidget';
+                root.appendChild(div);
+                var ul = document.createElement('ul');
+                div.appendChild(ul);
+                buildTree(ul, data, false);
+                
+                var toggler = root.getElementsByClassName("caret");
+                for (var i = 0; i < toggler.length; i++) {
+                  toggler[i].addEventListener("click", function() {
+                    this.parentElement.querySelector(".nested").classList.toggle("active");
+                    this.classList.toggle("caret-down");
+                  });
+                }
+            } else {
+                for (var name in data) {
+                    if (data.hasOwnProperty(name)) {
+                        var li = document.createElement('li');
+                        var props = data[name];
+                        if ('children' in props) {
+                            var caret = document.createElement('span');
+                            caret.className = 'caret';
+                            caret.innerHTML = name;
+                            li.appendChild(caret);
+                            var ul = document.createElement('ul');
+                            ul.className = 'nested';
+                            li.appendChild(ul);
+                            root.appendChild(li);
+                            buildTree(ul, props['children'], false);
+                        } else {
+                            li.innerHTML = name;
+                            root.appendChild(li);
+                        }
+                    }
+                }
+            }
+        }
+
         shadow.close = shadow.querySelector(".close");
+        shadow.viewTypes = shadow.querySelector("#viewTypeTypes1");
+        shadow.viewTranslators = shadow.querySelector("#viewTypeTranslators2");
+        shadow.viewAlgorithms = shadow.querySelector("#viewTypeAlgorithms3");
+        shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
+        shadow.display = shadow.querySelector("#display");
         shadow.websocket = new WebSocket("ws://127.0.0.1:{PORT}/");
         // Add back-reference on websocket
         shadow.websocket.owner = shadow;
 
-        shadow.minus.onclick = function (event) {
-            this.getRootNode().websocket.send(JSON.stringify({function: "minus"}));
+        abstractTypesFor{DIV_ID}.forEach(function(at) {
+            var op = document.createElement('option');
+            op.value = at;
+            op.innerHTML = at;
+            shadow.abstractDropDown.appendChild(op);
+        });
+        shadow.abstractDropDown.onchange = function(event) {
+            var shadow = this.getRootNode();
+            var sourceType = shadow.abstractDropDown.value;
+            shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: {source_type: sourceType}}));
         }
-        shadow.plus.onclick = function (event) {
-            this.getRootNode().websocket.send(JSON.stringify({function: "plus"}));
+
+        var radioHandler = function (event) {
+            var shadow = this.getRootNode();
+            shadow.abstractDropDown.style.visibility = "hidden";
+            if (shadow.viewTypes.checked) {
+                shadow.display.innerHTML = '';
+                shadow.websocket.send(JSON.stringify({function: "list_types"}));
+            } else if (shadow.viewTranslators.checked) {
+                shadow.display.innerHTML = '';
+                shadow.abstractDropDown.style.visibility = null;
+                var sourceType = shadow.abstractDropDown.value;
+                shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: {source_type: sourceType}}));
+            } else if (shadow.viewAlgorithms.checked) {
+                shadow.display.innerHTML = '';
+                shadow.websocket.send(JSON.stringify({function: "list_algorithms"}));
+            }
         }
+        shadow.viewTypes.onchange = radioHandler;
+        shadow.viewTranslators.onchange = radioHandler;
+        shadow.viewAlgorithms.onchange = radioHandler;
         shadow.close.onclick = function (event) {
             root = this.getRootNode();
             root.websocket.send(JSON.stringify({function: "close"}));
@@ -102,11 +190,47 @@ app_html = r"""
             root.innerHTML = "";
         }
         shadow.websocket.onmessage = function (event) {
-            root = this.owner;
+            shadow = this.owner;
             data = JSON.parse(event.data);
-            switch (data.type) {
-                case "state":
-                    root.value.textContent = data.value;
+            switch (data.function) {
+                case "list_types":
+                    buildTree(shadow.display, data.result, true);
+                    break;
+                case "list_translators":
+                    shadow.display.innerHTML = "";
+                    var div = document.createElement('div');
+                    div.className = "treewidget";
+                    shadow.display.appendChild(div);
+                    var ul = document.createElement('ul');
+                    div.appendChild(ul);
+                    var primary = document.createElement('li');
+                    primary.innerHTML = "Primary: " + data.result['primary_types'];
+                    ul.appendChild(primary);
+                    var secondary = document.createElement('li');
+                    secondary.innerHTML = "Secondary: " + data.result['secondary_types'];
+                    ul.appendChild(secondary);
+                    var trans = document.createElement('li');
+                    ul.appendChild(trans);
+                    var caret = document.createElement('span');
+                    caret.className = 'caret caret-down';
+                    caret.innerHTML = 'Translators'
+                    trans.appendChild(caret);
+                    var transUL = document.createElement('ul')
+                    transUL.className = 'nested active';
+                    trans.appendChild(transUL);
+                    for (var i = 0; i < data.result['translators'].length; i++) {
+                        var t = data.result['translators'][i];
+                        var t2 = document.createElement('li');
+                        t2.innerHTML = t;
+                        transUL.appendChild(t2);
+                    }
+                    caret.addEventListener("click", function() {
+                        this.parentElement.querySelector(".nested").classList.toggle("active");
+                        this.classList.toggle("caret-down");
+                    });
+                    break;
+                case "list_algorithms":
+                    buildTree(shadow.display, data.result, true);
                     break;
                 default:
                     console.error(
@@ -117,10 +241,22 @@ app_html = r"""
 """
 
 
-def write_tempfile(port):
+def render_text(resolver, port, div=None):
+    if div is None:
+        div = "RandomDiv_" + "".join(random.sample(string.ascii_letters, 16))
+
+    abstract_types = json.dumps(api.get_abstract_types(resolver))
+
+    return (
+        app_html.replace("{PORT}", str(port))
+        .replace("{DIV_ID}", div)
+        .replace("{ABSTRACT_TYPES}", abstract_types)
+    )
+
+
+def write_tempfile(text):
     f = tempfile.NamedTemporaryFile(suffix=".html")
-    app_text = app_html.replace("{PORT}", str(port)).replace("{DIV_ID}", "mgExplorer")
-    page_text = page_html.replace("{BODY}", app_text)
+    page_text = page_html.replace("{BODY}", text)
     f.write(page_text.encode("ascii"))
     f.flush()
     return f
@@ -149,12 +285,11 @@ def find_open_port(initial_port=5678):
 
 
 class Service:
-    def __init__(self, resolver, port, ipython=False):
+    def __init__(self, resolver, port, embedded=True):
         self.resolver = resolver
         self.port = port
-        self._ipython = ipython
+        self._embedded = embedded
         self.active_connections = set()
-        self.valuable = api.Valuable()
         self._is_running = True
         self.server = None  # This will be monkey-patched later
 
@@ -165,7 +300,7 @@ class Service:
         self.active_connections.remove(websocket)
         if not self.active_connections:
             self.server.close()
-            if not self._ipython:
+            if not self._embedded:
                 asyncio.get_event_loop().stop()
 
     async def handler(self, websocket, path):
@@ -176,42 +311,18 @@ class Service:
                 func = data["function"]
                 if func == "close":
                     break
-                # ------------------
-                if func == "minus":
-                    self.valuable.adjust_value(-1)
-                    await self.valuable.notify_state(self.active_connections)
-                    continue
-                if func == "plus":
-                    self.valuable.adjust_value(+1)
-                    await self.valuable.notify_state(self.active_connections)
-                    continue
-                # ------------------
                 kwargs = data.get("kwargs", {})
-                result = getattr(api, func)()
-        finally:
-            await self.unregister(websocket)
-
-    async def counter(self, websocket, path):
-        # register(websocket) sends user_event() to websocket
-        await self.register(websocket)
-        try:
-            await websocket.send(self.valuable.state_event())
-            async for message in websocket:
-                data = json.loads(message)
-                if data["action"] == "minus":
-                    self.valuable.adjust_value(-1)
-                    await self.valuable.notify_state(self.active_connections)
-                elif data["action"] == "plus":
-                    self.valuable.adjust_value(+1)
-                    await self.valuable.notify_state(self.active_connections)
-                elif data["action"] == "close":
-                    break
+                result = getattr(api, func)(self.resolver, **kwargs)
+                message = json.dumps({"function": func, "result": result,})
+                await asyncio.wait(
+                    [conn.send(message) for conn in self.active_connections]
+                )
         finally:
             await self.unregister(websocket)
 
 
-def main(resolver, ipython=False):
-    if ipython and not has_nest_asyncio:
+def main(resolver, embedded=True):
+    if embedded and not has_nest_asyncio:
         raise ImportError(
             "nest_asyncio is required to use the explorer from within a notebook"
         )
@@ -220,7 +331,7 @@ def main(resolver, ipython=False):
     try:
 
         async def start_service():
-            service = Service(resolver, port, ipython=ipython)
+            service = Service(resolver, port, embedded=embedded)
             server = await websockets.serve(service.handler, "127.0.0.1", port)
             service.server = server
 
@@ -233,14 +344,13 @@ def main(resolver, ipython=False):
         traceback.print_exc()
         return
 
-    if ipython:
+    if embedded:
         from IPython.core.display import HTML
 
-        rand_divname = "RandomDiv_" + "".join(random.sample(string.ascii_letters, 16))
-        return HTML(
-            app_html.replace("{PORT}", str(port)).replace("{DIV_ID}", rand_divname)
-        )
+        text = render_text(resolver, port)
+        return HTML(text)
     else:
-        f = write_tempfile(port)
+        text = render_text(resolver, port, "mgExplorer")
+        f = write_tempfile(text)
         webbrowser.open(f"file://{f.name}")
         asyncio.get_event_loop().run_forever()
