@@ -1,12 +1,48 @@
 from collections import OrderedDict
 from ..core.plugin import AbstractType, ConcreteType
 from ..core.typing import Combo
+from ..core.planning import MultiStepTranslator, AlgorithmPlan
 
 # Guiding principles
 # 1. Make API functions testable in Python
 # 2. API functions should return Python objects which are easily converted into JSON (dict, list, str, int, bool)
 # 3. Make the service handle all conversion to/from JSON
 # 4. Make object structure as consistent as possible so decoding on Javascript side is easier
+
+
+def normalize_abstract_type(resolver, abstract):
+    if type(abstract) is type and issubclass(abstract, AbstractType):
+        type_class = abstract
+        abstract = abstract.__name__
+    else:
+        for klass in resolver.abstract_types:
+            if klass.__name__ == abstract:
+                type_class = klass
+                break
+        else:
+            raise ValueError(f"Unknown abstract type: {abstract}")
+    return (abstract, type_class)
+
+
+def normalize_concrete_type(resolver, abstract, concrete):
+    abstract, abstract_class = normalize_abstract_type(resolver, abstract)
+
+    if type(concrete) is type and issubclass(concrete, ConcreteType):
+        if concrete.abstract is not abstract_class:
+            raise ValueError(
+                f"Mismatch in abstract type provided and abstract type of "
+                f"concrete provided: {abstract} vs {concrete.abstract.__name__}"
+            )
+        type_class = concrete
+        concrete = concrete.__name__
+    else:
+        for klass in resolver.concrete_types:
+            if klass.__name__ == concrete and klass.abstract.__name__ == abstract:
+                type_class = klass
+                break
+        else:
+            raise ValueError(f"Unknown concrete type: {abstract}/{concrete}")
+    return (concrete, type_class)
 
 
 def list_plugins(resolver):
@@ -54,17 +90,7 @@ def list_translators(resolver, source_type, filters=None):
     else:
         filtered_translators = resolver.translators
 
-    # Normalize source_types
-    if type(source_type) is type and issubclass(source_type, AbstractType):
-        source_class = source_type
-        source_type = source_type.__name__
-    else:
-        for klass in resolver.abstract_types:
-            if klass.__name__ == source_type:
-                source_class = klass
-                break
-        else:
-            raise ValueError(f"Unknown source_type: {source_type}")
+    source_type, source_class = normalize_abstract_type(resolver, source_type)
 
     types = list_types(resolver)
     primary_types = list(types[source_type]["children"].keys())
@@ -74,17 +100,22 @@ def list_translators(resolver, source_type, filters=None):
         for ct in types[at.__name__]["children"]
     ]
     secondary_types.sort()
-    translators = []
+    primary_translators = []
+    secondary_translators = []
     for src, dst in filtered_translators.keys():
         at = src.abstract.__name__
         if at == source_type:
-            translators.append([src.__name__, dst.__name__])
-    translators.sort()
+            primary_translators.append([src.__name__, dst.__name__])
+        elif dst.__name__ in secondary_types:
+            secondary_translators.append([src.__name__, dst.__name__])
+    primary_translators.sort()
+    secondary_translators.sort()
 
     return {
         "primary_types": primary_types,
         "secondary_types": secondary_types,
-        "translators": translators,
+        "primary_translators": primary_translators,
+        "secondary_translators": secondary_translators,
     }
 
 
@@ -172,8 +203,33 @@ def list_algorithm_params(resolver, abstract_pathname):
     }
 
 
-def solve_translator(resolver, src_type, dst_type):
-    raise NotImplementedError()
+# Translator object will contain:
+# - src_type: str
+# - dst_type: str
+# - result_type: str [multi-step, direct, unsatisfiable, null]
+# - solution: list of str (will be empty list for unsatisfiable)
+
+
+def solve_translator(resolver, src_abstract, src_concrete, dst_abstract, dst_concrete):
+    src_type, src_class = normalize_concrete_type(resolver, src_abstract, src_concrete)
+    dst_type, dst_class = normalize_concrete_type(resolver, dst_abstract, dst_concrete)
+
+    mst = MultiStepTranslator.find_translation(resolver, src_class, dst_class)
+    if mst.unsatisfiable:
+        result_type = "unsatisfiable"
+    elif len(mst) == 0:
+        result_type = "null"
+    elif len(mst) > 1:
+        result_type = "multi-step"
+    else:
+        result_type = "direct"
+
+    return {
+        "src_type": src_type,
+        "dst_type": dst_type,
+        "result_type": result_type,
+        "solution": [mst.src_type.__name__] + [step.__name__ for step in mst.dst_types],
+    }
 
 
 def solve_algorithm(resolver, abstract_pathname, params, returns):

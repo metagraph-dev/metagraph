@@ -191,8 +191,8 @@
               var transUL = document.createElement('ul')
               transUL.className = 'nested active';
               trans.appendChild(transUL);
-              for (var i = 0; i < data.result['translators'].length; i++) {
-		  var t = data.result['translators'][i];
+              for (var i = 0; i < data.result['primary_translators'].length; i++) {
+		  var t = data.result['primary_translators'][i];
 		  var t2 = document.createElement('li');
 		  t2.innerHTML = t;
 		  transUL.appendChild(t2);
