@@ -151,10 +151,13 @@ table.mg-translation-graph-table div.mg-translation-graph-svg-container svg.mg-t
 .mg-translation-graph-menu-dropdown-container {
 }
 
-.mg-translation-graph-start-type-dropdown {
+.mg-translation-graph-abstract-type-dropdown {
 }
 
-.mg-translation-graph-end-type-dropdown {
+.mg-translation-graph-start-concrete-type-dropdown {
+}
+
+.mg-translation-graph-end-concrete-type-dropdown {
 }
 
 .mg-translation-graph-path-display-text {
@@ -179,7 +182,7 @@ table.mg-translation-graph-table div.mg-translation-graph-svg-container svg.mg-t
 /****************/
 
 body {
-    font-family: "Courier New", sans-serif;
+    font-family: 'Courier New', sans-serif;
     text-align: center;
 }
 
@@ -196,7 +199,7 @@ body {
 
 /* Create the caret */
 .treewidget .caret::before {
-    content: "\25B6";
+    content: '\25B6';
     color: black;
     display: inline-block;
     margin-right: 6px;
