@@ -3,7 +3,7 @@
 /* General */
 /***********/
 
-.mg-explorer-body {
+#mg-explorer-body {
     padding: 0px;
     margin: 1% 1% 1% 1%;
     width: 98%;
@@ -18,21 +18,21 @@
 /* Navigation Bar */
 /******************/
 
-.mg-explorer-navigation-bar {
+#mg-explorer-navigation-bar {
     text-align: center;
     padding-top: 1.5rem;
     width: 100%;
     box-shadow: 0 3px 6px rgba(0,0,0,0.125);
 }
 
-.mg-explorer-navigation-bar ul {
+#mg-explorer-navigation-bar ul {
     display: inline-block;
     list-style-type: none;
     margin: 0;
     overflow: hidden;
 }
 
-.mg-explorer-navigation-bar li {
+#mg-explorer-navigation-bar li {
     float: left;
     border: 1px solid rgba(0,0,0,.125);
     border-radius: 3px;
@@ -41,24 +41,24 @@
     transition: all 0.5s;
 }
 
-.mg-explorer-navigation-bar li:active {
+#mg-explorer-navigation-bar li:active {
     transform: translateY(5px);
     user-select: none;
 }
 
-.mg-explorer-navigation-bar li:hover {
+#mg-explorer-navigation-bar li:hover {
     border: 1px solid rgba(0,0,0,0.5);
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
 
-.mg-explorer-navigation-bar li span {
+#mg-explorer-navigation-bar li span {
     display: block;
     text-decoration: none;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
     cursor: pointer;
 }
-.mg-explorer-navigation-bar li.active {
+#mg-explorer-navigation-bar li.active {
     border: 1px solid #000;
 }
 

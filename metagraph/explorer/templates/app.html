@@ -20,8 +20,8 @@
   /**************/
   
   var metagraphActivateExplorerTab = (clickedElement, explorerTabId) => {
-      const explorerBody = clickedElement.closest('.mg-explorer-body');
-      for (const navigationBarLi of explorerBody.querySelectorAll(`.mg-explorer-navigation-bar li`)) {
+      const explorerBody = clickedElement.closest('#mg-explorer-body');
+      for (const navigationBarLi of explorerBody.querySelectorAll(`#mg-explorer-navigation-bar li`)) {
           navigationBarLi.classList.remove('active');
       }
       clickedElement.classList.add('active');
