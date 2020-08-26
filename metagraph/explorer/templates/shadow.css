@@ -1,4 +1,183 @@
 
+/***********/
+/* General */
+/***********/
+
+.mg-explorer-body {
+    padding: 0px;
+    margin: 1% 1% 1% 1%;
+    width: 98%;
+    background: #fff;
+    font-family: 'Open Sans', sans-serif;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 4px;
+    transition: all 0.5s;
+}
+
+/******************/
+/* Navigation Bar */
+/******************/
+
+.mg-explorer-navigation-bar {
+    text-align: center;
+    padding-top: 1.5rem;
+    width: 100%;
+    box-shadow: 0 3px 6px rgba(0,0,0,0.125);
+}
+
+.mg-explorer-navigation-bar ul {
+    display: inline-block;
+    list-style-type: none;
+    margin: 0;
+    overflow: hidden;
+}
+
+.mg-explorer-navigation-bar li {
+    float: left;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 3px;
+    padding: 0.5rem;
+    margin: 1rem 1rem 1rem 1rem;
+    transition: all 0.5s;
+}
+
+.mg-explorer-navigation-bar li:active {
+    transform: translateY(5px);
+    user-select: none;
+}
+
+.mg-explorer-navigation-bar li:hover {
+    border: 1px solid rgba(0,0,0,0.5);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+.mg-explorer-navigation-bar li span {
+    display: block;
+    text-decoration: none;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+    cursor: pointer;
+}
+.mg-explorer-navigation-bar li.active {
+    border: 1px solid #000;
+}
+
+/****************/
+/* Explorer Tab */
+/****************/
+
+.mg-explorer-tab {
+    display: none;
+    padding: 3rem;
+    height: 65vh;
+    overflow: auto;
+    margin: 1rem;
+}
+
+.mg-explorer-tab.active {
+    display: block;
+}
+
+.mg-explorer-tab h1 {
+    text-align: center;
+    padding-bottom: 10px;
+}
+
+/*********************/
+/* Translation Graph */
+/*********************/
+
+.mg-translation-graph-container {
+    text-align: center;
+    align-items: center;
+    width: 100%;
+    height: 40vh;
+}
+
+table.mg-translation-graph-table {
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+.mg-translation-graph-table tbody tr:nth-child(odd),
+.mg-translation-graph-table tbody tr:hover,
+.mg-translation-graph-table tbody tr{
+    background: transparent;
+}
+
+/* Left Column */
+
+.mg-translation-graph-svg-container {
+    border: 2px solid rgba(200, 200, 200, 1.0);
+    border-radius: 8px;
+    height: 100%;
+}
+
+table.mg-translation-graph-table div.mg-translation-graph-svg-container svg.mg-translation-graph-svg {
+    width: 100%;
+    height: 100%;
+}
+
+/* Right Column */
+
+.mg-translation-graph-menu-column {
+    width: 30%;
+    padding-left: 10px;
+}
+
+.mg-translation-graph-menu {
+    border: 2px solid rgba(200, 200, 200, 1.0);
+    border-radius: 8px;
+    height: 100%;
+}
+
+.mg-translation-graph-menu h3 {
+    text-align: center;
+    margin: 10px;
+}
+
+.mg-translation-graph-menu p {
+    text-align: center;
+    padding: 1rem;
+    font-size: 1.5rem;
+}
+
+.mg-translation-graph-menu select {
+    display: block;
+    margin: 0 auto;
+}
+
+.mg-translation-graph-menu-dropdown-container {
+}
+
+.mg-translation-graph-start-type-dropdown {
+}
+
+.mg-translation-graph-end-type-dropdown {
+}
+
+.mg-translation-graph-path-display-text {
+}
+
+.mg-translation-graph-edge {
+    stroke: black;
+    stroke-width: 1px;
+    stroke-opacity: 0.5;
+}
+
+.mg-translation-graph-node {
+    transition: fill 0.5s, stroke-width 0.5s;
+    r: 6;
+    fill: pink;
+    stroke: black;
+    stroke-width: 1px;
+}
+
+/****************/
+/* POC Stylings */
+/****************/
+
 body {
     font-family: "Courier New", sans-serif;
     text-align: center;

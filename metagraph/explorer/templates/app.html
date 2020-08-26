@@ -1,11 +1,54 @@
 <div id="{DIV_ID}" />
-<script>
-  ((resolverData) => {
-      const {port, divId, plugins, abstractTypes, shadowInnerHTML} = resolverData;
+
+<script> // Globals
+
+  /*******************/
+  /* Misc. Utilities */
+  /*******************/
+  
+  var sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
+  var mean = inputArray => sum(inputArray) / inputArray.length;
+
+  var callAfterDOMUpdated = (func) => {
+      // Calls function after the DOM is updated to prevent non-deterministic results when grabbing element attributes, e.g. height, during transitions and animations
+      const intermediateFunc = () => window.requestAnimationFrame(func);
+      window.requestAnimationFrame(intermediateFunc);
+  };
+
+  /**************/
+  /* General UI */
+  /**************/
+  
+  var metagraphActivateExplorerTab = (clickedElement, explorerTabId) => {
+      const explorerBody = clickedElement.closest('.mg-explorer-body');
+      for (const navigationBarLi of explorerBody.querySelectorAll(`.mg-explorer-navigation-bar li`)) {
+          navigationBarLi.classList.remove('active');
+      }
+      clickedElement.classList.add('active');
+      for (const explorerTab of explorerBody.querySelectorAll('.mg-explorer-tab')) {
+          explorerTab.classList.remove('active');
+      }
+      const currentExplorerTab = explorerBody.querySelector(`#${explorerTabId}`);
+      currentExplorerTab.classList.add('active');
+  };
+  
+</script>
+
+<script> // Initializations
+  
+  (({port, divId, shadowInnerHTML, plugins, abstractTypes}) => {
+
+      /******************************/
+      /* Shadow DOM Initializations */
+      /******************************/
       
       var div = document.getElementById(divId);
       var shadow = div.attachShadow({mode: 'open'});
       shadow.innerHTML = shadowInnerHTML;
+
+      /************/
+      /* POC Code */
+      /************/
 
       var buildTree = function(root, data, topLevel) {
 	  if (topLevel) {
@@ -167,5 +210,129 @@
 		  "unsupported event", data);
 	  }
       };
+      
+      /*************************************/
+      /* Translation Graph Initializations */
+      /*************************************/
+  
+      require.config({paths: {d3: 'https://d3js.org/d3.v5.min'}});
+
+      var initializeTranslationGraph = () => {
+	  
+	  require(['d3'], (d3) => {
+              
+              const graph = { // dummy data
+		  nodeIdToProperties: {
+                      'a': {id: 'a', description: 'This is node A.'},
+                      'b': {id: 'b', description: 'This is node B.'},
+                      'c': {id: 'c', description: 'This is node C.'},
+                      'd': {id: 'd', description: 'This is node D.'},
+		  },
+		  edges: [
+                      {src: 'a', dst: 'b'},
+                      {src: 'b', dst: 'a'},
+                      {src: 'b', dst: 'c'},
+		  ],
+              };
+              
+              // DOM Initializations
+              const plotContainer = shadow.querySelector('div.mg-translation-graph-svg-container');
+              const svg = d3.select(plotContainer.querySelector('svg.mg-translation-graph-svg'));        
+              svg
+		  .attr('width', `${plotContainer.clientWidth}px`)
+		  .attr('height', `${plotContainer.clientHeight}px`);
+              const svgWidth = parseFloat(svg.style('width'));
+              const svgHeight = parseFloat(svg.style('height'));
+              const zoomGroup = svg.append('g').attr('id', `zoom-group-${plotContainer.id}`);
+              
+              // Edge & Node Initializations
+              const edgeGroup = zoomGroup.append('g').attr('id', `edge-group-${plotContainer.id}`);
+              const nodeGroup = zoomGroup.append('g').attr('id', `node-group-${plotContainer.id}`);
+              
+              // Force Directed Graph Initializations
+              const alphaDecay = 0.0;
+              const velocityDecay = 0.9;
+              const paddingBetweenNodes = 25;
+              const initialLinkAlpha = 0.005;
+              const linkAlphaDecay = 0.005;
+              let linkAlpha = initialLinkAlpha;
+              const simulation = d3.forceSimulation()
+		    .alphaDecay(alphaDecay)
+		    .velocityDecay(velocityDecay);
+              const drag = d3.drag();
+              
+              // Edge Visualization
+              const edgeData = graph.edges;
+              const edgeEnterSelection = edgeGroup
+		    .selectAll('line')
+		    .data(edgeData)
+		    .enter()
+		    .append('line')
+		    .attr('class', 'mg-translation-graph-edge');
+
+              // Node Visualization
+              const nodeData = Object.values(graph.nodeIdToProperties);
+              const nodeEnterSelection = nodeGroup
+		    .selectAll('circle')
+		    .data(nodeData)
+		    .enter()
+		    .append('circle')
+		    .attr('class', 'mg-translation-graph-node');
+              const nodeForwardNeighbors = Object.keys(graph.nodeIdToProperties).reduce((accumulator, nodeId) => {
+		  accumulator[nodeId] = [];
+		  return accumulator;
+              }, {});
+              edgeData.forEach((edge) => nodeForwardNeighbors[edge.src].push(edge.dst));
+
+              // Zoom
+              const zoom = d3.zoom().on('zoom', () => {
+		  zoomGroup
+                      .attr('transform', d3.event.transform);
+              });
+              svg.call(zoom);
+              
+              // Force Directed Graph Visualization
+              drag.on("drag", (d,i) => {
+		  d.x += d3.event.dx;
+		  d.y += d3.event.dy;
+		  linkAlpha = initialLinkAlpha;
+              });
+              const linkForce = () => {
+		  linkAlpha = linkAlpha * (1-linkAlphaDecay);
+		  nodeData.forEach(datum => {
+                      const forwardNeighborIds = nodeForwardNeighbors[datum.id];
+                      const neighborIds = (forwardNeighborIds.length > 0) ? forwardNeighborIds : Object.keys(graph.nodeIdToProperties);
+                      if (neighborIds.length > 0) {
+			  const neighborMeanX = mean(neighborIds.map(neighborId => graph.nodeIdToProperties[neighborId].x));
+			  const neighborMeanY = mean(neighborIds.map(neighborId => graph.nodeIdToProperties[neighborId].y));
+			  const newX = datum.x * (1-linkAlpha) + linkAlpha * neighborMeanX;
+			  const newY = datum.y * (1-linkAlpha) + linkAlpha * neighborMeanY;
+			  datum.x = newX;
+			  datum.y = newY;
+                      }
+		  });
+              };
+              simulation
+		  .force('center', d3.forceCenter(svgWidth / 2, svgHeight / 2))
+		  .force('collide', d3.forceCollide(paddingBetweenNodes).strength(0.25).iterations(200))
+		  .force('links', linkForce)
+		  .nodes(nodeData).on('tick', () => {
+	              nodeEnterSelection
+			  .attr('cx', datum => datum.x)
+			  .attr('cy', datum => datum.y)
+			  .call(drag);
+	              edgeEnterSelection
+			  .attr('x1', datum => graph.nodeIdToProperties[datum.src].x)
+			  .attr('y1', datum => graph.nodeIdToProperties[datum.src].y)
+			  .attr('x2', datum => graph.nodeIdToProperties[datum.dst].x)
+			  .attr('y2', datum => graph.nodeIdToProperties[datum.dst].y);
+		  })
+		  .restart();
+	  });
+	  
+      };
+      callAfterDOMUpdated(() => initializeTranslationGraph());
+      
   })({RESOLVER_DATA})
-  </script>
+  
+</script>

@@ -1,27 +1,122 @@
-<div>
-  <button class="close button">Close</button>
-  <div>
-    <input type="radio" id="viewTypeTypes1"
-           name="viewType" value="types">
-    <label for="viewTypeTypes1">Types</label>
-    
-    <input type="radio" id="viewTypeTranslators2"
-           name="viewType" value="translators">
-    <label for="viewTypeTranslators2">Translators</label>
-    
-    <input type="radio" id="viewTypeAlgorithms3"
-           name="viewType" value="algorithms">
-    <label for="viewTypeAlgorithms3">Algorithms</label>
+<div id="mg-explorer-body-123467890" class="mg-explorer-body">
+  <div class="mg-explorer-navigation-bar">
+    <ul>
+      <li onclick="metagraphActivateExplorerTab(this, 'mg-translation-explorer-123467890')" class="active">
+        <span>Translation Graph</span>
+      </li>
+      <li onclick="metagraphActivateExplorerTab(this, 'mg-type-explorer-123467890')">
+        <span>Types</span>
+      </li>
+      <li onclick="metagraphActivateExplorerTab(this, 'mg-algorithm-explorer-123467890')">
+        <span>Algorithms</span>
+      </li>
+      <li onclick="metagraphActivateExplorerTab(this, 'mg-algorithm-type-translation-explorer-123467890')">
+        <span>Algorithm Type Solver</span>
+      </li>
+      <li onclick="metagraphActivateExplorerTab(this, 'mg-plugin-explorer-123467890')">
+        <span>Plugins</span>
+      </li>
+    </ul>
   </div>
-  <div>
-    <label for="pluginsDropDown">Filter by Plugin</label>
-    <select name="plugins" id="pluginsDropDown">
-      <option name="">---</option>
-    </select>
+  <div id="mg-translation-explorer-123467890" class="mg-explorer-tab active">
+    <h1>Translation Graph</h1>
+    <div id="mg-translation-graph-container-123467890" class="mg-translation-graph-container">
+      <table class="mg-translation-graph-table">
+        <tr>
+  	  <td>
+  	    <div class="mg-translation-graph-svg-container">
+  	      <svg class="mg-translation-graph-svg"></svg>
+  	    </div>
+  	  </td>
+  	  <td class="mg-translation-graph-menu-column">
+  	    <div class="mg-translation-graph-menu">
+  	      <h3>Translation Graph Menu</h3>
+  	      <div class="mg-translation-graph-menu-dropdown-container">
+  	    	<p>Start Type:</p>
+  	    	<select class="mg-translation-graph-start-type-dropdown" onchange="updatePath()">
+  		  <option value="dummy1">dummy1</option>
+  		</select>
+  	    	<p>End Type:</p>
+  	    	<select class="mg-translation-graph-end-type-dropdown" onchange="updatePath()">
+  		  <option value="dummy2">dummy2</option>
+  		</select>
+  	      </div>
+  	      <p>Full Path</p>
+  	      <div class="mg-translation-graph-path-display-text"></div>
+  	    </div>
+  	  </td>
+        </tr>
+      </table>
+    </div>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
   </div>
-  <div style="visibility: hidden">
-    <label for="abstractDropDown">Source Type</label>
-    <select name="abstractTypes" id="abstractDropDown"></select>
+  <div id="mg-type-explorer-123467890" class="mg-explorer-tab">
+    <h1>Type Explorer</h1>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
   </div>
-  <div id="display"></div>
+  <div id="mg-algorithm-explorer-123467890" class="mg-explorer-tab">
+    <h1>Algorithm Explorer</h1>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+  </div>
+  <div id="mg-algorithm-type-translation-explorer-123467890" class="mg-explorer-tab">
+    <h1>Algorithhm Type Solver</h1>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+  </div>
+  <div id="mg-plugin-explorer-123467890" class="mg-explorer-tab">
+    <h1>Plugin Explorer</h1>
+    <p>My first paragraph.</p>
+    <p>My first paragraph.</p>
+    <div id="poc-content">
+      <button class="close button">Close</button>
+      <div>
+	<input type="radio" id="viewTypeTypes1"
+               name="viewType" value="types">
+	<label for="viewTypeTypes1">Types</label>
+	
+	<input type="radio" id="viewTypeTranslators2"
+               name="viewType" value="translators">
+	<label for="viewTypeTranslators2">Translators</label>
+	
+	<input type="radio" id="viewTypeAlgorithms3"
+               name="viewType" value="algorithms">
+	<label for="viewTypeAlgorithms3">Algorithms</label>
+      </div>
+      <div>
+	<label for="pluginsDropDown">Filter by Plugin</label>
+	<select name="plugins" id="pluginsDropDown">
+	  <option name="">---</option>
+	</select>
+      </div>
+      <div style="visibility: hidden">
+	<label for="abstractDropDown">Source Type</label>
+	<select name="abstractTypes" id="abstractDropDown"></select>
+      </div>
+      <div id="display"></div>
+    </div>
+
+  </div>
 </div>
