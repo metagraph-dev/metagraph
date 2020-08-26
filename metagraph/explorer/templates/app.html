@@ -1,0 +1,171 @@
+<div id="{DIV_ID}" />
+<script>
+  ((resolverData) => {
+      const {port, divId, plugins, abstractTypes, shadowInnerHTML} = resolverData;
+      
+      var div = document.getElementById(divId);
+      var shadow = div.attachShadow({mode: 'open'});
+      shadow.innerHTML = shadowInnerHTML;
+
+      var buildTree = function(root, data, topLevel) {
+	  if (topLevel) {
+              root.innerHTML = "";
+              var div = document.createElement('div');
+              div.className = 'treewidget';
+              root.appendChild(div);
+              var ul = document.createElement('ul');
+              div.appendChild(ul);
+              buildTree(ul, data, false);
+              
+              var toggler = root.getElementsByClassName("caret");
+              for (var i = 0; i < toggler.length; i++) {
+		  toggler[i].addEventListener("click", function() {
+                      this.parentElement.querySelector(".nested").classList.toggle("active");
+                      this.classList.toggle("caret-down");
+		  });
+              }
+	  } else {
+              for (var name in data) {
+		  if (data.hasOwnProperty(name)) {
+                      var li = document.createElement('li');
+                      var props = data[name];
+                      if ('children' in props) {
+			  var caret = document.createElement('span');
+			  caret.className = 'caret';
+			  caret.innerHTML = name;
+			  li.appendChild(caret);
+			  var ul = document.createElement('ul');
+			  ul.className = 'nested';
+			  li.appendChild(ul);
+			  root.appendChild(li);
+			  buildTree(ul, props['children'], false);
+                      } else {
+			  li.innerHTML = name;
+			  root.appendChild(li);
+                      }
+		  }
+              }
+	  }
+      }
+
+      shadow.close = shadow.querySelector(".close");
+      shadow.viewTypes = shadow.querySelector("#viewTypeTypes1");
+      shadow.viewTranslators = shadow.querySelector("#viewTypeTranslators2");
+      shadow.viewAlgorithms = shadow.querySelector("#viewTypeAlgorithms3");
+      shadow.pluginsDropDown = shadow.querySelector('#pluginsDropDown');
+      shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
+      shadow.display = shadow.querySelector("#display");
+      shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
+      // Add back-reference on websocket
+      shadow.websocket.owner = shadow;
+
+      plugins.forEach(function(plug) {
+	  var op = document.createElement('option');
+	  op.value = plug;
+	  op.innerHTML = plug;
+	  shadow.pluginsDropDown.appendChild(op);
+      });
+      shadow.pluginsDropDown.onchange = function(event) {
+	  allHandler(this.getRootNode());
+      }
+      
+      abstractTypes.forEach(function(at) {
+	  var op = document.createElement('option');
+	  op.value = at;
+	  op.innerHTML = at;
+	  shadow.abstractDropDown.appendChild(op);
+      });
+      shadow.abstractDropDown.onchange = function(event) {
+	  allHandler(this.getRootNode());
+      }
+
+      var radioHandler = function (event) {
+	  var shadow = this.getRootNode();
+	  if (shadow.viewTranslators.checked) {
+              shadow.abstractDropDown.parentElement.style.visibility = null;
+	  } else {
+              shadow.abstractDropDown.parentElement.style.visibility = "hidden";
+	  }
+	  allHandler(shadow);
+      }
+      shadow.viewTypes.onchange = radioHandler;
+      shadow.viewTranslators.onchange = radioHandler;
+      shadow.viewAlgorithms.onchange = radioHandler;
+      shadow.close.onclick = function (event) {
+	  root = this.getRootNode();
+	  root.websocket.send(JSON.stringify({function: "close"}));
+	  root.websocket.close();
+	  // Remove everything as part of cleanup
+	  root.innerHTML = "";
+      }
+      
+      var allHandler = function(shadow) {
+	  var kwargs = {filters: {}};
+	  var pluginFilter = shadow.pluginsDropDown.value;
+	  if (pluginFilter != "---") {
+              kwargs['filters']['plugin'] = pluginFilter;
+	  }
+	  
+	  if (shadow.viewTypes.checked) {
+              shadow.display.innerHTML = '';
+              shadow.websocket.send(JSON.stringify({function: "list_types", kwargs: kwargs}));
+	  } else if (shadow.viewTranslators.checked) {
+              shadow.display.innerHTML = '';
+              kwargs['source_type'] = shadow.abstractDropDown.value;
+              shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: kwargs}));
+	  } else if (shadow.viewAlgorithms.checked) {
+              shadow.display.innerHTML = '';
+              shadow.websocket.send(JSON.stringify({function: "list_algorithms", kwargs: kwargs}));
+	  }
+      }
+      
+      shadow.websocket.onmessage = function (event) {
+	  shadow = this.owner;
+	  data = JSON.parse(event.data);
+	  switch (data.function) {
+	  case "list_types":
+              buildTree(shadow.display, data.result, true);
+              break;
+	  case "list_translators":
+              shadow.display.innerHTML = "";
+              var div = document.createElement('div');
+              div.className = "treewidget";
+              shadow.display.appendChild(div);
+              var ul = document.createElement('ul');
+              div.appendChild(ul);
+              var primary = document.createElement('li');
+              primary.innerHTML = "Primary: " + data.result['primary_types'];
+              ul.appendChild(primary);
+              var secondary = document.createElement('li');
+              secondary.innerHTML = "Secondary: " + data.result['secondary_types'];
+              ul.appendChild(secondary);
+              var trans = document.createElement('li');
+              ul.appendChild(trans);
+              var caret = document.createElement('span');
+              caret.className = 'caret caret-down';
+              caret.innerHTML = 'Translators'
+              trans.appendChild(caret);
+              var transUL = document.createElement('ul')
+              transUL.className = 'nested active';
+              trans.appendChild(transUL);
+              for (var i = 0; i < data.result['translators'].length; i++) {
+		  var t = data.result['translators'][i];
+		  var t2 = document.createElement('li');
+		  t2.innerHTML = t;
+		  transUL.appendChild(t2);
+              }
+              caret.addEventListener("click", function() {
+		  this.parentElement.querySelector(".nested").classList.toggle("active");
+		  this.classList.toggle("caret-down");
+              });
+              break;
+	  case "list_algorithms":
+              buildTree(shadow.display, data.result, true);
+              break;
+	  default:
+              console.error(
+		  "unsupported event", data);
+	  }
+      };
+  })({RESOLVER_DATA})
+  </script>

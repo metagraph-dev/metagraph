@@ -1,3 +1,5 @@
+import os
+import uuid
 import asyncio
 import string
 import random
@@ -19,279 +21,49 @@ except ImportError:
     has_nest_asyncio = False
 
 
-page_html = r"""
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Metagraph Explorer</title>
-</head>
-<body>
-{BODY}
-</body>
-</html>
-"""
+with open(
+    os.path.join(os.path.dirname(__file__), "./templates/page.html"), "r"
+) as file_handle:
+    PAGE_HTML = file_handle.read()
 
-app_html = r"""
-    <div id="{DIV_ID}" />
-    <script>
-        var abstractTypesFor{DIV_ID} = {ABSTRACT_TYPES};
-        var pluginsFor{DIV_ID} = {PLUGINS};
-        
-        var div = document.querySelector('#{DIV_ID}');
-        var shadow = div.attachShadow({mode: 'open'});
-        shadow.innerHTML = `
-            <style type="text/css">
-                body {
-                    font-family: "Courier New", sans-serif;
-                    text-align: center;
-                }
-                
-                /* Remove default bullets */
-                .treewidget ul {
-                  list-style-type: none;
-                }
-                
-                /* Style the caret */
-                .treewidget .caret {
-                  cursor: pointer;
-                  user-select: none; /* Prevent text selection */
-                }
-                
-                /* Create the caret */
-                .treewidget .caret::before {
-                  content: "\u25B6";
-                  color: black;
-                  display: inline-block;
-                  margin-right: 6px;
-                }
-                
-                /* Rotate the caret when clicked */
-                .treewidget .caret-down::before {
-                  transform: rotate(90deg);
-                }
-                
-                /* Hide the nested list */
-                .treewidget .nested {
-                  display: none;
-                }
-                
-                /* Show the nested list when the user clicks on the caret */
-                .treewidget .active {
-                  display: block;
-                }
-            </style>
-            
-            <div>
-              <button class="close button">Close</button>
-              <div>
-                <input type="radio" id="viewTypeTypes1"
-                 name="viewType" value="types">
-                <label for="viewTypeTypes1">Types</label>
-            
-                <input type="radio" id="viewTypeTranslators2"
-                 name="viewType" value="translators">
-                <label for="viewTypeTranslators2">Translators</label>
-            
-                <input type="radio" id="viewTypeAlgorithms3"
-                 name="viewType" value="algorithms">
-                <label for="viewTypeAlgorithms3">Algorithms</label>
-              </div>
-              <div>
-                <label for="pluginsDropDown">Filter by Plugin</label>
-                <select name="plugins" id="pluginsDropDown">
-                  <option name="">---</option>
-                </select>
-              </div>
-              <div style="visibility: hidden">
-                <label for="abstractDropDown">Source Type</label>
-                <select name="abstractTypes" id="abstractDropDown"></select>
-              </div>
-              <div id="display"></div>
-            </div>
-        `;
+with open(
+    os.path.join(os.path.dirname(__file__), "./templates/app.html"), "r"
+) as file_handle:
+    APP_HTML = file_handle.read()
 
-        var buildTree = function(root, data, topLevel) {
-            if (topLevel) {
-                root.innerHTML = "";
-                var div = document.createElement('div');
-                div.className = 'treewidget';
-                root.appendChild(div);
-                var ul = document.createElement('ul');
-                div.appendChild(ul);
-                buildTree(ul, data, false);
-                
-                var toggler = root.getElementsByClassName("caret");
-                for (var i = 0; i < toggler.length; i++) {
-                  toggler[i].addEventListener("click", function() {
-                    this.parentElement.querySelector(".nested").classList.toggle("active");
-                    this.classList.toggle("caret-down");
-                  });
-                }
-            } else {
-                for (var name in data) {
-                    if (data.hasOwnProperty(name)) {
-                        var li = document.createElement('li');
-                        var props = data[name];
-                        if ('children' in props) {
-                            var caret = document.createElement('span');
-                            caret.className = 'caret';
-                            caret.innerHTML = name;
-                            li.appendChild(caret);
-                            var ul = document.createElement('ul');
-                            ul.className = 'nested';
-                            li.appendChild(ul);
-                            root.appendChild(li);
-                            buildTree(ul, props['children'], false);
-                        } else {
-                            li.innerHTML = name;
-                            root.appendChild(li);
-                        }
-                    }
-                }
-            }
-        }
+with open(
+    os.path.join(os.path.dirname(__file__), "./templates/shadow.css"), "r"
+) as file_handle:
+    SHADOW_CSS = file_handle.read()
 
-        shadow.close = shadow.querySelector(".close");
-        shadow.viewTypes = shadow.querySelector("#viewTypeTypes1");
-        shadow.viewTranslators = shadow.querySelector("#viewTypeTranslators2");
-        shadow.viewAlgorithms = shadow.querySelector("#viewTypeAlgorithms3");
-        shadow.pluginsDropDown = shadow.querySelector('#pluginsDropDown');
-        shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
-        shadow.display = shadow.querySelector("#display");
-        shadow.websocket = new WebSocket("ws://127.0.0.1:{PORT}/");
-        // Add back-reference on websocket
-        shadow.websocket.owner = shadow;
-
-        pluginsFor{DIV_ID}.forEach(function(plug) {
-            var op = document.createElement('option');
-            op.value = plug;
-            op.innerHTML = plug;
-            shadow.pluginsDropDown.appendChild(op);
-        });
-        shadow.pluginsDropDown.onchange = function(event) {
-            allHandler(this.getRootNode());
-        }
-        
-        abstractTypesFor{DIV_ID}.forEach(function(at) {
-            var op = document.createElement('option');
-            op.value = at;
-            op.innerHTML = at;
-            shadow.abstractDropDown.appendChild(op);
-        });
-        shadow.abstractDropDown.onchange = function(event) {
-            allHandler(this.getRootNode());
-        }
-
-        var radioHandler = function (event) {
-            var shadow = this.getRootNode();
-            if (shadow.viewTranslators.checked) {
-                shadow.abstractDropDown.parentElement.style.visibility = null;
-            } else {
-                shadow.abstractDropDown.parentElement.style.visibility = "hidden";
-            }
-            allHandler(shadow);
-        }
-        shadow.viewTypes.onchange = radioHandler;
-        shadow.viewTranslators.onchange = radioHandler;
-        shadow.viewAlgorithms.onchange = radioHandler;
-        shadow.close.onclick = function (event) {
-            root = this.getRootNode();
-            root.websocket.send(JSON.stringify({function: "close"}));
-            root.websocket.close();
-            // Remove everything as part of cleanup
-            root.innerHTML = "";
-        }
-        
-        var allHandler = function(shadow) {
-            var kwargs = {filters: {}};
-            var pluginFilter = shadow.pluginsDropDown.value;
-            if (pluginFilter != "---") {
-                kwargs['filters']['plugin'] = pluginFilter;
-            }
-        
-            if (shadow.viewTypes.checked) {
-                shadow.display.innerHTML = '';
-                shadow.websocket.send(JSON.stringify({function: "list_types", kwargs: kwargs}));
-            } else if (shadow.viewTranslators.checked) {
-                shadow.display.innerHTML = '';
-                kwargs['source_type'] = shadow.abstractDropDown.value;
-                shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: kwargs}));
-            } else if (shadow.viewAlgorithms.checked) {
-                shadow.display.innerHTML = '';
-                shadow.websocket.send(JSON.stringify({function: "list_algorithms", kwargs: kwargs}));
-            }
-        }
-        
-        shadow.websocket.onmessage = function (event) {
-            shadow = this.owner;
-            data = JSON.parse(event.data);
-            switch (data.function) {
-                case "list_types":
-                    buildTree(shadow.display, data.result, true);
-                    break;
-                case "list_translators":
-                    shadow.display.innerHTML = "";
-                    var div = document.createElement('div');
-                    div.className = "treewidget";
-                    shadow.display.appendChild(div);
-                    var ul = document.createElement('ul');
-                    div.appendChild(ul);
-                    var primary = document.createElement('li');
-                    primary.innerHTML = "Primary: " + data.result['primary_types'];
-                    ul.appendChild(primary);
-                    var secondary = document.createElement('li');
-                    secondary.innerHTML = "Secondary: " + data.result['secondary_types'];
-                    ul.appendChild(secondary);
-                    var trans = document.createElement('li');
-                    ul.appendChild(trans);
-                    var caret = document.createElement('span');
-                    caret.className = 'caret caret-down';
-                    caret.innerHTML = 'Translators'
-                    trans.appendChild(caret);
-                    var transUL = document.createElement('ul')
-                    transUL.className = 'nested active';
-                    trans.appendChild(transUL);
-                    for (var i = 0; i < data.result['translators'].length; i++) {
-                        var t = data.result['translators'][i];
-                        var t2 = document.createElement('li');
-                        t2.innerHTML = t;
-                        transUL.appendChild(t2);
-                    }
-                    caret.addEventListener("click", function() {
-                        this.parentElement.querySelector(".nested").classList.toggle("active");
-                        this.classList.toggle("caret-down");
-                    });
-                    break;
-                case "list_algorithms":
-                    buildTree(shadow.display, data.result, true);
-                    break;
-                default:
-                    console.error(
-                        "unsupported event", data);
-            }
-        };
-    </script>
-"""
+with open(
+    os.path.join(os.path.dirname(__file__), "./templates/shadow.html"), "r"
+) as file_handle:
+    SHADOW_HTML = file_handle.read()
 
 
 def render_text(resolver, port, div=None):
     if div is None:
-        div = "RandomDiv_" + "".join(random.sample(string.ascii_letters, 16))
+        unique_id = uuid.uuid4().int
+        div = f"RandomDiv_{unique_id}"
 
-    abstract_types = json.dumps(api.get_abstract_types(resolver))
-    plugins = json.dumps(api.list_plugins(resolver))
-
-    return (
-        app_html.replace("{PORT}", str(port))
-        .replace("{DIV_ID}", div)
-        .replace("{ABSTRACT_TYPES}", abstract_types)
-        .replace("{PLUGINS}", plugins)
+    resolver_json = json.dumps(
+        {
+            "divId": div,
+            "port": port,
+            "shadowInnerHTML": f'<style type="text/css">{SHADOW_CSS}</style>{SHADOW_HTML}',
+            # Eagerly store API results
+            "plugins": api.list_plugins(resolver),
+            "abstractTypes": api.get_abstract_types(resolver),
+        }
     )
+
+    return APP_HTML.replace("{DIV_ID}", div).replace("{RESOLVER_DATA}", resolver_json)
 
 
 def write_tempfile(text):
     f = tempfile.NamedTemporaryFile(suffix=".html")
-    page_text = page_html.replace("{BODY}", text)
+    page_text = PAGE_HTML.replace("{BODY}", text)
     f.write(page_text.encode("ascii"))
     f.flush()
     return f
