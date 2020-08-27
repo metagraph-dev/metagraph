@@ -186,10 +186,10 @@
               const ul = document.createElement('ul');
               treeWidgetDiv.appendChild(ul);
               const primary = document.createElement('li');
-              primary.innerHTML = "Primary: " + data.result['primary_types'];
+              primary.innerHTML = "Primary: " + Object.keys(data.result['primary_types']);
               ul.appendChild(primary);
               const secondary = document.createElement('li');
-              secondary.innerHTML = "Secondary: " + data.result['secondary_types'];
+              secondary.innerHTML = "Secondary: " + Object.keys(data.result['secondary_types']);
               ul.appendChild(secondary);
               const trans = document.createElement('li');
               ul.appendChild(trans);
@@ -200,11 +200,11 @@
               const transUL = document.createElement('ul')
               transUL.className = 'nested active';
               trans.appendChild(transUL);
-              for (let i = 0; i < data.result['primary_translators'].length; i++) {
-		  const t = data.result['primary_translators'][i];
-		  const t2 = document.createElement('li');
-		  t2.innerHTML = t;
-		  transUL.appendChild(t2);
+              for (var pt in data.result['primary_translators']) {
+                // var t = data.result['primary_translators'][pt];
+                var t2 = document.createElement('li');
+                t2.innerHTML = pt;
+                transUL.appendChild(t2);
               }
               caret.addEventListener("click", function() {
 		  this.parentElement.querySelector(".nested").classList.toggle("active");
