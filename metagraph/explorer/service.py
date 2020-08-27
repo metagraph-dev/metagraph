@@ -52,7 +52,8 @@ def render_text(resolver, port, div=None):
             "divId": div,
             "port": port,
             "shadowInnerHTML": f'<style type="text/css">{SHADOW_CSS}</style>{SHADOW_HTML}',
-            # Eagerly store API results
+            # Eagerly store select API results
+            "abstractTypeToConcreteTypes": api.list_types(resolver),
             "plugins": api.list_plugins(resolver),
             "abstractTypes": api.get_abstract_types(resolver),
         }
@@ -120,7 +121,9 @@ class Service:
                     break
                 kwargs = data.get("kwargs", {})
                 result = getattr(api, func)(self.resolver, **kwargs)
-                message = json.dumps({"function": func, "result": result,})
+                message = json.dumps(
+                    {"function": func, "result": result, "input_kwargs": kwargs}
+                )
                 await asyncio.wait(
                     [conn.send(message) for conn in self.active_connections]
                 )

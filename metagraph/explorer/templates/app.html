@@ -2,7 +2,7 @@
 
 <script>
   
-  (({port, divId, shadowInnerHTML, plugins, abstractTypes}) => {
+  (({port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, plugins, abstractTypes}) => {
 
       /*******************/
       /* Misc. Utilities */
@@ -11,23 +11,91 @@
       const sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
       const mean = inputArray => sum(inputArray) / inputArray.length;
 
+      const removeAllChildNodes = (parent) => {
+	  while (parent.firstChild) {
+              parent.removeChild(parent.firstChild);
+	  }
+      }
+
       const callAfterDOMUpdated = (func) => {
 	  // Calls function after the DOM is updated to prevent non-deterministic results when grabbing element attributes, e.g. height, during transitions and animations
 	  const intermediateFunc = () => window.requestAnimationFrame(func);
 	  window.requestAnimationFrame(intermediateFunc);
       };
-
+      
       /******************************/
       /* Shadow DOM Initializations */
       /******************************/
       
       const div = document.getElementById(divId);
-      let shadow = div.attachShadow({mode: 'open'});
+      const shadow = div.attachShadow({mode: 'open'});
       shadow.innerHTML = shadowInnerHTML;
       shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
-      // Add back-reference on websocket
-      shadow.websocket.owner = shadow;
+      shadow.websocket.onerror = () => {
+	  removeAllChildNodes(shadow);
+	  shadow.innerHTML = `Websocket connection to ws://127.0.0.1:${port}/ failed.`;
+      };
+      shadow.websocket.owner = shadow; // Add back-reference on websocket
 
+      let highlightTranslationGraphPath = (path) => {};
+      
+      // Listen for websocket messages
+      shadow.websocket.onmessage = function (event) {
+	  data = JSON.parse(event.data); 
+	  switch (data.function) {
+	  case 'list_types':
+	      // below is used by POC only
+              buildTree(shadow.display, data.result, true);
+              break;
+	  case 'list_translators':
+	      updateTranslationGraph(data);
+	      // below is used by POC only
+              shadow.display.innerHTML = '';
+              const treeWidgetDiv = document.createElement('div');
+              treeWidgetDiv.className = 'treewidget';
+              shadow.display.appendChild(treeWidgetDiv);
+              const ul = document.createElement('ul');
+              treeWidgetDiv.appendChild(ul);
+              const primary = document.createElement('li');
+              primary.innerHTML = 'Primary: ' + data.result['primary_types'];
+              ul.appendChild(primary);
+              const secondary = document.createElement('li');
+              secondary.innerHTML = 'Secondary: ' + data.result['secondary_types'];
+              ul.appendChild(secondary);
+              const trans = document.createElement('li');
+              ul.appendChild(trans);
+              const caret = document.createElement('span');
+              caret.className = 'caret caret-down';
+              caret.innerHTML = 'Translators'
+              trans.appendChild(caret);
+              const transUL = document.createElement('ul')
+              transUL.className = 'nested active';
+              trans.appendChild(transUL);
+              for (let i = 0; i < data.result['primary_translators'].length; i++) {
+		  const t = data.result['primary_translators'][i];
+		  const t2 = document.createElement('li');
+		  t2.innerHTML = t;
+		  transUL.appendChild(t2);
+              }
+              caret.addEventListener('click', function() {
+		  this.parentElement.querySelector('.nested').classList.toggle('active');
+		  this.classList.toggle('caret-down');
+              });
+              break;
+	  case 'list_algorithms':
+	      // below is used by POC only
+              buildTree(shadow.display, data.result, true);
+              break;
+	  case 'solve_translator':
+	      if (data.input_kwargs.overall_abstract === abstractTypeDropdown.value) {
+		  highlightTranslationGraphPath(data.result.solution);
+	      }
+	      break;
+	  default:
+              console.error('unsupported event', data);
+	  }
+      };
+      
       /**********************************/
       /* Explorer Tab Selection Buttons */
       /**********************************/
@@ -36,7 +104,7 @@
 	  for (const navigationBarLi of shadow.querySelectorAll(`#mg-explorer-navigation-bar li`)) {
               navigationBarLi.classList.remove('active');
 	  }
-	  clickedElement.classList.add('active');
+	  clickedElement.closest('li').classList.add('active');
 	  for (const explorerTab of shadow.querySelectorAll('.mg-explorer-tab')) {
               explorerTab.classList.remove('active');
 	  }
@@ -51,9 +119,9 @@
       shadow.querySelector('#mg-plugin-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-plugin-explorer');
       
       const metagraphCloseExplorer = () => {
-	  shadow.websocket.send(JSON.stringify({function: "close"}));
+	  shadow.websocket.send(JSON.stringify({function: 'close'}));
 	  shadow.websocket.close();
-	  shadow.innerHTML = '';
+	  removeAllChildNodes(shadow);
       }
       
       shadow.querySelector('#mg-explorer-close-button').onclick = metagraphCloseExplorer;
@@ -64,7 +132,7 @@
 
       const buildTree = function(root, data, topLevel) {
 	  if (topLevel) {
-              root.innerHTML = "";
+              root.innerHTML = '';
               const treeWidgetDiv = document.createElement('div');
               treeWidgetDiv.className = 'treewidget';
               root.appendChild(treeWidgetDiv);
@@ -72,11 +140,11 @@
               treeWidgetDiv.appendChild(ul);
               buildTree(ul, data, false);
               
-              const toggler = root.getElementsByClassName("caret");
+              const toggler = root.getElementsByClassName('caret');
               for (let i = 0; i < toggler.length; i++) {
-		  toggler[i].addEventListener("click", function() {
-                      this.parentElement.querySelector(".nested").classList.toggle("active");
-                      this.classList.toggle("caret-down");
+		  toggler[i].addEventListener('click', function() {
+                      this.parentElement.querySelector('.nested').classList.toggle('active');
+                      this.classList.toggle('caret-down');
 		  });
               }
 	  } else {
@@ -103,13 +171,13 @@
 	  }
       }
 
-      shadow.close = shadow.querySelector(".close");
-      shadow.viewTypes = shadow.querySelector("#viewTypeTypes1");
-      shadow.viewTranslators = shadow.querySelector("#viewTypeTranslators2");
-      shadow.viewAlgorithms = shadow.querySelector("#viewTypeAlgorithms3");
+      shadow.close = shadow.querySelector('.close');
+      shadow.viewTypes = shadow.querySelector('#viewTypeTypes1');
+      shadow.viewTranslators = shadow.querySelector('#viewTypeTranslators2');
+      shadow.viewAlgorithms = shadow.querySelector('#viewTypeAlgorithms3');
       shadow.pluginsDropDown = shadow.querySelector('#pluginsDropDown');
       shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
-      shadow.display = shadow.querySelector("#display");
+      shadow.display = shadow.querySelector('#display');
 
       plugins.forEach(function(plug) {
 	  const op = document.createElement('option');
@@ -118,7 +186,7 @@
 	  shadow.pluginsDropDown.appendChild(op);
       });
       shadow.pluginsDropDown.onchange = function(event) {
-	  allHandler(this.getRootNode());
+	  allHandler(shadow);
       }
       
       abstractTypes.forEach(function(at) {
@@ -128,15 +196,14 @@
 	  shadow.abstractDropDown.appendChild(op);
       });
       shadow.abstractDropDown.onchange = function(event) {
-	  allHandler(this.getRootNode());
+	  allHandler(shadow);
       }
 
       const radioHandler = function (event) {
-	  var shadow = this.getRootNode();
 	  if (shadow.viewTranslators.checked) {
               shadow.abstractDropDown.parentElement.style.visibility = null;
 	  } else {
-              shadow.abstractDropDown.parentElement.style.visibility = "hidden";
+              shadow.abstractDropDown.parentElement.style.visibility = 'hidden';
 	  }
 	  allHandler(shadow);
       }
@@ -144,124 +211,95 @@
       shadow.viewTranslators.onchange = radioHandler;
       shadow.viewAlgorithms.onchange = radioHandler;
       shadow.close.onclick = function (event) {
-	  root = this.getRootNode();
-	  root.websocket.send(JSON.stringify({function: "close"}));
-	  root.websocket.close();
+	  shadow.websocket.send(JSON.stringify({function: 'close'}));
+	  shadow.websocket.close();
 	  // Remove everything as part of cleanup
-	  root.innerHTML = "";
+	  shadow.innerHTML = '';
       }
       
       const allHandler = function(shadow) {
 	  const kwargs = {filters: {}};
 	  const pluginFilter = shadow.pluginsDropDown.value;
-	  if (pluginFilter != "---") {
+	  if (pluginFilter != '---') {
               kwargs['filters']['plugin'] = pluginFilter;
 	  }
 	  
 	  if (shadow.viewTypes.checked) {
               shadow.display.innerHTML = '';
-              shadow.websocket.send(JSON.stringify({function: "list_types", kwargs: kwargs}));
+              shadow.websocket.send(JSON.stringify({function: 'list_types', kwargs: kwargs}));
 	  } else if (shadow.viewTranslators.checked) {
               shadow.display.innerHTML = '';
               kwargs['source_type'] = shadow.abstractDropDown.value;
-              shadow.websocket.send(JSON.stringify({function: "list_translators", kwargs: kwargs}));
+              shadow.websocket.send(JSON.stringify({function: 'list_translators', kwargs: kwargs}));
 	  } else if (shadow.viewAlgorithms.checked) {
               shadow.display.innerHTML = '';
-              shadow.websocket.send(JSON.stringify({function: "list_algorithms", kwargs: kwargs}));
+              shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: kwargs}));
 	  }
       }
-      
-      shadow.websocket.onmessage = function (event) {
-	  shadow = this.owner;
-	  data = JSON.parse(event.data);
-	  switch (data.function) {
-	  case "list_types":
-              buildTree(shadow.display, data.result, true);
-              break;
-	  case "list_translators":
-              shadow.display.innerHTML = "";
-              const treeWidgetDiv = document.createElement('div');
-              treeWidgetDiv.className = "treewidget";
-              shadow.display.appendChild(treeWidgetDiv);
-              const ul = document.createElement('ul');
-              treeWidgetDiv.appendChild(ul);
-              const primary = document.createElement('li');
-              primary.innerHTML = "Primary: " + data.result['primary_types'];
-              ul.appendChild(primary);
-              const secondary = document.createElement('li');
-              secondary.innerHTML = "Secondary: " + data.result['secondary_types'];
-              ul.appendChild(secondary);
-              const trans = document.createElement('li');
-              ul.appendChild(trans);
-              const caret = document.createElement('span');
-              caret.className = 'caret caret-down';
-              caret.innerHTML = 'Translators'
-              trans.appendChild(caret);
-              const transUL = document.createElement('ul')
-              transUL.className = 'nested active';
-              trans.appendChild(transUL);
-              for (let i = 0; i < data.result['primary_translators'].length; i++) {
-		  const t = data.result['primary_translators'][i];
-		  const t2 = document.createElement('li');
-		  t2.innerHTML = t;
-		  transUL.appendChild(t2);
-              }
-              caret.addEventListener("click", function() {
-		  this.parentElement.querySelector(".nested").classList.toggle("active");
-		  this.classList.toggle("caret-down");
-              });
-              break;
-	  case "list_algorithms":
-              buildTree(shadow.display, data.result, true);
-              break;
-	  default:
-              console.error(
-		  "unsupported event", data);
-	  }
-      };
-      
-      /*************************************/
-      /* Translation Graph Initializations */
-      /*************************************/
+            
+      /*********************/
+      /* Translation Graph */
+      /**********************/
       
       require.config({paths: {d3: 'https://d3js.org/d3.v5.min'}});
+      
+      const concreteTypeToAbstractType = Object.keys(abstractTypeToConcreteTypes).reduce((accumulator, abstractType) => {
+	  Object.keys(abstractTypeToConcreteTypes[abstractType].children).forEach(concreteType => {
+	      accumulator[concreteType] = abstractType;
+	  });
+	  return accumulator;
+      }, {})
 
-      const initializeTranslationGraph = () => {
+      const abstractTypeDropdown = shadow.querySelector('#mg-translation-graph-abstract-type-dropdown');
+      abstractTypes.forEach(abstractType => {
+          const optionElement = document.createElement('option');
+          optionElement.setAttribute('value', abstractType);
+          optionElement.innerHTML = abstractType;
+	  abstractTypeDropdown.append(optionElement);
+      });
+      
+      const loadTranslationGraph = (translationGraphData) => {
+          console.log(`translationGraphData ${JSON.stringify(translationGraphData)}`); // TODO remove this
 	  
 	  require(['d3'], (d3) => {
-              
-              const graph = { // dummy data
-		  nodeIdToProperties: {
-                      'a': {id: 'a', description: 'This is node A.'},
-                      'b': {id: 'b', description: 'This is node B.'},
-                      'c': {id: 'c', description: 'This is node C.'},
-                      'd': {id: 'd', description: 'This is node D.'},
-		  },
-		  edges: [
-                      {src: 'a', dst: 'b'},
-                      {src: 'b', dst: 'a'},
-                      {src: 'b', dst: 'c'},
-		  ],
-              };
-              
+	      
               // DOM Initializations
-              const plotContainer = shadow.querySelector('div.mg-translation-graph-svg-container');
-              const svg = d3.select(plotContainer.querySelector('svg.mg-translation-graph-svg'));        
+              const plotContainer = shadow.querySelector('div#mg-translation-graph-svg-container');
+              const svg = d3.select(plotContainer.querySelector('svg#mg-translation-graph-svg'));
+	      svg.selectAll('g').remove();
               svg
 		  .attr('width', `${plotContainer.clientWidth}px`)
 		  .attr('height', `${plotContainer.clientHeight}px`);
               const svgWidth = parseFloat(svg.style('width'));
               const svgHeight = parseFloat(svg.style('height'));
               const zoomGroup = svg.append('g').attr('class', `zoom-group-${plotContainer.id}`);
-              
-              // Edge & Node Initializations
               const edgeGroup = zoomGroup.append('g').attr('class', `edge-group`);
               const nodeGroup = zoomGroup.append('g').attr('class', `node-group`);
-              
+	      const tooltipDiv = d3.select(plotContainer.querySelector('div#mg-translation-graph-tooltip'));
+
+	      // Dropdown Initializations
+	      const allConcreteTypes = translationGraphData.result.primary_types.concat(translationGraphData.result.secondary_types);
+	      const startConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-start-concrete-type-dropdown');
+	      removeAllChildNodes(startConcreteTypeDropdown);
+	      const endConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-end-concrete-type-dropdown');
+	      removeAllChildNodes(endConcreteTypeDropdown);
+	      allConcreteTypes.forEach(concreteType => {
+		  const startOptionElement = document.createElement('option');
+		  startOptionElement.setAttribute('value', concreteType);
+		  startOptionElement.innerHTML = concreteType;
+		  startConcreteTypeDropdown.append(startOptionElement);
+		  const endOptionElement = document.createElement('option');
+		  endOptionElement.setAttribute('value', concreteType);
+		  endOptionElement.innerHTML = concreteType;
+		  endConcreteTypeDropdown.append(endOptionElement);
+	      });
+	      startConcreteTypeDropdown.selectedIndex = 0;
+	      endConcreteTypeDropdown.selectedIndex = 1;
+	      
               // Force Directed Graph Initializations
               const alphaDecay = 0.0;
               const velocityDecay = 0.9;
-              const paddingBetweenNodes = 35;
+              const paddingBetweenNodes = 40;
               const initialLinkAlpha = 0.005;
               const linkAlphaDecay = 0.005;
               let linkAlpha = initialLinkAlpha;
@@ -271,30 +309,108 @@
               const drag = d3.drag();
               
               // Edge Visualization
-              const edgeData = graph.edges;
+              const edgeData = [];
+	      translationGraphData.result.primary_translators.forEach((edge) => {
+		  const [src, dst] = edge;
+		  const datum = {src, dst, translatorOrder: 'primary'};
+		  edgeData.push(datum);
+	      });
+	      translationGraphData.result.secondary_translators.forEach((edge) => {
+		  const [src, dst] = edge;
+		  edgeData.push({src, dst, translatorOrder: 'secondary'});
+	      });
+	      const edgeByNodes = {};
+	      translationGraphData.result.primary_types.concat(translationGraphData.result.secondary_types).forEach(concreteType => {
+		  edgeByNodes[concreteType] = {};
+	      });
+	      edgeData.forEach(edge => {
+		  const {src, dst} = edge;
+                  console.log(`src ${JSON.stringify(src)}`);
+                  console.log(`dst ${JSON.stringify(dst)}`);
+		  edgeByNodes[src][dst] = edge;
+	      });
+	      const edgeConcreteTypesToLineId = ([srcConcreteType, dstConcreteType]) => `${srcConcreteType}-${dstConcreteType}-line`;
               const edgeEnterSelection = edgeGroup
 		    .selectAll('line')
 		    .data(edgeData)
 		    .enter()
 		    .append('line')
-		    .attr('marker-end','url(#mg-translation-graph-edge-arrowhead)')
-		    .attr('class', 'mg-translation-graph-edge');
+		    .attr('class', 'mg-translation-graph-edge')
+		    .attr('id', datum => edgeConcreteTypesToLineId(datum.src, datum.dst))
+		    .classed('mg-translation-graph-primary-edge', datum => datum.translatorOrder === 'primary')
+		    .classed('mg-translation-graph-secondary-edge', datum => datum.translatorOrder === 'secondary')
+		    .attr('marker-end','url(#mg-translation-graph-edge-arrowhead)');
 
               // Node Visualization
-              const nodeData = Object.values(graph.nodeIdToProperties);
-              const nodeEnterSelection = nodeGroup
+	      const nodeIdToProperties = {};
+	      translationGraphData.result.primary_types.forEach(concreteType => {
+		  nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'primary'};
+	      });
+	      translationGraphData.result.secondary_types.forEach(concreteType => {
+		  nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'secondary'};
+	      });
+	      const concreteTypeNameToCircleId = concreteTypeName => `${concreteTypeName}-circle`
+              const nodeData = Object.values(nodeIdToProperties);
+	      const nodeDataJoin = nodeGroup
 		    .selectAll('circle')
-		    .data(nodeData)
+		    .data(nodeData);
+              const nodeEnterSelection = nodeDataJoin
 		    .enter()
 		    .append('circle')
+		    .attr('id', datum => concreteTypeNameToCircleId(datum.id))
 		    .attr('class', 'mg-translation-graph-node');
-              const nodeForwardNeighbors = Object.keys(graph.nodeIdToProperties).reduce((accumulator, nodeId) => {
+              const nodeForwardNeighbors = Object.keys(nodeIdToProperties).reduce((accumulator, nodeId) => {
 		  accumulator[nodeId] = [];
 		  return accumulator;
               }, {});
-              edgeData.forEach((edge) => nodeForwardNeighbors[edge.src].push(edge.dst));
+              edgeData.forEach((edge) => {
+		  nodeForwardNeighbors[edge.src].push(edge.dst);
+	      });
 
-              // Zoom
+	      // Dropdown Functionality
+	      const highlightConcreteTypeWithClass = (concreteTypeName, className) => {
+		  nodeGroup.selectAll('.mg-translation-graph-node').classed(className, false);
+		  const concreteTypeToHighlightSelector = `#${concreteTypeNameToCircleId(concreteTypeName)}`;
+		  nodeGroup.select(concreteTypeToHighlightSelector).classed(className, true);
+	      };
+	      const requestTranslationPath = () => {
+		  const startConcreteType = startConcreteTypeDropdown.value;
+		  const startAbstractType = concreteTypeToAbstractType[startConcreteType];
+		  const endConcreteType = endConcreteTypeDropdown.value;
+		  const endAbstractType = concreteTypeToAbstractType[endConcreteType];;
+		  kwargs = {
+		      src_abstract: startAbstractType,
+		      src_concrete: startConcreteType,
+		      dst_abstract: endAbstractType,
+		      dst_concrete: endConcreteType,
+		      overall_abstract: abstractTypeDropdown.value,
+		  }
+		  shadow.websocket.send(JSON.stringify({function: 'solve_translator', kwargs: kwargs}));
+	      };
+	      startConcreteTypeDropdown.onchange = (event) => {
+		  highlightConcreteTypeWithClass(event.target.value, 'mg-translation-graph-start-node')
+		  requestTranslationPath();
+	      };
+	      endConcreteTypeDropdown.onchange = (event) => {
+		  highlightConcreteTypeWithClass(event.target.value, 'mg-translation-graph-end-node')
+		  requestTranslationPath();
+	      };
+	      highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
+	      highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
+	      requestTranslationPath();
+	      highlightTranslationGraphPath = (path) => {
+		  edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
+		  for(let i=0; i < path.length - 1; i++) {
+		      const srcConcreteType = path[i];
+		      const dstConcreteType = path[i+1];
+		      const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
+		      edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
+		  }
+		  console.clear();
+                  console.log(`123  ${JSON.stringify(123 )}`);
+	      };
+
+              // Zooming
               const zoom = d3.zoom().on('zoom', () => {
 		  zoomGroup
                       .attr('transform', d3.event.transform);
@@ -302,7 +418,7 @@
               svg.call(zoom);
               
               // Force Directed Graph Visualization
-              drag.on("drag", (d,i) => {
+              drag.on('drag', (d,i) => {
 		  d.x += d3.event.dx;
 		  d.y += d3.event.dy;
 		  linkAlpha = initialLinkAlpha;
@@ -311,10 +427,10 @@
 		  linkAlpha = linkAlpha * (1-linkAlphaDecay);
 		  nodeData.forEach(datum => {
                       const forwardNeighborIds = nodeForwardNeighbors[datum.id];
-                      const neighborIds = (forwardNeighborIds.length > 0) ? forwardNeighborIds : Object.keys(graph.nodeIdToProperties);
+                      const neighborIds = (forwardNeighborIds.length > 0) ? forwardNeighborIds : Object.keys(nodeIdToProperties);
                       if (neighborIds.length > 0) {
-			  const neighborMeanX = mean(neighborIds.map(neighborId => graph.nodeIdToProperties[neighborId].x));
-			  const neighborMeanY = mean(neighborIds.map(neighborId => graph.nodeIdToProperties[neighborId].y));
+			  const neighborMeanX = mean(neighborIds.map(neighborId => nodeIdToProperties[neighborId].x));
+			  const neighborMeanY = mean(neighborIds.map(neighborId => nodeIdToProperties[neighborId].y));
 			  const newX = datum.x * (1-linkAlpha) + linkAlpha * neighborMeanX;
 			  const newY = datum.y * (1-linkAlpha) + linkAlpha * neighborMeanY;
 			  datum.x = newX;
@@ -332,16 +448,21 @@
 			  .attr('cy', datum => datum.y)
 			  .call(drag);
 	              edgeEnterSelection
-			  .attr('x1', datum => graph.nodeIdToProperties[datum.src].x)
-			  .attr('y1', datum => graph.nodeIdToProperties[datum.src].y)
-			  .attr('x2', datum => graph.nodeIdToProperties[datum.dst].x)
-			  .attr('y2', datum => graph.nodeIdToProperties[datum.dst].y);
+			  .attr('x1', datum => nodeIdToProperties[datum.src].x)
+			  .attr('y1', datum => nodeIdToProperties[datum.src].y)
+			  .attr('x2', datum => nodeIdToProperties[datum.dst].x)
+			  .attr('y2', datum => nodeIdToProperties[datum.dst].y);
 		  })
 		  .restart();
 	  });
 	  
       };
-      callAfterDOMUpdated(() => initializeTranslationGraph());
+      const updateTranslationGraph = (translationGraphData) => {
+	  callAfterDOMUpdated(() => loadTranslationGraph(translationGraphData));
+      }
+      const requestTranslationGraphAbstractTypeUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_translators', kwargs: {source_type: abstractTypeDropdown.value}}))
+      abstractTypeDropdown.onchange = requestTranslationGraphAbstractTypeUpdate;
+      shadow.websocket.onopen = requestTranslationGraphAbstractTypeUpdate;
       
   })({RESOLVER_DATA})
   

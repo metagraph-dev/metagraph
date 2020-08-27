@@ -42,6 +42,7 @@
     margin: 1rem 1rem 1rem 1rem;
     transition: all 0.5s;
     user-select: none;
+    cursor: pointer;
 }
 
 #mg-explorer-navigation-bar li:active {
@@ -59,7 +60,6 @@
     text-decoration: none;
     padding-left: 0.5rem;
     padding-right: 0.5rem;
-    cursor: pointer;
 }
 #mg-explorer-navigation-bar li.active {
     border: 1px solid #000;
@@ -90,97 +90,141 @@
 /* Translation Graph */
 /*********************/
 
-.mg-translation-graph-container {
+#mg-translation-graph-container {
     text-align: center;
     align-items: center;
     width: 100%;
     height: 40vh;
 }
 
-table.mg-translation-graph-table {
+table#mg-translation-graph-table {
     align-items: center;
     height: 100%;
     width: 100%;
 }
 
-.mg-translation-graph-table tbody tr:nth-child(odd),
-.mg-translation-graph-table tbody tr:hover,
-.mg-translation-graph-table tbody tr{
+#mg-translation-graph-table tbody tr:nth-child(odd),
+#mg-translation-graph-table tbody tr:hover,
+#mg-translation-graph-table tbody tr{
     background: transparent;
 }
 
 /* Left Column */
 
-.mg-translation-graph-svg-container {
+#mg-translation-graph-svg-container {
     border: 2px solid rgba(200, 200, 200, 1.0);
     border-radius: 8px;
     height: 100%;
 }
 
-table.mg-translation-graph-table div.mg-translation-graph-svg-container svg.mg-translation-graph-svg {
+table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-translation-graph-svg {
     width: 100%;
     height: 100%;
 }
 
 /* Right Column */
 
-.mg-translation-graph-menu-column {
+#mg-translation-graph-menu-column {
     width: 30%;
     padding-left: 10px;
 }
 
-.mg-translation-graph-menu {
+#mg-translation-graph-menu {
     border: 2px solid rgba(200, 200, 200, 1.0);
     border-radius: 8px;
     height: 100%;
 }
 
-.mg-translation-graph-menu h3 {
+#mg-translation-graph-menu h3 {
     text-align: center;
     margin: 10px;
 }
 
-.mg-translation-graph-menu p {
+#mg-translation-graph-menu p {
     text-align: center;
     padding: 1rem;
     font-size: 1.5rem;
 }
 
-.mg-translation-graph-menu select {
+#mg-translation-graph-menu select {
     display: block;
     margin: 0 auto;
 }
 
-.mg-translation-graph-menu-dropdown-container {
+#mg-translation-graph-menu-dropdown-container {
+    user-select: none;
+    padding: 0px 20px 0px 20px;
 }
 
-.mg-translation-graph-abstract-type-dropdown {
+#mg-translation-graph-menu-dropdown-container select {
+    border-radius: 10px;
+    border-width: 2px;
 }
 
-.mg-translation-graph-start-concrete-type-dropdown {
+#mg-translation-graph-abstract-type-dropdown {
 }
 
-.mg-translation-graph-end-concrete-type-dropdown {
+#mg-translation-graph-start-concrete-type-dropdown {
+    border-color: #20d4c2;
 }
 
-.mg-translation-graph-path-display-text {
+#mg-translation-graph-end-concrete-type-dropdown {
+    border-color: #dc9af6;
+}
+
+#mg-translation-graph-path-display-text {
 }
 
 #mg-translation-graph-edge-arrowhead {
     fill: #555;
 }
+
 .mg-translation-graph-edge {
-    stroke: black;
-    stroke-width: 1px;
+    transition: all 0.5s;
     stroke-opacity: 0.5;
+    stroke-width: 3px;
+}
+
+.mg-translation-graph-edge:hover {
+    stroke-width: 6px;
+}
+
+.mg-translation-graph-edge.mg-translation-graph-highlighted-edge {
+    stroke: red;
+}
+
+.mg-translation-graph-primary-edge {
+    stroke: blue;
+}
+
+.mg-translation-graph-secondary-edge {
+    stroke: green;
 }
 
 .mg-translation-graph-node {
-    transition: fill 0.5s, stroke-width 0.5s;
+    transition: fill 0.5s, stroke-width 0.5s, r 0.5s;
     r: 6;
     fill: pink;
     stroke: black;
     stroke-width: 1px;
+}
+
+.mg-translation-graph-node:hover {
+    r: 8;
+    fill: crimson;
+    stroke-width: 2px;
+}
+
+.mg-translation-graph-start-node {
+    r: 7;
+    fill: #20d4c2;
+    stroke-width: 2px;
+}
+
+.mg-translation-graph-end-node {
+    r: 7;
+    fill: #dc9af6;
+    stroke-width: 2px;
 }
 
 /****************/

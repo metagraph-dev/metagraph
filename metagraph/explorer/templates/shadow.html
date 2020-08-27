@@ -23,39 +23,34 @@
   </div>
   <div id="mg-translation-explorer" class="mg-explorer-tab active">
     <h1>Translation Graph</h1>
-    <div class="mg-translation-graph-container">
-      <table class="mg-translation-graph-table">
+    <div id="mg-translation-graph-container">
+      <table id="mg-translation-graph-table">
         <tr>
   	  <td>
-  	    <div class="mg-translation-graph-svg-container">
-  	      <svg class="mg-translation-graph-svg">
+  	    <div id="mg-translation-graph-svg-container">
+	      <div id="mg-translation-graph-tooltip"></div>
+  	      <svg id="mg-translation-graph-svg">
 		<defs>
-		  <marker id="mg-translation-graph-edge-arrowhead" markerWidth="100" markerHeight="100" refX="16" refY="5" orient="auto">
-		    <polygon points="0 0, 10 5, 0 10" />
+		  <marker id="mg-translation-graph-edge-arrowhead" markerWidth="10" markerHeight="7" refX="4" refY="2" orient="auto">
+		    <polygon points="0 0, 4 2, 0 4" />
 		  </marker>
 		</defs>
 	      </svg>
   	    </div>
   	  </td>
-  	  <td class="mg-translation-graph-menu-column">
-  	    <div class="mg-translation-graph-menu">
+  	  <td id="mg-translation-graph-menu-column">
+  	    <div id="mg-translation-graph-menu">
   	      <h3>Translation Graph Menu</h3>
-  	      <div class="mg-translation-graph-menu-dropdown-container">
+  	      <div id="mg-translation-graph-menu-dropdown-container">
   	    	<p>Abstract Type:</p>
-  	    	<select class="mg-translation-graph-abstract-type-dropdown" onchange="updateAbstractType()">
-  		  <option value="dummy0">dummy1</option>
-  		</select>
+  	    	<select id="mg-translation-graph-abstract-type-dropdown"></select>
   	    	<p>Start Concrete Type:</p>
-  	    	<select class="mg-translation-graph-start-concrete-type-dropdown" onchange="updatePath()">
-  		  <option value="dummy1">dummy1</option>
-  		</select>
+  	    	<select id="mg-translation-graph-start-concrete-type-dropdown"></select>
   	    	<p>End Concrete Type:</p>
-  	    	<select class="mg-translation-graph-end-concrete-type-dropdown" onchange="updatePath()">
-  		  <option value="dummy2">dummy2</option>
-  		</select>
+  	    	<select id="mg-translation-graph-end-concrete-type-dropdown"></select>
   	      </div>
   	      <p>Full Path</p>
-  	      <div class="mg-translation-graph-path-display-text"></div>
+  	      <div id="mg-translation-graph-path-display-text"></div>
   	    </div>
   	  </td>
         </tr>
@@ -130,6 +125,5 @@
       </div>
       <div id="display"></div>
     </div>
-
   </div>
 </div>

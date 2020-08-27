@@ -10,7 +10,7 @@ from ..core.planning import MultiStepTranslator, AlgorithmPlan
 # 4. Make object structure as consistent as possible so decoding on Javascript side is easier
 
 
-def normalize_abstract_type(resolver, abstract):
+def normalize_abstract_type(resolver, abstract, **kwargs):
     if type(abstract) is type and issubclass(abstract, AbstractType):
         type_class = abstract
         abstract = abstract.__name__
@@ -24,7 +24,7 @@ def normalize_abstract_type(resolver, abstract):
     return (abstract, type_class)
 
 
-def normalize_concrete_type(resolver, abstract, concrete):
+def normalize_concrete_type(resolver, abstract, concrete, **kwargs):
     abstract, abstract_class = normalize_abstract_type(resolver, abstract)
 
     if type(concrete) is type and issubclass(concrete, ConcreteType):
@@ -45,16 +45,16 @@ def normalize_concrete_type(resolver, abstract, concrete):
     return (concrete, type_class)
 
 
-def list_plugins(resolver):
+def list_plugins(resolver, **kwargs):
     # TODO: change to a dict with the module listed as well as the plugin name
     return list(sorted(dir(resolver.plugins)))
 
 
-def get_abstract_types(resolver):
+def get_abstract_types(resolver, **kwargs):
     return [name for name in list_types(resolver)]
 
 
-def list_types(resolver, filters=None):
+def list_types(resolver, filters=None, **kwargs):
     """
     Returns an OrderedDict of {abstract_type: [concrete_type, concrete_type, ...]}
     Abstract types and concrete types are sorted alphabetically
@@ -83,7 +83,7 @@ def list_types(resolver, filters=None):
     return t
 
 
-def list_translators(resolver, source_type, filters=None):
+def list_translators(resolver, source_type, filters=None, **kwargs):
     if filters and "plugin" in filters:
         plugin = getattr(resolver.plugins, filters["plugin"])
         filtered_translators = plugin.translators
@@ -119,7 +119,7 @@ def list_translators(resolver, source_type, filters=None):
     }
 
 
-def list_algorithms(resolver, filters=None):
+def list_algorithms(resolver, filters=None, **kwargs):
     if filters and "plugin" in filters:
         plugin = getattr(resolver.plugins, filters["plugin"])
         # Include abstract algos defined in plugin along with abstract algos matching concrete algos defined
@@ -170,7 +170,7 @@ def list_algorithms(resolver, filters=None):
     return d
 
 
-def list_algorithm_params(resolver, abstract_pathname):
+def list_algorithm_params(resolver, abstract_pathname, **kwargs):
     types = list_types(resolver)
     sig = resolver.abstract_algorithms[abstract_pathname].__signature__
 
@@ -210,7 +210,9 @@ def list_algorithm_params(resolver, abstract_pathname):
 # - solution: list of str (will be empty list for unsatisfiable)
 
 
-def solve_translator(resolver, src_abstract, src_concrete, dst_abstract, dst_concrete):
+def solve_translator(
+    resolver, src_abstract, src_concrete, dst_abstract, dst_concrete, **kwargs
+):
     src_type, src_class = normalize_concrete_type(resolver, src_abstract, src_concrete)
     dst_type, dst_class = normalize_concrete_type(resolver, dst_abstract, dst_concrete)
 
@@ -232,5 +234,5 @@ def solve_translator(resolver, src_abstract, src_concrete, dst_abstract, dst_con
     }
 
 
-def solve_algorithm(resolver, abstract_pathname, params, returns):
+def solve_algorithm(resolver, abstract_pathname, params, returns, **kwargs):
     raise NotImplementedError()
