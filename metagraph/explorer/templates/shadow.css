@@ -23,13 +23,15 @@
     padding-top: 1.5rem;
     width: 100%;
     box-shadow: 0 3px 6px rgba(0,0,0,0.125);
+    overflow-x: auto;
+    white-space: nowrap;
 }
 
 #mg-explorer-navigation-bar ul {
     display: inline-block;
     list-style-type: none;
     margin: 0;
-    overflow: hidden;
+    white-space: nowrap;
 }
 
 #mg-explorer-navigation-bar li {
@@ -39,6 +41,7 @@
     padding: 0.5rem;
     margin: 1rem 1rem 1rem 1rem;
     transition: all 0.5s;
+    user-select: none;
 }
 
 #mg-explorer-navigation-bar li:active {
@@ -163,6 +166,9 @@ table.mg-translation-graph-table div.mg-translation-graph-svg-container svg.mg-t
 .mg-translation-graph-path-display-text {
 }
 
+#mg-translation-graph-edge-arrowhead {
+    fill: #555;
+}
 .mg-translation-graph-edge {
     stroke: black;
     stroke-width: 1px;

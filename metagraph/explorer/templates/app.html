@@ -1,42 +1,21 @@
 <div id="{DIV_ID}" />
 
-<script> // Globals
-
-  /*******************/
-  /* Misc. Utilities */
-  /*******************/
-  
-  var sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
-  var mean = inputArray => sum(inputArray) / inputArray.length;
-
-  var callAfterDOMUpdated = (func) => {
-      // Calls function after the DOM is updated to prevent non-deterministic results when grabbing element attributes, e.g. height, during transitions and animations
-      const intermediateFunc = () => window.requestAnimationFrame(func);
-      window.requestAnimationFrame(intermediateFunc);
-  };
-
-  /**************/
-  /* General UI */
-  /**************/
-  
-  var metagraphActivateExplorerTab = (clickedElement, explorerTabId) => {
-      const explorerBody = clickedElement.closest('#mg-explorer-body');
-      for (const navigationBarLi of explorerBody.querySelectorAll(`#mg-explorer-navigation-bar li`)) {
-          navigationBarLi.classList.remove('active');
-      }
-      clickedElement.classList.add('active');
-      for (const explorerTab of explorerBody.querySelectorAll('.mg-explorer-tab')) {
-          explorerTab.classList.remove('active');
-      }
-      const currentExplorerTab = explorerBody.querySelector(`#${explorerTabId}`);
-      currentExplorerTab.classList.add('active');
-  };
-  
-</script>
-
-<script> // Initializations
+<script>
   
   (({port, divId, shadowInnerHTML, plugins, abstractTypes}) => {
+
+      /*******************/
+      /* Misc. Utilities */
+      /*******************/
+      
+      const sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
+      const mean = inputArray => sum(inputArray) / inputArray.length;
+
+      const callAfterDOMUpdated = (func) => {
+	  // Calls function after the DOM is updated to prevent non-deterministic results when grabbing element attributes, e.g. height, during transitions and animations
+	  const intermediateFunc = () => window.requestAnimationFrame(func);
+	  window.requestAnimationFrame(intermediateFunc);
+      };
 
       /******************************/
       /* Shadow DOM Initializations */
@@ -45,7 +24,40 @@
       const div = document.getElementById(divId);
       let shadow = div.attachShadow({mode: 'open'});
       shadow.innerHTML = shadowInnerHTML;
+      shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
+      // Add back-reference on websocket
+      shadow.websocket.owner = shadow;
 
+      /**********************************/
+      /* Explorer Tab Selection Buttons */
+      /**********************************/
+      
+      const metagraphActivateExplorerTab = (clickedElement, explorerTabId) => {
+	  for (const navigationBarLi of shadow.querySelectorAll(`#mg-explorer-navigation-bar li`)) {
+              navigationBarLi.classList.remove('active');
+	  }
+	  clickedElement.classList.add('active');
+	  for (const explorerTab of shadow.querySelectorAll('.mg-explorer-tab')) {
+              explorerTab.classList.remove('active');
+	  }
+	  const currentExplorerTab = shadow.querySelector(`#${explorerTabId}`);
+	  currentExplorerTab.classList.add('active');
+      };
+      
+      shadow.querySelector('#mg-translation-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-translation-explorer');
+      shadow.querySelector('#mg-type-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-type-explorer');
+      shadow.querySelector('#mg-algorithm-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-algorithm-explorer');
+      shadow.querySelector('#mg-algorithm-type-translation-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-algorithm-type-translation-explorer');
+      shadow.querySelector('#mg-plugin-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-plugin-explorer');
+      
+      const metagraphCloseExplorer = () => {
+	  shadow.websocket.send(JSON.stringify({function: "close"}));
+	  shadow.websocket.close();
+	  shadow.innerHTML = '';
+      }
+      
+      shadow.querySelector('#mg-explorer-close-button').onclick = metagraphCloseExplorer;
+      
       /************/
       /* POC Code */
       /************/
@@ -98,9 +110,6 @@
       shadow.pluginsDropDown = shadow.querySelector('#pluginsDropDown');
       shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
       shadow.display = shadow.querySelector("#display");
-      shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
-      // Add back-reference on websocket
-      shadow.websocket.owner = shadow;
 
       plugins.forEach(function(plug) {
 	  const op = document.createElement('option');
@@ -214,10 +223,10 @@
       /*************************************/
       /* Translation Graph Initializations */
       /*************************************/
-  
+      
       require.config({paths: {d3: 'https://d3js.org/d3.v5.min'}});
 
-      var initializeTranslationGraph = () => {
+      const initializeTranslationGraph = () => {
 	  
 	  require(['d3'], (d3) => {
               
@@ -252,7 +261,7 @@
               // Force Directed Graph Initializations
               const alphaDecay = 0.0;
               const velocityDecay = 0.9;
-              const paddingBetweenNodes = 25;
+              const paddingBetweenNodes = 35;
               const initialLinkAlpha = 0.005;
               const linkAlphaDecay = 0.005;
               let linkAlpha = initialLinkAlpha;
