@@ -325,8 +325,6 @@
 	      });
 	      edgeData.forEach(edge => {
 		  const {src, dst} = edge;
-                  console.log(`src ${JSON.stringify(src)}`);
-                  console.log(`dst ${JSON.stringify(dst)}`);
 		  edgeByNodes[src][dst] = edge;
 	      });
 	      const edgeConcreteTypesToLineId = ([srcConcreteType, dstConcreteType]) => `${srcConcreteType}-${dstConcreteType}-line`;
@@ -366,6 +364,10 @@
               edgeData.forEach((edge) => {
 		  nodeForwardNeighbors[edge.src].push(edge.dst);
 	      });
+              const nodeTextEnterSelection = nodeDataJoin
+		    .enter()
+		    .append('text')
+                    .html(datum => datum.id);
 
 	      // Dropdown Functionality
 	      const highlightConcreteTypeWithClass = (concreteTypeName, className) => {
@@ -406,8 +408,6 @@
 		      const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
 		      edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
 		  }
-		  console.clear();
-                  console.log(`123  ${JSON.stringify(123 )}`);
 	      };
 
               // Zooming
@@ -447,6 +447,9 @@
 			  .attr('cx', datum => datum.x)
 			  .attr('cy', datum => datum.y)
 			  .call(drag);
+		      nodeTextEnterSelection
+			  .attr('x', datum => datum.x)
+			  .attr('y', datum => datum.y);
 	              edgeEnterSelection
 			  .attr('x1', datum => nodeIdToProperties[datum.src].x)
 			  .attr('y1', datum => nodeIdToProperties[datum.src].y)
