@@ -22,6 +22,14 @@
 	  const intermediateFunc = () => window.requestAnimationFrame(func);
 	  window.requestAnimationFrame(intermediateFunc);
       };
+
+      const absoluteXYOffset = (element) => {
+	  const rect = element.getBoundingClientRect();
+	  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+	  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+	  return [rect.left + scrollLeft, rect.top + scrollTop]
+      }
+
       
       /******************************/
       /* Shadow DOM Initializations */
@@ -275,6 +283,7 @@
               const edgeGroup = zoomGroup.append('g').attr('class', `edge-group`);
               const nodeGroup = zoomGroup.append('g').attr('class', `node-group`);
 	      const tooltipDiv = d3.select(plotContainer.querySelector('div#mg-translation-graph-tooltip'));
+	      tooltipDiv.style('opacity', 0);
 
 	      // Dropdown Initializations
 	      const allConcreteTypes = translationGraphData.result.primary_types.concat(translationGraphData.result.secondary_types);
@@ -357,6 +366,18 @@
 		    .enter()
 		    .append('circle')
 		    .attr('id', datum => concreteTypeNameToCircleId(datum.id))
+		    .on('mouseover', datum => {
+			const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.event.target.id}`));
+			tooltipDiv
+			    .style('opacity', .9)
+			    .html(Object.keys(datum).map(key => `<p>${key}: ${datum[key]}</p>`).reduce((a,b) => a.concat(b)))
+			    .style('left', x + 10 + 'px')
+			    .style('top', y + 10 + 'px');
+		    })
+		    .on('mouseout', datum => {
+			tooltipDiv
+			    .style('opacity', 0);
+		    })
 		    .attr('class', 'mg-translation-graph-node');
               const nodeForwardNeighbors = Object.keys(nodeIdToProperties).reduce((accumulator, nodeId) => {
 		  accumulator[nodeId] = [];

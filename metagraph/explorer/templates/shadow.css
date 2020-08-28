@@ -122,11 +122,28 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     height: 100%;
 }
 
+#mg-translation-graph-tooltip {
+    position: fixed;
+    transition: all 0.25s;
+    text-align: center;
+    font-size: 0.875rem;
+    background: #182A39;
+    border-radius: 8px;
+    pointer-events: none;
+    color: #fff;
+}
+
+#mg-translation-graph-tooltip p{
+    margin: 3px 10px 3px 10px;
+    font-size: 1rem;
+}
+
 /* Right Column */
 
 #mg-translation-graph-menu-column {
     width: 30%;
     padding-left: 10px;
+    overflow-y: auto;
 }
 
 #mg-translation-graph-menu {
