@@ -259,7 +259,6 @@
       });
       
       const loadTranslationGraph = (translationGraphData) => {
-          console.log(`translationGraphData ${JSON.stringify(translationGraphData)}`); // TODO remove this
 	  
 	  require(['d3'], (d3) => {
 	      
@@ -327,7 +326,9 @@
 		  const {src, dst} = edge;
 		  edgeByNodes[src][dst] = edge;
 	      });
-	      const edgeConcreteTypesToLineId = ([srcConcreteType, dstConcreteType]) => `${srcConcreteType}-${dstConcreteType}-line`;
+	      const edgeConcreteTypesToLineId = (srcConcreteType, dstConcreteType) => {
+		  return `${srcConcreteType}-${dstConcreteType}-line`; 
+	      };
               const edgeEnterSelection = edgeGroup
 		    .selectAll('line')
 		    .data(edgeData)
