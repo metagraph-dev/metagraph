@@ -408,6 +408,24 @@
 		      const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
 		      edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
 		  }
+		  const displayTextDiv = shadow.querySelector('div#mg-translation-graph-path-display-text');
+		  removeAllChildNodes(displayTextDiv);
+		  path.forEach((concreteType, i) => {
+		      const divElement = document.createElement('div');
+		      divElement.classList.add('mg-translation-graph-path-display-text-path-node');
+		      if (i === 0) {
+			  divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-start-node');
+		      } else if (i === path.length-1) {
+			  divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-end-node');
+		      }
+		      divElement.innerHTML = concreteType;
+		      displayTextDiv.append(divElement);
+		      if (i !== path.length-1) {
+			  const arrowDiv = document.createElement('div');
+			  arrowDiv.innerHTML = '&darr;';
+			  displayTextDiv.append(arrowDiv)
+		      }
+		  })
 	      };
 
               // Zooming

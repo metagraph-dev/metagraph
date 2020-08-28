@@ -172,7 +172,20 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     border-color: #dc9af6;
 }
 
-#mg-translation-graph-path-display-text {
+#mg-translation-graph-path-display-text .mg-translation-graph-path-display-text-path-node {
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: #ccc;
+    margin: 25px;
+}
+
+#mg-translation-graph-path-display-text #mg-translation-graph-path-display-text-path-start-node.mg-translation-graph-path-display-text-path-node {
+    border-color: #20d4c2;
+}
+
+#mg-translation-graph-path-display-text #mg-translation-graph-path-display-text-path-end-node.mg-translation-graph-path-display-text-path-node {
+    border-color: #dc9af6;
 }
 
 #mg-translation-graph-edge-arrowhead {
