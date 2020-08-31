@@ -506,7 +506,7 @@
 		  const pluginName = event.target.value;
 		  edgeGroup
 		      .selectAll('.mg-translation-graph-edge')
-		      .classed('mg-translation-graph-hidden-edge', datum => datum.plugin !== pluginName);
+		      .classed('mg-translation-graph-hidden-edge', datum => pluginName !== 'All Plugins' && datum.plugin !== pluginName);
 	      }
 	      
               // Zooming
