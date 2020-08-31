@@ -29,7 +29,6 @@
 	  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
 	  return [rect.left + scrollLeft, rect.top + scrollTop]
       }
-
       
       /******************************/
       /* Shadow DOM Initializations */
@@ -96,7 +95,7 @@
               break;
 	  case 'solve_translator':
 	      if (data.input_kwargs.overall_abstract === abstractTypeDropdown.value) {
-		  highlightTranslationGraphPath(data.result.solution);
+		  highlightTranslationGraphPath(data.result);
 	      }
 	      break;
 	  default:
@@ -315,11 +314,9 @@
 		  endOptionElement.innerHTML = concreteType;
 		  endConcreteTypeDropdown.append(endOptionElement);
 	      });
-	      startConcreteTypeDropdown.selectedIndex = 0;
-	      endConcreteTypeDropdown.selectedIndex = 1;
 	      
               // Force Directed Graph Initializations
-	      const nodeTextHorizontalOffset = 20;
+	      const nodeTextHorizontalOffset = 25;
 	      const nodeTextBoundingBoxPadding = 5;
               const alphaDecay = 0.0;
               const velocityDecay = 0.9;
@@ -335,17 +332,16 @@
               
               // Edge Visualization
               const edgeData = [];
-	      const primary_translators = Object.keys(translationGraphData.result.primary_translators);
-	      const secondary_translators = Object.keys(translationGraphData.result.secondary_translators);
-	      primary_translators.forEach((edge) => {
-		  const [src, dst] = edge.split(' -> ');
-		  const datum = {src, dst, translatorOrder: 'primary'};
+	      for (edgeString in translationGraphData.result.primary_translators) {
+		  const [src, dst] = edgeString.split(' -> ');
+		  const datum = Object.assign({src, dst, translatorOrder: 'primary'}, translationGraphData.result.primary_translators[edgeString]);
 		  edgeData.push(datum);
-	      });
-	      secondary_translators.forEach((edge) => {
-		  const [src, dst] = edge.split(' -> ');
-		  edgeData.push({src, dst, translatorOrder: 'secondary'});
-	      });
+	      };
+	      for (edgeString in translationGraphData.result.secondary_translators) {
+		  const [src, dst] = edgeString.split(' -> ');
+		  const datum = Object.assign({src, dst, translatorOrder: 'secondary'}, translationGraphData.result.secondary_translators[edgeString]);
+		  edgeData.push(datum);
+	      };
 	      const edgeByNodes = {};
 	      allConcreteTypes.forEach(concreteType => {
 		  edgeByNodes[concreteType] = {};
@@ -358,10 +354,10 @@
 		  return `${srcConcreteType}-${dstConcreteType}-line`; 
 	      };
               const edgeEnterSelection = edgeGroup
-		    .selectAll('path')
+		    .selectAll('line')
 		    .data(edgeData)
 		    .enter()
-		    .append('path')
+		    .append('line')
 		    .attr('class', 'mg-translation-graph-edge')
 		    .attr('id', datum => edgeConcreteTypesToLineId(datum.src, datum.dst))
 		    .classed('mg-translation-graph-primary-edge', datum => datum.translatorOrder === 'primary')
@@ -381,22 +377,24 @@
 	      const nodeDataJoin = nodeGroup
 		    .selectAll('circle')
 		    .data(nodeData);
+	      const showToolTip = function(datum) {
+		  const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
+		  tooltipDiv
+		      .style('opacity', .9)
+		      .html(Object.keys(datum).map(key => `<p>${key}: ${datum[key]}</p>`).reduce((a,b) => a.concat(b)))
+		      .style('left', x + 10 + 'px')
+		      .style('top', y + 10 + 'px');
+	      };
+	      const hideToolTip = datum => {
+			tooltipDiv
+			    .style('opacity', 0);
+	      };
               const nodeEnterSelection = nodeDataJoin
 		    .enter()
 		    .append('circle')
 		    .attr('id', datum => concreteTypeNameToCircleId(datum.id))
-		    .on('mouseover', datum => {
-			const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.event.target.id}`));
-			tooltipDiv
-			    .style('opacity', .9)
-			    .html(Object.keys(datum).map(key => `<p>${key}: ${datum[key]}</p>`).reduce((a,b) => a.concat(b)))
-			    .style('left', x + 10 + 'px')
-			    .style('top', y + 10 + 'px');
-		    })
-		    .on('mouseout', datum => {
-			tooltipDiv
-			    .style('opacity', 0);
-		    })
+		    .on('mouseover', showToolTip)
+		    .on('mouseout', hideToolTip)
 		    .attr('class', 'mg-translation-graph-node');
               const nodeForwardNeighbors = Object.keys(nodeIdToProperties).reduce((accumulator, nodeId) => {
 		  accumulator[nodeId] = [];
@@ -412,12 +410,18 @@
 		    .attr('dx', nodeTextHorizontalOffset)
 		    .attr('id', datum => concreteTypeNameToTextElementId(datum.id))
 		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-primary' : 'mg-translation-graph-node-text-secondary')
+		    .on('mouseover', showToolTip)
+		    .on('mouseout', hideToolTip)
                     .html(datum => datum.id);
+	      const concreteTypeNameToTextElementBoundingBoxId = concreteType => `${concreteType}-text-element-bounding-box`;
               const nodeTextBoundingBoxEnterSelection = nodeDataJoin
 		    .enter()
 		    .append('rect')
+		    .attr('id', datum => concreteTypeNameToTextElementBoundingBoxId(datum.id))
 		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-bounding-box-primary' : 'mg-translation-graph-node-text-bounding-box-secondary')
 		    .classed('mg-translation-graph-node-text-bounding-box', true)
+		    .on('mouseover', showToolTip)
+		    .on('mouseout', hideToolTip)
                     .html(datum => datum.id);
 
 	      // Dropdown Functionality
@@ -451,34 +455,60 @@
 	      highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
 	      highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
 	      requestTranslationPath();
-	      highlightTranslationGraphPath = (path) => {
+	      highlightTranslationGraphPath = (result) => {
+		  const path = result.solution
 		  edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
-		  for(let i=0; i < path.length - 1; i++) {
-		      const srcConcreteType = path[i];
-		      const dstConcreteType = path[i+1];
-		      const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
-		      edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
-		  }
 		  const displayTextDiv = shadow.querySelector('div#mg-translation-graph-path-display-text');
-		  removeAllChildNodes(displayTextDiv);
-		  path.forEach((concreteType, i) => {
-		      const divElement = document.createElement('div');
-		      divElement.classList.add('mg-translation-graph-path-display-text-path-node');
-		      if (i === 0) {
-			  divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-start-node');
-		      } else if (i === path.length-1) {
-			  divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-end-node');
+		  switch (result.result_type) {
+		  case 'unsatisfiable':
+		      displayTextDiv.innerHTML = '<p>Translation unsatisfiable.</p>'
+		      break;
+		  case 'null':
+		      displayTextDiv.innerHTML = '<p>No translation needed.</p>'
+		      break;
+		  default:
+		      for(let i=0; i < path.length - 1; i++) {
+			  const srcConcreteType = path[i];
+			  const dstConcreteType = path[i+1];
+			  const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
+			  edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
 		      }
-		      divElement.innerHTML = concreteType;
-		      displayTextDiv.append(divElement);
-		      if (i !== path.length-1) {
-			  const arrowDiv = document.createElement('div');
-			  arrowDiv.innerHTML = '&darr;';
-			  displayTextDiv.append(arrowDiv)
-		      }
-		  })
+		      removeAllChildNodes(displayTextDiv);
+		      path.forEach((concreteType, i) => {
+			  const divElement = document.createElement('div');
+			  divElement.classList.add('mg-translation-graph-path-display-text-path-node');
+			  if (i === 0) {
+			      divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-start-node');
+			  } else if (i === path.length-1) {
+			      divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-end-node');
+			  }
+			  divElement.innerHTML = concreteType;
+			  displayTextDiv.append(divElement);
+			  if (i !== path.length-1) {
+			      const arrowDiv = document.createElement('div');
+			      arrowDiv.innerHTML = '&darr;';
+			      displayTextDiv.append(arrowDiv)
+			  }
+		      })
+		      break;
+		  }
 	      };
-
+	      const filterByPluginDropdown = shadow.querySelector('#mg-translation-graph-filter-by-plugin-dropdown');
+	      removeAllChildNodes(filterByPluginDropdown);
+	      const pluginNames = Array.from(new Set(edgeData.map(edge => edge.plugin))).sort();
+	      ['All Plugins'].concat(pluginNames).forEach(pluginName => {
+	       	  const optionElement = document.createElement('option');
+	       	  optionElement.setAttribute('value', pluginName);
+	       	  optionElement.innerHTML = pluginName;
+	       	  filterByPluginDropdown.append(optionElement);
+	      });
+	      filterByPluginDropdown.onchange = (event) => {
+		  const pluginName = event.target.value;
+		  edgeGroup
+		      .selectAll('.mg-translation-graph-edge')
+		      .classed('mg-translation-graph-hidden-edge', datum => datum.plugin !== pluginName);
+	      }
+	      
               // Zooming
               const zoom = d3.zoom().on('zoom', () => {
 		  zoomGroup
@@ -516,30 +546,11 @@
 			  .attr('cx', datum => datum.x)
 			  .attr('cy', datum => datum.y)
 			  .call(drag);
-	              // edgeEnterSelection
-		      //  	  .attr('x1', datum => nodeIdToProperties[datum.src].x)
-		      //  	  .attr('y1', datum => nodeIdToProperties[datum.src].y)
-		      //  	  .attr('x2', datum => nodeIdToProperties[datum.dst].x)
-		      // 	  .attr('y2', datum => nodeIdToProperties[datum.dst].y);
-		      
 	              edgeEnterSelection
-			  .attr('d', datum => {
-			      const offset = 30;
-			      const source = nodeIdToProperties[datum.src];
-			      const destination = nodeIdToProperties[datum.dst];
-			      const midpointX = mean([source.x, destination.x]);
-			      const midpointY = mean([source.y, destination.y]);
-			      const dx = (destination.x - source.x);
-			      const dy = (destination.y - source.y);
-			      const normalization = Math.sqrt((dx * dx) + (dy * dy));
-			      const offSetX = midpointX + offset*(dy/normalization);
-			      const offSetY = midpointY - offset*(dx/normalization);
-                              console.log(`source.x ${JSON.stringify(source.x)}`);
-                              console.log(`source.y ${JSON.stringify(source.y)}`);
-                              console.log(`destination.x ${JSON.stringify(destination.x)}`);
-                              console.log(`destination.y ${JSON.stringify(destination.y)}`);
-			      return `M ${source.x}, ${source.y} S ${offSetX}, ${offSetY} ${destination.x}, ${destination.y}`;
-			  });
+		       	  .attr('x1', datum => nodeIdToProperties[datum.src].x)
+		       	  .attr('y1', datum => nodeIdToProperties[datum.src].y)
+		       	  .attr('x2', datum => nodeIdToProperties[datum.dst].x)
+			  .attr('y2', datum => nodeIdToProperties[datum.dst].y);
 		      nodeTextEnterSelection
 			  .attr('x', datum => datum.x)
 			  .attr('y', datum => datum.y);
@@ -558,13 +569,11 @@
 			  })
                           .attr('width', datum => {
 			      const textElementId = concreteTypeNameToTextElementId(datum.id);
-			      const textElement = svg.select(`#${textElementId}`);
 			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
 			      return textElementBBox.width + 2 * nodeTextBoundingBoxPadding;
 			  })
                           .attr('height', datum => {
 			      const textElementId = concreteTypeNameToTextElementId(datum.id);
-			      const textElement = svg.select(`#${textElementId}`);
 			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
 			      return textElementBBox.height + 2 * nodeTextBoundingBoxPadding;
 			  });
