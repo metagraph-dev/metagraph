@@ -265,7 +265,8 @@
           optionElement.innerHTML = abstractType;
 	  abstractTypeDropdown.append(optionElement);
       });
-      
+
+      let simulation = {stop: () => {}}
       const loadTranslationGraph = (translationGraphData) => {
 
           console.log(`translationGraphData ${JSON.stringify(translationGraphData)}`); // TODO remove this
@@ -326,7 +327,8 @@
               const initialLinkAlpha = 0.005;
               const linkAlphaDecay = 0.005;
               let linkAlpha = initialLinkAlpha;
-              const simulation = d3.forceSimulation()
+	      simulation.stop();
+              simulation = d3.forceSimulation()
 		    .alphaDecay(alphaDecay)
 		    .velocityDecay(velocityDecay);
               const drag = d3.drag();
