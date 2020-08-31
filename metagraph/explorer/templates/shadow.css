@@ -211,6 +211,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 
 .mg-translation-graph-edge {
     transition: all 0.5s;
+    stroke: #555;
     stroke-opacity: 0.5;
     stroke-width: 3px;
 }
@@ -220,15 +221,15 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 .mg-translation-graph-edge.mg-translation-graph-highlighted-edge {
-    stroke: red;
+    stroke-opacity: 1.0;
+    stroke-width: 6px;
+    stroke: #000;
 }
 
 .mg-translation-graph-primary-edge {
-    stroke: blue;
 }
 
 .mg-translation-graph-secondary-edge {
-    stroke: green;
 }
 
 .mg-translation-graph-node {
@@ -255,6 +256,16 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     r: 7;
     fill: #dc9af6;
     stroke-width: 2px;
+}
+
+.mg-translation-graph-node-text-primary {
+    font-size: 1.5rem;
+    font-style: bold;
+}
+
+.mg-translation-graph-node-text-secondary {
+    font-size: 1.15rem;
+    font-style: italic;
 }
 
 /****************/

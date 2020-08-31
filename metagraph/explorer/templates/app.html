@@ -395,6 +395,7 @@
               const nodeTextEnterSelection = nodeDataJoin
 		    .enter()
 		    .append('text')
+		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-primary' : 'mg-translation-graph-node-text-secondary')
                     .html(datum => datum.id);
 
 	      // Dropdown Functionality
