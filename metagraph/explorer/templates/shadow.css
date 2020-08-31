@@ -211,6 +211,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 
 .mg-translation-graph-edge {
     transition: all 0.5s;
+    fill: none;
     stroke: #555;
     stroke-opacity: 0.5;
     stroke-width: 3px;

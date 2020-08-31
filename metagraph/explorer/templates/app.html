@@ -358,10 +358,10 @@
 		  return `${srcConcreteType}-${dstConcreteType}-line`; 
 	      };
               const edgeEnterSelection = edgeGroup
-		    .selectAll('line')
+		    .selectAll('path')
 		    .data(edgeData)
 		    .enter()
-		    .append('line')
+		    .append('path')
 		    .attr('class', 'mg-translation-graph-edge')
 		    .attr('id', datum => edgeConcreteTypesToLineId(datum.src, datum.dst))
 		    .classed('mg-translation-graph-primary-edge', datum => datum.translatorOrder === 'primary')
@@ -516,11 +516,30 @@
 			  .attr('cx', datum => datum.x)
 			  .attr('cy', datum => datum.y)
 			  .call(drag);
+	              // edgeEnterSelection
+		      //  	  .attr('x1', datum => nodeIdToProperties[datum.src].x)
+		      //  	  .attr('y1', datum => nodeIdToProperties[datum.src].y)
+		      //  	  .attr('x2', datum => nodeIdToProperties[datum.dst].x)
+		      // 	  .attr('y2', datum => nodeIdToProperties[datum.dst].y);
+		      
 	              edgeEnterSelection
-			  .attr('x1', datum => nodeIdToProperties[datum.src].x)
-			  .attr('y1', datum => nodeIdToProperties[datum.src].y)
-			  .attr('x2', datum => nodeIdToProperties[datum.dst].x)
-			  .attr('y2', datum => nodeIdToProperties[datum.dst].y);
+			  .attr('d', datum => {
+			      const offset = 30;
+			      const source = nodeIdToProperties[datum.src];
+			      const destination = nodeIdToProperties[datum.dst];
+			      const midpointX = mean([source.x, destination.x]);
+			      const midpointY = mean([source.y, destination.y]);
+			      const dx = (destination.x - source.x);
+			      const dy = (destination.y - source.y);
+			      const normalization = Math.sqrt((dx * dx) + (dy * dy));
+			      const offSetX = midpointX + offset*(dy/normalization);
+			      const offSetY = midpointY - offset*(dx/normalization);
+                              console.log(`source.x ${JSON.stringify(source.x)}`);
+                              console.log(`source.y ${JSON.stringify(source.y)}`);
+                              console.log(`destination.x ${JSON.stringify(destination.x)}`);
+                              console.log(`destination.y ${JSON.stringify(destination.y)}`);
+			      return `M ${source.x}, ${source.y} S ${offSetX}, ${offSetY} ${destination.x}, ${destination.y}`;
+			  });
 		      nodeTextEnterSelection
 			  .attr('x', datum => datum.x)
 			  .attr('y', datum => datum.y);
