@@ -48,7 +48,7 @@
       let highlightTranslationGraphPath = (path) => {};
       
       // Listen for websocket messagesshadow.websocket.onmessage = function (event) {
-	  shadow = this.owner;
+      shadow.websocket.onmessage = function (event) {
 	  data = JSON.parse(event.data);
 	  switch (data.function) {
 	  case "list_types":
@@ -80,10 +80,10 @@
               transUL.className = 'nested active';
               trans.appendChild(transUL);
               for (var pt in data.result['primary_translators']) {
-                // var t = data.result['primary_translators'][pt];
-                var t2 = document.createElement('li');
-                t2.innerHTML = pt;
-                transUL.appendChild(t2);
+                  // var t = data.result['primary_translators'][pt];
+                  var t2 = document.createElement('li');
+                  t2.innerHTML = pt;
+                  transUL.appendChild(t2);
               }
               caret.addEventListener("click", function() {
 		  this.parentElement.querySelector(".nested").classList.toggle("active");
@@ -267,6 +267,8 @@
       });
       
       const loadTranslationGraph = (translationGraphData) => {
+
+          console.log(`translationGraphData ${JSON.stringify(translationGraphData)}`); // TODO remove this
 	  
 	  require(['d3'], (d3) => {
 	      
@@ -286,7 +288,9 @@
 	      tooltipDiv.style('opacity', 0);
 
 	      // Dropdown Initializations
-	      const allConcreteTypes = translationGraphData.result.primary_types.concat(translationGraphData.result.secondary_types);
+	      const primaryConcreteTypes = Object.keys(translationGraphData.result.primary_types);
+	      const secondaryConcreteTypes = Object.keys(translationGraphData.result.secondary_types);
+	      const allConcreteTypes = primaryConcreteTypes.concat(secondaryConcreteTypes);
 	      const startConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-start-concrete-type-dropdown');
 	      removeAllChildNodes(startConcreteTypeDropdown);
 	      const endConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-end-concrete-type-dropdown');
@@ -307,7 +311,7 @@
               // Force Directed Graph Initializations
               const alphaDecay = 0.0;
               const velocityDecay = 0.9;
-              const paddingBetweenNodes = 40;
+              const paddingBetweenNodes = 100;
               const initialLinkAlpha = 0.005;
               const linkAlphaDecay = 0.005;
               let linkAlpha = initialLinkAlpha;
@@ -318,17 +322,19 @@
               
               // Edge Visualization
               const edgeData = [];
-	      translationGraphData.result.primary_translators.forEach((edge) => {
-		  const [src, dst] = edge;
+	      const primary_translators = Object.keys(translationGraphData.result.primary_translators);
+	      const secondary_translators = Object.keys(translationGraphData.result.secondary_translators);
+	      primary_translators.forEach((edge) => {
+		  const [src, dst] = edge.split(' -> ');
 		  const datum = {src, dst, translatorOrder: 'primary'};
 		  edgeData.push(datum);
 	      });
-	      translationGraphData.result.secondary_translators.forEach((edge) => {
-		  const [src, dst] = edge;
+	      secondary_translators.forEach((edge) => {
+		  const [src, dst] = edge.split(' -> ');
 		  edgeData.push({src, dst, translatorOrder: 'secondary'});
 	      });
 	      const edgeByNodes = {};
-	      translationGraphData.result.primary_types.concat(translationGraphData.result.secondary_types).forEach(concreteType => {
+	      allConcreteTypes.forEach(concreteType => {
 		  edgeByNodes[concreteType] = {};
 	      });
 	      edgeData.forEach(edge => {
@@ -351,10 +357,10 @@
 
               // Node Visualization
 	      const nodeIdToProperties = {};
-	      translationGraphData.result.primary_types.forEach(concreteType => {
+	      primaryConcreteTypes.forEach(concreteType => {
 		  nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'primary'};
 	      });
-	      translationGraphData.result.secondary_types.forEach(concreteType => {
+	      secondaryConcreteTypes.forEach(concreteType => {
 		  nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'secondary'};
 	      });
 	      const concreteTypeNameToCircleId = concreteTypeName => `${concreteTypeName}-circle`
@@ -488,7 +494,7 @@
 			  .attr('cy', datum => datum.y)
 			  .call(drag);
 		      nodeTextEnterSelection
-			  .attr('x', datum => datum.x)
+			  .attr('x', datum => datum.x + 10)
 			  .attr('y', datum => datum.y);
 	              edgeEnterSelection
 			  .attr('x1', datum => nodeIdToProperties[datum.src].x)
