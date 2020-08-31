@@ -47,28 +47,28 @@
 
       let highlightTranslationGraphPath = (path) => {};
       
-      // Listen for websocket messages
-      shadow.websocket.onmessage = function (event) {
-	  data = JSON.parse(event.data); 
+      // Listen for websocket messagesshadow.websocket.onmessage = function (event) {
+	  shadow = this.owner;
+	  data = JSON.parse(event.data);
 	  switch (data.function) {
-	  case 'list_types':
+	  case "list_types":
 	      // below is used by POC only
               buildTree(shadow.display, data.result, true);
               break;
-	  case 'list_translators':
+	  case "list_translators":
 	      updateTranslationGraph(data);
 	      // below is used by POC only
-              shadow.display.innerHTML = '';
+              shadow.display.innerHTML = "";
               const treeWidgetDiv = document.createElement('div');
-              treeWidgetDiv.className = 'treewidget';
+              treeWidgetDiv.className = "treewidget";
               shadow.display.appendChild(treeWidgetDiv);
               const ul = document.createElement('ul');
               treeWidgetDiv.appendChild(ul);
               const primary = document.createElement('li');
-              primary.innerHTML = 'Primary: ' + data.result['primary_types'];
+              primary.innerHTML = "Primary: " + Object.keys(data.result['primary_types']);
               ul.appendChild(primary);
               const secondary = document.createElement('li');
-              secondary.innerHTML = 'Secondary: ' + data.result['secondary_types'];
+              secondary.innerHTML = "Secondary: " + Object.keys(data.result['secondary_types']);
               ul.appendChild(secondary);
               const trans = document.createElement('li');
               ul.appendChild(trans);
@@ -79,18 +79,18 @@
               const transUL = document.createElement('ul')
               transUL.className = 'nested active';
               trans.appendChild(transUL);
-              for (let i = 0; i < data.result['primary_translators'].length; i++) {
-		  const t = data.result['primary_translators'][i];
-		  const t2 = document.createElement('li');
-		  t2.innerHTML = t;
-		  transUL.appendChild(t2);
+              for (var pt in data.result['primary_translators']) {
+                // var t = data.result['primary_translators'][pt];
+                var t2 = document.createElement('li');
+                t2.innerHTML = pt;
+                transUL.appendChild(t2);
               }
-              caret.addEventListener('click', function() {
-		  this.parentElement.querySelector('.nested').classList.toggle('active');
-		  this.classList.toggle('caret-down');
+              caret.addEventListener("click", function() {
+		  this.parentElement.querySelector(".nested").classList.toggle("active");
+		  this.classList.toggle("caret-down");
               });
               break;
-	  case 'list_algorithms':
+	  case "list_algorithms":
 	      // below is used by POC only
               buildTree(shadow.display, data.result, true);
               break;
@@ -243,11 +243,11 @@
               shadow.display.innerHTML = '';
               shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: kwargs}));
 	  }
-      }
+      }      
             
-      /*********************/
-      /* Translation Graph */
-      /**********************/
+      /*************************************/
+      /* Translation Graph Initializations */
+      /*************************************/
       
       require.config({paths: {d3: 'https://d3js.org/d3.v5.min'}});
       

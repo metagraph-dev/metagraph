@@ -87,29 +87,48 @@ def list_translators(resolver, source_type, filters=None, **kwargs):
     if filters and "plugin" in filters:
         plugin = getattr(resolver.plugins, filters["plugin"])
         filtered_translators = plugin.translators
+        plugins = [filters["plugin"]]
     else:
         filtered_translators = resolver.translators
+        plugins = list_plugins(resolver)
 
     source_type, source_class = normalize_abstract_type(resolver, source_type)
 
     types = list_types(resolver)
-    primary_types = list(types[source_type]["children"].keys())
-    secondary_types = [
-        ct
-        for at in source_class.unambiguous_subcomponents
-        for ct in types[at.__name__]["children"]
-    ]
-    secondary_types.sort()
-    primary_translators = []
-    secondary_translators = []
-    for src, dst in filtered_translators.keys():
-        at = src.abstract.__name__
-        if at == source_type:
-            primary_translators.append([src.__name__, dst.__name__])
-        elif dst.__name__ in secondary_types:
-            secondary_translators.append([src.__name__, dst.__name__])
-    primary_translators.sort()
-    secondary_translators.sort()
+    primary_types = types[source_type]["children"].copy()
+    secondary_types = OrderedDict()
+    for at in source_class.unambiguous_subcomponents:
+        for ct_name, ct in types[at.__name__]["children"].items():
+            secondary_types[ct_name] = ct
+    primary_translators = OrderedDict()
+    secondary_translators = OrderedDict()
+    for src, dst in sorted(
+        filtered_translators, key=lambda x: (x[0].__name__, x[1].__name__)
+    ):
+        trans = filtered_translators[(src, dst)]
+        # Find which plugin the translator came from
+        for plugin in plugins:
+            trans_keys = getattr(resolver.plugins, plugin).translators
+            if (src, dst) in trans_keys:
+                break
+        else:
+            plugin = "Unknown"
+        trans_info = [
+            ("type", "translator"),
+            ("name", trans.func.__name__),
+            ("plugin", plugin),
+            ("module", trans.func.__module__),
+        ]
+
+        src_at = src.abstract.__name__
+        if src_at == source_type:
+            primary_translators[f"{src.__name__} -> {dst.__name__}"] = OrderedDict(
+                trans_info
+            )
+        elif src.__name__ in secondary_types and dst.__name__ in secondary_types:
+            secondary_translators[f"{src.__name__} -> {dst.__name__}"] = OrderedDict(
+                trans_info
+            )
 
     return {
         "primary_types": primary_types,
@@ -235,4 +254,28 @@ def solve_translator(
 
 
 def solve_algorithm(resolver, abstract_pathname, params, returns, **kwargs):
-    raise NotImplementedError()
+    """
+    abstract_pathname: string with dotted path and abstract function name
+    params: dict of parameter name to type (class or ConcreteType)
+    returns: list of types (class or ConcreteType)
+    """
+    if abstract_pathname not in resolver.abstract_algorithms:
+        raise ValueError(f'No abstract algorithm "{abstract_pathname}" exists')
+
+    # Convert params from classes to shells of instances
+    # (needed by code which expects instances)
+    params = {pname: p.__new__(p) for pname, p in params.items()}
+
+    solutions = []
+    for ca_name, ca in resolver.concrete_algorithms.get(abstract_pathname, {}).items():
+        plan = AlgorithmPlan.build(resolver, ca_name, **params)
+        solutions.append(
+            {
+                "algo_name": ca.func.__name__,
+                "plugin": None,
+                "module": ca.func.__module__,
+                "unsatisfiable": False,
+                "params": None,
+                "returns": None,
+            }
+        )
