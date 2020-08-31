@@ -268,6 +268,21 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     font-style: italic;
 }
 
+.mg-translation-graph-node-text-bounding-box {
+    fill: #fff;
+}
+
+.mg-translation-graph-node-text-bounding-box-primary {
+    stroke-width: 1.5;
+    stroke: #000;
+}
+
+.mg-translation-graph-node-text-bounding-box-secondary {
+    rx: 10;
+    stroke-width: 1;
+    stroke: #bbb;
+}
+
 /****************/
 /* POC Stylings */
 /****************/

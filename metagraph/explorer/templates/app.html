@@ -271,6 +271,15 @@
           console.log(`translationGraphData ${JSON.stringify(translationGraphData)}`); // TODO remove this
 	  
 	  require(['d3'], (d3) => {
+
+	      // D3 Extensions
+	      d3.selection.prototype.moveToFront = function() {
+		  return this.each(function() {
+		      if (this.parentNode !== null) {
+			  this.parentNode.appendChild(this);
+		      }
+		  });
+	      };
 	      
               // DOM Initializations
               const plotContainer = shadow.querySelector('div#mg-translation-graph-svg-container');
@@ -309,6 +318,8 @@
 	      endConcreteTypeDropdown.selectedIndex = 1;
 	      
               // Force Directed Graph Initializations
+	      const nodeTextHorizontalOffset = 20;
+	      const nodeTextBoundingBoxPadding = 5;
               const alphaDecay = 0.0;
               const velocityDecay = 0.9;
               const paddingBetweenNodes = 100;
@@ -392,10 +403,19 @@
               edgeData.forEach((edge) => {
 		  nodeForwardNeighbors[edge.src].push(edge.dst);
 	      });
+	      const concreteTypeNameToTextElementId = concreteType => `${concreteType}-text-element`;
               const nodeTextEnterSelection = nodeDataJoin
 		    .enter()
 		    .append('text')
+		    .attr('dx', nodeTextHorizontalOffset)
+		    .attr('id', datum => concreteTypeNameToTextElementId(datum.id))
 		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-primary' : 'mg-translation-graph-node-text-secondary')
+                    .html(datum => datum.id);
+              const nodeTextBoundingBoxEnterSelection = nodeDataJoin
+		    .enter()
+		    .append('rect')
+		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-bounding-box-primary' : 'mg-translation-graph-node-text-bounding-box-secondary')
+		    .classed('mg-translation-graph-node-text-bounding-box', true)
                     .html(datum => datum.id);
 
 	      // Dropdown Functionality
@@ -494,14 +514,40 @@
 			  .attr('cx', datum => datum.x)
 			  .attr('cy', datum => datum.y)
 			  .call(drag);
-		      nodeTextEnterSelection
-			  .attr('x', datum => datum.x + 10)
-			  .attr('y', datum => datum.y);
 	              edgeEnterSelection
 			  .attr('x1', datum => nodeIdToProperties[datum.src].x)
 			  .attr('y1', datum => nodeIdToProperties[datum.src].y)
 			  .attr('x2', datum => nodeIdToProperties[datum.dst].x)
 			  .attr('y2', datum => nodeIdToProperties[datum.dst].y);
+		      nodeTextEnterSelection
+			  .attr('x', datum => datum.x)
+			  .attr('y', datum => datum.y);
+		      nodeTextBoundingBoxEnterSelection
+			  .attr('x', datum => {
+			      const textElementId = concreteTypeNameToTextElementId(datum.id);
+			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			      const x = textElementBBox.x - nodeTextBoundingBoxPadding;
+			      return x;
+			  })
+			  .attr('y', datum => {
+			      const textElementId = concreteTypeNameToTextElementId(datum.id);
+			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			      const y = textElementBBox.y - nodeTextBoundingBoxPadding;
+			      return y;
+			  })
+                          .attr('width', datum => {
+			      const textElementId = concreteTypeNameToTextElementId(datum.id);
+			      const textElement = svg.select(`#${textElementId}`);
+			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			      return textElementBBox.width + 2 * nodeTextBoundingBoxPadding;
+			  })
+                          .attr('height', datum => {
+			      const textElementId = concreteTypeNameToTextElementId(datum.id);
+			      const textElement = svg.select(`#${textElementId}`);
+			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			      return textElementBBox.height + 2 * nodeTextBoundingBoxPadding;
+			  });
+		      nodeTextEnterSelection.moveToFront();
 		  })
 		  .restart();
 	  });
