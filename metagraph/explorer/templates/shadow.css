@@ -20,7 +20,7 @@
 
 #mg-explorer-navigation-bar {
     text-align: center;
-    padding-top: 1.5rem;
+    padding: 1.5rem 0px 1.5rem 0px;
     width: 100%;
     box-shadow: 0 3px 6px rgba(0,0,0,0.125);
     overflow-x: auto;
@@ -31,11 +31,10 @@
     display: inline-block;
     list-style-type: none;
     margin: 0;
-    white-space: nowrap;
 }
 
 #mg-explorer-navigation-bar li {
-    float: left;
+    display: inline-block;
     border: 1px solid rgba(0,0,0,.125);
     border-radius: 3px;
     padding: 0.5rem;
