@@ -326,7 +326,7 @@
               // Force Directed Graph Initializations
 	      const nodeTextHorizontalOffset = 25;
 	      const nodeTextBoundingBoxPadding = 5;
-              const alphaDecay = 0.0;
+              const alphaDecay = 0.05;
               const velocityDecay = 0.9;
               const paddingBetweenNodes = 100;
               const initialLinkAlpha = 0.005;
@@ -406,7 +406,8 @@
 		    .attr('id', datum => concreteTypeNameToCircleId(datum.id))
 		    .on('mouseover', showToolTip)
 		    .on('mouseout', hideToolTip)
-		    .attr('class', 'mg-translation-graph-node');
+		    .attr('class', 'mg-translation-graph-node')
+		    .call(drag);
               const nodeForwardNeighbors = Object.keys(nodeIdToProperties).reduce((accumulator, nodeId) => {
 		  accumulator[nodeId] = [];
 		  return accumulator;
@@ -563,19 +564,7 @@
 		  }
 	      };
 	      
-              // Zooming
-              const zoom = d3.zoom().on('zoom', () => {
-		  zoomGroup
-                      .attr('transform', d3.event.transform);
-              });
-              svg.call(zoom);
-              
               // Force Directed Graph Visualization
-              drag.on('drag', (d,i) => {
-		  d.x += d3.event.dx;
-		  d.y += d3.event.dy;
-		  linkAlpha = initialLinkAlpha;
-              });
               const linkForce = () => {
 		  linkAlpha = linkAlpha * (1-linkAlphaDecay);
 		  nodeData.forEach(datum => {
@@ -591,58 +580,76 @@
                       }
 		  });
               };
+	      const render = () => {
+	          nodeEnterSelection
+		      .attr('cx', datum => datum.x)
+		      .attr('cy', datum => datum.y);
+	          edgeEnterSelection
+		      .attr('d', datum => {
+			  const offset = 30;
+			  const source = nodeIdToProperties[datum.src];
+			  const destination = nodeIdToProperties[datum.dst];
+			  const midpointX = mean([source.x, destination.x]);
+			  const midpointY = mean([source.y, destination.y]);
+			  const dx = (destination.x - source.x);
+			  const dy = (destination.y - source.y);
+			  const normalization = Math.sqrt((dx * dx) + (dy * dy));
+			  const offSetX = midpointX + offset*(dy/normalization);
+			  const offSetY = midpointY - offset*(dx/normalization);
+			  return `M ${source.x}, ${source.y} S ${offSetX}, ${offSetY} ${destination.x}, ${destination.y}`;
+		      });
+		  nodeTextEnterSelection
+		      .attr('x', datum => datum.x)
+		      .attr('y', datum => datum.y);
+		  nodeTextBoundingBoxEnterSelection
+		      .attr('x', datum => {
+			  const textElementId = concreteTypeNameToTextElementId(datum.id);
+			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			  const x = textElementBBox.x - nodeTextBoundingBoxPadding;
+			  return x;
+		      })
+		      .attr('y', datum => {
+			  const textElementId = concreteTypeNameToTextElementId(datum.id);
+			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			  const y = textElementBBox.y - nodeTextBoundingBoxPadding;
+			  return y;
+		      })
+                      .attr('width', datum => {
+			  const textElementId = concreteTypeNameToTextElementId(datum.id);
+			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			  return textElementBBox.width + 2 * nodeTextBoundingBoxPadding;
+		      })
+                      .attr('height', datum => {
+			  const textElementId = concreteTypeNameToTextElementId(datum.id);
+			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+			  return textElementBBox.height + 2 * nodeTextBoundingBoxPadding;
+		      });
+		  nodeTextEnterSelection.moveToFront();
+	      };
               simulation
 		  .force('center', d3.forceCenter(svgWidth / 2, svgHeight / 2))
 		  .force('collide', d3.forceCollide(paddingBetweenNodes).strength(0.25).iterations(200))
 		  .force('links', linkForce)
-		  .nodes(nodeData).on('tick', () => {
-	              nodeEnterSelection
-			  .attr('cx', datum => datum.x)
-			  .attr('cy', datum => datum.y)
-			  .call(drag);
-	              edgeEnterSelection
-		      	  .attr('d', datum => {
-			      const offset = 30;
-			      const source = nodeIdToProperties[datum.src];
-			      const destination = nodeIdToProperties[datum.dst];
-			      const midpointX = mean([source.x, destination.x]);
-			      const midpointY = mean([source.y, destination.y]);
-			      const dx = (destination.x - source.x);
-			      const dy = (destination.y - source.y);
-			      const normalization = Math.sqrt((dx * dx) + (dy * dy));
-			      const offSetX = midpointX + offset*(dy/normalization);
-			      const offSetY = midpointY - offset*(dx/normalization);
-			      return `M ${source.x}, ${source.y} S ${offSetX}, ${offSetY} ${destination.x}, ${destination.y}`;
-			  });
-		      nodeTextEnterSelection
-			  .attr('x', datum => datum.x)
-			  .attr('y', datum => datum.y);
-		      nodeTextBoundingBoxEnterSelection
-			  .attr('x', datum => {
-			      const textElementId = concreteTypeNameToTextElementId(datum.id);
-			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			      const x = textElementBBox.x - nodeTextBoundingBoxPadding;
-			      return x;
-			  })
-			  .attr('y', datum => {
-			      const textElementId = concreteTypeNameToTextElementId(datum.id);
-			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			      const y = textElementBBox.y - nodeTextBoundingBoxPadding;
-			      return y;
-			  })
-                          .attr('width', datum => {
-			      const textElementId = concreteTypeNameToTextElementId(datum.id);
-			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			      return textElementBBox.width + 2 * nodeTextBoundingBoxPadding;
-			  })
-                          .attr('height', datum => {
-			      const textElementId = concreteTypeNameToTextElementId(datum.id);
-			      const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			      return textElementBBox.height + 2 * nodeTextBoundingBoxPadding;
-			  });
-		      nodeTextEnterSelection.moveToFront();
-		  })
+		  .nodes(nodeData).on('tick', render)
 		  .restart();
+	      
+              // Zooming
+              const zoom = d3.zoom().on('zoom', () => {
+		  zoomGroup
+                      .attr('transform', d3.event.transform);
+              });
+              svg.call(zoom);
+
+	      // Drag & Drop
+	      drag.on('drag', datum => {
+		  linkAlpha = initialLinkAlpha;
+		  datum.x += d3.event.dx;
+		  datum.y += d3.event.dy;
+		  simulation
+		      .alphaTarget(0.05)
+		      .restart();
+		  render();
+              });
 	  });
 	  
       };

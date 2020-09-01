@@ -349,7 +349,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 .mg-translation-graph-node-text-primary {
-    font-size: 1.25em;
+    font-size: 1.0em;
     font-style: bold;
 }
 
