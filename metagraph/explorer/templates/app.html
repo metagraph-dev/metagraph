@@ -631,6 +631,7 @@
 		  .force('collide', d3.forceCollide(paddingBetweenNodes).strength(0.25).iterations(200))
 		  .force('links', linkForce)
 		  .nodes(nodeData).on('tick', render)
+		  .alphaMin(0.001)
 		  .restart();
 	      
               // Zooming
@@ -646,7 +647,7 @@
 		  datum.x += d3.event.dx;
 		  datum.y += d3.event.dy;
 		  simulation
-		      .alphaTarget(0.05)
+		      .alpha(0.1)
 		      .restart();
 		  render();
               });
