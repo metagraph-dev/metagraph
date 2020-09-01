@@ -242,6 +242,10 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 
 /* Full Translation Path Display */
 
+#mg-translation-graph-path-display-text {
+    padding-bottom: 15px;
+}
+
 #mg-translation-graph-path-display-text .mg-translation-graph-path-display-text-path-node {
     border-style: solid;
     border-radius: 10px;

@@ -442,19 +442,16 @@
 		      dst_concrete: endConcreteType,
 		      overall_abstract: abstractTypeDropdown.value,
 		  }
+		  highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
+		  highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
 		  shadow.websocket.send(JSON.stringify({function: 'solve_translator', kwargs: kwargs}));
 	      };
 	      startConcreteTypeDropdown.onchange = (event) => {
-		  highlightConcreteTypeWithClass(event.target.value, 'mg-translation-graph-start-node')
 		  requestTranslationPath();
 	      };
 	      endConcreteTypeDropdown.onchange = (event) => {
-		  highlightConcreteTypeWithClass(event.target.value, 'mg-translation-graph-end-node')
 		  requestTranslationPath();
 	      };
-	      highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
-	      highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
-	      requestTranslationPath();
 	      highlightTranslationGraphPath = (result) => {
 		  const path = result.solution
 		  edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
@@ -502,35 +499,57 @@
 	       	  optionElement.innerHTML = pluginName;
 	       	  filterByPluginDropdown.append(optionElement);
 	      });
-	      filterByPluginDropdown.onchange = (event) => {
-		  const pluginName = event.target.value;
+	      const filterByPluginName = (pluginName) => {
 		  edgeGroup
 		      .selectAll('.mg-translation-graph-edge')
 		      .classed('mg-translation-graph-hidden-edge', datum => pluginName !== 'All Plugins' && datum.plugin !== pluginName);
+	      };
+	      filterByPluginDropdown.onchange = (event) => {
+		  const pluginName = event.target.value;
+		  filterByPluginName(pluginName);
 	      }
-	      const toggleQuerySelectorClass = (selector, classame) => {
-		  const element = shadow.querySelector(selector);
-		  if (element.classList.contains(classame)) {
-		      element.classList.remove(classame);
-		  } else {
-		      element.classList.add(classame);
-		  }
-	      }
-	      const filterByPluginToggler = shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button');
-	      filterByPluginToggler.onclick = (event) => {
+	      const hideTranslationPaths = () => {
 		  shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.remove('active');
 		  shadow.querySelector('#mg-translation-graph-translation-path-solver-menu').classList.remove('active');
 		  shadow.querySelector('#mg-translation-graph-path-solver-row').classList.remove('active');
-		  toggleQuerySelectorClass('#mg-translation-graph-filter-by-plugin-toggle-button', 'active');
-		  toggleQuerySelectorClass('#mg-translation-graph-filter-by-plugin-menu', 'active');
+		  edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
+		  nodeGroup.selectAll('.mg-translation-graph-node')
+		      .classed('mg-translation-graph-start-node', false)
+		      .classed('mg-translation-graph-end-node', false);
 	      };
-	      const translationnPathSolverToggler = shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button');
-	      translationnPathSolverToggler.onclick = (event) => {
+	      const showTranslationPaths = () => {
+		  shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.add('active');
+	       	  shadow.querySelector('#mg-translation-graph-translation-path-solver-menu').classList.add('active');
+	       	  shadow.querySelector('#mg-translation-graph-path-solver-row').classList.add('active');
+		  requestTranslationPath(); // TODO slow since sends another request with no path change
+	      };
+	      const deactivateFilterByPluginFilters = () => {
 		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.remove('active');
 		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-menu').classList.remove('active');
-		  toggleQuerySelectorClass('#mg-translation-graph-translation-path-solver-toggle-button', 'active');
-		  toggleQuerySelectorClass('#mg-translation-graph-translation-path-solver-menu', 'active');
-		  toggleQuerySelectorClass('#mg-translation-graph-path-solver-row', 'active');
+		  filterByPluginName('All Plugins');
+	      };
+	      const activateFilterByPluginFilters = () => {
+		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.add('active');
+		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-menu').classList.add('active');
+		  filterByPluginName(filterByPluginDropdown.value);
+	      };
+	      const filterByPluginToggler = shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button');
+	      filterByPluginToggler.onclick = (event) => {
+	       	  hideTranslationPaths();
+		  if (shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.contains('active')) {
+		      deactivateFilterByPluginFilters();
+		  } else {
+		      activateFilterByPluginFilters();
+		  }
+	       };
+	      const translationnPathSolverToggler = shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button');
+	      translationnPathSolverToggler.onclick = (event) => {
+	       	  deactivateFilterByPluginFilters();
+		  if (shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.contains('active')) {
+		      hideTranslationPaths();
+		  } else {
+	       	      showTranslationPaths();
+		  }
 	      };
 	      
               // Zooming
