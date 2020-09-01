@@ -127,15 +127,20 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     position: fixed;
     transition: all 0.5s;
     text-align: center;
-    font-size: 0.875rem;
+    font-size: 1rem;
     background: #182A39;
     border-radius: 8px;
     pointer-events: none;
     color: #fff;
+    opacity: 0.0;
 }
 
-#mg-translation-graph-tooltip p{
-    margin: 3px 10px 3px 10px;
+#mg-translation-graph-tooltip-content {
+    margin: 10px;
+}
+
+#mg-translation-graph-tooltip #mg-translation-graph-tooltip-content p {
+    margin: 5px 10px 5px 10px;
     font-size: 1rem;
 }
 

@@ -294,7 +294,6 @@
               const edgeGroup = zoomGroup.append('g').attr('class', `edge-group`);
               const nodeGroup = zoomGroup.append('g').attr('class', `node-group`);
 	      const tooltipDiv = d3.select(plotContainer.querySelector('div#mg-translation-graph-tooltip'));
-	      tooltipDiv.style('opacity', 0);
 
 	      // Dropdown Initializations
 	      const primaryConcreteTypes = Object.keys(translationGraphData.result.primary_types);
@@ -381,7 +380,10 @@
 		  const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
 		  tooltipDiv
 		      .style('opacity', .9)
-		      .html(Object.keys(datum).map(key => `<p>${key}: ${datum[key]}</p>`).reduce((a,b) => a.concat(b)))
+		      .html(`<div id="mg-translation-graph-tooltip-content">
+<p>Name: ${datum.id}</p>
+<p>Order: ${datum.concreteTypeOrder}</p>
+</div>`)
 		      .style('left', x + 10 + 'px')
 		      .style('top', y + 10 + 'px');
 	      };
