@@ -94,7 +94,7 @@
     text-align: center;
     align-items: center;
     width: 100%;
-    height: 40vh;
+    height: 50vh;
 }
 
 table#mg-translation-graph-table {
@@ -115,7 +115,7 @@ table#mg-translation-graph-table {
 #mg-translation-graph-svg-container {
     border: 2px solid rgba(200, 200, 200, 1.0);
     border-radius: 8px;
-    height: 40vh;
+    height: 50vh;
 }
 
 table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-translation-graph-svg {
@@ -151,13 +151,13 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     padding-left: 10px;
     overflow-y: auto;
     user-select: none;
-    height: 40vh;
+    height: 50vh;
 }
 
 #mg-translation-graph-menu {
     border: 2px solid rgba(200, 200, 200, 1.0);
     border-radius: 8px;
-    height: 40vh;
+    height: 50vh;
     overflow-y: auto;
 }
 
@@ -241,7 +241,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 #mg-translation-graph-translation-path-solver-menu.active {
-    max-height: 40vh;
+    max-height: 50vh;
 }
 
 
@@ -284,7 +284,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 #mg-translation-graph-path-solver-row.active #mg-translation-graph-path-solver {
-    max-height: 40vh;
+    max-height: 50vh;
 }
 
 /* Translation Graph D3 Visualization */
@@ -360,6 +360,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 
 .mg-translation-graph-node-text-bounding-box {
     fill: #fff;
+    fill-opacity: 0.7;
 }
 
 .mg-translation-graph-node-text-bounding-box-primary {
