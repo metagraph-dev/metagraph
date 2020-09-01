@@ -133,9 +133,8 @@ class Service:
 
 def main(resolver, embedded=True):
     if embedded and not has_nest_asyncio:
-        raise ImportError(
-            "nest_asyncio is required to use the explorer from within a notebook"
-        )
+        print("nest_asyncio is required to use the explorer from within a notebook")
+        embedded = False
 
     port = find_open_port()
     try:
@@ -157,8 +156,12 @@ def main(resolver, embedded=True):
     if embedded:
         from IPython.core.display import HTML
 
+        # import panel
+        # panel.extension()
+
         text = render_text(resolver, port)
         return HTML(text)
+        # return panel.pane.markup.HTML(text, style={'width': '100%'}, sizing_mode='stretch_both')
     else:
         text = render_text(resolver, port, "mgExplorer")
         f = write_tempfile(text)

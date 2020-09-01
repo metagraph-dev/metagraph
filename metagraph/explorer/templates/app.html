@@ -1,8 +1,17 @@
 <div id="{DIV_ID}" />
 
+<h3 style="color: red">Metagraph explorer load error. Please try again.</h3>
+
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js"></script>
+
 <script>
-  
+
   (({port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, plugins, abstractTypes}) => {
+
+      if (typeof require === "undefined") {
+          setTimeout(this, 200, port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, plugins, abstractTypes);
+          return;
+      }
 
       /*******************/
       /* Misc. Utilities */
@@ -55,8 +64,8 @@
               buildTree(shadow.display, data.result, true);
               break;
 	  case "list_translators":
-	      updateTranslationGraph(data);
-	      // below is used by POC only
+              updateTranslationGraph(data);
+              // below is used by POC only
               shadow.display.innerHTML = "";
               const treeWidgetDiv = document.createElement('div');
               treeWidgetDiv.className = "treewidget";
@@ -85,8 +94,8 @@
                   transUL.appendChild(t2);
               }
               caret.addEventListener("click", function() {
-		  this.parentElement.querySelector(".nested").classList.toggle("active");
-		  this.classList.toggle("caret-down");
+                  this.parentElement.querySelector(".nested").classList.toggle("active");
+                  this.classList.toggle("caret-down");
               });
               break;
 	  case "list_algorithms":
@@ -138,7 +147,7 @@
       /************/
 
       const buildTree = function(root, data, topLevel) {
-	  if (topLevel) {
+          if (topLevel) {
               root.innerHTML = '';
               const treeWidgetDiv = document.createElement('div');
               treeWidgetDiv.className = 'treewidget';
@@ -149,36 +158,36 @@
               
               const toggler = root.getElementsByClassName('caret');
               for (let i = 0; i < toggler.length; i++) {
-		  toggler[i].addEventListener('click', function() {
+                  toggler[i].addEventListener('click', function() {
                       this.parentElement.querySelector('.nested').classList.toggle('active');
                       this.classList.toggle('caret-down');
-		  });
+                  });
               }
-	  } else {
+          } else {
               for (let name in data) {
-		  if (data.hasOwnProperty(name)) {
+                  if (data.hasOwnProperty(name)) {
                       const li = document.createElement('li');
                       const props = data[name];
                       if ('children' in props) {
-			  const caret = document.createElement('span');
-			  caret.className = 'caret';
-			  caret.innerHTML = name;
-			  li.appendChild(caret);
-			  const ul = document.createElement('ul');
-			  ul.className = 'nested';
-			  li.appendChild(ul);
-			  root.appendChild(li);
-			  buildTree(ul, props['children'], false);
+                          const caret = document.createElement('span');
+                          caret.className = 'caret';
+                          caret.innerHTML = name;
+                          li.appendChild(caret);
+                          const ul = document.createElement('ul');
+                          ul.className = 'nested';
+                          li.appendChild(ul);
+                          root.appendChild(li);
+                          buildTree(ul, props['children'], false);
                       } else {
-			  li.innerHTML = name;
-			  root.appendChild(li);
+                          li.innerHTML = name;
+                          root.appendChild(li);
                       }
-		  }
+                  }
               }
-	  }
+          }
       }
 
-      shadow.close = shadow.querySelector('.close');
+      // shadow.close = shadow.querySelector('.close');
       shadow.viewTypes = shadow.querySelector('#viewTypeTypes1');
       shadow.viewTranslators = shadow.querySelector('#viewTypeTranslators2');
       shadow.viewAlgorithms = shadow.querySelector('#viewTypeAlgorithms3');
@@ -187,61 +196,61 @@
       shadow.display = shadow.querySelector('#display');
 
       plugins.forEach(function(plug) {
-	  const op = document.createElement('option');
-	  op.value = plug;
-	  op.innerHTML = plug;
-	  shadow.pluginsDropDown.appendChild(op);
+          const op = document.createElement('option');
+          op.value = plug;
+          op.innerHTML = plug;
+          shadow.pluginsDropDown.appendChild(op);
       });
       shadow.pluginsDropDown.onchange = function(event) {
-	  allHandler(shadow);
+          allHandler(shadow);
       }
       
       abstractTypes.forEach(function(at) {
-	  const op = document.createElement('option');
-	  op.value = at;
-	  op.innerHTML = at;
-	  shadow.abstractDropDown.appendChild(op);
+          const op = document.createElement('option');
+          op.value = at;
+          op.innerHTML = at;
+          shadow.abstractDropDown.appendChild(op);
       });
       shadow.abstractDropDown.onchange = function(event) {
-	  allHandler(shadow);
+          allHandler(shadow);
       }
 
       const radioHandler = function (event) {
-	  if (shadow.viewTranslators.checked) {
+          if (shadow.viewTranslators.checked) {
               shadow.abstractDropDown.parentElement.style.visibility = null;
-	  } else {
+          } else {
               shadow.abstractDropDown.parentElement.style.visibility = 'hidden';
-	  }
-	  allHandler(shadow);
+          }
+          allHandler(shadow);
       }
       shadow.viewTypes.onchange = radioHandler;
       shadow.viewTranslators.onchange = radioHandler;
       shadow.viewAlgorithms.onchange = radioHandler;
-      shadow.close.onclick = function (event) {
-	  shadow.websocket.send(JSON.stringify({function: 'close'}));
-	  shadow.websocket.close();
-	  // Remove everything as part of cleanup
-	  shadow.innerHTML = '';
-      }
+      /*shadow.close.onclick = function (event) {
+          shadow.websocket.send(JSON.stringify({function: 'close'}));
+          shadow.websocket.close();
+          // Remove everything as part of cleanup
+          // shadow.innerHTML = '';
+      }*/
       
       const allHandler = function(shadow) {
-	  const kwargs = {filters: {}};
-	  const pluginFilter = shadow.pluginsDropDown.value;
-	  if (pluginFilter != '---') {
+          const kwargs = {filters: {}};
+          const pluginFilter = shadow.pluginsDropDown.value;
+          if (pluginFilter != '---') {
               kwargs['filters']['plugin'] = pluginFilter;
-	  }
-	  
-	  if (shadow.viewTypes.checked) {
+          }
+
+          if (shadow.viewTypes.checked) {
               shadow.display.innerHTML = '';
               shadow.websocket.send(JSON.stringify({function: 'list_types', kwargs: kwargs}));
-	  } else if (shadow.viewTranslators.checked) {
+          } else if (shadow.viewTranslators.checked) {
               shadow.display.innerHTML = '';
               kwargs['source_type'] = shadow.abstractDropDown.value;
               shadow.websocket.send(JSON.stringify({function: 'list_translators', kwargs: kwargs}));
-	  } else if (shadow.viewAlgorithms.checked) {
+          } else if (shadow.viewAlgorithms.checked) {
               shadow.display.innerHTML = '';
               shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: kwargs}));
-	  }
+          }
       }      
       
       /*************************************/
