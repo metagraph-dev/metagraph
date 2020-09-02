@@ -128,6 +128,11 @@
 	  }
 	  const currentExplorerTab = shadow.querySelector(`#${explorerTabId}`);
 	  currentExplorerTab.classList.add('active');
+
+	  console.log('\n\n\n');
+          console.log(`currentExplorerTab ${JSON.stringify(currentExplorerTab)}`);
+          console.log(`currentExplorerTab.id ${JSON.stringify(currentExplorerTab.id)}`);
+          console.log(`explorerTabId ${JSON.stringify(explorerTabId)}`);
       };
       
       shadow.querySelector('#mg-translation-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-translation-explorer');
