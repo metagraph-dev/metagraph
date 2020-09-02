@@ -389,7 +389,7 @@ p.mg-type-explorer-abstract-type {
     margin: 0px;
     padding: 5px;
     transition: all 0.5s;
-    background: #e8faef;
+    background: #efefef;
     font-size: 1.5em;
 }
 
@@ -407,7 +407,7 @@ p.mg-type-explorer-abstract-type {
 .mg-type-explorer-concrete-type-container {
     transition: all 0.5s;
     padding-left: 3em;
-    background: #fdfff9;
+    background: #fdfdfd;
     overflow: hidden;
     max-height: 0px;
     transform: scaleY(0);
