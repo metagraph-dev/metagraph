@@ -100,6 +100,7 @@
               });
               break;
 	  case "list_algorithms":
+	      updateAlgorithmExplorer(data);
 	      // below is used by POC only
               buildTree(shadow.display, data.result, true);
               break;
@@ -148,7 +149,6 @@
       /*****************/
       
       const updateTypeExplorer = (typeData) => {
-          console.log(`typeData ${JSON.stringify(typeData)}`);
 	  const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
 	  removeAllChildNodes(typeExplorerContentDiv);
 	  const abstractTypeDataLookup = typeData.result;
@@ -175,6 +175,44 @@
 	  });
       }
       const requestTypeExplorerUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_types', kwargs: {}}));
+      
+      /**********************/
+      /* Algorithm Explorer */
+      /**********************/
+      
+      const updateAlgorithmExplorer = (algorithmData) => {
+	  const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
+	  const buildAlgorithmTreeWidget = (root, data, level) => {
+	      for (let name in data) {
+                  if (data.hasOwnProperty(name)) {
+		      const props = data[name];
+		      const hasChildren = 'children' in props;
+		      if (hasChildren) {
+                          const label = document.createElement('p');
+			  label.classList.add('mg-algorithm-explorer-tree-widget-label');
+                          label.innerHTML = name;
+                          root.appendChild(label);
+                          const container = document.createElement('div');
+                          container.className = 'mg-algorithm-explorer-tree-widget-container';
+			  root.append(container);
+			  label.onclick = (event) => {
+			      label.classList.toggle('active');
+			      container.classList.toggle('active');
+			  };
+			  const childrenData = props['children'];
+                          buildAlgorithmTreeWidget(container, childrenData, level+1);
+		      } else {
+                          const leaf = document.createElement('p');
+			  leaf.classList.add('mg-algorithm-explorer-tree-widget-leaf');
+                          leaf.innerHTML = name;
+                          root.appendChild(leaf);
+		      }
+                  }
+	      }
+	  };
+	  buildAlgorithmTreeWidget(algorithmExplorerContentDiv, algorithmData.result, 0);
+      };
+      const requestAlgorithmExplorerUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: {}}));
       
       /************/
       /* POC Code */
@@ -693,8 +731,9 @@
       abstractTypeDropdown.onchange = requestTranslationGraphAbstractTypeUpdate;
 
       shadow.websocket.onopen = () => {
-	  requestTypeExplorerUpdate();
 	  requestTranslationGraphAbstractTypeUpdate();
+	  requestTypeExplorerUpdate();
+	  requestAlgorithmExplorerUpdate();
       }
       
   })({RESOLVER_DATA})

@@ -390,14 +390,15 @@ p.mg-type-explorer-abstract-type {
     padding: 5px;
     transition: all 0.5s;
     background: #efefef;
-    font-size: 1.5em;
+    font-size: 23px;
+    cursor: pointer;
 }
 
 .mg-type-explorer-abstract-type:after {
     content: '\02795 \00a0';
     float: left;
     margin-left: 5px;
-    font-size: 1.25em;
+    font-size: 20px;
 }
 
 .mg-type-explorer-abstract-type.active:after {
@@ -426,6 +427,73 @@ p.mg-type-explorer-abstract-type {
 .mg-type-explorer-concrete-type:after {
     content: '\2796 \00a0';
     float: left;
+}
+
+/**********************/
+/* Algorithm Explorer */
+/**********************/
+
+#mg-algorithm-explorer-content {
+    border: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.125);
+    background: #fdfdfd;
+}
+
+#mg-algorithm-explorer-content > .mg-algorithm-explorer-tree-widget-label {
+    background: #efefef;
+    margin: 0px;
+}
+
+#mg-algorithm-explorer-content > .mg-algorithm-explorer-tree-widget-label + .mg-algorithm-explorer-tree-widget-container {
+    background: #fdfdfd;
+    margin: 0px;
+}
+
+.mg-algorithm-explorer-tree-widget-container {
+    margin: 0px 0px 0px 3em;
+    transition: all 0.5s;
+    font-size: 23px;
+    overflow: hidden;
+}
+
+.mg-algorithm-explorer-tree-widget-label {
+    cursor: pointer;
+}
+
+.mg-algorithm-explorer-tree-widget-leaf {
+    cursor: default;
+}
+
+.mg-algorithm-explorer-tree-widget-label,
+.mg-algorithm-explorer-tree-widget-leaf {
+    margin: 0px;
+    margin-left: 3em;
+    padding: 5px;
+    transition: all 0.5s;
+    background: #fdfdfd;
+    font-size: 23px;
+    overflow: hidden;
+}
+
+.mg-algorithm-explorer-tree-widget-label:after {
+    content: '\02795 \00a0';
+    float: left;
+    margin-left: 5px;
+    font-size: 20px;
+}
+
+#mg-algorithm-explorer-content .mg-algorithm-explorer-tree-widget-label.active:after {
+    content: '\2796 \00a0';
+}
+
+.mg-algorithm-explorer-tree-widget-container {
+    max-height: 0px;
+    transform: scaleY(0);
+}
+
+#mg-algorithm-explorer-content .mg-algorithm-explorer-tree-widget-container.active {
+    max-height: 50vh;
+    transform: scaleY(1);
 }
 
 /****************/
