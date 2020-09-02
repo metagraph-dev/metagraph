@@ -54,7 +54,7 @@ def render_text(resolver, port, div=None):
             "shadowInnerHTML": f'<style type="text/css">{SHADOW_CSS}</style>{SHADOW_HTML}',
             # Eagerly store select API results
             "abstractTypeToConcreteTypes": api.list_types(resolver),
-            "plugins": api.list_plugins(resolver),
+            "pluginData": api.get_plugins(resolver),
             "abstractTypes": api.get_abstract_types(resolver),
         }
     )

@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from ..core.plugin import AbstractType, ConcreteType
+from ..core.plugin import AbstractType, ConcreteType, ConcreteAlgorithm
 from ..core.typing import Combo
 from ..core.planning import MultiStepTranslator, AlgorithmPlan
 
@@ -45,9 +45,42 @@ def normalize_concrete_type(resolver, abstract, concrete, **kwargs):
     return (concrete, type_class)
 
 
-def list_plugins(resolver, **kwargs):
-    # TODO: change to a dict with the module listed as well as the plugin name
-    return list(sorted(dir(resolver.plugins)))
+def _dwim_plugins_dict_value(value):
+    if value is None or isinstance(value, (str, int, float, bool)):
+        dwimmed_value = value
+    elif isinstance(value, (list, tuple, set)):
+        dwimmed_value = [_dwim_plugins_dict_value(sub_element) for sub_element in value]
+    elif isinstance(value, dict):
+        dwimmed_value = _dwim_plugins_dict(value)
+    else:
+        dwimmed_value = str(value)
+    return dwimmed_value
+
+
+def _dwim_plugins_dict_key(key):
+    if (
+        isinstance(key, tuple)
+        and len(key) == 2
+        and all(issubclass(element, ConcreteType) for element in key)
+    ):
+        src, dst = key
+        dwimmed_key = f"{src.__name__} -> {dst.__name__}"
+    else:
+        dwimmed_key = key
+    return dwimmed_key
+
+
+def _dwim_plugins_dict(plugins_dict: dict) -> dict:
+    """Modifies content in place"""
+    plugins_dict = {
+        _dwim_plugins_dict_key(key): _dwim_plugins_dict_value(value)
+        for key, value in plugins_dict.items()
+    }
+    return plugins_dict
+
+
+def get_plugins(resolver, **kwargs):
+    return _dwim_plugins_dict(resolver.plugins.to_dict())
 
 
 def get_abstract_types(resolver, **kwargs):
@@ -90,7 +123,7 @@ def list_translators(resolver, source_type, filters=None, **kwargs):
         plugins = [filters["plugin"]]
     else:
         filtered_translators = resolver.translators
-        plugins = list_plugins(resolver)
+        plugins = sorted(dir(resolver.plugins))
 
     source_type, source_class = normalize_abstract_type(resolver, source_type)
 
@@ -148,7 +181,7 @@ def list_algorithms(resolver, filters=None, **kwargs):
         plugins = [filters["plugin"]]
     else:
         abstract_algorithms = resolver.abstract_algorithms.keys()
-        plugins = list_plugins(resolver)
+        plugins = sorted(dir(resolver.plugins))
 
     d = OrderedDict()
     for aa in sorted(abstract_algorithms):

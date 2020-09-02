@@ -6,10 +6,10 @@
 
 <script>
 
-  (({port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, plugins, abstractTypes}) => {
+  (({port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, pluginData, abstractTypes}) => {
 
       if (typeof require === "undefined") {
-          setTimeout(this, 200, port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, plugins, abstractTypes);
+          setTimeout(this, 200, port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, pluginData, abstractTypes);
           return;
       }
 
@@ -128,11 +128,6 @@
 	  }
 	  const currentExplorerTab = shadow.querySelector(`#${explorerTabId}`);
 	  currentExplorerTab.classList.add('active');
-
-	  console.log('\n\n\n');
-          console.log(`currentExplorerTab ${JSON.stringify(currentExplorerTab)}`);
-          console.log(`currentExplorerTab.id ${JSON.stringify(currentExplorerTab.id)}`);
-          console.log(`explorerTabId ${JSON.stringify(explorerTabId)}`);
       };
       
       shadow.querySelector('#mg-translation-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-translation-explorer');
@@ -187,37 +182,45 @@
       
       const updateAlgorithmExplorer = (algorithmData) => {
 	  const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
-	  const buildAlgorithmTreeWidget = (root, data, level) => {
+	  removeAllChildNodes(algorithmExplorerContentDiv);
+	  algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
+	  const buildAlgorithmTreeWidget = (root, data) => {
 	      for (let name in data) {
                   if (data.hasOwnProperty(name)) {
 		      const props = data[name];
 		      const hasChildren = 'children' in props;
 		      if (hasChildren) {
                           const label = document.createElement('p');
-			  label.classList.add('mg-algorithm-explorer-tree-widget-label');
+			  label.classList.add('mg-explorer-tree-widget-label');
                           label.innerHTML = name;
                           root.appendChild(label);
                           const container = document.createElement('div');
-                          container.className = 'mg-algorithm-explorer-tree-widget-container';
+                          container.className = 'mg-explorer-tree-widget-subcontainer';
 			  root.append(container);
 			  label.onclick = (event) => {
 			      label.classList.toggle('active');
 			      container.classList.toggle('active');
 			  };
 			  const childrenData = props['children'];
-                          buildAlgorithmTreeWidget(container, childrenData, level+1);
+                          buildAlgorithmTreeWidget(container, childrenData);
 		      } else {
                           const leaf = document.createElement('p');
-			  leaf.classList.add('mg-algorithm-explorer-tree-widget-leaf');
+			  leaf.classList.add('mg-explorer-tree-widget-leaf');
                           leaf.innerHTML = name;
                           root.appendChild(leaf);
 		      }
                   }
 	      }
 	  };
-	  buildAlgorithmTreeWidget(algorithmExplorerContentDiv, algorithmData.result, 0);
+	  buildAlgorithmTreeWidget(algorithmExplorerContentDiv, algorithmData.result);
       };
       const requestAlgorithmExplorerUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: {}}));
+
+      /*******************/
+      /* Plugin Explorer */
+      /*******************/
+
+      console.log(`pluginData ${JSON.stringify(pluginData)}`);
       
       /************/
       /* POC Code */
@@ -272,6 +275,7 @@
       shadow.abstractDropDown = shadow.querySelector('#abstractDropDown');
       shadow.display = shadow.querySelector('#display');
 
+      const plugins = Object.keys(pluginData);
       plugins.forEach(function(plug) {
           const op = document.createElement('option');
           op.value = plug;
@@ -303,12 +307,6 @@
       shadow.viewTypes.onchange = radioHandler;
       shadow.viewTranslators.onchange = radioHandler;
       shadow.viewAlgorithms.onchange = radioHandler;
-      /*shadow.close.onclick = function (event) {
-          shadow.websocket.send(JSON.stringify({function: 'close'}));
-          shadow.websocket.close();
-          // Remove everything as part of cleanup
-          // shadow.innerHTML = '';
-      }*/
       
       const allHandler = function(shadow) {
           const kwargs = {filters: {}};

@@ -58,6 +58,15 @@ class Namespace:
     def __dir__(self):
         return self._registered
 
+    def to_dict(self):
+        result = {}
+        for key in self._registered:
+            value = getattr(self, key)
+            if isinstance(value, Namespace):
+                value = value.to_dict()
+            result[key] = value
+        return result
+
 
 class PlanNamespace:
     """

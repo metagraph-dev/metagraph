@@ -429,43 +429,43 @@ p.mg-type-explorer-abstract-type {
     float: left;
 }
 
-/**********************/
-/* Algorithm Explorer */
-/**********************/
+/*****************************************************/
+/* Algorithm Explorer & Plugin Explorer Tree Widgets */
+/*****************************************************/
 
-#mg-algorithm-explorer-content {
+.mg-explorer-tree-widget-container {
     border: 1px solid rgba(0,0,0,0.25);
     box-shadow: 3px 3px 6px rgba(0,0,0,0.125);
     background: #fdfdfd;
 }
 
-#mg-algorithm-explorer-content > .mg-algorithm-explorer-tree-widget-label {
+.mg-explorer-tree-widget-container > .mg-explorer-tree-widget-label {
     background: #efefef;
     margin: 0px;
 }
 
-#mg-algorithm-explorer-content > .mg-algorithm-explorer-tree-widget-label + .mg-algorithm-explorer-tree-widget-container {
+.mg-explorer-tree-widget-container > .mg-explorer-tree-widget-label + .mg-explorer-tree-widget-subcontainer {
     background: #fdfdfd;
     margin: 0px;
 }
 
-.mg-algorithm-explorer-tree-widget-container {
+.mg-explorer-tree-widget-subcontainer {
     margin: 0px 0px 0px 3em;
     transition: all 0.5s;
     font-size: 23px;
     overflow: hidden;
 }
 
-.mg-algorithm-explorer-tree-widget-label {
+.mg-explorer-tree-widget-label {
     cursor: pointer;
 }
 
-.mg-algorithm-explorer-tree-widget-leaf {
+.mg-explorer-tree-widget-leaf {
     cursor: default;
 }
 
-.mg-algorithm-explorer-tree-widget-label,
-.mg-algorithm-explorer-tree-widget-leaf {
+.mg-explorer-tree-widget-label,
+.mg-explorer-tree-widget-leaf {
     margin: 0px;
     margin-left: 3em;
     padding: 5px;
@@ -475,23 +475,23 @@ p.mg-type-explorer-abstract-type {
     overflow: hidden;
 }
 
-.mg-algorithm-explorer-tree-widget-label:after {
+.mg-explorer-tree-widget-label:after {
     content: '\02795 \00a0';
     float: left;
     margin-left: 5px;
     font-size: 20px;
 }
 
-#mg-algorithm-explorer-content .mg-algorithm-explorer-tree-widget-label.active:after {
+.mg-explorer-tree-widget-container .mg-explorer-tree-widget-label.active:after {
     content: '\2796 \00a0';
 }
 
-.mg-algorithm-explorer-tree-widget-container {
+.mg-explorer-tree-widget-subcontainer {
     max-height: 0px;
     transform: scaleY(0);
 }
 
-#mg-algorithm-explorer-content .mg-algorithm-explorer-tree-widget-container.active {
+.mg-explorer-tree-widget-container .mg-explorer-tree-widget-subcontainer.active {
     max-height: 50vh;
     transform: scaleY(1);
 }
