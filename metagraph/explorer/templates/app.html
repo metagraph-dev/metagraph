@@ -60,6 +60,7 @@
 	  data = JSON.parse(event.data);
 	  switch (data.function) {
 	  case "list_types":
+	      updateTypeExplorer(data);
 	      // below is used by POC only
               buildTree(shadow.display, data.result, true);
               break;
@@ -141,6 +142,39 @@
       }
       
       shadow.querySelector('#mg-explorer-close-button').onclick = metagraphCloseExplorer;
+
+      /*****************/
+      /* Type Explorer */
+      /*****************/
+      
+      const updateTypeExplorer = (typeData) => {
+          console.log(`typeData ${JSON.stringify(typeData)}`);
+	  const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
+	  removeAllChildNodes(typeExplorerContentDiv);
+	  const abstractTypeDataLookup = typeData.result;
+	  Object.keys(abstractTypeDataLookup).forEach(abstractType => {
+              const abstractTypeElement = document.createElement('p');
+	      abstractTypeElement.classList.add('mg-type-explorer-abstract-type');
+              abstractTypeElement.innerHTML = abstractType;
+	      typeExplorerContentDiv.append(abstractTypeElement);
+	      const concreteTypeDataLookup = abstractTypeDataLookup[abstractType].children;
+	      const concreteTypes = Object.keys(concreteTypeDataLookup);
+	      const concreteTypeContainer = document.createElement('div');
+	      concreteTypeContainer.classList.add('mg-type-explorer-concrete-type-container');
+	      concreteTypes.forEach(concreteType => {
+		  const concreteTypeElement = document.createElement('p');
+		  concreteTypeElement.classList.add('mg-type-explorer-concrete-type');
+		  concreteTypeElement.innerHTML = concreteType;
+		  concreteTypeContainer.append(concreteTypeElement);
+	      });
+	      typeExplorerContentDiv.append(concreteTypeContainer);
+	      abstractTypeElement.onclick = (event) => {
+		  abstractTypeElement.classList.toggle('active');
+		  concreteTypeContainer.classList.toggle('active');
+	      };
+	  });
+      }
+      const requestTypeExplorerUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_types', kwargs: {}}));
       
       /************/
       /* POC Code */
@@ -276,8 +310,6 @@
 
       let simulation = {stop: () => {}}
       const loadTranslationGraph = (translationGraphData) => {
-
-          console.log(`translationGraphData ${JSON.stringify(translationGraphData)}`); // TODO remove this
 	  
 	  require(['d3'], (d3) => {
 
@@ -659,7 +691,11 @@
       }
       const requestTranslationGraphAbstractTypeUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_translators', kwargs: {source_type: abstractTypeDropdown.value}}))
       abstractTypeDropdown.onchange = requestTranslationGraphAbstractTypeUpdate;
-      shadow.websocket.onopen = requestTranslationGraphAbstractTypeUpdate;
+
+      shadow.websocket.onopen = () => {
+	  requestTypeExplorerUpdate();
+	  requestTranslationGraphAbstractTypeUpdate();
+      }
       
   })({RESOLVER_DATA})
   

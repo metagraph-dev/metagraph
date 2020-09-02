@@ -30,7 +30,11 @@
 #mg-explorer-navigation-bar ul {
     display: inline-block;
     list-style-type: none;
-    margin: 0;
+    margin-block-start: 0px;
+    margin-block-end: 0px;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    padding-inline-start: 0px;
 }
 
 #mg-explorer-navigation-bar li {
@@ -220,13 +224,13 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 #mg-translation-graph-filter-by-plugin-toggle-button.collapser-button:after, #mg-translation-graph-translation-path-solver-toggle-button.collapser-button:after {
-    content: '\02795';
+    content: '\02795 \00a0';
     float: left;
     margin-left: 5px;
 }
 
 #mg-translation-graph-filter-by-plugin-toggle-button.active:after, #mg-translation-graph-translation-path-solver-toggle-button.active:after {
-  content: "\2796";
+  content: '\2796 \00a0';
 }
 
 #mg-translation-graph-filter-by-plugin-menu, #mg-translation-graph-translation-path-solver-menu {
@@ -242,7 +246,6 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 #mg-translation-graph-translation-path-solver-menu.active {
     max-height: 50vh;
 }
-
 
 /* Full Translation Path Display */
 
@@ -371,6 +374,58 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     rx: 10;
     stroke-width: 1;
     stroke: #bbb;
+}
+
+/*****************/
+/* Type Explorer */
+/*****************/
+
+#mg-type-explorer-content {
+    border: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.125);
+}
+
+p.mg-type-explorer-abstract-type {
+    margin: 0px;
+    padding: 5px;
+    transition: all 0.5s;
+    background: #e8faef;
+    font-size: 1.5em;
+}
+
+.mg-type-explorer-abstract-type:after {
+    content: '\02795 \00a0';
+    float: left;
+    margin-left: 5px;
+    font-size: 1.25em;
+}
+
+.mg-type-explorer-abstract-type.active:after {
+    content: '\2796 \00a0';
+}
+
+.mg-type-explorer-concrete-type-container {
+    transition: all 0.5s;
+    padding-left: 3em;
+    background: #fdfff9;
+    overflow: hidden;
+    max-height: 0px;
+    transform: scaleY(0);
+}
+
+.mg-type-explorer-concrete-type-container.active {
+    max-height: 50vh;
+    transform: scaleY(1);
+}
+
+.mg-type-explorer-concrete-type {
+    margin: 0px;
+    padding: 5px;
+}
+
+.mg-type-explorer-concrete-type:after {
+    content: '\2796 \00a0';
+    float: left;
 }
 
 /****************/
