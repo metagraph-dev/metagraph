@@ -45,42 +45,98 @@ def normalize_concrete_type(resolver, abstract, concrete, **kwargs):
     return (concrete, type_class)
 
 
-def _dwim_plugins_dict_value(value):
-    if value is None or isinstance(value, (str, int, float, bool)):
-        dwimmed_value = value
-    elif isinstance(value, (list, tuple, set)):
-        dwimmed_value = [_dwim_plugins_dict_value(sub_element) for sub_element in value]
-    elif isinstance(value, dict):
-        dwimmed_value = _dwim_plugins_dict(value)
-    else:
-        dwimmed_value = str(value)
-    return dwimmed_value
-
-
-def _dwim_plugins_dict_key(key):
-    if (
-        isinstance(key, tuple)
-        and len(key) == 2
-        and all(issubclass(element, ConcreteType) for element in key)
-    ):
-        src, dst = key
-        dwimmed_key = f"{src.__name__} -> {dst.__name__}"
-    else:
-        dwimmed_key = key
-    return dwimmed_key
-
-
-def _dwim_plugins_dict(plugins_dict: dict) -> dict:
-    """Modifies content in place"""
-    plugins_dict = {
-        _dwim_plugins_dict_key(key): _dwim_plugins_dict_value(value)
-        for key, value in plugins_dict.items()
-    }
-    return plugins_dict
-
-
 def get_plugins(resolver, **kwargs):
-    return _dwim_plugins_dict(resolver.plugins.to_dict())
+    result = OrderedDict()
+    plugins = resolver.plugins
+    get_name = lambda x: x.__name__
+    for plugin_name in sorted(dir(plugins)):
+        result[plugin_name] = OrderedDict()
+        plugin = getattr(plugins, plugin_name)
+        result[plugin_name]["children"] = OrderedDict()
+        for plugin_part_name in sorted(dir(plugin)):
+            plugin_part = getattr(plugin, plugin_part_name)
+            if plugin_part_name == "abstract_algorithms":
+                if len(plugin_part) > 0:
+                    result[plugin_name]["children"]["Abstract Algorithms"] = {
+                        "children": OrderedDict()
+                    }
+                    for abstract_algorithm_name in sorted(plugin_part.keys()):
+                        result[plugin_name]["children"]["Abstract Algorithms"][
+                            "children"
+                        ][
+                            abstract_algorithm_name
+                        ] = {}  # TODO add other useful information here
+            elif plugin_part_name == "abstract_types":
+                abstract_type_names = sorted(map(get_name, plugin_part))
+                if len(abstract_type_names) > 0:
+                    result[plugin_name]["children"]["Abstract Types"] = {
+                        "children": OrderedDict()
+                    }
+                    for abstract_type_name in abstract_type_names:
+                        result[plugin_name]["children"]["Abstract Types"]["children"][
+                            abstract_type_name
+                        ] = {}  # TODO add other useful information here
+            elif plugin_part_name == "concrete_algorithms":
+                if len(plugin_part) > 0:
+                    result[plugin_name]["children"]["Concrete Algorithms"] = {
+                        "children": OrderedDict()
+                    }
+                    for abstract_algorithm_name in sorted(plugin_part.keys()):
+                        concrete_algorithms = sorted(
+                            plugin_part[abstract_algorithm_name]
+                        )
+                        result[plugin_name]["children"]["Concrete Algorithms"][
+                            "children"
+                        ][abstract_algorithm_name] = {"children": OrderedDict()}
+                        for concrete_algorithm in concrete_algorithms:
+                            concrete_algorithm_name = concrete_algorithm.__name__
+                            result[plugin_name]["children"]["Concrete Algorithms"][
+                                "children"
+                            ][abstract_algorithm_name]["children"][
+                                concrete_algorithm_name
+                            ] = {}  # TODO add other useful information here
+            elif plugin_part_name == "concrete_types":
+                concrete_types = sorted(map(get_name, plugin_part))
+                if len(concrete_types) > 0:
+                    result[plugin_name]["children"]["Concrete Types"] = {
+                        "children": OrderedDict()
+                    }
+                    for concrete_type in concrete_types:
+                        result[plugin_name]["children"]["Concrete Types"]["children"][
+                            concrete_type
+                        ] = {}  # TODO add other useful information here
+            elif plugin_part_name == "translators":
+                translator_strings = sorted(
+                    [
+                        f"{src.__name__} -> {dst.__name__}"
+                        for src, dst in plugin_part.keys()
+                    ]
+                )
+                if len(translator_strings) > 0:
+                    result[plugin_name]["children"]["Translators"] = {
+                        "children": OrderedDict()
+                    }
+                    for translator_string in translator_strings:
+                        result[plugin_name]["children"]["Translators"]["children"][
+                            translator_string
+                        ] = {}  # TODO add other useful information here
+            elif plugin_part_name == "wrappers":
+                abstract_type_names = sorted(dir(plugin_part))
+                if len(abstract_type_names) > 0:
+                    result[plugin_name]["children"]["Wrappers"] = {
+                        "children": OrderedDict()
+                    }
+                    for abstract_type_name in abstract_type_names:
+                        abstract_type_namespace = getattr(
+                            plugin_part, abstract_type_name
+                        )
+                        for concrete_type_name in sorted(dir(abstract_type_namespace)):
+                            result[plugin_name]["children"]["Wrappers"]["children"][
+                                concrete_type_name
+                            ] = {}  # TODO add other useful information here
+            else:
+                pass  # TODO consider showing algorithm versions
+    return result
 
 
 def get_abstract_types(resolver, **kwargs):

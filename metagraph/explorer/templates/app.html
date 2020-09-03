@@ -113,6 +113,35 @@
               console.error('unsupported event', data);
 	  }
       };
+
+      const buildAlgorithmTreeWidget = (root, data) => {
+	  for (let name in data) {
+              if (data.hasOwnProperty(name)) {
+		  const props = data[name];
+		  const hasChildren = 'children' in props;
+		  if (hasChildren) {
+                      const label = document.createElement('p');
+		      label.classList.add('mg-explorer-tree-widget-label');
+                      label.innerHTML = name;
+                      root.appendChild(label);
+                      const container = document.createElement('div');
+                      container.className = 'mg-explorer-tree-widget-subcontainer';
+		      root.append(container);
+		      label.onclick = (event) => {
+			  label.classList.toggle('active');
+			  container.classList.toggle('active');
+		      };
+		      const childrenData = props['children'];
+                      buildAlgorithmTreeWidget(container, childrenData);
+		  } else {
+                      const leaf = document.createElement('p');
+		      leaf.classList.add('mg-explorer-tree-widget-leaf');
+                      leaf.innerHTML = name;
+                      root.appendChild(leaf);
+		  }
+              }
+	  }
+      };
       
       /**********************************/
       /* Explorer Tab Selection Buttons */
@@ -184,34 +213,6 @@
 	  const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
 	  removeAllChildNodes(algorithmExplorerContentDiv);
 	  algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-	  const buildAlgorithmTreeWidget = (root, data) => {
-	      for (let name in data) {
-                  if (data.hasOwnProperty(name)) {
-		      const props = data[name];
-		      const hasChildren = 'children' in props;
-		      if (hasChildren) {
-                          const label = document.createElement('p');
-			  label.classList.add('mg-explorer-tree-widget-label');
-                          label.innerHTML = name;
-                          root.appendChild(label);
-                          const container = document.createElement('div');
-                          container.className = 'mg-explorer-tree-widget-subcontainer';
-			  root.append(container);
-			  label.onclick = (event) => {
-			      label.classList.toggle('active');
-			      container.classList.toggle('active');
-			  };
-			  const childrenData = props['children'];
-                          buildAlgorithmTreeWidget(container, childrenData);
-		      } else {
-                          const leaf = document.createElement('p');
-			  leaf.classList.add('mg-explorer-tree-widget-leaf');
-                          leaf.innerHTML = name;
-                          root.appendChild(leaf);
-		      }
-                  }
-	      }
-	  };
 	  buildAlgorithmTreeWidget(algorithmExplorerContentDiv, algorithmData.result);
       };
       const requestAlgorithmExplorerUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: {}}));
@@ -220,7 +221,10 @@
       /* Plugin Explorer */
       /*******************/
 
-      console.log(`pluginData ${JSON.stringify(pluginData)}`);
+      const pluginExplorerContentDiv = shadow.querySelector('#mg-plugin-explorer-content');
+      removeAllChildNodes(pluginExplorerContentDiv);
+      pluginExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
+      buildAlgorithmTreeWidget(pluginExplorerContentDiv, pluginData);
       
       /************/
       /* POC Code */
