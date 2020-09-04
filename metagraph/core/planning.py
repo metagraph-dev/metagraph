@@ -20,14 +20,14 @@ class MultiStepTranslator:
     def __len__(self):
         if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation path found for {self.src_type.__name__} -> {self.final_type.__name__}"
             )
         return len(self.translators)
 
     def __iter__(self):
         if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation path found for {self.src_type.__name__} -> {self.final_type.__name__}"
             )
         return iter(self.translators)
 
@@ -36,12 +36,12 @@ class MultiStepTranslator:
         if self.unsatisfiable:
             s.append("[Unsatisfiable Translation]")
             s.append(
-                "Translation {self.src_type.__name__} -> {self.final_type.__name__} unsatisfiable"
+                f"Translation {self.src_type.__name__} -> {self.final_type.__name__} unsatisfiable"
             )
         elif len(self) == 0:
             s.append("[Null Translation]")
             s.append(
-                "No translation required from {self.src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation required from {self.src_type.__name__} -> {self.final_type.__name__}"
             )
         elif len(self) > 1:
             s.append("[Multi-step Translation]")
@@ -68,7 +68,7 @@ class MultiStepTranslator:
     def __call__(self, src, **props):
         if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation path found for {self.src_type.__name__} -> {self.final_type.__name__}"
             )
 
         if not self.translators:

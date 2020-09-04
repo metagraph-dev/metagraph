@@ -27,6 +27,7 @@ requirements:
     - numpy
     - scipy
     - donfig
+    - dask
 
 test:
   requires:

@@ -570,10 +570,10 @@ def test_call_algorithm(example_resolver):
 
 def test_call_algorithm_plan(example_resolver, capsys):
     capsys.readouterr()
-    example_resolver.plan.call_algorithm("power", 2, 3)
-    captured = capsys.readouterr()
-    assert "int_power" in captured.out
-    assert "Argument Translations" in captured.out
+    plan = example_resolver.plan.call_algorithm("power", 2, 3)
+    text = repr(plan)
+    assert "int_power" in text
+    assert "Argument Translations" in text
     example_resolver.plan.call_algorithm("power", 2, "4")
     captured = capsys.readouterr()
     assert (
