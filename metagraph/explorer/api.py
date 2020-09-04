@@ -1,3 +1,5 @@
+import operator
+from functools import reduce
 from collections import OrderedDict
 from ..core.plugin import AbstractType, ConcreteType, ConcreteAlgorithm
 from ..core.typing import Combo
@@ -278,22 +280,29 @@ def list_algorithms(resolver, filters=None, **kwargs):
     return d
 
 
-def list_algorithm_params(resolver, abstract_pathname, **kwargs):
+def list_algorithm_params(resolver, abstract_pathname: str, **kwargs):
     types = list_types(resolver)
     sig = resolver.abstract_algorithms[abstract_pathname].__signature__
 
-    def resolve_parameter(p):
+    def resolve_parameter(p) -> OrderedDict:
+        result: OrderedDict
         p_class = p if type(p) is type else p.__class__
         if p_class is Combo:
             resolved = [resolve_parameter(psub) for psub in p.types]
             combo_type = " or ".join(r["type"] for r in resolved)
             choices = [c for r in resolved for c in r["choices"]]
-            return OrderedDict([("type", combo_type), ("choices", choices)])
+            if p.optional:
+                combo_type += " or NoneType"  # this should really be type(NoneType), but Python doesn't have a concept of abstract types
+                choices.append("NoneType")
+            result = OrderedDict([("type", combo_type), ("choices", choices)])
         elif issubclass(p_class, AbstractType):
             choices = list(types[p_class.__name__]["children"].keys())
-            return OrderedDict([("type", p_class.__name__), ("choices", choices)])
+            result = OrderedDict([("type", p_class.__name__), ("choices", choices)])
         else:
-            return OrderedDict([("type", p_class.__name__)])
+            result = OrderedDict(
+                [("type", p_class.__name__), ("choices", [p_class.__name__])]
+            )
+        return result
 
     params = OrderedDict()
     for pname, p in sig.parameters.items():
@@ -342,11 +351,10 @@ def solve_translator(
     }
 
 
-def solve_algorithm(resolver, abstract_pathname, params, returns, **kwargs):
+def solve_algorithm(resolver, abstract_pathname: str, params, **kwargs):
     """
     abstract_pathname: string with dotted path and abstract function name
     params: dict of parameter name to type (class or ConcreteType)
-    returns: list of types (class or ConcreteType)
     """
     if abstract_pathname not in resolver.abstract_algorithms:
         raise ValueError(f'No abstract algorithm "{abstract_pathname}" exists')
@@ -356,15 +364,45 @@ def solve_algorithm(resolver, abstract_pathname, params, returns, **kwargs):
     params = {pname: p.__new__(p) for pname, p in params.items()}
 
     solutions = []
-    for ca_name, ca in resolver.concrete_algorithms.get(abstract_pathname, {}).items():
-        plan = AlgorithmPlan.build(resolver, ca_name, **params)
-        solutions.append(
-            {
-                "algo_name": ca.func.__name__,
-                "plugin": None,
-                "module": ca.func.__module__,
-                "unsatisfiable": False,
-                "params": None,
-                "returns": None,
-            }
-        )
+    concrete_algorithms = resolver.concrete_algorithms.get(abstract_pathname, {})
+    plans = [AlgorithmPlan.build(resolver, ca, **params) for ca in concrete_algorithms]
+
+    for plan in plans:
+        if not plan.unsatisfiable:
+            # TODO store backpointers in the resolver instead of doing an O(n) lookup here
+            for plugin_name in dir(resolver.plugins):
+                plugin = getattr(resolver.plugins, plugin_name)
+                plugin_concrete_algorithms = plugin.concrete_algorithms[
+                    abstract_pathname
+                ]
+                if plan.algo in plugin_concrete_algorithms:
+                    translation_path_lookup = {}
+                    parameter_data = []
+                    for parameter in plan.algo.__signature__.parameters.values():
+                        # TODO abstract common functionality from here and AlgorithmPlan.__repr__ into a class method for AlgorithmPlan
+                        if parameter.name in plan.required_translations:
+                            mst = plan.required_translations[parameter.name]
+                            translation_path = [
+                                ct.__name__ for ct in [mst.src_type] + mst.dst_types
+                            ]
+                        else:
+                            translation_path = [
+                                AlgorithmPlan.string_for_annotation(
+                                    parameter.annotation
+                                )
+                            ]
+                        translation_path_lookup[parameter.name] = translation_path
+                        parameter_data.append(
+                            [parameter.name, str(parameter.annotation)]
+                        )
+                    solutions.append(
+                        {
+                            "algo_name": plan.algo.func.__name__,
+                            "plugin": plugin_name,
+                            "translations": translation_path_lookup,
+                            "params": parameter_data,
+                            "returns": str(plan.algo.__signature__.return_annotation),
+                        }
+                    )
+                    break
+    return solutions
