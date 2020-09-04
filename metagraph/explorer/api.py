@@ -351,23 +351,40 @@ def solve_translator(
     }
 
 
-def solve_algorithm(resolver, abstract_pathname: str, params, **kwargs):
+def solve_algorithm(
+    resolver, abstract_pathname: str, params_description: dict, **kwargs
+):
     """
     abstract_pathname: string with dotted path and abstract function name
-    params: dict of parameter name to type (class or ConcreteType)
+    params_description: dict like {'x': {'abstract_type': 'NodeMap', 'concrete_type': 'NumpyNodeMapType'}, ...}
+        - keys are parameter names, e.g. 'x'
+        - values are dicts with keys 'abstract_type' and 'concrete_type'
     """
     if abstract_pathname not in resolver.abstract_algorithms:
         raise ValueError(f'No abstract algorithm "{abstract_pathname}" exists')
 
-    # Convert params from classes to shells of instances
-    # (needed by code which expects instances)
-    params = {pname: p.__new__(p) for pname, p in params.items()}
+    params = {}
+    for pname, pdescription in params_description.items():
+        abstract_type_name = pdescription["abstract_type"]
+        abstract_type_namespace = getattr(resolver.types, abstract_type_name, None)
+        if abstract_type_namespace is None:
+            raise ValueError(f'No abstract type "{abstract_type_name}" exists')
+        concrete_type_name = pdescription["concrete_type"]
+        concrete_type = getattr(abstract_type_namespace, concrete_type_name, None)
+        if concrete_type is None:
+            raise ValueError(
+                f'No concrete type "{concrete_type_name}" exists for {abstract_type_name}'
+            )
+        concrete_type_value_type = concrete_type.value_type
+        # Convert params from classes to shells of instances
+        # (needed by code which expects instances)
+        params[pname] = concrete_type_value_type.__new__(concrete_type_value_type)
 
-    solutions = []
+    solutions = {}
     concrete_algorithms = resolver.concrete_algorithms.get(abstract_pathname, {})
     plans = [AlgorithmPlan.build(resolver, ca, **params) for ca in concrete_algorithms]
 
-    for plan in plans:
+    for plan_index, plan in enumerate(plans):
         if not plan.unsatisfiable:
             # TODO store backpointers in the resolver instead of doing an O(n) lookup here
             for plugin_name in dir(resolver.plugins):
@@ -395,14 +412,28 @@ def solve_algorithm(resolver, abstract_pathname: str, params, **kwargs):
                         parameter_data.append(
                             [parameter.name, str(parameter.annotation)]
                         )
-                    solutions.append(
-                        {
-                            "algo_name": plan.algo.func.__name__,
-                            "plugin": plugin_name,
-                            "translations": translation_path_lookup,
-                            "params": parameter_data,
-                            "returns": str(plan.algo.__signature__.return_annotation),
+                    solutions[
+                        f"plan_{plan_index}"
+                    ] = {  # TODO make this an ordered dict
+                        "children": {
+                            f"algo_name {plan.algo.func.__name__}": {},
+                            f"plugin: {plugin_name}": {},
+                            "translations": {
+                                "children": {
+                                    parameter_name: {
+                                        "children": {t: {} for t in translation_path}
+                                    }
+                                    for parameter_name, translation_path in translation_path_lookup.items()
+                                }
+                            },
+                            "params": {
+                                "children": {
+                                    f"{name}: {annotation}": {}
+                                    for name, annotation in parameter_data
+                                }
+                            },
+                            f"returns {plan.algo.__signature__.return_annotation}": {},
                         }
-                    )
+                    }
                     break
     return solutions

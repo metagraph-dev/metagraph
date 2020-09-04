@@ -25,6 +25,7 @@
     box-shadow: 0 3px 6px rgba(0,0,0,0.125);
     overflow-x: auto;
     white-space: nowrap;
+    user-select: none;
 }
 
 #mg-explorer-navigation-bar ul {
@@ -44,7 +45,6 @@
     padding: 0.5rem;
     margin: 1rem 1rem 1rem 1rem;
     transition: all 0.5s;
-    user-select: none;
     cursor: pointer;
 }
 
@@ -496,45 +496,52 @@ p.mg-type-explorer-abstract-type {
     transform: scaleY(1);
 }
 
-/****************/
-/* POC Stylings */
-/****************/
+/*************************/
+/* Algorithm Type Solver */
+/*************************/
 
-body {
-    font-family: 'Courier New', sans-serif;
-    text-align: center;
+#mg-algorithm-type-solver-content {
 }
 
-/* Remove default bullets */
-.treewidget ul {
-    list-style-type: none;
+#mg-algorithm-type-solver-abstract-algorithm-path-dropdown {
 }
 
-/* Style the caret */
-.treewidget .caret {
-    cursor: pointer;
-    user-select: none; /* Prevent text selection */
+#mg-algorithm-type-solver-abstract-algorithm-content {
 }
 
-/* Create the caret */
-.treewidget .caret::before {
-    content: '\25B6';
-    color: black;
+#mg-algorithm-type-solver-all-parameters-container {
+    margin-left: 2em;
+    padding: 20px;
+}
+
+.mg-algorithm-type-solver-single-parameter-container {
+    padding: 5px;
+}
+
+.mg-algorithm-type-solver-parameter-name {
+}
+
+.mg-algorithm-type-solver-parameter-abstract-type {
+}
+
+.mg-algorithm-type-solver-parameter-concrete-type-dropdown {
+}
+
+#mg-algorithm-type-solver-solve-algorithm-types-button {
     display: inline-block;
-    margin-right: 6px;
+    transition: all 0.5s;
+    border-style: solid;
+    border-radius: 15px;
+    border-width: 1px;
+    border-color: #888;
+    background: #f5f5f5;
+    padding: 4px 8px 4px 8px;
 }
 
-/* Rotate the caret when clicked */
-.treewidget .caret-down::before {
-    transform: rotate(90deg);
+#mg-algorithm-type-solver-solve-algorithm-types-button:active {
+    transform: translateY(5px);
 }
 
-/* Hide the nested list */
-.treewidget .nested {
-    display: none;
-}
-
-/* Show the nested list when the user clicks on the caret */
-.treewidget .active {
-    display: block;
+#mg-algorithm-type-solver-plans {
+    margin-top: 100px;
 }
