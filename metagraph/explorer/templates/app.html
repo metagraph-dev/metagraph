@@ -39,6 +39,8 @@
 	  return [rect.left + scrollLeft, rect.top + scrollTop]
       }
       
+      const objectSize = (object) => Object.keys(object).filter(key => object.hasOwnProperty(key)).length;
+      
       /******************************/
       /* Shadow DOM Initializations */
       /******************************/
@@ -141,7 +143,7 @@
       }
       
       shadow.querySelector('#mg-explorer-close-button').onclick = metagraphCloseExplorer;
-            
+      
       /*************************************/
       /* Translation Graph Initializations */
       /*************************************/
@@ -596,11 +598,17 @@
       /*************************/
       
       const updateAlgorithTypeSolverPlans = (planData) => {
-          console.log(`planData ${JSON.stringify(planData)}`);
 	  const plansDiv = shadow.querySelector('#mg-algorithm-type-solver-plans');
 	  plansDiv.classList.add('mg-explorer-tree-widget-container');
 	  removeAllChildNodes(plansDiv);
-	  buildTreeWidget(plansDiv, planData.result);
+	  if (objectSize(planData.result) == 0) {
+	      const parargaphElement = document.createElement('p');
+	      parargaphElement.innerHTML = 'Algorithm Unsatisfiable';
+	      parargaphElement.classList.add('mg-algorithm-type-solver-unsatisfiable-algorithm-label');
+	      plansDiv.append(parargaphElement);
+	  } else {
+	      buildTreeWidget(plansDiv, planData.result);
+	  }
       };
       
       const updateAlgorithTypeSolverCurrentAlgorithmParameters = (algorithmParameterDataResponse) => {

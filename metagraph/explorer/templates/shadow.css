@@ -223,13 +223,12 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     cursor: pointer;
 }
 
-#mg-translation-graph-filter-by-plugin-toggle-button.collapser-button:after, #mg-translation-graph-translation-path-solver-toggle-button.collapser-button:after {
+#mg-translation-graph-filter-by-plugin-toggle-button.collapser-button:before, #mg-translation-graph-translation-path-solver-toggle-button.collapser-button:before {
     content: '\02795 \00a0';
-    float: left;
     margin-left: 5px;
 }
 
-#mg-translation-graph-filter-by-plugin-toggle-button.active:after, #mg-translation-graph-translation-path-solver-toggle-button.active:after {
+#mg-translation-graph-filter-by-plugin-toggle-button.active:before, #mg-translation-graph-translation-path-solver-toggle-button.active:before {
   content: '\2796 \00a0';
 }
 
@@ -394,14 +393,13 @@ p.mg-type-explorer-abstract-type {
     cursor: pointer;
 }
 
-.mg-type-explorer-abstract-type:after {
+.mg-type-explorer-abstract-type:before {
     content: '\02795 \00a0';
-    float: left;
     margin-left: 5px;
     font-size: 20px;
 }
 
-.mg-type-explorer-abstract-type.active:after {
+.mg-type-explorer-abstract-type.active:before {
     content: '\2796 \00a0';
 }
 
@@ -424,14 +422,13 @@ p.mg-type-explorer-abstract-type {
     padding: 5px;
 }
 
-.mg-type-explorer-concrete-type:after {
+.mg-type-explorer-concrete-type:before {
     content: '\2796 \00a0';
-    float: left;
 }
 
-/*****************************************************/
-/* Algorithm Explorer & Plugin Explorer Tree Widgets */
-/*****************************************************/
+/*******************************************************************************/
+/* Algorithm Explorer, Algorithm Type Solver, and Plugin Explorer Tree Widgets */
+/*******************************************************************************/
 
 .mg-explorer-tree-widget-container {
     border: 1px solid rgba(0,0,0,0.25);
@@ -475,14 +472,13 @@ p.mg-type-explorer-abstract-type {
     overflow: hidden;
 }
 
-.mg-explorer-tree-widget-label:after {
+.mg-explorer-tree-widget-label:before {
     content: '\02795 \00a0';
-    float: left;
     margin-left: 5px;
     font-size: 20px;
 }
 
-.mg-explorer-tree-widget-container .mg-explorer-tree-widget-label.active:after {
+.mg-explorer-tree-widget-container .mg-explorer-tree-widget-label.active:before {
     content: '\2796 \00a0';
 }
 
@@ -544,4 +540,20 @@ p.mg-type-explorer-abstract-type {
 
 #mg-algorithm-type-solver-plans {
     margin-top: 100px;
+}
+
+.mg-algorithm-type-solver-unsatisfiable-algorithm-label {
+    margin: 0px;
+    padding: 5px;
+    background: #efefef;
+    font-size: 23px;
+    overflow: hidden;
+    font-style: italic;
+}
+
+.mg-algorithm-type-solver-unsatisfiable-algorithm-label:before {
+    content: '\2715 \00a0';
+    margin-left: 5px;
+    font-size: 20px;
+    font-style: normal;
 }

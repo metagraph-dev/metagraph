@@ -1,4 +1,6 @@
 import operator
+import typing
+import collections
 from functools import reduce
 from collections import OrderedDict
 from ..core.plugin import AbstractType, ConcreteType, ConcreteAlgorithm
@@ -292,12 +294,16 @@ def list_algorithm_params(resolver, abstract_pathname: str, **kwargs):
             combo_type = " or ".join(r["type"] for r in resolved)
             choices = [c for r in resolved for c in r["choices"]]
             if p.optional:
-                combo_type += " or NoneType"  # this should really be type(NoneType), but Python doesn't have a concept of abstract types
+                combo_type += " or NoneType"  # should this really be type(NoneType)? Python doesn't have a concept of abstract types
                 choices.append("NoneType")
             result = OrderedDict([("type", combo_type), ("choices", choices)])
         elif issubclass(p_class, AbstractType):
             choices = list(types[p_class.__name__]["children"].keys())
             result = OrderedDict([("type", p_class.__name__), ("choices", choices)])
+        elif getattr(p, "__origin__", None) == collections.abc.Callable:
+            result = OrderedDict([("type", p._name), ("choices", [p._name])])
+        elif p is typing.Any:
+            result = OrderedDict([("type", "Any"), ("choices", ["Any"])])
         else:
             result = OrderedDict(
                 [("type", p_class.__name__), ("choices", [p_class.__name__])]
@@ -351,6 +357,28 @@ def solve_translator(
     }
 
 
+_PRIMITIVE_LIKE_NAME_TO_CLASS = {
+    "int": int,
+    "float": float,
+    "bool": bool,
+    "NodeID": int,
+    "NoneType": type(None),
+}
+
+
+def _non_concrete_type_to_shell_instance(primitive_like_name):
+    if primitive_like_name in _PRIMITIVE_LIKE_NAME_TO_CLASS:
+        primitive_like_class = _PRIMITIVE_LIKE_NAME_TO_CLASS[primitive_like_name]
+        shell_instance = primitive_like_class.__new__(primitive_like_class)
+    elif primitive_like_name == "Callable":
+        shell_instance = lambda x: x
+    elif primitive_like_name == "Any":
+        shell_instance = 1
+    else:
+        raise ValueError(f"Unhandled type {primitive_like_name}")
+    return shell_instance
+
+
 def solve_algorithm(
     resolver, abstract_pathname: str, params_description: dict, **kwargs
 ):
@@ -365,16 +393,19 @@ def solve_algorithm(
 
     params = {}
     for pname, pdescription in params_description.items():
-        abstract_type_name = pdescription["abstract_type"]
-        abstract_type_namespace = getattr(resolver.types, abstract_type_name, None)
-        if abstract_type_namespace is None:
-            raise ValueError(f'No abstract type "{abstract_type_name}" exists')
         concrete_type_name = pdescription["concrete_type"]
-        concrete_type = getattr(abstract_type_namespace, concrete_type_name, None)
+        concrete_type = None
+        abstract_type_names = pdescription["abstract_type"].split(" or ")
+        for abstract_type_name in abstract_type_names:
+            abstract_type_namespace = getattr(resolver.types, abstract_type_name, None)
+            if abstract_type_namespace is not None:
+                concrete_type = getattr(
+                    abstract_type_namespace, concrete_type_name, None
+                )
+                break
         if concrete_type is None:
-            raise ValueError(
-                f'No concrete type "{concrete_type_name}" exists for {abstract_type_name}'
-            )
+            params[pname] = _non_concrete_type_to_shell_instance(abstract_type_name)
+            continue
         concrete_type_value_type = concrete_type.value_type
         # Convert params from classes to shells of instances
         # (needed by code which expects instances)
@@ -394,7 +425,7 @@ def solve_algorithm(
                 ]
                 if plan.algo in plugin_concrete_algorithms:
                     translation_path_lookup = {}
-                    parameter_data = []
+                    parameter_name_type_pairs = []
                     for parameter in plan.algo.__signature__.parameters.values():
                         # TODO abstract common functionality from here and AlgorithmPlan.__repr__ into a class method for AlgorithmPlan
                         if parameter.name in plan.required_translations:
@@ -408,28 +439,34 @@ def solve_algorithm(
                                     parameter.annotation
                                 )
                             ]
-                        translation_path_lookup[parameter.name] = translation_path
-                        parameter_data.append(
+                        if len(translation_path) > 1:
+                            translation_path_lookup[parameter.name] = translation_path
+                        parameter_name_type_pairs.append(
                             [parameter.name, str(parameter.annotation)]
                         )
-                    solutions[
-                        f"plan_{plan_index}"
-                    ] = {  # TODO make this an ordered dict
+                    translation_data = (
+                        {
+                            "children": {
+                                parameter_name: {
+                                    # TODO using ": {}" has become a trope ; reconsider how we strucutre our JSON results
+                                    "children": {t: {} for t in translation_path}
+                                }
+                                for parameter_name, translation_path in translation_path_lookup.items()
+                            }
+                        }
+                        if len(translation_path_lookup) > 0
+                        else {}
+                    )
+                    # TODO make this an ordered dict
+                    solutions[f"plan_{plan_index}"] = {
                         "children": {
                             f"algo_name {plan.algo.func.__name__}": {},
                             f"plugin: {plugin_name}": {},
-                            "translations": {
-                                "children": {
-                                    parameter_name: {
-                                        "children": {t: {} for t in translation_path}
-                                    }
-                                    for parameter_name, translation_path in translation_path_lookup.items()
-                                }
-                            },
+                            "translations": translation_data,
                             "params": {
                                 "children": {
                                     f"{name}: {annotation}": {}
-                                    for name, annotation in parameter_data
+                                    for name, annotation in parameter_name_type_pairs
                                 }
                             },
                             f"returns {plan.algo.__signature__.return_annotation}": {},
