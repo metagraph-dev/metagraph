@@ -6,6 +6,7 @@ import inspect
 import numpy as np
 import scipy.sparse as ss
 from metagraph import config, Wrapper, NodeID
+from .dask.placeholder import Placeholder
 
 
 class MultiStepTranslator:
@@ -73,6 +74,12 @@ class MultiStepTranslator:
 
         if not self.translators:
             return src
+
+        # Import here to avoid circular references
+        from .dask.resolver import DaskResolver
+
+        if isinstance(self.resolver, DaskResolver):
+            return self.resolver._add_translation_plan(self, src, **props)
 
         if config.get("core.logging.translations"):
             self.display()
@@ -213,6 +220,13 @@ class AlgorithmPlan:
         if self.unsatisfiable:
             combined_err_msg = "".join(["\n    " + msg for msg in self.err_msgs])
             raise ValueError(f"Algorithm not callable because: {combined_err_msg}")
+
+        # Import here to avoid circular references
+        from .dask.resolver import DaskResolver
+
+        if isinstance(self.resolver, DaskResolver):
+            return self.resolver._add_algorithm_plan(self, *args, **kwargs)
+
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
         args, kwargs = self.apply_abstract_defaults(
             self.resolver, self.algo.abstract_name, *args, **kwargs
@@ -267,7 +281,7 @@ class AlgorithmPlan:
                     else:
                         required_translations[arg_name] = translator
         except TypeError as e:
-            failure_message = "Failed to find plan due to TypeError:\n{e}"
+            failure_message = f"Failed to find plan due to TypeError:\n{e}"
             err_msgs.append(failure_message)
             if config.get("core.planner.build.verbose", False):
                 print(failure_message)
@@ -289,6 +303,14 @@ class AlgorithmPlan:
             return
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
+
+            # Handle lazy objects which don't know their properties
+            if isinstance(arg_value, Placeholder):
+                if arg_typeclass is not param_type.__class__:
+                    return param_type
+                else:
+                    # TODO: add a self-translation step to ensure correct properties
+                    return
 
             requested_properties = set(param_type.props.keys())
             properties_dict = arg_typeclass.compute_concrete_properties(

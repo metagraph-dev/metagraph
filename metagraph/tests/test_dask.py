@@ -1,27 +1,30 @@
 import pytest
 from metagraph.core.resolver import Resolver
-from metagraph.core import dask as mgdask
+from metagraph.dask import DaskResolver
+from metagraph.core.dask.placeholder import Placeholder
 from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.python.types import PythonNodeMap
 from metagraph.plugins.numpy.types import NumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap
 import grblas
+import dask
 
 
 def test_translation_direct(default_plugin_resolver):
     dpr = default_plugin_resolver
-    ldpr = mgdask.DaskResolver(dpr)
+    if not isinstance(dpr, DaskResolver):
+        dpr = DaskResolver(dpr)
     x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
     final = GrblasNodeMap(
         grblas.Vector.from_values([0, 1, 42], [12.5, 33.4, -1.2], size=43),
     )
-    y = ldpr.translate(x, NumpyNodeMap)
-    z = ldpr.translate(y, GrblasNodeMap)
-    assert isinstance(y, mgdask.placeholder.Placeholder)
-    assert isinstance(z, mgdask.placeholder.Placeholder)
+    y = dpr.translate(x, NumpyNodeMap)
+    z = dpr.translate(y, GrblasNodeMap)
+    assert isinstance(y, Placeholder)
+    assert isinstance(z, Placeholder)
     assert len(y._dsk.keys()) == 1  # Only one task to perform
     assert len(z._dsk.keys()) == 2  # Two tasks to perform because y is still lazy
-    dpr.assert_equal(z.compute(), final)
+    dpr.assert_equal(z, final)
 
 
 def test_translation_multistep(default_plugin_resolver):
@@ -41,12 +44,12 @@ def test_translation_multistep(default_plugin_resolver):
             }
         }
     )
-    ldpr = mgdask.DaskResolver(res_small)
+    ldpr = DaskResolver(res_small)
     x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
     final = GrblasNodeMap(
         grblas.Vector.from_values([0, 1, 42], [12.5, 33.4, -1.2], size=43),
     )
     z = ldpr.translate(x, GrblasNodeMap)
-    assert isinstance(z, mgdask.placeholder.Placeholder)
+    assert isinstance(z, Placeholder)
     assert len(z._dsk.keys()) == 2  # Only one translation, but creates two tasks
-    dpr.assert_equal(z.compute(), final)
+    ldpr.assert_equal(z, final)

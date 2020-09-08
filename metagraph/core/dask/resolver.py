@@ -1,7 +1,7 @@
 import types
 from dask.base import tokenize
-from dask import delayed
-from ..resolver import Resolver, PlanNamespace
+from dask import delayed, is_dask_collection
+from ..resolver import Resolver, Namespace, PlanNamespace, Dispatcher
 from .placeholder import Placeholder
 from ..plugin import ConcreteType
 
@@ -16,6 +16,20 @@ class DaskResolver:
         self.plan = PlanNamespace(self)
         self.plan.algos = self._resolver.plan.algos
 
+        # Patch algorithms
+        def build_algos(namespace):
+            for name in dir(namespace):
+                obj = getattr(namespace, name)
+                if isinstance(obj, Dispatcher):
+                    self.algos._register(
+                        obj._algo_name, Dispatcher(self, obj._algo_name)
+                    )
+                elif isinstance(obj, Namespace):
+                    build_algos(obj)
+
+        self.algos = Namespace()
+        build_algos(self._resolver.algos)
+
         # Add placeholder types to `class_to_concrete`
         self.class_to_concrete = self._resolver.class_to_concrete.copy()
         for ct in self._resolver.concrete_types:
@@ -24,7 +38,11 @@ class DaskResolver:
 
     # Default behavior (unless overridden) is to delegate to the original resolver
     def __getattr__(self, item):
-        return getattr(self._resolver, item)
+        obj = getattr(self._resolver, item)
+        if type(obj) is types.MethodType and type(obj.__self__) is not type:
+            # Replace original resolver with the dask resolver for instance methods
+            return obj.__func__.__get__(self)
+        return obj
 
     def __dir__(self):
         return dir(self._resolver)
@@ -32,6 +50,7 @@ class DaskResolver:
     def _get_placeholder(self, concrete_type):
         if concrete_type not in self._placeholders:
             ph = types.new_class(f"{concrete_type.__name__}Placeholder", (Placeholder,))
+            ph.concrete_type = concrete_type
             self._placeholders[concrete_type] = ph
         return self._placeholders[concrete_type]
 
@@ -40,24 +59,36 @@ class DaskResolver:
         src_type = mst.src_type
         for trans, dst_type in zip(mst.translators, mst.dst_types):
             ph = self._get_placeholder(dst_type)
-            key = f"translate::{src_type.__name__}->{dst_type.__name__}::{tokenize(ph, trans, obj, props)}"
+            key = (
+                f"translate-{tokenize(ph, trans, obj, props)}",
+                f"{src_type.__name__}->{dst_type.__name__}",
+            )
+            kwargs = {}
+            # Pass in the real resolver if needed by the translator
+            if trans._include_resolver:
+                kwargs["resolver"] = self._resolver
             if dst_type is mst.final_type:
-                obj = ph.build(key, trans, (obj,), props)
-            else:
-                obj = ph.build(key, trans, (obj,))
+                kwargs.update(props)
+            obj = ph.build(key, trans, (obj,), kwargs)
             src_type = dst_type
         return obj
 
     def _add_algorithm_plan(self, algo_plan, *args, **kwargs):
+        args, kwargs = algo_plan.apply_abstract_defaults(
+            self._resolver, algo_plan.algo.abstract_name, *args, **kwargs
+        )
         sig = algo_plan.algo.__signature__
         # Walk through arguments and apply required translations
         bound = sig.bind(*args, **kwargs)
         bound.apply_defaults()
-        for name, val in bound.arguments.items():
-            if name in algo_plan.required_translations:
-                trans = algo_plan.required_translations[name]
-                bound.arguments[name] = self._add_translation_plan(trans, val)
+        for name, trans in algo_plan.required_translations.items():
+            bound.arguments[name] = self._add_translation_plan(
+                trans, bound.arguments[name]
+            )
         args, kwargs = bound.args, bound.kwargs
+        # Add resolver if needed by the algorithm
+        if algo_plan.algo._include_resolver:
+            kwargs["resolver"] = self._resolver
         # Determine return type and add task
         ret = sig.return_annotation
         if getattr(ret, "__origin__", None) == tuple:
@@ -68,12 +99,18 @@ class DaskResolver:
         elif type(ret) is not type and isinstance(ret, ConcreteType):
             ct = type(ret)
             ph = self._get_placeholder(ct)
-            key = f"algorithm::{algo_plan.algo.abstract_name}::{tokenize(ph, algo_plan, args, kwargs)}"
-            return ph.build(key, algo_plan, args, kwargs)
+            key = (
+                f"call-{tokenize(ph, algo_plan, args, kwargs)}",
+                f"{algo_plan.algo.abstract_name}",
+            )
+            return ph.build(key, algo_plan.algo, args, kwargs)
         else:
             # Use dask.delayed instead of a Placeholder
-            delayed_call = delayed(algo_plan)
-            key = f"algorithm::{algo_plan.algo.abstract_name}::{tokenize(delayed_call, algo_plan, args, kwargs)}"
+            delayed_call = delayed(algo_plan.algo)(*args, **kwargs)
+            key = (
+                f"call-{tokenize(delayed_call, algo_plan, args, kwargs)}",
+                f"{algo_plan.algo.abstract_name}",
+            )
             return delayed_call(*args, **kwargs, dask_key_name=key)
 
     def register(self, *args, **kwargs):
@@ -81,8 +118,12 @@ class DaskResolver:
             "Register with the resolver prior to creating a DaskResolver"
         )
 
-    def assert_equal(self, *args, **kwargs):
-        raise NotImplementedError("Do not assert_equal with a DaskResolver")
+    def assert_equal(self, obj1, obj2, *, rel_tol=1e-9, abs_tol=0.0):
+        if is_dask_collection(obj1):
+            obj1 = obj1.compute()
+        if is_dask_collection(obj2):
+            obj2 = obj2.compute()
+        self._resolver.assert_equal(obj1, obj2, rel_tol=rel_tol, abs_tol=abs_tol)
 
     def typeclass_of(self, value):
         """Return the concrete typeclass corresponding to a value"""
@@ -95,10 +136,23 @@ class DaskResolver:
                     break
             else:
                 raise TypeError(
-                    f"Class {value.__class__} does not have a registered type"
+                    f"Class {value.__class__} does not have a registered type within the DaskResolver"
                 )
         return concrete_type
 
     def translate(self, value, dst_type, **props):
-        translator = self.plan.translate(value, dst_type, **props)
-        return self._add_translation_plan(translator, value, **props)
+        trans_plan = self.plan.translate(value, dst_type, **props)
+        # return self._add_translation_plan(trans_plan, value, **props)
+        return trans_plan(value, **props)
+
+    def call_algorithm(self, algo_name: str, *args, **kwargs):
+        valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
+        if not valid_algos:
+            raise TypeError(
+                f'No concrete algorithm for "{algo_name}" can be satisfied for the given inputs'
+            )
+        else:
+            # choose the solutions requiring the fewest translations
+            plan = valid_algos[0]
+            # return self._add_algorithm_plan(plan, *args, **kwargs)
+            return plan(*args, **kwargs)

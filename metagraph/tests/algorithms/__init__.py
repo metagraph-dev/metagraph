@@ -2,6 +2,7 @@ from typing import Union, AnyStr, Callable, Tuple
 import math
 from metagraph import ConcreteType
 from metagraph.core.resolver import Resolver, Dispatcher
+from dask import is_dask_collection
 
 
 class UnsatisfiableAlgorithmError(Exception):
@@ -91,6 +92,8 @@ class MultiVerify:
                         )
 
                 try:
+                    if is_dask_collection(ret_val):
+                        ret_val = ret_val.compute()
                     cmp_func(ret_val)
                 except Exception:
                     print("Performing custom compare against:")
@@ -139,6 +142,9 @@ class MultiVerify:
         if issubclass(expected_type, ConcreteType):
             try:
                 compare_val = self.resolver.translate(ret_val, type(expected_val))
+                if is_dask_collection(compare_val):
+                    compare_val = compare_val.compute()
+
                 try:
                     if not expected_type.is_typeclass_of(compare_val):
                         raise TypeError(

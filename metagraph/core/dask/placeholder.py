@@ -32,6 +32,7 @@ def finalize(collection):
 
 
 class Placeholder(DaskMethodsMixin):
+    concrete_type = None  # subclasses should override this
     __dask_scheduler__ = staticmethod(dask.threaded.get)
 
     def __init__(self, key, dsk=None):
