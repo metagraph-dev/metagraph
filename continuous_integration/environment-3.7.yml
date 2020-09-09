@@ -16,3 +16,4 @@ dependencies:
   - scipy
   - conda-forge::donfig
   - conda-forge::grblas
+  - dask

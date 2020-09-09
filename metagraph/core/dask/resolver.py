@@ -142,24 +142,8 @@ class DaskResolver:
             obj2 = obj2.compute()
         self._resolver.assert_equal(obj1, obj2, rel_tol=rel_tol, abs_tol=abs_tol)
 
-    def typeclass_of(self, value):
-        """Return the concrete typeclass corresponding to a value"""
-        # Check for direct lookup
-        concrete_type = self.class_to_concrete.get(type(value))
-        if concrete_type is None:
-            for ct in self.concrete_types:
-                if ct.is_typeclass_of(value):
-                    concrete_type = ct
-                    break
-            else:
-                raise TypeError(
-                    f"Class {value.__class__} does not have a registered type within the DaskResolver"
-                )
-        return concrete_type
-
     def translate(self, value, dst_type, **props):
         trans_plan = self.plan.translate(value, dst_type, **props)
-        # return self._add_translation_plan(trans_plan, value, **props)
         return trans_plan(value, **props)
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
@@ -171,5 +155,4 @@ class DaskResolver:
         else:
             # choose the solutions requiring the fewest translations
             plan = valid_algos[0]
-            # return self._add_algorithm_plan(plan, *args, **kwargs)
             return plan(*args, **kwargs)
