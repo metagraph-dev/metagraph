@@ -46,6 +46,21 @@ if has_scipy:
             ScipyGraph(ScipyEdgeMap(lengths, graph.edges.node_list), nodes=graph.nodes),
         )
 
+    @concrete_algorithm("traversal.minimum_spanning_tree")
+    def ss_minimum_spanning_tree(graph: ScipyGraph) -> ScipyGraph:
+        span_tree = ss.csgraph.minimum_spanning_tree(graph.edges.value)
+        span_tree_mask = (span_tree != 0).astype(int, copy=False)
+        span_tree_mask_transposed = span_tree_mask.T
+        divisor = span_tree_mask + span_tree_mask_transposed
+        undirected_span_tree = span_tree + span_tree.T
+        # assert (undirected_span_tree.indices == divisor.indices).all()
+        # assert (undirected_span_tree.indptr == divisor.indptr).all()
+        undirected_span_tree.data /= divisor.data
+        undirected_span_tree = undirected_span_tree.astype(
+            graph.edges.value.dtype, copy=False
+        )
+        return ScipyGraph(undirected_span_tree, nodes=graph.nodes)
+
     @concrete_algorithm("cluster.triangle_count")
     def ss_triangle_count(graph: ScipyGraph) -> int:
         """

@@ -83,7 +83,11 @@ if has_networkx:
     @concrete_algorithm("subgraph.k_core")
     def nx_k_core(graph: NetworkXGraph, k: int) -> NetworkXGraph:
         k_core_graph = nx.k_core(graph.value, k)
-        return NetworkXGraph(k_core_graph, edge_weight_label=graph.edge_weight_label)
+        return NetworkXGraph(
+            k_core_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
@@ -115,6 +119,15 @@ if has_networkx:
         return (
             PythonNodeMap(single_parent_map,),
             PythonNodeMap(distance_map,),
+        )
+
+    @concrete_algorithm("traversal.minimum_spanning_tree")
+    def nx_minimum_spanning_tree(graph: NetworkXGraph) -> NetworkXGraph:
+        mst_graph = nx.minimum_spanning_tree(graph.value)
+        return NetworkXGraph(
+            mst_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
         )
 
     @concrete_algorithm("centrality.betweenness")

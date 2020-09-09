@@ -144,3 +144,48 @@ v        v /        v
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
     )
     MultiVerify(dpr, "traversal.dijkstra", graph, 0).assert_equals(expected_answer)
+
+
+def test_minimum_spanning_tree(default_plugin_resolver):
+    """
+0 ---2-- 1        5 --10-- 6
+|      / |      / |      /
+|     /  |     /  |     /
+1    7   3    9   5   11
+|   /    |  /     |  /
+|        | /        /
+3 --8--- 4 ---4-- 2 --6--- 7
+    """
+    dpr = default_plugin_resolver
+    ebunch = [
+        (0, 3, 1),
+        (1, 0, 2),
+        (1, 4, 3),
+        (2, 4, 4),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 8),
+        (4, 5, 9),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.Graph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+
+    ebunch_answer = [
+        (0, 3, 1),
+        (0, 1, 2),
+        (1, 4, 3),
+        (4, 2, 4),
+        (2, 5, 5),
+        (2, 7, 6),
+        (5, 6, 10),
+    ]
+    nx_graph_answer = nx.Graph()
+    nx_graph_answer.add_weighted_edges_from(ebunch_answer)
+    expected_answer = dpr.wrappers.Graph.NetworkXGraph(nx_graph_answer)
+    MultiVerify(dpr, "traversal.minimum_spanning_tree", graph).assert_equals(
+        expected_answer
+    )
