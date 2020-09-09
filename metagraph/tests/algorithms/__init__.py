@@ -68,20 +68,20 @@ class MultiVerify:
                     assert len(expected_type) == len(
                         ret_val
                     ), f"[{algo_path}] {ret_val} is not the same length as {expected_type}"
+                    rv = []
                     for expected_type_elem, ret_val_elem in zip(expected_type, ret_val):
-                        rv = []
-                        try:
-                            rv.append(
-                                self.resolver.translate(
+                        if expected_type_elem is not None:
+                            try:
+                                ret_val_elem = self.resolver.translate(
                                     ret_val_elem, expected_type_elem
                                 )
-                            )
-                        except TypeError:
-                            raise UnsatisfiableAlgorithmError(
-                                f"[{algo_path}] Unable to convert returned type {type(ret_val_elem)} "
-                                f"into type {expected_type_elem} for comparison"
-                            )
-                        ret_val = tuple(rv)
+                            except TypeError:
+                                raise UnsatisfiableAlgorithmError(
+                                    f"[{algo_path}] Unable to convert returned type {type(ret_val_elem)} "
+                                    f"into type {expected_type_elem} for comparison"
+                                )
+                        rv.append(ret_val_elem)
+                    ret_val = tuple(rv)
                 elif expected_type is not None:
                     try:
                         ret_val = self.resolver.translate(ret_val, expected_type)
@@ -91,14 +91,21 @@ class MultiVerify:
                             f"into type {expected_type} for comparison"
                         )
 
+                # Compute any lazy objects
+                if is_dask_collection(ret_val):
+                    ret_val = ret_val.compute()
+                elif type(ret_val) is tuple:
+                    ret_val = tuple(
+                        x.compute() if is_dask_collection(x) else x for x in ret_val
+                    )
+
                 try:
-                    if is_dask_collection(ret_val):
-                        ret_val = ret_val.compute()
                     cmp_func(ret_val)
                 except Exception:
                     print("Performing custom compare against:")
                     print(ret_val)
-                    print(ret_val.value)
+                    if hasattr(ret_val, "value"):
+                        print(ret_val.value)
                     raise
             except Exception:
                 print(f"Failed for {algo_path}")
@@ -167,6 +174,8 @@ class MultiVerify:
                 )
         else:
             # Normal Python type
+            if is_dask_collection(ret_val):
+                ret_val = ret_val.compute()
             if expected_type is float:
                 assert math.isclose(
                     ret_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol

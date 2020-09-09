@@ -92,10 +92,27 @@ class DaskResolver:
         # Determine return type and add task
         ret = sig.return_annotation
         if getattr(ret, "__origin__", None) == tuple:
-            # TODO: how do we handle multiple return types?
-            raise NotImplementedError(
-                "Currently can't handle delayed calls which return multiple objects"
+            # Use dask.delayed to compute the tuple
+            tpl_call = delayed(algo_plan.algo, nout=len(ret.__args__))
+            key = (
+                f"call-{tokenize(tpl_call, algo_plan, args, kwargs)}",
+                f"{algo_plan.algo.abstract_name}",
             )
+            tpl = tpl_call(*args, **kwargs, dask_key_name=key)
+            # Add extraction tasks for each component
+            ret_vals = []
+            for i, ret_item in enumerate(ret.__args__):
+                extract_func = lambda x, i=i: x[i]
+                if type(ret_item) is not type and isinstance(ret_item, ConcreteType):
+                    ct = type(ret_item)
+                    ph = self._get_placeholder(ct)
+                    key = f"[{i}]-{tokenize(ph, tpl, i)}"
+                    ret_val = ph.build(key, extract_func, (tpl,))
+                else:
+                    key = f"[{i}]-{tokenize(tpl, i)}"
+                    ret_val = delayed(extract_func)(tpl, dask_key_name=key)
+                ret_vals.append(ret_val)
+            return tuple(ret_vals)
         elif type(ret) is not type and isinstance(ret, ConcreteType):
             ct = type(ret)
             ph = self._get_placeholder(ct)
@@ -106,7 +123,7 @@ class DaskResolver:
             return ph.build(key, algo_plan.algo, args, kwargs)
         else:
             # Use dask.delayed instead of a Placeholder
-            delayed_call = delayed(algo_plan.algo)(*args, **kwargs)
+            delayed_call = delayed(algo_plan.algo)
             key = (
                 f"call-{tokenize(delayed_call, algo_plan, args, kwargs)}",
                 f"{algo_plan.algo.abstract_name}",
