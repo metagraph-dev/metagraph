@@ -147,7 +147,7 @@ def get_abstract_types(resolver, **kwargs):
     return [name for name in list_types(resolver)]
 
 
-def list_types(resolver, filters=None, **kwargs):
+def list_types(resolver, **kwargs):
     """
     Returns an OrderedDict of {abstract_type: [concrete_type, concrete_type, ...]}
     Abstract types and concrete types are sorted alphabetically
@@ -155,17 +155,8 @@ def list_types(resolver, filters=None, **kwargs):
     """
     t = OrderedDict()
 
-    if filters and "plugin" in filters:
-        plugin = getattr(resolver.plugins, filters["plugin"])
-        # Include abstract types defined in plugin along with abstract types matching concrete types defined
-        ats = {at.__name__ for at in plugin.abstract_types}
-        for ct in plugin.concrete_types:
-            at = ct.abstract.__name__
-            ats.add(at)
-        cts = plugin.concrete_types
-    else:
-        ats = {at.__name__ for at in resolver.abstract_types}
-        cts = resolver.concrete_types
+    ats = {at.__name__ for at in resolver.abstract_types}
+    cts = resolver.concrete_types
 
     for at in sorted(ats):
         t[at] = OrderedDict([("type", "abstract_type"), ("children", OrderedDict())])
@@ -176,14 +167,8 @@ def list_types(resolver, filters=None, **kwargs):
     return t
 
 
-def list_translators(resolver, source_type, filters=None, **kwargs):
-    if filters and "plugin" in filters:
-        plugin = getattr(resolver.plugins, filters["plugin"])
-        filtered_translators = plugin.translators
-        plugins = [filters["plugin"]]
-    else:
-        filtered_translators = resolver.translators
-        plugins = sorted(dir(resolver.plugins))
+def list_translators(resolver, source_type, **kwargs):
+    plugins = sorted(dir(resolver.plugins))
 
     source_type, source_class = normalize_abstract_type(resolver, source_type)
 
@@ -196,9 +181,9 @@ def list_translators(resolver, source_type, filters=None, **kwargs):
     primary_translators = OrderedDict()
     secondary_translators = OrderedDict()
     for src, dst in sorted(
-        filtered_translators, key=lambda x: (x[0].__name__, x[1].__name__)
+        resolver.translators, key=lambda x: (x[0].__name__, x[1].__name__)
     ):
-        trans = filtered_translators[(src, dst)]
+        trans = resolver.translators[(src, dst)]
         # Find which plugin the translator came from
         for plugin in plugins:
             trans_keys = getattr(resolver.plugins, plugin).translators
@@ -231,17 +216,9 @@ def list_translators(resolver, source_type, filters=None, **kwargs):
     }
 
 
-def list_algorithms(resolver, filters=None, **kwargs):
-    if filters and "plugin" in filters:
-        plugin = getattr(resolver.plugins, filters["plugin"])
-        # Include abstract algos defined in plugin along with abstract algos matching concrete algos defined
-        abstract_algorithms = set(plugin.abstract_algorithms)
-        for aa in plugin.concrete_algorithms:
-            abstract_algorithms.add(aa)
-        plugins = [filters["plugin"]]
-    else:
-        abstract_algorithms = resolver.abstract_algorithms.keys()
-        plugins = sorted(dir(resolver.plugins))
+def list_algorithms(resolver, **kwargs):
+    abstract_algorithms = resolver.abstract_algorithms.keys()
+    plugins = sorted(dir(resolver.plugins))
 
     d = OrderedDict()
     for aa in sorted(abstract_algorithms):
