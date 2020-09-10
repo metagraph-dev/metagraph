@@ -375,59 +375,8 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     stroke: #bbb;
 }
 
-/*****************/
-/* Type Explorer */
-/*****************/
-
-#mg-type-explorer-content {
-    border: 1px solid rgba(0,0,0,0.25);
-    box-shadow: 3px 3px 6px rgba(0,0,0,0.125);
-}
-
-p.mg-type-explorer-abstract-type {
-    margin: 0px;
-    padding: 5px;
-    transition: all 0.5s;
-    background: #efefef;
-    font-size: 23px;
-    cursor: pointer;
-}
-
-.mg-type-explorer-abstract-type:before {
-    content: '\02795 \00a0';
-    margin-left: 5px;
-    font-size: 20px;
-}
-
-.mg-type-explorer-abstract-type.active:before {
-    content: '\2796 \00a0';
-}
-
-.mg-type-explorer-concrete-type-container {
-    transition: all 0.5s;
-    padding-left: 3em;
-    background: #fdfdfd;
-    overflow: hidden;
-    max-height: 0px;
-    transform: scaleY(0);
-}
-
-.mg-type-explorer-concrete-type-container.active {
-    max-height: 50vh;
-    transform: scaleY(1);
-}
-
-.mg-type-explorer-concrete-type {
-    margin: 0px;
-    padding: 5px;
-}
-
-.mg-type-explorer-concrete-type:before {
-    content: '\2796 \00a0';
-}
-
 /*******************************************************************************/
-/* Algorithm Explorer, Algorithm Type Solver, and Plugin Explorer Tree Widgets */
+/* Type Explorer, Algorithm Explorer, Algorithm Type Solver, and Plugin Explorer Tree Widgets */
 /*******************************************************************************/
 
 .mg-explorer-tree-widget-container {

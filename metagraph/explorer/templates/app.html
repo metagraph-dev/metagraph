@@ -583,28 +583,8 @@
       const updateTypeExplorer = (typeData) => {
 	  const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
 	  removeAllChildNodes(typeExplorerContentDiv);
-	  const abstractTypeDataLookup = typeData.result;
-	  Object.keys(abstractTypeDataLookup).forEach(abstractType => {
-              const abstractTypeElement = document.createElement('p');
-	      abstractTypeElement.classList.add('mg-type-explorer-abstract-type');
-              abstractTypeElement.innerHTML = abstractType;
-	      typeExplorerContentDiv.append(abstractTypeElement);
-	      const concreteTypeDataLookup = abstractTypeDataLookup[abstractType].children;
-	      const concreteTypes = Object.keys(concreteTypeDataLookup);
-	      const concreteTypeContainer = document.createElement('div');
-	      concreteTypeContainer.classList.add('mg-type-explorer-concrete-type-container');
-	      concreteTypes.forEach(concreteType => {
-		  const concreteTypeElement = document.createElement('p');
-		  concreteTypeElement.classList.add('mg-type-explorer-concrete-type');
-		  concreteTypeElement.innerHTML = concreteType;
-		  concreteTypeContainer.append(concreteTypeElement);
-	      });
-	      typeExplorerContentDiv.append(concreteTypeContainer);
-	      abstractTypeElement.onclick = (event) => {
-		  abstractTypeElement.classList.toggle('active');
-		  concreteTypeContainer.classList.toggle('active');
-	      };
-	  });
+	  typeExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
+	  buildTreeWidget(typeExplorerContentDiv, typeData.result);
       }
       const requestTypeExplorerUpdate = () => sendShadowWebsocketRequest({function: 'list_types', kwargs: {}});
       
