@@ -2,8 +2,9 @@ import types
 from dask.base import tokenize
 from dask import delayed, is_dask_collection
 from ..resolver import Resolver, Namespace, PlanNamespace, Dispatcher
-from .placeholder import Placeholder
-from ..plugin import ConcreteType
+from .placeholder import Placeholder, DelayedWrapper
+from ..plugin import ConcreteType, MetaWrapper
+from typing import Optional
 
 
 class DaskResolver:
@@ -30,6 +31,21 @@ class DaskResolver:
         self.algos = Namespace()
         build_algos(self._resolver.algos)
 
+        # Patch wrappers
+        def build_wrappers(namespace):
+            for name in dir(namespace):
+                obj = getattr(namespace, name)
+                if isinstance(obj, MetaWrapper):
+                    self.wrappers._register(
+                        f"{obj.Type.abstract.__name__}.{obj.__name__}",
+                        self.delayed_wrapper(obj, obj.Type),
+                    )
+                elif isinstance(obj, Namespace):
+                    build_wrappers(obj)
+
+        self.wrappers = Namespace()
+        build_wrappers(self._resolver.wrappers)
+
         # Add placeholder types to `class_to_concrete`
         self.class_to_concrete = self._resolver.class_to_concrete.copy()
         for ct in self._resolver.concrete_types:
@@ -46,6 +62,17 @@ class DaskResolver:
 
     def __dir__(self):
         return dir(self._resolver)
+
+    def delayed_wrapper(self, klass, concrete_type: Optional[ConcreteType] = None):
+        ct = concrete_type
+        if ct is None:
+            ct = self._resolver.class_to_concrete.get(klass)
+            if ct is None:
+                raise TypeError(
+                    f"{klass.__name__} is not a defined `value_type`. Must provide `concrete_type`."
+                )
+        ph = self._get_placeholder(ct)
+        return DelayedWrapper(klass, ph)
 
     def _get_placeholder(self, concrete_type):
         if concrete_type not in self._placeholders:

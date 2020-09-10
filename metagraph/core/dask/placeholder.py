@@ -82,3 +82,22 @@ class Placeholder(DaskMethodsMixin):
             # Add this func to the task graph (no need for apply)
             dsk[key] = (func,) + tuple(new_args)
         return cls(key, dsk)
+
+
+class DelayedWrapper:
+    def __init__(self, klass, placeholder):
+        self._klass = klass
+        self._ph = placeholder
+
+    def __call__(self, *args, **kwargs):
+        key = (
+            f"init-{tokenize(self._ph, self._klass, args, kwargs)}",
+            self._klass.__name__,
+        )
+        return self._ph.build(key, self._klass, args, kwargs)
+
+    def __repr__(self):
+        return f"DelayedWrapper<{self._ph.concrete_type.__name__}>"
+
+    def __getattr__(self, item):
+        return getattr(self._klass, item)

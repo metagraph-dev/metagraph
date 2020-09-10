@@ -68,7 +68,7 @@ def test_algo_chain(default_plugin_resolver):
             "foo": {
                 "abstract_types": dpr.abstract_types,
                 "concrete_types": dpr.concrete_types,
-                "wrappers": {PythonNodeMap, NumpyNodeMap, GrblasNodeMap},
+                "wrappers": {PythonNodeMap, NumpyNodeMap, GrblasNodeMap, NetworkXGraph},
                 "translators": {
                     dpr.translators[(PythonNodeMap.Type, NumpyNodeMap.Type)],
                     dpr.translators[(NumpyNodeMap.Type, GrblasNodeMap.Type)],
@@ -88,7 +88,7 @@ def test_algo_chain(default_plugin_resolver):
     g.add_weighted_edges_from(
         [(0, 1, 1), (0, 2, 2), (0, 3, 3), (0, 4, 4), (2, 4, 5), (3, 4, 6)]
     )
-    graph = NetworkXGraph(g)
+    graph = ldpr.wrappers.Graph.NetworkXGraph(g)  # this is a DelayedWrapper
     sum_of_all_edges = PythonNodeMap({0: 10, 1: 1, 2: 7, 3: 9, 4: 15})
     sum_of_filtered_edges = PythonNodeMap({0: 7, 1: 0, 2: 5, 3: 9, 4: 15})
     # Verify simple algorithm call works (no translations required)
@@ -97,17 +97,17 @@ def test_algo_chain(default_plugin_resolver):
     )
     assert isinstance(nm, Placeholder)
     assert nm.concrete_type is PythonNodeMap.Type
-    assert len(nm._dsk.keys()) == 1
+    assert len(nm._dsk.keys()) == 2  # init, aggregate
     ldpr.assert_equal(nm, sum_of_all_edges)
     # Build chained algo call with translators
     graph2 = ldpr.algos.util.graph.filter_edges(graph, lambda x: x > 2)
     assert isinstance(graph2, Placeholder)
     assert graph2.concrete_type is ScipyGraph.Type
-    assert len(graph2._dsk.keys()) == 2
+    assert len(graph2._dsk.keys()) == 3  # init, translate, filter
     nm2 = ldpr.algos.util.graph.aggregate_edges(
         graph2, lambda x, y: x + y, initial_value=0
     )
     assert isinstance(nm2, Placeholder)
     assert nm2.concrete_type is PythonNodeMap.Type
-    assert len(nm2._dsk.keys()) == 4  # translate, filter, translate, aggregate
+    assert len(nm2._dsk.keys()) == 5  # init, translate, filter, translate, aggregate
     ldpr.assert_equal(nm2, sum_of_filtered_edges)
