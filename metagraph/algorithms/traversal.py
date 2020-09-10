@@ -44,3 +44,11 @@ def dijkstra(
 ) -> Tuple[NodeMap, NodeMap]:
     """Output is (Parents, Distance)"""
     pass  # pragma: no cover
+
+
+@abstract_algorithm("traversal.minimum_spanning_tree")
+def minimum_spanning_tree(
+    graph: Graph(is_directed=False, edge_type="map", edge_dtype={"int", "float"})
+) -> Graph(is_directed=False, edge_type="map", edge_dtype={"int", "float"}):
+    """If the graph is disconnected, a minimum spanning forest is returned."""  # TODO consider renaming this to minimum_spanning_forest
+    pass  # pragma: no cover
