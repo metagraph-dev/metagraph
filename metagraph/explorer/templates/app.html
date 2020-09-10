@@ -259,6 +259,25 @@
 	      const edgeConcreteTypesToLineId = (srcConcreteType, dstConcreteType) => {
 		  return `${srcConcreteType}-${dstConcreteType}-line`; 
 	      };
+	      const hideToolTip = datum => {
+		  tooltipDiv
+		      .style('opacity', 0);
+	      };
+	      const showEdgeToolTip = function(datum) {
+		  const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
+		  tooltipDiv
+		      .style('opacity', .9)
+		      .html(`<div id="mg-translation-graph-tooltip-content">
+<p>Translator Function Name: ${datum.name}</p>
+<p>Source Type: ${datum.src}</p>
+<p>Destination Type: ${datum.dst}</p>
+<p>translator Order: ${datum.translatorOrder}</p>
+<p>Plugin: ${datum.plugin}</p>
+<p>Module: ${datum.module}</p>
+</div>`)
+		      .style('left', x + 10 + 'px')
+		      .style('top', y + 10 + 'px');
+	      }
               const edgeEnterSelection = edgeGroup
 		    .selectAll('path')
 		    .data(edgeData)
@@ -266,6 +285,8 @@
 		    .append('path')
 		    .attr('class', 'mg-translation-graph-edge')
 		    .attr('id', datum => edgeConcreteTypesToLineId(datum.src, datum.dst))
+		    .on('mouseover', showEdgeToolTip)
+		    .on('mouseout', hideToolTip)
 		    .classed('mg-translation-graph-primary-edge', datum => datum.translatorOrder === 'primary')
 		    .classed('mg-translation-graph-secondary-edge', datum => datum.translatorOrder === 'secondary')
 		    .attr('marker-end','url(#mg-translation-graph-edge-arrowhead)');
@@ -283,7 +304,7 @@
 	      const nodeDataJoin = nodeGroup
 		    .selectAll('circle')
 		    .data(nodeData);
-	      const showToolTip = function(datum) {
+	      const showNodeToolTip = function(datum) {
 		  const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
 		  tooltipDiv
 		      .style('opacity', .9)
@@ -294,15 +315,11 @@
 		      .style('left', x + 10 + 'px')
 		      .style('top', y + 10 + 'px');
 	      };
-	      const hideToolTip = datum => {
-			tooltipDiv
-			    .style('opacity', 0);
-	      };
               const nodeEnterSelection = nodeDataJoin
 		    .enter()
 		    .append('circle')
 		    .attr('id', datum => concreteTypeNameToCircleId(datum.id))
-		    .on('mouseover', showToolTip)
+		    .on('mouseover', showNodeToolTip)
 		    .on('mouseout', hideToolTip)
 		    .attr('class', 'mg-translation-graph-node')
 		    .call(drag);
@@ -320,7 +337,7 @@
 		    .attr('dx', nodeTextHorizontalOffset)
 		    .attr('id', datum => concreteTypeNameToTextElementId(datum.id))
 		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-primary' : 'mg-translation-graph-node-text-secondary')
-		    .on('mouseover', showToolTip)
+		    .on('mouseover', showNodeToolTip)
 		    .on('mouseout', hideToolTip)
                     .html(datum => datum.id);
 	      const concreteTypeNameToTextElementBoundingBoxId = concreteType => `${concreteType}-text-element-bounding-box`;
@@ -330,7 +347,7 @@
 		    .attr('id', datum => concreteTypeNameToTextElementBoundingBoxId(datum.id))
 		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-bounding-box-primary' : 'mg-translation-graph-node-text-bounding-box-secondary')
 		    .classed('mg-translation-graph-node-text-bounding-box', true)
-		    .on('mouseover', showToolTip)
+		    .on('mouseover', showNodeToolTip)
 		    .on('mouseout', hideToolTip)
                     .html(datum => datum.id);
 
