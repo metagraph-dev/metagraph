@@ -65,30 +65,39 @@ v /      v /      v v
         assert actual_flow_graph.value.nodes() == expected_graph.value.nodes()
 
         bottleneck_nodes = [4, 2]
+        get_edge_weight = lambda edge: edge[2]
         for node in bottleneck_nodes:
             actual_total_in_flow = sum(
-                flow
-                for _, _, flow in actual_flow_graph.value.in_edges(
-                    node, data=expected_graph.edge_weight_label
+                map(
+                    get_edge_weight,
+                    actual_flow_graph.value.in_edges(
+                        node, data=expected_graph.edge_weight_label
+                    ),
                 )
             )
             expected_total_in_flow = sum(
-                flow
-                for _, _, flow in expected_graph.value.in_edges(
-                    node, data=expected_graph.edge_weight_label
+                map(
+                    get_edge_weight,
+                    expected_graph.value.in_edges(
+                        node, data=expected_graph.edge_weight_label
+                    ),
                 )
             )
             assert actual_total_in_flow == expected_total_in_flow
             actual_total_out_flow = sum(
-                flow
-                for _, _, flow in actual_flow_graph.value.out_edges(
-                    node, data=expected_graph.edge_weight_label
+                map(
+                    get_edge_weight,
+                    actual_flow_graph.value.out_edges(
+                        node, data=expected_graph.edge_weight_label
+                    ),
                 )
             )
             expected_total_out_flow = sum(
-                flow
-                for _, _, flow in expected_graph.value.out_edges(
-                    node, data=expected_graph.edge_weight_label
+                map(
+                    get_edge_weight,
+                    expected_graph.value.out_edges(
+                        node, data=expected_graph.edge_weight_label
+                    ),
                 )
             )
             assert actual_total_out_flow == expected_total_out_flow
