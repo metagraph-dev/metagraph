@@ -90,7 +90,7 @@ class MultiVerify:
                         )
                         rv.append(translated_ret_val_elem)
                     ret_val = tuple(rv)
-                else:
+                elif expected_type is not None:
                     ret_val = self._translate_atomic_type(
                         ret_val, expected_type, algo_path
                     )
@@ -151,30 +151,24 @@ class MultiVerify:
             type(expected_val), type(expected_val)
         )
         if issubclass(expected_type, ConcreteType):
+            compare_val = self._translate_atomic_type(
+                ret_val, type(expected_val), algo_path
+            )
             try:
-                compare_val = self._translate_atomic_type(
-                    ret_val, type(expected_val), algo_path
-                )
-                try:
-                    if not expected_type.is_typeclass_of(compare_val):
-                        raise TypeError(
-                            f"compare value must be {expected_type}, not {type(compare_val)}"
-                        )
-                    self.resolver.assert_equal(
-                        compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
+                if not expected_type.is_typeclass_of(compare_val):
+                    raise TypeError(
+                        f"compare value must be {expected_type}, not {type(compare_val)}"
                     )
-                except AssertionError:
-                    print(f"compare_val        {compare_val}")
-                    print(f"compare_val.value  {compare_val.value}")
-                    print(f"expected_val       {expected_val}")
-                    print(f"expected_val.value {expected_val.value}")
-                    # breakpoint()
-                    raise
-            except TypeError:
-                raise UnsatisfiableAlgorithmError(
-                    f"[{algo_path}] Unable to convert returned type {type(ret_val)} "
-                    f"into type {type(expected_val)} for comparison"
+                self.resolver.assert_equal(
+                    compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
                 )
+            except AssertionError:
+                print(f"compare_val        {compare_val}")
+                print(f"compare_val.value  {compare_val.value}")
+                print(f"expected_val       {expected_val}")
+                print(f"expected_val.value {expected_val.value}")
+                # breakpoint()
+                raise
         else:
             # Normal Python type
             if expected_type is float:
