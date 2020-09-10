@@ -50,10 +50,13 @@ class MultiVerify:
 
     def _translate_atomic_type(self, value, dst_type, algo_path):
         try:
-            if dst_type in (float, int):
-                translated_value = value
-            else:
+            if (
+                issubclass(dst_type, ConcreteType)
+                or dst_type in self.resolver.class_to_concrete
+            ):
                 translated_value = self.resolver.translate(value, dst_type)
+            else:
+                translated_value = value
         except TypeError:
             raise UnsatisfiableAlgorithmError(
                 f"[{algo_path}] Unable to convert returned type {type(value)} "
@@ -87,7 +90,7 @@ class MultiVerify:
                         )
                         rv.append(translated_ret_val_elem)
                     ret_val = tuple(rv)
-                elif expected_type is not None:
+                else:
                     ret_val = self._translate_atomic_type(
                         ret_val, expected_type, algo_path
                     )
