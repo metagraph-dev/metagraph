@@ -49,6 +49,22 @@ class MultiVerify:
 
         self.plans = plans
 
+    def _translate_atomic_type(self, value, dst_type, algo_path):
+        try:
+            if (
+                issubclass(dst_type, ConcreteType)
+                or dst_type in self.resolver.class_to_concrete
+            ):
+                translated_value = self.resolver.translate(value, dst_type)
+            else:
+                translated_value = value
+        except TypeError:
+            raise UnsatisfiableAlgorithmError(
+                f"[{algo_path}] Unable to convert returned type {type(value)} "
+                f"into type {dst_type} for comparison"
+            )
+        return translated_value
+
     def custom_compare(self, cmp_func: Callable, expected_type=None):
         """
         Calls cmp_func sequentially, passing in each concrete algorithm's output.
@@ -70,26 +86,15 @@ class MultiVerify:
                     ), f"[{algo_path}] {ret_val} is not the same length as {expected_type}"
                     rv = []
                     for expected_type_elem, ret_val_elem in zip(expected_type, ret_val):
-                        if expected_type_elem is not None:
-                            try:
-                                ret_val_elem = self.resolver.translate(
-                                    ret_val_elem, expected_type_elem
-                                )
-                            except TypeError:
-                                raise UnsatisfiableAlgorithmError(
-                                    f"[{algo_path}] Unable to convert returned type {type(ret_val_elem)} "
-                                    f"into type {expected_type_elem} for comparison"
-                                )
-                        rv.append(ret_val_elem)
+                        translated_ret_val_elem = self._translate_atomic_type(
+                            ret_val_elem, expected_type_elem, algo_path
+                        )
+                        rv.append(translated_ret_val_elem)
                     ret_val = tuple(rv)
                 elif expected_type is not None:
-                    try:
-                        ret_val = self.resolver.translate(ret_val, expected_type)
-                    except TypeError:
-                        raise UnsatisfiableAlgorithmError(
-                            f"[{algo_path}] Unable to convert returned type {type(ret_val)} "
-                            f"into type {expected_type} for comparison"
-                        )
+                    ret_val = self._translate_atomic_type(
+                        ret_val, expected_type, algo_path
+                    )
 
                 # Compute any lazy objects
                 if is_dask_collection(ret_val):
@@ -103,9 +108,13 @@ class MultiVerify:
                     cmp_func(ret_val)
                 except Exception:
                     print("Performing custom compare against:")
-                    print(ret_val)
-                    if hasattr(ret_val, "value"):
-                        print(ret_val.value)
+                    if not isinstance(ret_val, tuple):
+                        ret_val = (ret_val,)
+                    for item in ret_val:
+                        if hasattr(item, "value"):
+                            print(item.value)
+                        else:
+                            print(item)
                     raise
             except Exception:
                 print(f"Failed for {algo_path}")
@@ -147,31 +156,29 @@ class MultiVerify:
             type(expected_val), type(expected_val)
         )
         if issubclass(expected_type, ConcreteType):
-            try:
-                compare_val = self.resolver.translate(ret_val, type(expected_val))
-                if is_dask_collection(compare_val):
-                    compare_val = compare_val.compute()
+            compare_val = self._translate_atomic_type(
+                ret_val, type(expected_val), algo_path
+            )
+            if is_dask_collection(compare_val):
+                compare_val = compare_val.compute()
 
-                try:
-                    if not expected_type.is_typeclass_of(compare_val):
-                        raise TypeError(
-                            f"compare value must be {expected_type}, not {type(compare_val)}"
-                        )
-                    self.resolver.assert_equal(
-                        compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
+            try:
+                if not expected_type.is_typeclass_of(compare_val):
+                    raise TypeError(
+                        f"compare value must be {expected_type}, not {type(compare_val)}"
                     )
-                except AssertionError:
-                    print(f"compare_val        {compare_val}")
-                    print(f"compare_val.value  {compare_val.value}")
-                    print(f"expected_val       {expected_val}")
-                    print(f"expected_val.value {expected_val.value}")
-                    # breakpoint()
-                    raise
-            except TypeError:
-                raise UnsatisfiableAlgorithmError(
-                    f"[{algo_path}] Unable to convert returned type {type(ret_val)} "
-                    f"into type {type(expected_val)} for comparison"
+                self.resolver.assert_equal(
+                    compare_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
                 )
+            except AssertionError:
+                print(f"compare_val        {compare_val}")
+                if hasattr(compare_val, "value"):
+                    print(f"compare_val.value  {compare_val.value}")
+                print(f"expected_val       {expected_val}")
+                if hasattr(expected_val, "value"):
+                    print(f"expected_val.value {expected_val.value}")
+                # breakpoint()
+                raise
         else:
             # Normal Python type
             if is_dask_collection(ret_val):

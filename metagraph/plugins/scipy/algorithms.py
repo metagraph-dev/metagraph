@@ -46,6 +46,21 @@ if has_scipy:
             ScipyGraph(ScipyEdgeMap(lengths, graph.edges.node_list), nodes=graph.nodes),
         )
 
+    @concrete_algorithm("traversal.minimum_spanning_tree")
+    def ss_minimum_spanning_tree(graph: ScipyGraph) -> ScipyGraph:
+        span_tree = ss.csgraph.minimum_spanning_tree(graph.edges.value)
+        span_tree_mask = (span_tree != 0).astype(int, copy=False)
+        span_tree_mask_transposed = span_tree_mask.T
+        divisor = span_tree_mask + span_tree_mask_transposed
+        undirected_span_tree = span_tree + span_tree.T
+        # assert (undirected_span_tree.indices == divisor.indices).all()
+        # assert (undirected_span_tree.indptr == divisor.indptr).all()
+        undirected_span_tree.data /= divisor.data
+        undirected_span_tree = undirected_span_tree.astype(
+            graph.edges.value.dtype, copy=False
+        )
+        return ScipyGraph(undirected_span_tree, nodes=graph.nodes)
+
     @concrete_algorithm("cluster.triangle_count")
     def ss_triangle_count(graph: ScipyGraph) -> int:
         """
@@ -78,6 +93,20 @@ if has_scipy:
         )
         bfs_ordered_nodes = graph.edges.node_list[bfs_ordered_incides]
         return NumpyVector(bfs_ordered_nodes)
+
+    @concrete_algorithm("flow.max_flow")
+    def ss_max_flow(
+        graph: ScipyGraph, source_node: NodeID, target_node: NodeID,
+    ) -> Tuple[float, ScipyGraph]:
+        max_flow_result = ss.csgraph.maximum_flow(
+            graph.edges.value, source_node, target_node
+        )
+        flow_value = max_flow_result.flow_value
+        residual_graph = max_flow_result.residual
+        residual_keep_mask = residual_graph > 0
+        ss_flow_graph = residual_graph.multiply(residual_keep_mask)
+        flow_graph = ScipyGraph(ss_flow_graph, nodes=graph.nodes)
+        return (flow_value, flow_graph)
 
     def _reduce_sparse_matrix(
         func: np.ufunc, sparse_matrix: ss.spmatrix

@@ -83,7 +83,11 @@ if has_networkx:
     @concrete_algorithm("subgraph.k_core")
     def nx_k_core(graph: NetworkXGraph, k: int) -> NetworkXGraph:
         k_core_graph = nx.k_core(graph.value, k)
-        return NetworkXGraph(k_core_graph, edge_weight_label=graph.edge_weight_label)
+        return NetworkXGraph(
+            k_core_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
@@ -115,6 +119,15 @@ if has_networkx:
         return (
             PythonNodeMap(single_parent_map,),
             PythonNodeMap(distance_map,),
+        )
+
+    @concrete_algorithm("traversal.minimum_spanning_tree")
+    def nx_minimum_spanning_tree(graph: NetworkXGraph) -> NetworkXGraph:
+        mst_graph = nx.minimum_spanning_tree(graph.value)
+        return NetworkXGraph(
+            mst_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
         )
 
     @concrete_algorithm("centrality.betweenness")
@@ -157,6 +170,26 @@ if has_networkx:
             node_weight_label=bgraph.node_weight_label,
             edge_weight_label=bgraph.edge_weight_label,
         )
+
+    @concrete_algorithm("flow.max_flow")
+    def nx_max_flow(
+        graph: NetworkXGraph, source_node: NodeID, target_node: NodeID,
+    ) -> Tuple[float, NetworkXGraph]:
+        flow_value, flow_dict = nx.maximum_flow(
+            graph.value, source_node, target_node, capacity=graph.edge_weight_label
+        )
+        nx_flow_graph = nx.DiGraph()
+        for src in flow_dict.keys():
+            for dst in flow_dict[src].keys():
+                nx_flow_graph.add_edge(
+                    src, dst, **{graph.edge_weight_label: flow_dict[src][dst]}
+                )
+        flow_graph = NetworkXGraph(
+            nx_flow_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
+        return (flow_value, flow_graph)
 
     @concrete_algorithm("util.graph.aggregate_edges")
     def nx_graph_aggregate_edges(
