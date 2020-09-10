@@ -94,6 +94,21 @@ if has_scipy:
         bfs_ordered_nodes = graph.edges.node_list[bfs_ordered_incides]
         return NumpyVector(bfs_ordered_nodes)
 
+    @concrete_algorithm("flow.max_flow")
+    def ss_max_flow(
+        graph: ScipyGraph, source_node: NodeID, target_node: NodeID,
+    ) -> Tuple[float, ScipyGraph]:
+        print(f"graph.edges.value.toarray() {repr(graph.edges.value.toarray())}")
+        max_flow_result = ss.csgraph.maximum_flow(
+            graph.edges.value, source_node, target_node
+        )
+        flow_value = max_flow_result.flow_value
+        residual_graph = max_flow_result.residual
+        residual_keep_mask = residual_graph > 0
+        ss_flow_graph = residual_graph.multiply(residual_keep_mask)
+        flow_graph = ScipyGraph(ss_flow_graph, nodes=graph.nodes)
+        return (flow_value, flow_graph)
+
     def _reduce_sparse_matrix(
         func: np.ufunc, sparse_matrix: ss.spmatrix
     ) -> Tuple[np.ndarray, np.ndarray]:

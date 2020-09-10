@@ -171,6 +171,26 @@ if has_networkx:
             edge_weight_label=bgraph.edge_weight_label,
         )
 
+    @concrete_algorithm("flow.max_flow")
+    def nx_max_flow(
+        graph: NetworkXGraph, source_node: NodeID, target_node: NodeID,
+    ) -> Tuple[float, NetworkXGraph]:
+        flow_value, flow_dict = nx.maximum_flow(
+            graph.value, source_node, target_node, capacity=graph.edge_weight_label
+        )
+        nx_flow_graph = nx.DiGraph()
+        for src in flow_dict.keys():
+            for dst in flow_dict[src].keys():
+                nx_flow_graph.add_edge(
+                    src, dst, **{graph.edge_weight_label: flow_dict[src][dst]}
+                )
+        flow_graph = NetworkXGraph(
+            nx_flow_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
+        return (flow_value, flow_graph)
+
     @concrete_algorithm("util.graph.aggregate_edges")
     def nx_graph_aggregate_edges(
         graph: NetworkXGraph,
