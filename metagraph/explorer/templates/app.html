@@ -49,10 +49,19 @@
       const shadow = div.attachShadow({mode: 'open'});
       shadow.innerHTML = shadowInnerHTML;
       shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
-      shadow.websocket.onerror = () => {
+      const closeWebsocketOnError = () => {
 	  removeAllChildNodes(shadow);
 	  shadow.innerHTML = `Websocket connection to ws://127.0.0.1:${port}/ failed.`;
       };
+      shadow.websocket.onerror = closeWebsocketOnError;
+      const sendShadowWebsocketRequest = (object) => {
+	  if (shadow.websocket.readyState === WebSocket.CLOSED) {
+	      closeWebsocketOnError();
+	  } else {
+	      shadow.websocket.send(JSON.stringify(object));
+	  }
+      };
+      
 
       let highlightTranslationGraphPath = (data) => {};
       
@@ -137,7 +146,7 @@
       shadow.querySelector('#mg-plugin-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-plugin-explorer');
       
       const metagraphCloseExplorer = () => {
-	  shadow.websocket.send(JSON.stringify({function: 'close'}));
+	  sendShadowWebsocketRequest({function: 'close'});
 	  shadow.websocket.close();
 	  removeAllChildNodes(shadow);
       }
@@ -345,7 +354,7 @@
 		  }
 		  highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
 		  highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
-		  shadow.websocket.send(JSON.stringify({function: 'solve_translator', kwargs: kwargs}));
+		  sendShadowWebsocketRequest({function: 'solve_translator', kwargs: kwargs});
 	      };
 	      startConcreteTypeDropdown.onchange = (event) => {
 		  requestTranslationPath();
@@ -547,7 +556,7 @@
       const updateTranslationGraph = (translationGraphData) => {
 	  callAfterDOMUpdated(() => loadTranslationGraph(translationGraphData));
       }
-      const requestTranslationGraphAbstractTypeUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_translators', kwargs: {source_type: abstractTypeDropdown.value}}))
+      const requestTranslationGraphAbstractTypeUpdate = () => sendShadowWebsocketRequest({function: 'list_translators', kwargs: {source_type: abstractTypeDropdown.value}});
       abstractTypeDropdown.onchange = requestTranslationGraphAbstractTypeUpdate;
 
       /*****************/
@@ -580,7 +589,7 @@
 	      };
 	  });
       }
-      const requestTypeExplorerUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_types', kwargs: {}}));
+      const requestTypeExplorerUpdate = () => sendShadowWebsocketRequest({function: 'list_types', kwargs: {}});
       
       /**********************/
       /* Algorithm Explorer */
@@ -658,10 +667,10 @@
 			  const concreteTypeString = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').value;
 			  paramsDescription[parameterName] = {abstract_type: abstractTypeString, concrete_type: concreteTypeString}
 		      });
-		      shadow.websocket.send(JSON.stringify({function: 'solve_algorithm', kwargs: {
+		      sendShadowWebsocketRequest({function: 'solve_algorithm', kwargs: {
 			  abstract_pathname: abstractAlgorithmPathDropdown.value,
 			  params_description: paramsDescription,
-		      }}));
+		      }});
 		  }
 	      });
 	      shadow.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').onchange();
@@ -703,9 +712,7 @@
               optionElement.innerHTML = pathName;
 	      abstractAlgorithmPathDropdown.append(optionElement);
 	  });
-	  abstractAlgorithmPathDropdown.onchange = (event) => {
-	      shadow.websocket.send(JSON.stringify({function: 'list_algorithm_params', kwargs: {abstract_pathname: abstractAlgorithmPathDropdown.value}}));
-	  };
+	  abstractAlgorithmPathDropdown.onchange = (event) => sendShadowWebsocketRequest({function: 'list_algorithm_params', kwargs: {abstract_pathname: abstractAlgorithmPathDropdown.value}});
 	  abstractAlgorithmPathDropdown.onchange();
 	  
 	  const plansDiv = document.createElement('div');
@@ -722,7 +729,7 @@
       pluginExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
       buildTreeWidget(pluginExplorerContentDiv, pluginData);
 
-      const requestAlgorithmListUpdate = () => shadow.websocket.send(JSON.stringify({function: 'list_algorithms', kwargs: {}}));
+      const requestAlgorithmListUpdate = () => sendShadowWebsocketRequest({function: 'list_algorithms', kwargs: {}});
       shadow.websocket.onopen = () => {
 	  requestTranslationGraphAbstractTypeUpdate();
 	  requestTypeExplorerUpdate();
