@@ -98,7 +98,6 @@ if has_scipy:
     def ss_max_flow(
         graph: ScipyGraph, source_node: NodeID, target_node: NodeID,
     ) -> Tuple[float, ScipyGraph]:
-        print(f"graph.edges.value.toarray() {repr(graph.edges.value.toarray())}")
         max_flow_result = ss.csgraph.maximum_flow(
             graph.edges.value, source_node, target_node
         )
