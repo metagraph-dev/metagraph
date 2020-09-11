@@ -218,13 +218,16 @@ class AlgorithmPlan:
             self.resolver, self.algo.abstract_name, *args, **kwargs
         )
         sig = self.algo.__signature__
+        # inject resolver into the arguments if concrete algo requested it
+        if self.algo._include_resolver:
+            kwargs["resolver"] = self.resolver
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
         for varname in self.required_translations:
             bound_args.arguments[varname] = self.required_translations[varname](
                 bound_args.arguments[varname]
             )
-        return self.algo(*bound_args.args, resolver=self.resolver, **bound_args.kwargs)
+        return self.algo(*bound_args.args, **bound_args.kwargs)
 
     def display(self):
         print(self)
@@ -240,12 +243,17 @@ class AlgorithmPlan:
         required_translations = {}
         err_msgs = []
         sig = concrete_algorithm.__signature__
+        if concrete_algorithm._include_resolver:
+            kwargs["resolver"] = resolver
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
 
         try:
             parameters = bound_args.signature.parameters
             for arg_name, arg_value in bound_args.arguments.items():
+                # do not consider resolver argument in signature matching
+                if concrete_algorithm._include_resolver and arg_name == "resolver":
+                    continue
                 param_type = parameters[arg_name].annotation
                 # If argument type is okay, no need to add an adjustment
                 # If argument type is not okay, look for translator
