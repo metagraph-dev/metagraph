@@ -29,4 +29,4 @@ def test_triangle_count(default_plugin_resolver):
     # Convert to wrapper
     graph = dpr.wrappers.Graph.NetworkXGraph(simple_graph)
 
-    MultiVerify(dpr, "cluster.triangle_count", graph).assert_equals(5)
+    MultiVerify(dpr).compute("cluster.triangle_count", graph).assert_equals(5)

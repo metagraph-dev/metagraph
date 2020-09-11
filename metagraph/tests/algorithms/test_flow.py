@@ -103,6 +103,6 @@ v /      v /      v v
             )
             assert actual_total_out_flow == expected_total_out_flow
 
-    MultiVerify(dpr, "flow.max_flow", graph, source_node, target_node).custom_compare(
-        cmp_func, (float, dpr.wrappers.Graph.NetworkXGraph.Type)
-    )
+    MultiVerify(dpr).compute(
+        "flow.max_flow", graph, source_node, target_node
+    ).normalize((float, dpr.wrappers.Graph.NetworkXGraph.Type)).custom_compare(cmp_func)

@@ -1,4 +1,5 @@
 from metagraph.tests.util import default_plugin_resolver
+from metagraph.plugins.python.types import PythonNodeMap
 import networkx as nx
 from typing import Tuple
 from . import MultiVerify
@@ -43,8 +44,11 @@ def test_connected_components(default_plugin_resolver):
         c2 = c2.pop()
         assert c1 != c2, f"{c1}, {c2}"
 
-    MultiVerify(dpr, "clustering.connected_components", graph).custom_compare(
-        cmp_func, dpr.types.NodeMap.PythonNodeMapType
+    (
+        MultiVerify(dpr)
+        .compute("clustering.connected_components", graph)
+        .normalize(dpr.types.NodeMap.PythonNodeMapType)
+        .custom_compare(cmp_func)
     )
 
 
@@ -80,9 +84,9 @@ def test_strongly_connected_components(default_plugin_resolver):
         c1 = c1.pop()
         assert c1 != c2, f"{c1}, {c2}"
 
-    MultiVerify(dpr, "clustering.strongly_connected_components", graph).custom_compare(
-        cmp_func, dpr.types.NodeMap.PythonNodeMapType
-    )
+    MultiVerify(dpr).compute(
+        "clustering.strongly_connected_components", graph
+    ).normalize(PythonNodeMap.Type).custom_compare(cmp_func)
 
 
 def test_louvain(default_plugin_resolver):
@@ -116,7 +120,9 @@ def test_louvain(default_plugin_resolver):
         assert x_graph.num_nodes == 8, x_graph.num_nodes
         assert modularity_score > 0.45
 
-    MultiVerify(dpr, "clustering.louvain_community", graph).custom_compare(cmp_func)
+    MultiVerify(dpr).compute("clustering.louvain_community", graph).custom_compare(
+        cmp_func
+    )
 
 
 def test_label_propagation(default_plugin_resolver):
@@ -158,6 +164,6 @@ def test_label_propagation(default_plugin_resolver):
         c2 = c2.pop()
         assert c1 != c2, f"{c1}, {c2}"
 
-    MultiVerify(dpr, "clustering.label_propagation_community", graph).custom_compare(
-        cmp_func, dpr.types.NodeMap.PythonNodeMapType
-    )
+    MultiVerify(dpr).compute("clustering.label_propagation_community", graph).normalize(
+        PythonNodeMap
+    ).custom_compare(cmp_func)
