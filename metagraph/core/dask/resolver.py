@@ -13,6 +13,9 @@ class DaskResolver:
     def __init__(self, resolver: Resolver):
         self._resolver = resolver
 
+        # Copy class_to_concrete (will be added to further down)
+        self.class_to_concrete = self._resolver.class_to_concrete.copy()
+
         # Patch plan namespace
         self.plan = PlanNamespace(self)
         self.plan.algos = self._resolver.plan.algos
@@ -36,10 +39,11 @@ class DaskResolver:
             for name in dir(namespace):
                 obj = getattr(namespace, name)
                 if isinstance(obj, MetaWrapper):
+                    dwrap = self.delayed_wrapper(obj, obj.Type)
                     self.wrappers._register(
-                        f"{obj.Type.abstract.__name__}.{obj.__name__}",
-                        self.delayed_wrapper(obj, obj.Type),
+                        f"{obj.Type.abstract.__name__}.{obj.__name__}", dwrap,
                     )
+                    self.class_to_concrete[dwrap] = dwrap.Type
                 elif isinstance(obj, Namespace):
                     build_wrappers(obj)
 
@@ -47,7 +51,6 @@ class DaskResolver:
         build_wrappers(self._resolver.wrappers)
 
         # Add placeholder types to `class_to_concrete`
-        self.class_to_concrete = self._resolver.class_to_concrete.copy()
         for ct in self._resolver.concrete_types:
             ph = self._get_placeholder(ct)
             self.class_to_concrete[ph] = ct
