@@ -13,6 +13,9 @@ class DaskResolver:
     def __init__(self, resolver: Resolver):
         self._resolver = resolver
 
+        # Copy class_to_concrete (will be added to further down)
+        self.class_to_concrete = self._resolver.class_to_concrete.copy()
+
         # Patch plan namespace
         self.plan = PlanNamespace(self)
         self.plan.algos = self._resolver.plan.algos
@@ -36,10 +39,11 @@ class DaskResolver:
             for name in dir(namespace):
                 obj = getattr(namespace, name)
                 if isinstance(obj, MetaWrapper):
+                    dwrap = self.delayed_wrapper(obj, obj.Type)
                     self.wrappers._register(
-                        f"{obj.Type.abstract.__name__}.{obj.__name__}",
-                        self.delayed_wrapper(obj, obj.Type),
+                        f"{obj.Type.abstract.__name__}.{obj.__name__}", dwrap,
                     )
+                    self.class_to_concrete[dwrap] = dwrap.Type
                 elif isinstance(obj, Namespace):
                     build_wrappers(obj)
 
@@ -47,7 +51,6 @@ class DaskResolver:
         build_wrappers(self._resolver.wrappers)
 
         # Add placeholder types to `class_to_concrete`
-        self.class_to_concrete = self._resolver.class_to_concrete.copy()
         for ct in self._resolver.concrete_types:
             ph = self._get_placeholder(ct)
             self.class_to_concrete[ph] = ct
@@ -61,9 +64,29 @@ class DaskResolver:
         return obj
 
     def __dir__(self):
-        return dir(self._resolver)
+        names = dir(self._resolver) + ["delayed_wrapper"]
+        names.sort()
+        return names
 
     def delayed_wrapper(self, klass, concrete_type: Optional[ConcreteType] = None):
+        """
+        Similar to how `dask.delayed` operates by wrapping a callable, but
+        in this case, the callable must be a class which is a type of a ConcreteType.
+
+        For example, a `grblas.Vector` is the `value_class` of `GrblasVectorType`.
+        To build a delayed `grblas.Vector` object and have Metagraph understand that it
+        is of type `GrblasVectorType`, wrap the constructor using `delayed_wrapper`.
+        >>> dvec = delayed_resolver.delayed_wrapper(grblas.Vector.from_values)
+        >>> my_vec = dvec([0, 1, 2], [2.2, 3.3, 9.9])
+        >>> my_vec
+        <types.GrblasVectorTypePlaceholder at 0x7f93e488b450>
+
+        This delayed object can now be passed to translators and algorithms and
+        Metagraph will know its type and build the lazy dispatch graph correctly.
+
+        Attempting to translate normal `dask.delayed` objects or pass them to an
+        algorithm will yield an unsatisfiable result.
+        """
         ct = concrete_type
         if ct is None:
             ct = self._resolver.class_to_concrete.get(klass)
@@ -75,6 +98,19 @@ class DaskResolver:
         return DelayedWrapper(klass, ph)
 
     def _get_placeholder(self, concrete_type):
+        """
+        A placeholder is a class which behaves like the `value_type` of `concrete_type`, but is delayed.
+        The placeholder class name will always be semething like "NumpyEdgeMapTypePlaceholder" with the
+        name "Placeholder" immediately following the full concrete type name.
+
+        Many places in Metagraph, the resolver needs to consult its `class_to_concrete` dictionary to
+        know which ConcreteType an object belongs to. These placeholder objects are registered with the
+        dask resolver in `class_to_concrete` so the lookups behave correctly.
+
+        Having the `class_to_concrete` lookups function allows translation and algorithm calling to work
+        on delayed objects. The delayed task graph can be built up because the concrete type of each
+        operation is know beforehand by way of placeholders.
+        """
         if concrete_type not in self._placeholders:
             ph = types.new_class(f"{concrete_type.__name__}Placeholder", (Placeholder,))
             ph.concrete_type = concrete_type
@@ -82,6 +118,9 @@ class DaskResolver:
         return self._placeholders[concrete_type]
 
     def _add_translation_plan(self, mst, src, **props):
+        """
+        Given a translation plan, decompose its pieces and add each step to the task graph.
+        """
         obj = src
         src_type = mst.src_type
         for trans, dst_type in zip(mst.translators, mst.dst_types):
@@ -101,6 +140,10 @@ class DaskResolver:
         return obj
 
     def _add_algorithm_plan(self, algo_plan, *args, **kwargs):
+        """
+        Given an algorithm plan, decompose it into individual translations and the actual
+        function call, adding a task to the task graph for each piece.
+        """
         args, kwargs = algo_plan.apply_abstract_defaults(
             self._resolver, algo_plan.algo.abstract_name, *args, **kwargs
         )
@@ -171,6 +214,9 @@ class DaskResolver:
 
     def translate(self, value, dst_type, **props):
         trans_plan = self.plan.translate(value, dst_type, **props)
+        # Calling the plan will trigger a call to `_add_translation_plan`.
+        #   The MultiStepTranslator knows about and checks for a DaskResolver
+        #   when the plan is called.
         return trans_plan(value, **props)
 
     def call_algorithm(self, algo_name: str, *args, **kwargs):
@@ -182,4 +228,7 @@ class DaskResolver:
         else:
             # choose the solutions requiring the fewest translations
             plan = valid_algos[0]
+            # Calling the plan will trigger a call to `_add_algorithm_plan`.
+            #   The AlgorithmPlan knows about and checks for a DaskResolver
+            #   when the plan is called.
             return plan(*args, **kwargs)

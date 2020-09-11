@@ -1,3 +1,4 @@
+import types
 import dask
 from dask import is_dask_collection
 from dask.base import DaskMethodsMixin, tokenize
@@ -32,6 +33,10 @@ def finalize(collection):
 
 
 class Placeholder(DaskMethodsMixin):
+    """
+    Acts as a stand-in for the actual `value_type` of a ConcreteType in a delayed context
+    """
+
     concrete_type = None  # subclasses should override this
     __dask_scheduler__ = staticmethod(dask.threaded.get)
 
@@ -85,6 +90,12 @@ class Placeholder(DaskMethodsMixin):
 
 
 class DelayedWrapper:
+    """
+    Wraps a class constructor and returns the indicated Placeholder when called.
+    This allows for delayed construction of objects which know the eventual type,
+    enabling translations and algorithm calls using the delayed object as input.
+    """
+
     def __init__(self, klass, placeholder):
         self._klass = klass
         self._ph = placeholder

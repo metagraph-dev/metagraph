@@ -97,8 +97,7 @@ class MultiStepTranslator:
     def find_translation(
         cls, resolver, src_type, dst_type, *, exact=False
     ) -> "MultiStepTranslator":
-        if isinstance(dst_type, type) and not issubclass(dst_type, ConcreteType):
-            dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
+        dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
 
         if not isinstance(dst_type, type):
             dst_type = dst_type.__class__
