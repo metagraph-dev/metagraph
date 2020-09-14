@@ -582,7 +582,6 @@
       /*****************/
       
       const updateTypeExplorer = (typeData) => {
-          console.log(`typeData ${JSON.stringify(typeData)}`);
 	  const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
 	  removeAllChildNodes(typeExplorerContentDiv);
 	  typeExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
@@ -599,7 +598,9 @@
 	  const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
 	  removeAllChildNodes(algorithmExplorerContentDiv);
 	  algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-	  buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result, (k,v) => k);
+	  buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result, (name, props) => {
+	      return (props.type === 'concrete_algorithm') ? `<span style="font-weight: bold">[${props.plugin}]</span>: <span style="font-size: 0.8rem">${props.name}<span>`: name
+	  });
       };
       
       /*************************/
