@@ -9,6 +9,7 @@
     width: 98%;
     background: #fff;
     font-family: 'Open Sans', sans-serif;
+    display: block;
     border: 1px solid rgba(0,0,0,.125);
     border-radius: 4px;
     transition: all 0.5s;
@@ -20,9 +21,9 @@
 
 #mg-explorer-navigation-bar {
     text-align: center;
-    padding: 1.5rem 0px 1.5rem 0px;
+    padding: 0px;
     width: 100%;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.125);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.125);
     overflow-x: auto;
     white-space: nowrap;
     user-select: none;
@@ -42,8 +43,8 @@
     display: inline-block;
     border: 1px solid rgba(0,0,0,.125);
     border-radius: 3px;
-    padding: 0.5rem;
-    margin: 1rem 1rem 1rem 1rem;
+    padding: 3px;
+    margin: 10px;
     transition: all 0.5s;
     cursor: pointer;
 }
@@ -74,19 +75,17 @@
 
 .mg-explorer-tab {
     display: none;
-    padding: 3rem;
-    height: 65vh;
-    overflow: auto;
-    margin: 1rem;
+    padding: 1em;
 }
 
 .mg-explorer-tab.active {
     display: block;
 }
 
-.mg-explorer-tab h1 {
+.mg-explorer-tab h2 {
     text-align: center;
-    padding-bottom: 10px;
+    margin-top: 0px;
+    margin-bottom: 10px;
 }
 
 /*********************/
@@ -97,14 +96,12 @@
     text-align: center;
     align-items: center;
     width: 100%;
-    height: 50vh;
 }
 
 table#mg-translation-graph-table {
     align-items: center;
     height: 100%;
     width: 100%;
-    margin-bottom: 50px;
 }
 
 #mg-translation-graph-table tbody tr:nth-child(odd),
@@ -152,7 +149,6 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 #mg-translation-graph-menu-column {
     width: 30%;
     padding-left: 10px;
-    overflow-y: auto;
     user-select: none;
     height: 50vh;
 }
@@ -161,7 +157,6 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     border: 2px solid rgba(200, 200, 200, 1.0);
     border-radius: 8px;
     height: 50vh;
-    overflow-y: auto;
 }
 
 #mg-translation-graph-menu h3 {
@@ -268,23 +263,23 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     border-color: #dc9af6;
 }
 
-#mg-translation-graph-path-solver-row {
+#mg-translation-graph-path-solver-cell {
     transition: all 0.5s;
     border: 2px solid #fff;
     border-radius: 8px;
 }
 
-#mg-translation-graph-path-solver-row #mg-translation-graph-path-solver {
+#mg-translation-graph-path-solver-cell #mg-translation-graph-path-solver {
     transition: all 0.5s;
     overflow: hidden;
     max-height: 0vh;
 }
 
-#mg-translation-graph-path-solver-row.active {
+#mg-translation-graph-path-solver-cell.active {
     border-color: rgba(200, 200, 200, 1.0);
 }
 
-#mg-translation-graph-path-solver-row.active #mg-translation-graph-path-solver {
+#mg-translation-graph-path-solver-cell.active #mg-translation-graph-path-solver {
     max-height: 50vh;
 }
 
@@ -375,9 +370,9 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
     stroke: #bbb;
 }
 
-/*******************************************************************************/
+/**********************************************************************************************/
 /* Type Explorer, Algorithm Explorer, Algorithm Type Solver, and Plugin Explorer Tree Widgets */
-/*******************************************************************************/
+/**********************************************************************************************/
 
 .mg-explorer-tree-widget-container {
     border: 1px solid rgba(0,0,0,0.25);
@@ -398,7 +393,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 .mg-explorer-tree-widget-subcontainer {
     margin: 0px 0px 0px 3em;
     transition: all 0.5s;
-    font-size: 23px;
+    font-size: 15px;
     overflow: hidden;
 }
 
@@ -414,17 +409,17 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 .mg-explorer-tree-widget-leaf {
     margin: 0px;
     margin-left: 3em;
-    padding: 5px;
+    padding: 2px;
     transition: all 0.5s;
     background: #fdfdfd;
-    font-size: 23px;
+    font-size: 15px;
     overflow: hidden;
 }
 
 .mg-explorer-tree-widget-label:before {
     content: '\02795 \00a0';
     margin-left: 5px;
-    font-size: 20px;
+    font-size: 15px;
 }
 
 .mg-explorer-tree-widget-container .mg-explorer-tree-widget-label.active:before {
@@ -460,7 +455,7 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 .mg-algorithm-type-solver-single-parameter-container {
-    padding: 5px;
+    padding: 2px;
 }
 
 .mg-algorithm-type-solver-parameter-name {
@@ -488,14 +483,14 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 }
 
 #mg-algorithm-type-solver-plans {
-    margin-top: 100px;
+    margin-top: 10px;
 }
 
 .mg-algorithm-type-solver-unsatisfiable-algorithm-label {
     margin: 0px;
-    padding: 5px;
+    padding: 2px;
     background: #efefef;
-    font-size: 23px;
+    font-size: 15px;
     overflow: hidden;
     font-style: italic;
 }
@@ -503,6 +498,6 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 .mg-algorithm-type-solver-unsatisfiable-algorithm-label:before {
     content: '\2715 \00a0';
     margin-left: 5px;
-    font-size: 20px;
+    font-size: 15px;
     font-style: normal;
 }
