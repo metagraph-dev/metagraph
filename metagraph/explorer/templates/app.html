@@ -19,7 +19,7 @@
       
       const sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
       const mean = inputArray => sum(inputArray) / inputArray.length;
-
+      
       const removeAllChildNodes = (parent) => {
 	  while (parent.firstChild) {
               parent.removeChild(parent.firstChild);
@@ -93,7 +93,7 @@
               console.error('unsupported event', data);
 	  }
       };
-
+      
       const buildTreeWidget = (root, data, innerHTMLGenerator) => {
 	  /* innerHTMLGenerator is a function that takes (key, value) => 'some-string' */
 	  for (let name in data) {
@@ -111,6 +111,16 @@
 		      label.onclick = (event) => {
 			  label.classList.toggle('active');
 			  container.classList.toggle('active');
+			  const allContainers = container.closest('.mg-explorer-tree-widget-container').querySelectorAll('.mg-explorer-tree-widget-subcontainer');
+			  allContainers.forEach(currentContainer => {
+			      if (currentContainer.classList.contains('active')) {
+				  const currentMaxHeightString = currentContainer.style.maxHeight;
+				  const currentMaxHeight = parseFloat('0'+currentMaxHeightString);
+				  currentContainer.style.maxHeight = currentMaxHeight + container.scrollHeight + 'px';
+			      } else if (currentContainer === container) {
+				  currentContainer.removeAttribute('style');
+			      }
+			  });
 		      };
 		      const childrenData = props['children'];
                       buildTreeWidget(container, childrenData, innerHTMLGenerator);
