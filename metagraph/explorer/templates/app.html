@@ -94,7 +94,8 @@
 	  }
       };
 
-      const buildTreeWidget = (root, data) => {
+      const buildTreeWidget = (root, data, innerHTMLGenerator) => {
+	  /* innerHTMLGenerator is a function that takes (key, value) => 'some-string' */
 	  for (let name in data) {
               if (data.hasOwnProperty(name)) {
 		  const props = data[name];
@@ -102,7 +103,7 @@
 		  if (hasChildren) {
                       const label = document.createElement('p');
 		      label.classList.add('mg-explorer-tree-widget-label');
-                      label.innerHTML = name;
+                      label.innerHTML = innerHTMLGenerator(name, props);
                       root.appendChild(label);
                       const container = document.createElement('div');
                       container.className = 'mg-explorer-tree-widget-subcontainer';
@@ -112,11 +113,11 @@
 			  container.classList.toggle('active');
 		      };
 		      const childrenData = props['children'];
-                      buildTreeWidget(container, childrenData);
+                      buildTreeWidget(container, childrenData, innerHTMLGenerator);
 		  } else {
                       const leaf = document.createElement('p');
 		      leaf.classList.add('mg-explorer-tree-widget-leaf');
-                      leaf.innerHTML = name;
+                      leaf.innerHTML = innerHTMLGenerator(name, props);
                       root.appendChild(leaf);
 		  }
               }
@@ -581,10 +582,12 @@
       /*****************/
       
       const updateTypeExplorer = (typeData) => {
+          console.log(`typeData ${JSON.stringify(typeData)}`);
 	  const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
 	  removeAllChildNodes(typeExplorerContentDiv);
 	  typeExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-	  buildTreeWidget(typeExplorerContentDiv, typeData.result);
+	  const innerHTMLGenerator = (name, props) => (props.type === 'value_type') ? `Value Type: ${name}` : name;
+	  buildTreeWidget(typeExplorerContentDiv, typeData.result, innerHTMLGenerator);
       }
       const requestTypeExplorerUpdate = () => sendShadowWebsocketRequest({function: 'list_types', kwargs: {}});
       
@@ -596,7 +599,7 @@
 	  const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
 	  removeAllChildNodes(algorithmExplorerContentDiv);
 	  algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-	  buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result);
+	  buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result, (k,v) => k);
       };
       
       /*************************/
@@ -613,7 +616,7 @@
 	      parargaphElement.classList.add('mg-algorithm-type-solver-unsatisfiable-algorithm-label');
 	      plansDiv.append(parargaphElement);
 	  } else {
-	      buildTreeWidget(plansDiv, planData.result);
+	      buildTreeWidget(plansDiv, planData.result, (k,v) => k);
 	  }
       };
       
@@ -724,7 +727,7 @@
       const pluginExplorerContentDiv = shadow.querySelector('#mg-plugin-explorer-content');
       removeAllChildNodes(pluginExplorerContentDiv);
       pluginExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-      buildTreeWidget(pluginExplorerContentDiv, pluginData);
+      buildTreeWidget(pluginExplorerContentDiv, pluginData, (k,v) => k); // @todo change this
 
       const requestAlgorithmListUpdate = () => sendShadowWebsocketRequest({function: 'list_algorithms', kwargs: {}});
       shadow.websocket.onopen = () => {

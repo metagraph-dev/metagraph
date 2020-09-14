@@ -162,7 +162,15 @@ def list_types(resolver, **kwargs):
         t[at] = OrderedDict([("type", "abstract_type"), ("children", OrderedDict())])
     for ct in sorted(cts, key=lambda x: x.__name__):
         at = ct.abstract.__name__
-        t[at]["children"][ct.__name__] = OrderedDict([("type", "concrete_type")])
+        ct_fully_qualified_value_type = (
+            f"{ct.value_type.__module__}.{ct.value_type.__qualname__}"
+        )
+        t[at]["children"][ct.__name__] = OrderedDict(
+            [
+                ("type", "concrete_type"),
+                ("children", {ct_fully_qualified_value_type: {"type": "value_type"}}),
+            ]
+        )
 
     return t
 
