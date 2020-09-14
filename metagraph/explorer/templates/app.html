@@ -738,7 +738,9 @@
       const pluginExplorerContentDiv = shadow.querySelector('#mg-plugin-explorer-content');
       removeAllChildNodes(pluginExplorerContentDiv);
       pluginExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-      buildTreeWidget(pluginExplorerContentDiv, pluginData, (k,v) => k); // @todo change this
+      buildTreeWidget(pluginExplorerContentDiv, pluginData, (name, props) => {
+	  return (props.hasOwnProperty('children') && Object.keys(props.children).length === 0) ? `<span style="color: #bbb">${name}</span>` : name;
+      });
 
       const requestAlgorithmListUpdate = () => sendShadowWebsocketRequest({function: 'list_algorithms', kwargs: {}});
       shadow.websocket.onopen = () => {
