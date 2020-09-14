@@ -31,7 +31,7 @@ class DaskResolver:
                 elif isinstance(obj, Namespace):
                     build_algos(obj)
 
-        self.algos = Namespace()
+        self.algos = Namespace("algos")
         build_algos(self._resolver.algos)
 
         # Patch wrappers
@@ -47,7 +47,7 @@ class DaskResolver:
                 elif isinstance(obj, Namespace):
                     build_wrappers(obj)
 
-        self.wrappers = Namespace()
+        self.wrappers = Namespace("wrappers")
         build_wrappers(self._resolver.wrappers)
 
         # Add placeholder types to `class_to_concrete`
@@ -144,9 +144,6 @@ class DaskResolver:
         Given an algorithm plan, decompose it into individual translations and the actual
         function call, adding a task to the task graph for each piece.
         """
-        args, kwargs = algo_plan.apply_abstract_defaults(
-            self._resolver, algo_plan.algo.abstract_name, *args, **kwargs
-        )
         sig = algo_plan.algo.__signature__
         # Walk through arguments and apply required translations
         bound = sig.bind(*args, **kwargs)

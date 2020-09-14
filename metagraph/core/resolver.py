@@ -2,7 +2,7 @@
 to concrete algorithms.
 
 """
-from functools import partial, reduce
+import copy
 import inspect
 import warnings
 from collections import defaultdict, abc
@@ -39,8 +39,9 @@ class Namespace:
     is no removal mechanism.
     """
 
-    def __init__(self):
+    def __init__(self, name):
         self._registered = set()
+        self._name = name
 
     def _register(self, path: str, obj):
         parts = path.split(".")
@@ -52,7 +53,7 @@ class Namespace:
             setattr(self, name, obj)
         else:
             if not hasattr(self, name):
-                setattr(self, name, Namespace())
+                setattr(self, name, Namespace(name))
             getattr(self, name)._register(".".join(parts[1:]), obj)
 
     def __dir__(self):
@@ -67,7 +68,7 @@ class PlanNamespace:
 
     def __init__(self, resolver):
         self._resolver = resolver
-        self.algos = Namespace()
+        self.algos = Namespace("algos")
 
     def translate(self, value, dst_type, **props):
         """
@@ -138,11 +139,11 @@ class Resolver:
             Tuple[List[ConcreteType], Dict[ConcreteType, int], np.ndarray, np.ndarray],
         ] = {}
 
-        self.algos = Namespace()
-        self.wrappers = Namespace()
-        self.types = Namespace()
+        self.algos = Namespace("algos")
+        self.wrappers = Namespace("wrappers")
+        self.types = Namespace("types")
 
-        self.plugins = Namespace()
+        self.plugins = Namespace("plugins")
 
         self.plan = PlanNamespace(self)
 
@@ -156,7 +157,8 @@ class Resolver:
         This function may be called multiple times to add additional plugins
         at any time.  Plugins cannot be removed. A plugin name may only be registered once.
         """
-        plugin_attribute_names = (
+        # Build data structures for registration
+        plugin_categories = (
             "abstract_types",
             "concrete_types",
             "wrappers",
@@ -164,24 +166,26 @@ class Resolver:
             "abstract_algorithms",
             "concrete_algorithms",
         )
-        all_plugin_attribute_sets_by_name = {
-            plugin_attribute_name: {
-                plugin_attribute_value
-                for plugin in plugins_by_name.values()
-                for plugin_attribute_value in plugin.get(plugin_attribute_name, set())
-            }
-            for plugin_attribute_name in plugin_attribute_names
-        }
-        self._register_plugin_attributes_in_tree(
-            self, **all_plugin_attribute_sets_by_name
-        )
+        items_by_plugin = {"all": defaultdict(set)}
+        for plugin_name, plugin in plugins_by_name.items():
+            items_by_plugin[plugin_name] = {}
+            for cat in plugin_categories:
+                items = set(plugin.get(cat, ()))
+                if cat == "concrete_algorithms":
+                    # Make a copy of concrete algorithms to avoid cross-mutation if multiple resolvers are used
+                    items = {copy.copy(x) for x in items}
+                items_by_plugin[plugin_name][cat] = items
+                items_by_plugin["all"][cat] |= items
+
+        self._register_plugin_attributes_in_tree(self, **items_by_plugin["all"])
 
         for plugin_name, plugin in plugins_by_name.items():
             if not plugin_name.isidentifier():
                 raise ValueError(f"{repr(plugin_name)} is not a valid plugin name.")
             if hasattr(self.plugins, plugin_name):
                 raise ValueError(f"{plugin_name} already registered.")
-            self.plugins._register(plugin_name, Namespace())
+            # Initialize the plugin namespace
+            self.plugins._register(plugin_name, Namespace(plugin_name))
             plugin_namespace = getattr(self.plugins, plugin_name)
             plugin_namespace._register("abstract_types", set())
             plugin_namespace._register("concrete_types", set())
@@ -189,22 +193,13 @@ class Resolver:
             plugin_namespace._register("abstract_algorithms", {})
             plugin_namespace._register("abstract_algorithm_versions", {})
             plugin_namespace._register("concrete_algorithms", defaultdict(set))
-            plugin_namespace._register("algos", Namespace())
-            plugin_namespace._register("wrappers", Namespace())
-            plugin_namespace._register("types", Namespace())
+            plugin_namespace._register("algos", Namespace("algos"))
+            plugin_namespace._register("wrappers", Namespace("wrappers"))
+            plugin_namespace._register("types", Namespace("types"))
 
-            plugin_attribute_sets_by_name = {
-                plugin_attribute_name: {
-                    plugin_attribute_value
-                    for plugin_attribute_value in plugin.get(
-                        plugin_attribute_name, set()
-                    )
-                }
-                for plugin_attribute_name in plugin_attribute_names
-            }
             self._register_plugin_attributes_in_tree(
                 plugin_namespace,
-                **plugin_attribute_sets_by_name,
+                **items_by_plugin[plugin_name],
                 plugin_name=plugin_name,
             )
 
@@ -379,15 +374,20 @@ class Resolver:
                 if abstract is None or ca.version != abstract.version:
                     continue
                 try:
-                    tree.algos._register(ca.abstract_name, ca.func)
+                    # Register the exact algorithm call for resolver.plugin_name.algos.path.to.algo()
+                    exact_dispatcher = ExactDispatcher(self, plugin_name, ca)
+                    tree.algos._register(ca.abstract_name, exact_dispatcher)
+
                 except NamespaceError:
                     raise ValueError(
                         f"Multiple concrete algorithms for abstract algorithm {ca.abstract_name} within plugin {plugin_name}."
                     )
+                # Locate the abstract dispatcher
                 dispatcher = self.algos
                 for name in ca.abstract_name.split("."):
                     dispatcher = getattr(dispatcher, name)
-                setattr(dispatcher, plugin_name, ca.func)
+                # Register the exact algorithm call for resolver.algos.path.to.algo.plugin_name()
+                setattr(dispatcher, plugin_name, ExactDispatcher(self, plugin_name, ca))
             tree.concrete_algorithms[ca.abstract_name].add(ca)
 
         action = config["core.algorithms.outdated_concrete_version"]
@@ -515,79 +515,102 @@ class Resolver:
         Convert all ConcreteType to a no-arg instance
         Leave all Python types alone
         Guard against instances of anything other than ConcreteType
-        Guard against mismatched signatures vs the abstract signature
+        Guard against mismatched signatures vs the abstract signature, while allowing
+            for concrete signature to contain additional parameters beyond those defined
+            in the abstract signature
         """
         abst_sig = abstract.__signature__
         conc_sig = concrete.__signature__
 
         # Check parameters
+        abst_keys = set(abst_sig.parameters)
         abst_params = list(abst_sig.parameters.values())
         conc_params = list(conc_sig.parameters.values())
-        # remove `resolver` kwarg from list if this concrete algorithm for the purposes of matching
-        # signatures
-        if concrete._include_resolver:
-            conc_params = [p for p in conc_params if p.name != "resolver"]
 
-        if len(abst_params) != len(conc_params):
+        # Check for missing parameters in concrete signature
+        missing_params = set(abst_sig.parameters) - set(conc_sig.parameters)
+        if missing_params:
             raise TypeError(
-                f"number of parameters does not match between {abstract.name} and {concrete.func.__qualname__}"
+                f"Missing parameters: {missing_params} from {abstract.name} in implementation {concrete.func.__qualname__}"
             )
 
+        # Walk through the parameters, which will not line up because the concrete may have extra parameters
+        # Update concrete signature with defaults defined in the abstract signature
+        # Verify that extra parameters contain a default value
         params_modified = []
         any_changed = False
-        for abst_param, conc_param in zip(abst_params, conc_params):
-            # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
-            if conc_param.default is not inspect._empty:
-                raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
-                )
-
-            abst_type = abst_param.annotation
-            conc_type, changed = self._normalize_concrete_type(
-                conc_type=conc_param.annotation, abst_type=abst_type
-            )
-            if changed:
-                conc_param = conc_param.replace(annotation=conc_type)
-                any_changed = True
-            if abst_param.name != conc_param.name:
-                raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
-                )
-
-            if isinstance(conc_type, mgtyping.Combo):
-                if abst_type.optional != conc_type.optional:
+        iabst = -1
+        for iconc, conc_param in enumerate(conc_params):
+            if conc_param.name == "resolver" and concrete._include_resolver:
+                if conc_param.default is not inspect._empty:
+                    raise TypeError('"resolver" should not have a default')
+            elif conc_param.name not in abst_keys:
+                # Extra concrete params must declare a default value
+                if conc_param.default is inspect._empty:
                     raise TypeError(
-                        f"{conc_type} does not match optional flag in {abst_type}"
-                    )
-                unmatched_types = []
-                # Verify that each item in conc_type matches at least one item in abst_type
-                for ct in conc_type.types:
-                    is_concrete = isinstance(ct, ConcreteType)
-                    for at in abst_type.types:
-                        if is_concrete and issubclass(ct.abstract, at.__class__):
-                            break
-                        elif not is_concrete and ct == at:
-                            break
-                    else:
-                        unmatched_types.append(ct)
-                if unmatched_types:
-                    raise TypeError(f"{unmatched_types} not found in {abst_type}")
-            elif isinstance(conc_type, ConcreteType):
-                if not issubclass(conc_type.abstract, abst_type.__class__):
-                    raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
-                    )
-                if conc_type.abstract_instance is not None:
-                    raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" is not found in abstract signature and must declare a default value'
                     )
             else:
-                # regular Python types need to match exactly
-                if abst_type != conc_type:
+                iabst += 1
+                abst_param = abst_params[iabst]
+
+                # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
+                if conc_param.default is not inspect._empty:
                     raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
                     )
+                # If abstract defines a default, update concrete with the same default
+                if abst_param.default is not inspect._empty:
+                    conc_param = conc_param.replace(default=abst_param.default)
+                    any_changed = True
+
+                abst_type = abst_param.annotation
+                conc_type, changed = self._normalize_concrete_type(
+                    conc_type=conc_param.annotation, abst_type=abst_type
+                )
+                if changed:
+                    conc_param = conc_param.replace(annotation=conc_type)
+                    any_changed = True
+                if abst_param.name != conc_param.name:
+                    raise TypeError(
+                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
+                    )
+
+                if isinstance(conc_type, mgtyping.Combo):
+                    if abst_type.optional != conc_type.optional:
+                        raise TypeError(
+                            f"{conc_type} does not match optional flag in {abst_type}"
+                        )
+                    unmatched_types = []
+                    # Verify that each item in conc_type matches at least one item in abst_type
+                    for ct in conc_type.types:
+                        is_concrete = isinstance(ct, ConcreteType)
+                        for at in abst_type.types:
+                            if is_concrete and issubclass(ct.abstract, at.__class__):
+                                break
+                            elif not is_concrete and ct == at:
+                                break
+                        else:
+                            unmatched_types.append(ct)
+                    if unmatched_types:
+                        raise TypeError(f"{unmatched_types} not found in {abst_type}")
+                elif isinstance(conc_type, ConcreteType):
+                    if not issubclass(conc_type.abstract, abst_type.__class__):
+                        raise TypeError(
+                            f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
+                        )
+                    if conc_type.abstract_instance is not None:
+                        raise TypeError(
+                            f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
+                        )
+                else:
+                    # regular Python types need to match exactly
+                    if abst_type != conc_type:
+                        raise TypeError(
+                            f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                        )
             params_modified.append(conc_param)
+
         abst_ret = abst_sig.return_annotation
         conc_ret, changed = self._normalize_concrete_type(
             conc_type=conc_sig.return_annotation, abst_type=abst_ret
@@ -784,14 +807,35 @@ class Resolver:
                     + "\n".join(unsatisfied_requirements)
                 )
 
-    def call_algorithm(self, algo_name: str, *args, **kwargs):
+    def _check_algorithm_signature(
+        self, algo_name: str, *args, allow_extras=False, **kwargs
+    ):
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
         # Validate types have required abstract properties
         abstract_algo = self.abstract_algorithms[algo_name]
         sig = abstract_algo.__signature__
-        bound_args = sig.bind(*args, **kwargs)
+        extra_args, extra_kwargs = [], {}
+        if allow_extras:
+            # Try to bind signature, removing extra parameters until satisfied
+            while True:
+                try:
+                    bound_args = sig.bind(*args, **kwargs)
+                    break
+                except TypeError as e:
+                    if e.args:
+                        if e.args[0] == "too many positional arguments":
+                            extra_args.insert(0, args[-1])
+                            args = args[:-1]
+                            continue
+                        elif e.args[0][:34] == "got an unexpected keyword argument":
+                            key = e.args[0][36:-1]
+                            extra_kwargs[key] = kwargs.pop(key)
+                            continue
+                    raise
+        else:
+            bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
         parameters = bound_args.signature.parameters
         for arg_name, arg_value in bound_args.arguments.items():
@@ -819,12 +863,21 @@ class Resolver:
                 if err_msg:
                     raise TypeError(err_msg)
 
-        if config.get("core.dispatch.allow_translation"):
-            algo = self.find_algorithm(algo_name, *bound_args.args, **bound_args.kwargs)
-        else:
-            algo = self.find_algorithm_exact(
-                algo_name, *bound_args.args, **bound_args.kwargs
+        if extra_args or extra_kwargs:
+            return (
+                bound_args.args + tuple(extra_args),
+                {**bound_args.kwargs, **extra_kwargs},
             )
+        else:
+            return bound_args.args, bound_args.kwargs
+
+    def call_algorithm(self, algo_name: str, *args, **kwargs):
+        args, kwargs = self._check_algorithm_signature(algo_name, *args, **kwargs)
+
+        if config.get("core.dispatch.allow_translation"):
+            algo = self.find_algorithm(algo_name, *args, **kwargs)
+        else:
+            algo = self.find_algorithm_exact(algo_name, *args, **kwargs)
 
         if not algo:
             raise TypeError(
@@ -833,7 +886,7 @@ class Resolver:
 
         if config.get("core.logging.plans"):
             algo.display()
-        return algo(*bound_args.args, **bound_args.kwargs)
+        return algo(*args, **kwargs)
 
 
 class Dispatcher:
@@ -862,3 +915,41 @@ class Dispatcher:
         for ca in self._resolver.concrete_algorithms[self._algo_name]:
             # print(f"\t{ca.func.__annotations__}")
             print(f"\t{ca.__signature__}")
+
+
+class ExactDispatcher:
+    """Impersonates concrete algorithm, but dispatches to a resolver to verify
+    the concrete algorithm inputs prior to calling the function."""
+
+    def __init__(self, resolver: Resolver, plugin: str, algo: ConcreteAlgorithm):
+        # Handle case of plugin being a Namespace
+        if isinstance(plugin, Namespace):
+            plugin = plugin._name
+
+        self._resolver = resolver
+        self._plugin = plugin
+        self._algo = algo
+
+        # make dispatcher look like the concrete algorithm
+        self.__name__ = algo.abstract_name
+        self.__doc__ = algo.func.__doc__
+        self.__signature__ = inspect.signature(algo.func)
+        self.__wrapped__ = algo
+
+    def __call__(self, *args, **kwargs):
+        args, kwargs = self._resolver._check_algorithm_signature(
+            self._algo.abstract_name, *args, allow_extras=True, **kwargs
+        )
+        plan = AlgorithmPlan.build(self._resolver, self._algo, *args, **kwargs)
+        if plan.unsatisfiable:
+            err_msgs = "\n".join(plan.err_msgs)
+            raise TypeError(
+                f"Incorrect input types and no valid translation path to solution.\n{err_msgs}"
+            )
+        elif plan.required_translations:
+            req_trans = ", ".join(plan.required_translations.keys())
+            raise TypeError(
+                f"Incorrect input types. Translations required for: {req_trans}"
+            )
+        else:
+            return plan(*args, **kwargs)
