@@ -446,6 +446,10 @@ table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-t
 #mg-algorithm-type-solver-abstract-algorithm-content {
 }
 
+#mg-algorithm-type-solver-signature {
+    text-align: center;
+}
+
 #mg-algorithm-type-solver-all-parameters-container {
     margin-left: 2em;
     padding: 20px;

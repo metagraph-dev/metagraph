@@ -628,7 +628,6 @@
       /*************************/
       
       const updateAlgorithTypeSolverPlans = (planData) => {
-          console.log(`planData ${JSON.stringify(planData)}`);
 	  const plansDiv = shadow.querySelector('#mg-algorithm-type-solver-plans');
 	  plansDiv.classList.add('mg-explorer-tree-widget-container');
 	  removeAllChildNodes(plansDiv);
@@ -699,7 +698,22 @@
 	       	      parameterConcreteTypeChoicesDropdown.append(optionElement);
 		  });
 	      });
-	      shadow.querySelectorAll('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').forEach(dropdown => {
+	      const concreteTypeDropdowns = shadow.querySelectorAll('.mg-algorithm-type-solver-parameter-concrete-type-dropdown');
+	      const currentSignatureTextElement = document.createElement('h4');
+	      currentSignatureTextElement.setAttribute('id', 'mg-algorithm-type-solver-signature');
+	      shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-content').append(currentSignatureTextElement);
+	      const updateCurrentSignatureTextElement = () => {
+		  currentSignatureTextElement.innerHTML = abstractAlgorithmPathDropdown.value+'(';
+		  concreteTypeDropdowns.forEach((dropdown, i) => {
+		      currentSignatureTextElement.innerHTML += dropdown.value;
+		      if (i !== concreteTypeDropdowns.length-1) {
+			  currentSignatureTextElement.innerHTML += ', ';
+		      }
+		  });
+		  currentSignatureTextElement.innerHTML += ')';
+	      };
+	      
+	      concreteTypeDropdowns.forEach(dropdown => {
 		  dropdown.onchange = (event) => {
 		      const paramsDescription = {};
 		      const parameterContainers = allParametersContainer.querySelectorAll('.mg-algorithm-type-solver-single-parameter-container');
@@ -713,6 +727,7 @@
 			  abstract_pathname: abstractAlgorithmPathDropdown.value,
 			  params_description: paramsDescription,
 		      }});
+		      updateCurrentSignatureTextElement();
 		  }
 	      });
 	      shadow.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').onchange();
