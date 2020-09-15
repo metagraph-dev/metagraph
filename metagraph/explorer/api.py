@@ -409,62 +409,65 @@ def solve_algorithm(
             # TODO store backpointers in the resolver instead of doing an O(n) lookup here
             for plugin_name in dir(resolver.plugins):
                 plugin = getattr(resolver.plugins, plugin_name)
-                plugin_concrete_algorithms = plugin.concrete_algorithms[
-                    abstract_pathname
-                ]
-                if plan.algo in plugin_concrete_algorithms:
-                    parameter_data = OrderedDict()
-                    for parameter in plan.algo.__signature__.parameters.values():
-                        translation_path_dict = OrderedDict(
-                            [("translation_path", {"type": "translation_path"}),]
-                        )
-                        # TODO abstract common functionality from here and AlgorithmPlan.__repr__ into a class method for AlgorithmPlan
-                        if parameter.name in plan.required_translations:
-                            mst = plan.required_translations[parameter.name]
-                            translation_types = [mst.src_type] + mst.dst_types
-                            translation_path_dict["translation_path"][
-                                "children"
-                            ] = OrderedDict()
-                            for ct in translation_types:
-                                translation_path_dict["translation_path"]["children"][
-                                    ct.__name__
-                                ] = {"type": "translation_path_element"}
-                            translation_path_dict["translation_path"][
-                                "translation_path_length"
-                            ] = len(translation_types)
-                        else:
-                            translation_path_dict["translation_path"][
-                                "translation_path_length"
-                            ] = 0
-
-                        # TODO make metagraph types have a __qualname__
-                        annotation_string = getattr(
-                            parameter.annotation, "__qualname__", None
-                        )
-                        if annotation_string is None:
-                            annotation_string = getattr(
-                                parameter.annotation,
-                                "__name__",
-                                str(parameter.annotation),
+                if abstract_pathname in plugin.concrete_algorithms:
+                    plugin_concrete_algorithms = plugin.concrete_algorithms[
+                        abstract_pathname
+                    ]
+                    if plan.algo in plugin_concrete_algorithms:
+                        parameter_data = OrderedDict()
+                        for parameter in plan.algo.__signature__.parameters.values():
+                            translation_path_dict = OrderedDict(
+                                [("translation_path", {"type": "translation_path"}),]
                             )
+                            # TODO abstract common functionality from here and AlgorithmPlan.__repr__ into a class method for AlgorithmPlan
+                            if parameter.name in plan.required_translations:
+                                mst = plan.required_translations[parameter.name]
+                                translation_types = [mst.src_type] + mst.dst_types
+                                translation_path_dict["translation_path"][
+                                    "children"
+                                ] = OrderedDict()
+                                for ct in translation_types:
+                                    translation_path_dict["translation_path"][
+                                        "children"
+                                    ][ct.__name__] = {
+                                        "type": "translation_path_element"
+                                    }
+                                translation_path_dict["translation_path"][
+                                    "translation_path_length"
+                                ] = len(translation_types)
+                            else:
+                                translation_path_dict["translation_path"][
+                                    "translation_path_length"
+                                ] = 0
 
-                        parameter_data[parameter.name] = OrderedDict(
-                            [
-                                ("type", "parameter"),
-                                ("annotation", annotation_string),
-                                ("children", translation_path_dict),
-                            ]
-                        )
-                    # TODO make this an ordered dict
-                    solutions[f"plan_{plan_index}"] = {
-                        "type": "plan",
-                        "plan_index": plan_index,
-                        "children": {
-                            f"Algorithm Name: {plan.algo.func.__name__}": {},
-                            f"Plugin: {plugin_name}": {},
-                            "Params": {"children": parameter_data},
-                            f"Return Type: {plan.algo.__signature__.return_annotation}": {},
-                        },
-                    }
-                    break
-    return solutions
+                            # TODO make metagraph types have a __qualname__
+                            annotation_string = getattr(
+                                parameter.annotation, "__qualname__", None
+                            )
+                            if annotation_string is None:
+                                annotation_string = getattr(
+                                    parameter.annotation,
+                                    "__name__",
+                                    str(parameter.annotation),
+                                )
+
+                            parameter_data[parameter.name] = OrderedDict(
+                                [
+                                    ("type", "parameter"),
+                                    ("annotation", annotation_string),
+                                    ("children", translation_path_dict),
+                                ]
+                            )
+                        # TODO make this an ordered dict
+                        solutions[f"plan_{plan_index}"] = {
+                            "type": "plan",
+                            "plan_index": plan_index,
+                            "children": {
+                                f"Algorithm Name: {plan.algo.func.__name__}": {},
+                                f"Plugin: {plugin_name}": {},
+                                "Params": {"children": parameter_data},
+                                f"Return Type: {plan.algo.__signature__.return_annotation}": {},
+                            },
+                        }
+                        break
+        return solutions

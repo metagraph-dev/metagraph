@@ -118,8 +118,7 @@
 			      if (currentContainer.classList.contains('active')) {
 				  currentContainer.style.maxHeight = currentMaxHeight + container.scrollHeight + 'px';
 			      } else if (currentContainer === container) {
-				  // TODO we need to update the active parents' heights to decrease as appropriate
-				  currentContainer.removeAttribute('style');
+				  currentContainer.removeAttribute('style'); // TODO we need to update the active parent heights to decrease as appropriate
 			      }
 			  });
 		      };
@@ -664,11 +663,10 @@
 	      plansDiv.querySelectorAll('#mg-algorithm-type-solver-plans > .mg-explorer-tree-widget-label').forEach(label => {
 		  const originalOnClick = label.onclick;
 		  label.onclick = (event) => {
-		      // TODO using nextSibling is not ideal since it depends on the DOM structure ; use pointers / attributes instead
-		      const contentContainer = label.nextSibling;
+		      const contentContainer = label.nextSibling; // TODO nextSibling not ideal ; use pointers / attributes instead ?
 		      contentContainer.querySelectorAll('.mg-explorer-tree-widget-label').forEach(sublabel => {
 			  if (!sublabel.classList.contains('active')) {
-			      requestAnimationFrame(() => sublabel.onclick()); // TODO move this requestAnimationFrame down to the onclicks 
+			      requestAnimationFrame(() => sublabel.onclick()); // TODO should we move this requestAnimationFrame down to the onclicks ?
  			  }
 		      });
 		      originalOnClick();
