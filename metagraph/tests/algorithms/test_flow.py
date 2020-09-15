@@ -2,8 +2,6 @@ from metagraph.tests.util import default_plugin_resolver
 import metagraph as mg
 import networkx as nx
 from . import MultiVerify
-from typing import Tuple
-import math
 
 
 def test_max_flow(default_plugin_resolver):
@@ -36,73 +34,41 @@ v /      v /      v v
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
 
-    ebunch_answer = [
-        (0, 1, 0),
-        (0, 3, 6),
-        (1, 4, 0),
-        (2, 7, 6),
-        (3, 1, 0),
-        (3, 4, 6),
-        (4, 2, 0),
-        (4, 5, 6),
-        (5, 2, 5),
-        (5, 6, 1),
-        (6, 2, 1),
-    ]
-    nx_graph_answer = nx.DiGraph()
-    nx_graph_answer.add_weighted_edges_from(ebunch_answer)
     expected_flow_value = 6
-    expected_graph = mg.plugins.networkx.types.NetworkXGraph(nx_graph_answer)
+    bottleneck_nodes = dpr.wrappers.NodeSet.PythonNodeSet({2, 4})
+    expected_nodemap = dpr.wrappers.NodeMap.PythonNodeMap({2: 6, 4: 6})
 
-    def cmp_func(x):
-        actual_flow_value, actual_flow_graph = x
+    mv = MultiVerify(dpr)
+    results = mv.compute("flow.max_flow", graph, source_node, target_node)
 
-        rel_tol = 1e-9
-        abs_tol = 0.0
-        assert math.isclose(
-            actual_flow_value, expected_flow_value, rel_tol=rel_tol, abs_tol=abs_tol
-        )
+    # Compare flow rate
+    results[0].assert_equals(expected_flow_value)
 
-        assert actual_flow_graph.value.nodes() == expected_graph.value.nodes()
+    # Normalize actual flow to prepare to transform
+    actual_flow = results[1].normalize(dpr.wrappers.Graph.NetworkXGraph)
 
-        bottleneck_nodes = [4, 2]
-        get_edge_weight = lambda edge: edge[2]
-        for node in bottleneck_nodes:
-            actual_total_in_flow = sum(
-                map(
-                    get_edge_weight,
-                    actual_flow_graph.value.in_edges(
-                        node, data=expected_graph.edge_weight_label
-                    ),
-                )
-            )
-            expected_total_in_flow = sum(
-                map(
-                    get_edge_weight,
-                    expected_graph.value.in_edges(
-                        node, data=expected_graph.edge_weight_label
-                    ),
-                )
-            )
-            assert actual_total_in_flow == expected_total_in_flow
-            actual_total_out_flow = sum(
-                map(
-                    get_edge_weight,
-                    actual_flow_graph.value.out_edges(
-                        node, data=expected_graph.edge_weight_label
-                    ),
-                )
-            )
-            expected_total_out_flow = sum(
-                map(
-                    get_edge_weight,
-                    expected_graph.value.out_edges(
-                        node, data=expected_graph.edge_weight_label
-                    ),
-                )
-            )
-            assert actual_total_out_flow == expected_total_out_flow
+    # Compare sum of out edges for bottleneck nodes
+    out_edges = mv.transform(
+        dpr.plugins.core_networkx.algos.util.graph.aggregate_edges,
+        actual_flow,
+        lambda x, y: x + y,
+        initial_value=0,
+    )
+    out_bottleneck = mv.transform(
+        dpr.algos.util.nodemap.select.core_python, out_edges, bottleneck_nodes
+    )
+    out_bottleneck.assert_equals(expected_nodemap)
 
-    MultiVerify(dpr).compute(
-        "flow.max_flow", graph, source_node, target_node
-    ).normalize((float, dpr.wrappers.Graph.NetworkXGraph.Type)).custom_compare(cmp_func)
+    # Compare sum of in edges for bottleneck nodes
+    in_edges = mv.transform(
+        "util.graph.aggregate_edges.core_networkx",
+        actual_flow,
+        lambda x, y: x + y,
+        initial_value=0,
+        in_edges=True,
+        out_edges=False,
+    )
+    in_bottleneck = mv.transform(
+        "util.nodemap.select.core_python", in_edges, bottleneck_nodes
+    )
+    in_bottleneck.assert_equals(expected_nodemap)

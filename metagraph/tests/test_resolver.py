@@ -27,7 +27,7 @@ from .util import site_dir, example_resolver
 
 
 def test_namespace():
-    ns = Namespace("ns")
+    ns = Namespace()
     ns._register("A.B.c", 3)
     ns._register("A.B.d", "test")
     ns._register("A.other", 1.5)

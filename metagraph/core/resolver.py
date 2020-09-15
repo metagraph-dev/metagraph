@@ -39,9 +39,8 @@ class Namespace:
     is no removal mechanism.
     """
 
-    def __init__(self, name):
+    def __init__(self):
         self._registered = set()
-        self._name = name
 
     def _register(self, path: str, obj):
         parts = path.split(".")
@@ -53,7 +52,7 @@ class Namespace:
             setattr(self, name, obj)
         else:
             if not hasattr(self, name):
-                setattr(self, name, Namespace(name))
+                setattr(self, name, Namespace())
             getattr(self, name)._register(".".join(parts[1:]), obj)
 
     def __dir__(self):
@@ -68,7 +67,7 @@ class PlanNamespace:
 
     def __init__(self, resolver):
         self._resolver = resolver
-        self.algos = Namespace("algos")
+        self.algos = Namespace()
 
     def translate(self, value, dst_type, **props):
         """
@@ -139,11 +138,11 @@ class Resolver:
             Tuple[List[ConcreteType], Dict[ConcreteType, int], np.ndarray, np.ndarray],
         ] = {}
 
-        self.algos = Namespace("algos")
-        self.wrappers = Namespace("wrappers")
-        self.types = Namespace("types")
+        self.algos = Namespace()
+        self.wrappers = Namespace()
+        self.types = Namespace()
 
-        self.plugins = Namespace("plugins")
+        self.plugins = Namespace()
 
         self.plan = PlanNamespace(self)
 
@@ -185,7 +184,7 @@ class Resolver:
             if hasattr(self.plugins, plugin_name):
                 raise ValueError(f"{plugin_name} already registered.")
             # Initialize the plugin namespace
-            self.plugins._register(plugin_name, Namespace(plugin_name))
+            self.plugins._register(plugin_name, Namespace())
             plugin_namespace = getattr(self.plugins, plugin_name)
             plugin_namespace._register("abstract_types", set())
             plugin_namespace._register("concrete_types", set())
@@ -193,9 +192,9 @@ class Resolver:
             plugin_namespace._register("abstract_algorithms", {})
             plugin_namespace._register("abstract_algorithm_versions", {})
             plugin_namespace._register("concrete_algorithms", defaultdict(set))
-            plugin_namespace._register("algos", Namespace("algos"))
-            plugin_namespace._register("wrappers", Namespace("wrappers"))
-            plugin_namespace._register("types", Namespace("types"))
+            plugin_namespace._register("algos", Namespace())
+            plugin_namespace._register("wrappers", Namespace())
+            plugin_namespace._register("types", Namespace())
 
             self._register_plugin_attributes_in_tree(
                 plugin_namespace,
@@ -542,13 +541,17 @@ class Resolver:
         iabst = -1
         for iconc, conc_param in enumerate(conc_params):
             if conc_param.name == "resolver" and concrete._include_resolver:
+                # Handle "include_resolver" logic; algo should not declare default,
+                # but we add a default to make things easier for exact dispatching
                 if conc_param.default is not inspect._empty:
                     raise TypeError('"resolver" should not have a default')
+                conc_param = conc_param.replace(default=None)
+                any_changed = True
             elif conc_param.name not in abst_keys:
                 # Extra concrete params must declare a default value
                 if conc_param.default is inspect._empty:
                     raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" is not found in abstract signature and must declare a default value'
+                        f'[{concrete.func.__qualname__}] argument "{conc_param.name}" is not found in abstract signature and must declare a default value'
                     )
             else:
                 iabst += 1
@@ -557,7 +560,7 @@ class Resolver:
                 # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
                 if conc_param.default is not inspect._empty:
                     raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
+                        f'[{concrete.func.__qualname__}] argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
                     )
                 # If abstract defines a default, update concrete with the same default
                 if abst_param.default is not inspect._empty:
@@ -573,7 +576,7 @@ class Resolver:
                     any_changed = True
                 if abst_param.name != conc_param.name:
                     raise TypeError(
-                        f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match name of parameter in abstract function signature'
+                        f'[{concrete.func.__qualname__}] argument "{conc_param.name}" does not match name of parameter in abstract function signature'
                     )
 
                 if isinstance(conc_type, mgtyping.Combo):
@@ -922,10 +925,6 @@ class ExactDispatcher:
     the concrete algorithm inputs prior to calling the function."""
 
     def __init__(self, resolver: Resolver, plugin: str, algo: ConcreteAlgorithm):
-        # Handle case of plugin being a Namespace
-        if isinstance(plugin, Namespace):
-            plugin = plugin._name
-
         self._resolver = resolver
         self._plugin = plugin
         self._algo = algo

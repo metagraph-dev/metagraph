@@ -1,7 +1,8 @@
 from typing import Union, AnyStr, Callable, Tuple
 import math
+import itertools
 from metagraph import ConcreteType
-from metagraph.core.resolver import Resolver, Dispatcher
+from metagraph.core.resolver import Resolver, Dispatcher, ExactDispatcher
 from dask import is_dask_collection
 
 
@@ -32,7 +33,7 @@ class MultiResult:
         if self._length is None:
             raise TypeError("Results are not multi-valued")
         results = {algo: vals[key] for algo, vals in self._results.items()}
-        return results
+        return MultiResult(self._verifier, results, normalized=self._normalized)
 
     def normalize(self, desired_type):
         """
@@ -97,6 +98,20 @@ class MultiVerify:
         """
         if type(algo) is Dispatcher:
             algo = algo._algo_name
+        if not isinstance(algo, str):
+            raise TypeError(
+                f'"algo" must be of type `str` or `Dispatcher`, not `{type(algo)}`'
+            )
+
+        # Verify no MultiResults in args or kwargs
+        abst_algo = self.resolver.abstract_algorithms[algo]
+        abst_sig = abst_algo.__signature__
+        bound = abst_sig.bind(*args, **kwargs)
+        for name, arg in bound.arguments.items():
+            if isinstance(arg, MultiResult):
+                raise TypeError(
+                    f'Invalid argument "{name}"; may not be a MultiResult. Use `.transform` instead.'
+                )
 
         all_concrete_algos = set(self.resolver.concrete_algorithms[algo])
         plans = self.resolver.find_algorithm_solutions(algo, *args, **kwargs)
@@ -135,8 +150,85 @@ class MultiVerify:
 
         return MultiResult(self, results)
 
-    def _continue_computation(self, algo: Union[Dispatcher, AnyStr], args, kwargs):
-        raise NotImplementedError()
+    def transform(self, exact_algo: Union[ExactDispatcher, AnyStr], *args, **kwargs):
+        """
+        :param exact_algo: exact algorithm (resolver.algos.path.to.algo.plugin or 'path.to.algo.plugin')
+        :param args: positional parameters passed to algo
+        :param kwargs: keyword parameters passed to algo
+
+        At least one MultiResult must exist in args or kwargs. All MultiResults must have been normalized first.
+
+        If multiple MultiResults are present in args and kwargs, all pairs will be run through
+        `exact_algo`, multiplying the number of items in the resultant MultiResult.
+        """
+        if isinstance(exact_algo, str):
+            ns = self.resolver.algos
+            for name in exact_algo.split("."):
+                try:
+                    ns = getattr(ns, name)
+                except AttributeError:
+                    raise TypeError(f'Cannot find exact algorithm "{exact_algo}"')
+            exact_algo = ns
+        if type(exact_algo) is not ExactDispatcher:
+            raise TypeError(
+                f'"algo" must be of type `str` or `ExactDispatcher`, not `{type(exact_algo)}`'
+            )
+
+        # Verify MultiResults exist somewhere in args or kwargs
+        # If multiple MultiResults exist, build an all-pairs combination list
+        mr_argnames = []
+        sig = exact_algo._algo.__signature__
+        bound = sig.bind(*args, **kwargs)
+        for name, arg in bound.arguments.items():
+            if isinstance(arg, MultiResult):
+                if not arg._normalized:
+                    raise TypeError(
+                        f'"{name}" must be normalized to use in .transform()'
+                    )
+                if not arg._results:
+                    raise ValueError(f'"{name}" has no results')
+                mr_argnames.append(name)
+        if not mr_argnames:
+            raise TypeError(
+                f"No MultiResults found in call arguments; .transform() requires at least one MultiResult argument"
+            )
+
+        if len(mr_argnames) == 1:
+            # Convert algo names into 1-tuples for consistent logic
+            name = mr_argnames[0]
+            combo_results = {(k,): v for k, v in bound.arguments[name]._results.items()}
+        else:
+            # Build combinations of MultiResult algo names
+            algo_pairs = itertools.product(
+                bound.arguments[name]._results.keys() for name in mr_argnames
+            )
+            combo_results = {}
+            for algo_pair in algo_pairs:
+                result = []
+                for algo, name in zip(algo_pair, mr_argnames):
+                    result.append(bound.arguments[name]._results[algo])
+                combo_results[algo_pair] = tuple(result)
+
+        # Call exact algorithm for each combination
+        output_results = {}
+        for algo_pair, results in combo_results.items():
+            tmp_bind = sig.bind(*args, **kwargs)
+            for algo, name in zip(algo_pair, mr_argnames):
+                tmp_bind.arguments[name] = tmp_bind.arguments[name]._results[algo]
+            algo_key = algo_pair if len(algo_pair) > 1 else algo_pair[0]
+            ret_val = exact_algo(*tmp_bind.args, **tmp_bind.kwargs)
+
+            # Compute any lazy objects
+            if is_dask_collection(ret_val):
+                ret_val = ret_val.compute()
+            elif type(ret_val) is tuple:
+                ret_val = tuple(
+                    x.compute() if is_dask_collection(x) else x for x in ret_val
+                )
+
+            output_results[algo_key] = ret_val
+
+        return MultiResult(self, output_results, normalized=True)
 
     def _translate_atomic_type(self, value, dst_type, algo_path):
         try:

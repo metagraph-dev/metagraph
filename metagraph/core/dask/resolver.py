@@ -1,7 +1,7 @@
 import types
 from dask.base import tokenize
 from dask import delayed, is_dask_collection
-from ..resolver import Resolver, Namespace, PlanNamespace, Dispatcher
+from ..resolver import Resolver, Namespace, PlanNamespace, Dispatcher, ExactDispatcher
 from .placeholder import Placeholder, DelayedWrapper
 from ..plugin import ConcreteType, MetaWrapper
 from typing import Optional
@@ -31,24 +31,49 @@ class DaskResolver:
                 elif isinstance(obj, Namespace):
                     build_algos(obj)
 
-        self.algos = Namespace("algos")
+        self.algos = Namespace()
         build_algos(self._resolver.algos)
 
         # Patch wrappers
-        def build_wrappers(namespace):
+        def build_wrappers(namespace, clone):
             for name in dir(namespace):
                 obj = getattr(namespace, name)
                 if isinstance(obj, MetaWrapper):
                     dwrap = self.delayed_wrapper(obj, obj.Type)
-                    self.wrappers._register(
+                    clone._register(
                         f"{obj.Type.abstract.__name__}.{obj.__name__}", dwrap,
                     )
                     self.class_to_concrete[dwrap] = dwrap.Type
                 elif isinstance(obj, Namespace):
-                    build_wrappers(obj)
+                    build_wrappers(obj, clone)
 
-        self.wrappers = Namespace("wrappers")
-        build_wrappers(self._resolver.wrappers)
+        self.wrappers = Namespace()
+        build_wrappers(self._resolver.wrappers, self.wrappers)
+
+        # Patch plugins
+        def build_plugins(orig, clone):
+            for name in dir(orig):
+                obj = getattr(orig, name)
+                if isinstance(obj, ExactDispatcher):
+                    edisp = ExactDispatcher(self, obj._plugin, obj._algo)
+                    clone._register(name, edisp)
+                    # Also add to the Dispatcher
+                    dispatcher = self.algos
+                    for ns in obj._algo.abstract_name.split("."):
+                        dispatcher = getattr(dispatcher, ns)
+                    setattr(dispatcher, obj._plugin, edisp)
+                elif isinstance(obj, Namespace):
+                    ns = Namespace()
+                    clone._register(name, ns)
+                    if name == "wrappers":
+                        build_wrappers(obj, ns)
+                    else:
+                        build_plugins(obj, ns)
+                else:
+                    clone._register(name, obj)
+
+        self.plugins = Namespace()
+        build_plugins(self._resolver.plugins, self.plugins)
 
         # Add placeholder types to `class_to_concrete`
         for ct in self._resolver.concrete_types:
