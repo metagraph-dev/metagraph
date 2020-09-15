@@ -652,11 +652,27 @@
 		  case 'translation_path_element':
 		      innerHTML = `<span>&nbsp;&rarr;&nbsp;${name}</span>`;
 		      break;
+		  case 'plan':
+		      innerHTML = `Plan #${props.plan_index}`;
+		      break;
 		  default:
 		      innerHTML = name;
 		      break;
 		  }
 		  return innerHTML;
+	      });
+	      plansDiv.querySelectorAll('#mg-algorithm-type-solver-plans > .mg-explorer-tree-widget-label').forEach(label => {
+		  const originalOnClick = label.onclick;
+		  label.onclick = (event) => {
+		      // TODO using nextSibling is not ideal since it depends on the DOM structure ; use pointers / attributes instead
+		      const contentContainer = label.nextSibling;
+		      contentContainer.querySelectorAll('.mg-explorer-tree-widget-label').forEach(sublabel => {
+			  if (!sublabel.classList.contains('active')) {
+			      requestAnimationFrame(() => sublabel.onclick()); // TODO move this requestAnimationFrame down to the onclicks 
+ 			  }
+		      });
+		      originalOnClick();
+		  };
 	      });
 	  }
       };

@@ -457,12 +457,14 @@ def solve_algorithm(
                         )
                     # TODO make this an ordered dict
                     solutions[f"plan_{plan_index}"] = {
+                        "type": "plan",
+                        "plan_index": plan_index,
                         "children": {
                             f"Algorithm Name: {plan.algo.func.__name__}": {},
                             f"Plugin: {plugin_name}": {},
                             "Params": {"children": parameter_data},
                             f"Return Type: {plan.algo.__signature__.return_annotation}": {},
-                        }
+                        },
                     }
                     break
     return solutions
