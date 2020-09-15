@@ -413,52 +413,55 @@ def solve_algorithm(
                     abstract_pathname
                 ]
                 if plan.algo in plugin_concrete_algorithms:
-                    translation_path_lookup = {}
-                    parameter_name_type_pairs = []
+                    parameter_data = OrderedDict()
                     for parameter in plan.algo.__signature__.parameters.values():
+                        translation_path_dict = OrderedDict(
+                            [("translation_path", {"type": "translation_path"}),]
+                        )
                         # TODO abstract common functionality from here and AlgorithmPlan.__repr__ into a class method for AlgorithmPlan
                         if parameter.name in plan.required_translations:
                             mst = plan.required_translations[parameter.name]
-                            translation_path = [
-                                ct.__name__ for ct in [mst.src_type] + mst.dst_types
-                            ]
+                            translation_types = [mst.src_type] + mst.dst_types
+                            translation_path_dict["translation_path"][
+                                "children"
+                            ] = OrderedDict()
+                            for ct in translation_types:
+                                translation_path_dict["translation_path"]["children"][
+                                    ct.__name__
+                                ] = {"type": "translation_path_element"}
+                            translation_path_dict["translation_path"][
+                                "translation_path_length"
+                            ] = len(translation_types)
                         else:
-                            translation_path = [
-                                AlgorithmPlan.string_for_annotation(
-                                    parameter.annotation
-                                )
-                            ]
-                        if len(translation_path) > 1:
-                            translation_path_lookup[parameter.name] = translation_path
-                        parameter_name_type_pairs.append(
-                            [parameter.name, str(parameter.annotation)]
+                            translation_path_dict["translation_path"][
+                                "translation_path_length"
+                            ] = 0
+
+                        # TODO make metagraph types have a __qualname__
+                        annotation_string = getattr(
+                            parameter.annotation, "__qualname__", None
                         )
-                    translation_data = (
-                        {
-                            "children": {
-                                parameter_name: {
-                                    # TODO using ": {}" has become a trope ; reconsider how we strucutre our JSON results
-                                    "children": {t: {} for t in translation_path}
-                                }
-                                for parameter_name, translation_path in translation_path_lookup.items()
-                            }
-                        }
-                        if len(translation_path_lookup) > 0
-                        else {}
-                    )
+                        if annotation_string is None:
+                            annotation_string = getattr(
+                                parameter.annotation,
+                                "__name__",
+                                str(parameter.annotation),
+                            )
+
+                        parameter_data[parameter.name] = OrderedDict(
+                            [
+                                ("type", "parameter"),
+                                ("annotation", annotation_string),
+                                ("children", translation_path_dict),
+                            ]
+                        )
                     # TODO make this an ordered dict
                     solutions[f"plan_{plan_index}"] = {
                         "children": {
-                            f"algo_name {plan.algo.func.__name__}": {},
-                            f"plugin: {plugin_name}": {},
-                            "translations": translation_data,
-                            "params": {
-                                "children": {
-                                    f"{name}: {annotation}": {}
-                                    for name, annotation in parameter_name_type_pairs
-                                }
-                            },
-                            f"returns {plan.algo.__signature__.return_annotation}": {},
+                            f"Algorithm Name: {plan.algo.func.__name__}": {},
+                            f"Plugin: {plugin_name}": {},
+                            "Params": {"children": parameter_data},
+                            f"Return Type: {plan.algo.__signature__.return_annotation}": {},
                         }
                     }
                     break

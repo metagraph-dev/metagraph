@@ -113,11 +113,12 @@
 			  container.classList.toggle('active');
 			  const allContainers = container.closest('.mg-explorer-tree-widget-container').querySelectorAll('.mg-explorer-tree-widget-subcontainer');
 			  allContainers.forEach(currentContainer => {
+			      const currentMaxHeightString = currentContainer.style.maxHeight;
+			      const currentMaxHeight = parseFloat('0'+currentMaxHeightString);
 			      if (currentContainer.classList.contains('active')) {
-				  const currentMaxHeightString = currentContainer.style.maxHeight;
-				  const currentMaxHeight = parseFloat('0'+currentMaxHeightString);
 				  currentContainer.style.maxHeight = currentMaxHeight + container.scrollHeight + 'px';
 			      } else if (currentContainer === container) {
+				  // TODO we need to update the active parents' heights to decrease as appropriate
 				  currentContainer.removeAttribute('style');
 			      }
 			  });
@@ -609,7 +610,16 @@
 	  removeAllChildNodes(algorithmExplorerContentDiv);
 	  algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
 	  buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result, (name, props) => {
-	      return (props.type === 'concrete_algorithm') ? `<span style="font-weight: bold">[${props.plugin}]</span>: <span style="font-size: 0.8rem">${props.name}<span>`: name
+	      let innerHTML;
+	      switch (props.type) {
+	      case 'concrete_algorithm':
+		  innerHTML = `<span style="font-weight: bold">[${props.plugin}]</span>: <span style="font-size: 0.8rem">${props.name}<span>`;
+		  break;
+	      default:
+		  innerHTML = name;
+		  break;
+	      }
+	      return innerHTML;
 	  });
       };
       
@@ -618,6 +628,7 @@
       /*************************/
       
       const updateAlgorithTypeSolverPlans = (planData) => {
+          console.log(`planData ${JSON.stringify(planData)}`);
 	  const plansDiv = shadow.querySelector('#mg-algorithm-type-solver-plans');
 	  plansDiv.classList.add('mg-explorer-tree-widget-container');
 	  removeAllChildNodes(plansDiv);
@@ -627,7 +638,27 @@
 	      parargaphElement.classList.add('mg-algorithm-type-solver-unsatisfiable-algorithm-label');
 	      plansDiv.append(parargaphElement);
 	  } else {
-	      buildTreeWidget(plansDiv, planData.result, (k,v) => k);
+	      buildTreeWidget(plansDiv, planData.result,  (name, props) => {
+		  let innerHTML;
+		  switch (props.type) {
+		  case 'parameter':
+		      innerHTML = `${name}: ${props.annotation}`;
+		      break;
+		  case 'translation_path':
+		      innerHTML = '<span style="font-style: italic;">Translation Path: </span>';
+		      if (props.translation_path_length === 0) {
+			  innerHTML += 'No translation needed.';
+		      }
+		      break;
+		  case 'translation_path_element':
+		      innerHTML = `<span>&nbsp;&rarr;&nbsp;${name}</span>`;
+		      break;
+		  default:
+		      innerHTML = name;
+		      break;
+		  }
+		  return innerHTML;
+	      });
 	  }
       };
       
