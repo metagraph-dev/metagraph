@@ -568,6 +568,24 @@ def test_call_algorithm(example_resolver):
         example_resolver.algos.odict_rev(14)
 
 
+def test_call_algorithm_with_resolver(example_resolver):
+    @abstract_algorithm("testing.inc_resolver")
+    def abstract_test_resolver(x: int) -> int:  # pragma: no cover
+        pass
+
+    @concrete_algorithm("testing.inc_resolver", include_resolver=True)
+    def test_resolver(x: int, *, resolver) -> int:  # pragma: no cover
+        assert resolver is example_resolver
+        return 12
+
+    registry = PluginRegistry("test_include_resolver")
+    registry.register(abstract_test_resolver)
+    registry.register(test_resolver)
+    example_resolver.register(registry.plugins)
+
+    assert example_resolver.call_algorithm("testing.inc_resolver", 4) == 12
+
+
 def test_call_algorithm_plan(example_resolver, capsys):
     capsys.readouterr()
     example_resolver.plan.call_algorithm("power", 2, 3)
@@ -682,7 +700,7 @@ def test_plugin_specific_concrete_algorithms():
     ]
     for tree_name in tree_names:
         _assert_trees_subset(
-            getattr(r, tree_name), getattr(r.plugins.core_networkx, tree_name),
+            getattr(r, tree_name), getattr(r.plugins.core_networkx, tree_name)
         )
 
     import networkx as nx

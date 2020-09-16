@@ -543,6 +543,11 @@ class Resolver:
         # Check parameters
         abst_params = list(abst_sig.parameters.values())
         conc_params = list(conc_sig.parameters.values())
+        # remove `resolver` kwarg from list if this concrete algorithm for the purposes of matching
+        # signatures
+        if concrete._include_resolver:
+            conc_params = [p for p in conc_params if p.name != "resolver"]
+
         if len(abst_params) != len(conc_params):
             raise TypeError(
                 f"number of parameters does not match between {abstract.name} and {concrete.func.__qualname__}"
