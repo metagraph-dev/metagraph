@@ -61,8 +61,11 @@
 	      shadow.websocket.send(JSON.stringify(object));
 	  }
       };
-      
 
+      window.onbeforeunload = () => {
+	  sendShadowWebsocketRequest({function: 'close'});
+      };
+      
       let highlightTranslationGraphPath = (data) => {};
       
       // Listen for websocket messages
