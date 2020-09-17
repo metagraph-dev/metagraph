@@ -185,6 +185,16 @@ class AlgorithmPlan:
     def unsatisfiable(self):
         return len(self.err_msgs) != 0
 
+    @classmethod
+    def string_for_annotation(cls, annotation) -> str:
+        if type(annotation) is Wrapper:
+            result = f"{annotation.__name__}"
+        elif type(annotation) is type:
+            result = f"{annotation.__name__}"
+        else:
+            result = f"{annotation.__class__.__name__}"
+        return result
+
     def __repr__(self):
         sig = self.algo.__signature__
         s = [
@@ -203,12 +213,7 @@ class AlgorithmPlan:
                 else:
                     s.append(f"** {varname} **")
                     anni = sig.parameters[varname].annotation
-                    if type(anni) is Wrapper:
-                        s.append(f"{anni.__name__}")
-                    elif type(anni) is type:
-                        s.append(f"{anni.__name__}")
-                    else:
-                        s.append(f"{anni.__class__.__name__}")
+                    s.append(self.string_for_annotation(anni))
         s.append("---------------------")
         return "\n".join(s)
 

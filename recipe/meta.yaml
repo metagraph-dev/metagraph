@@ -28,6 +28,7 @@ requirements:
     - scipy
     - donfig
     - dask
+    - websockets
 
 test:
   requires:

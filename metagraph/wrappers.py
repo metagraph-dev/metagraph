@@ -2,10 +2,10 @@ from . import Wrapper
 from .types import (
     NodeSet,
     NodeMap,
-    NodeTable,
+    # NodeTable,
     EdgeSet,
     EdgeMap,
-    EdgeTable,
+    # EdgeTable,
     Graph,
     BipartiteGraph,
 )
@@ -20,8 +20,8 @@ class NodeMapWrapper(Wrapper, abstract=NodeMap, register=False):
     pass
 
 
-class NodeTableWrapper(Wrapper, abstract=NodeTable, register=False):
-    pass
+# class NodeTableWrapper(Wrapper, abstract=NodeTable, register=False):
+#     pass
 
 
 class EdgeSetWrapper(Wrapper, abstract=EdgeSet, register=False):
@@ -32,8 +32,8 @@ class EdgeMapWrapper(Wrapper, abstract=EdgeMap, register=False):
     pass
 
 
-class EdgeTableWrapper(Wrapper, abstract=EdgeTable, register=False):
-    pass
+# class EdgeTableWrapper(Wrapper, abstract=EdgeTable, register=False):
+#     pass
 
 
 class GraphWrapper(Wrapper, abstract=Graph, register=False):
@@ -90,8 +90,8 @@ class CompositeGraphWrapper(GraphWrapper, abstract=Graph, register=False):
                         ret["node_dtype"] = None
                     elif isinstance(obj.nodes, NodeMapWrapper):
                         ret["node_type"] = "map"
-                    elif isinstance(obj.nodes, NodeTableWrapper):
-                        ret["node_type"] = "table"
+                    # elif isinstance(obj.nodes, NodeTableWrapper):
+                    #     ret["node_type"] = "table"
                 if prop == "edge_type":
                     if isinstance(obj.edges, EdgeSetWrapper):
                         ret["edge_type"] = "set"
@@ -99,8 +99,8 @@ class CompositeGraphWrapper(GraphWrapper, abstract=Graph, register=False):
                         ret["edge_has_negative_weights"] = None
                     elif isinstance(obj.edges, EdgeMapWrapper):
                         ret["edge_type"] = "map"
-                    elif isinstance(obj.edges, EdgeTableWrapper):
-                        ret["edge_type"] = "table"
+                    # elif isinstance(obj.edges, EdgeTableWrapper):
+                    #     ret["edge_type"] = "table"
 
             cls._compute_subprops(ret, obj.edges, props, cls._edge_prop_map)
             cls._compute_subprops(ret, obj.nodes, props, cls._node_prop_map)

@@ -1,0 +1,504 @@
+
+/***********/
+/* General */
+/***********/
+
+#mg-explorer-body {
+    padding: 0px;
+    margin: 1% 1% 1% 1%;
+    width: 98%;
+    background: #fff;
+    font-family: 'Open Sans', sans-serif;
+    display: block;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 4px;
+    transition: all 0.5s;
+}
+
+/******************/
+/* Navigation Bar */
+/******************/
+
+#mg-explorer-navigation-bar {
+    text-align: center;
+    padding: 0px;
+    width: 100%;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.125);
+    overflow-x: auto;
+    white-space: nowrap;
+    user-select: none;
+}
+
+#mg-explorer-navigation-bar ul {
+    display: inline-block;
+    list-style-type: none;
+    margin-block-start: 0px;
+    margin-block-end: 0px;
+    margin-inline-start: 0px;
+    margin-inline-end: 0px;
+    padding-inline-start: 0px;
+}
+
+#mg-explorer-navigation-bar li {
+    display: inline-block;
+    border: 1px solid rgba(0,0,0,.125);
+    border-radius: 3px;
+    padding: 3px;
+    margin: 10px;
+    transition: all 0.5s;
+    cursor: pointer;
+}
+
+#mg-explorer-navigation-bar li:active {
+    transform: translateY(5px);
+    user-select: none;
+}
+
+#mg-explorer-navigation-bar li:hover {
+    border: 1px solid rgba(0,0,0,0.5);
+    box-shadow: 0 3px 6px rgba(0,0,0,0.1);
+}
+
+#mg-explorer-navigation-bar li span {
+    display: block;
+    text-decoration: none;
+    padding-left: 0.5rem;
+    padding-right: 0.5rem;
+}
+#mg-explorer-navigation-bar li.active {
+    border: 1px solid #000;
+}
+
+/****************/
+/* Explorer Tab */
+/****************/
+
+.mg-explorer-tab {
+    display: none;
+    padding: 1em;
+}
+
+.mg-explorer-tab.active {
+    display: block;
+}
+
+.mg-explorer-tab h2 {
+    text-align: center;
+    margin-top: 0px;
+    margin-bottom: 10px;
+}
+
+/*********************/
+/* Translation Graph */
+/*********************/
+
+#mg-translation-graph-container {
+    text-align: center;
+    align-items: center;
+    width: 100%;
+}
+
+table#mg-translation-graph-table {
+    align-items: center;
+    height: 100%;
+    width: 100%;
+}
+
+#mg-translation-graph-table tbody tr:nth-child(odd),
+#mg-translation-graph-table tbody tr:hover,
+#mg-translation-graph-table tbody tr{
+    background: transparent;
+}
+
+/* Left Column */
+
+#mg-translation-graph-svg-container {
+    border: 2px solid rgba(200, 200, 200, 1.0);
+    border-radius: 8px;
+    height: 50vh;
+}
+
+table#mg-translation-graph-table div#mg-translation-graph-svg-container svg#mg-translation-graph-svg {
+    width: 100%;
+    height: 100%;
+}
+
+#mg-translation-graph-tooltip {
+    position: fixed;
+    transition: all 0.5s;
+    text-align: center;
+    font-size: 1rem;
+    background: #182A39;
+    border-radius: 8px;
+    pointer-events: none;
+    color: #fff;
+    opacity: 0.0;
+}
+
+#mg-translation-graph-tooltip-content {
+    margin: 10px;
+}
+
+#mg-translation-graph-tooltip #mg-translation-graph-tooltip-content p {
+    margin: 5px 10px 5px 10px;
+    font-size: 0.75em;
+}
+
+/* Right Column */
+
+#mg-translation-graph-menu-column {
+    width: 30%;
+    padding-left: 10px;
+    user-select: none;
+    height: 50vh;
+}
+
+#mg-translation-graph-menu {
+    border: 2px solid rgba(200, 200, 200, 1.0);
+    border-radius: 8px;
+    height: 50vh;
+}
+
+#mg-translation-graph-menu h3 {
+    text-align: center;
+    margin: 10px;
+}
+
+#mg-translation-graph-menu p {
+    text-align: center;
+    font-size: 1em;
+}
+
+#mg-translation-graph-menu select {
+    display: block;
+    margin: 0 auto;
+}
+
+#mg-translation-graph-menu-container {
+    padding: 0px 20px 20px 20px;
+}
+
+/* Right Column: Abstract Type Selection */
+
+#mg-translation-graph-abstract-type-dropdown {
+    border-radius: 10px;
+    border-width: 2px;
+}
+
+/* Right Column: Filter By Plugin */
+
+#mg-translation-graph-filter-by-plugin-dropdown {
+    border-radius: 10px;
+    border-width: 2px;
+}
+
+/* Right Column: Translation Path Solver */
+
+#mg-translation-graph-start-concrete-type-dropdown {
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: #20d4c2;
+    margin: 15px;
+}
+
+#mg-translation-graph-end-concrete-type-dropdown {
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: #dc9af6;
+    margin: 25px;
+}
+
+/* Right Column: Filter By Plugin + Translation Path Solver */
+
+#mg-translation-graph-menu select {
+    margin-bottom: 25px;
+}
+
+#mg-translation-graph-filter-by-plugin-toggle-button, #mg-translation-graph-translation-path-solver-toggle-button {
+    cursor: pointer;
+}
+
+#mg-translation-graph-filter-by-plugin-toggle-button.collapser-button:before, #mg-translation-graph-translation-path-solver-toggle-button.collapser-button:before {
+    content: '\02795 \00a0';
+    margin-left: 5px;
+}
+
+#mg-translation-graph-filter-by-plugin-toggle-button.active:before, #mg-translation-graph-translation-path-solver-toggle-button.active:before {
+  content: '\2796 \00a0';
+}
+
+#mg-translation-graph-filter-by-plugin-menu, #mg-translation-graph-translation-path-solver-menu {
+    transition: all 0.5s;
+    overflow: hidden;
+    max-height: 0px;
+}
+
+#mg-translation-graph-filter-by-plugin-menu.active {
+    max-height: 5vh;
+}
+
+#mg-translation-graph-translation-path-solver-menu.active {
+    max-height: 50vh;
+}
+
+/* Full Translation Path Display */
+
+#mg-translation-graph-path-display-text {
+    padding-bottom: 15px;
+}
+
+#mg-translation-graph-path-display-text .mg-translation-graph-path-display-text-path-node {
+    border-style: solid;
+    border-radius: 10px;
+    border-width: 2px;
+    border-color: #ccc;
+    margin: 25px;
+}
+
+#mg-translation-graph-path-display-text #mg-translation-graph-path-display-text-path-start-node.mg-translation-graph-path-display-text-path-node {
+    border-color: #20d4c2;
+}
+
+#mg-translation-graph-path-display-text #mg-translation-graph-path-display-text-path-end-node.mg-translation-graph-path-display-text-path-node {
+    border-color: #dc9af6;
+}
+
+#mg-translation-graph-path-solver-cell {
+    transition: all 0.5s;
+    border: 2px solid #fff;
+    border-radius: 8px;
+}
+
+#mg-translation-graph-path-solver-cell #mg-translation-graph-path-solver {
+    transition: all 0.5s;
+    overflow: hidden;
+    max-height: 0vh;
+}
+
+#mg-translation-graph-path-solver-cell.active {
+    border-color: rgba(200, 200, 200, 1.0);
+}
+
+#mg-translation-graph-path-solver-cell.active #mg-translation-graph-path-solver {
+    max-height: 50vh;
+}
+
+/* Translation Graph D3 Visualization */
+
+#mg-translation-graph-edge-arrowhead {
+    fill: #555;
+}
+
+.mg-translation-graph-edge {
+    transition: stroke-opacity 0.5s, stroke-width 0.5s, stroke 0.5s;
+    fill: none;
+    stroke: #555;
+    stroke-opacity: 0.5;
+    stroke-width: 3px;
+}
+
+.mg-translation-graph-edge.mg-translation-graph-hidden-edge {
+    stroke-opacity: 0.1;
+}
+
+.mg-translation-graph-edge:hover {
+    stroke-width: 6px;
+}
+
+.mg-translation-graph-edge.mg-translation-graph-highlighted-edge {
+    stroke-opacity: 1.0;
+    stroke-width: 6px;
+    stroke: #000;
+}
+
+.mg-translation-graph-primary-edge {
+}
+
+.mg-translation-graph-secondary-edge {
+    stroke-dasharray: 10 20;
+}
+
+.mg-translation-graph-node {
+    transition: fill 0.5s, stroke-width 0.5s, r 0.5s;
+    r: 6;
+    fill: pink;
+    stroke: black;
+    stroke-width: 1px;
+}
+
+.mg-translation-graph-node:hover {
+    r: 8;
+    fill: crimson;
+    stroke-width: 2px;
+}
+
+.mg-translation-graph-start-node {
+    r: 7;
+    fill: #20d4c2;
+    stroke-width: 2px;
+}
+
+.mg-translation-graph-end-node {
+    r: 7;
+    fill: #dc9af6;
+    stroke-width: 2px;
+}
+
+.mg-translation-graph-node-text-primary {
+    font-size: 1.0em;
+    font-style: bold;
+}
+
+.mg-translation-graph-node-text-secondary {
+    font-size: 0.75em;
+    font-style: italic;
+}
+
+.mg-translation-graph-node-text-bounding-box {
+    fill: #fff;
+    fill-opacity: 0.7;
+}
+
+.mg-translation-graph-node-text-bounding-box-primary {
+    stroke-width: 1.5;
+    stroke: #000;
+}
+
+.mg-translation-graph-node-text-bounding-box-secondary {
+    rx: 10;
+    stroke-width: 1;
+    stroke: #bbb;
+}
+
+/**********************************************************************************************/
+/* Type Explorer, Algorithm Explorer, Algorithm Type Solver, and Plugin Explorer Tree Widgets */
+/**********************************************************************************************/
+
+.mg-explorer-tree-widget-container {
+    border: 1px solid rgba(0,0,0,0.25);
+    box-shadow: 3px 3px 6px rgba(0,0,0,0.125);
+    background: #fdfdfd;
+}
+
+.mg-explorer-tree-widget-container > .mg-explorer-tree-widget-label {
+    background: #efefef;
+    margin: 0px;
+}
+
+.mg-explorer-tree-widget-container > .mg-explorer-tree-widget-label + .mg-explorer-tree-widget-subcontainer {
+    background: #fdfdfd;
+    margin: 0px;
+}
+
+.mg-explorer-tree-widget-subcontainer {
+    margin: 0px 0px 0px 3em;
+    transition: all 0.5s;
+    font-size: 15px;
+    overflow: hidden;
+}
+
+.mg-explorer-tree-widget-label {
+    cursor: pointer;
+}
+
+.mg-explorer-tree-widget-leaf {
+    cursor: default;
+}
+
+.mg-explorer-tree-widget-label,
+.mg-explorer-tree-widget-leaf {
+    margin: 0px;
+    margin-left: 3em;
+    padding: 2px;
+    transition: all 0.5s;
+    background: #fdfdfd;
+    font-size: 15px;
+    overflow: hidden;
+}
+
+.mg-explorer-tree-widget-label:before {
+    content: '\02795 \00a0';
+    margin-left: 5px;
+    font-size: 15px;
+}
+
+.mg-explorer-tree-widget-container .mg-explorer-tree-widget-label.active:before {
+    content: '\2796 \00a0';
+}
+
+.mg-explorer-tree-widget-subcontainer {
+    max-height: 0px;
+}
+
+.mg-explorer-tree-widget-container .mg-explorer-tree-widget-subcontainer.active {
+}
+
+/*************************/
+/* Algorithm Type Solver */
+/*************************/
+
+#mg-algorithm-type-solver-content {
+}
+
+#mg-algorithm-type-solver-abstract-algorithm-path-dropdown {
+}
+
+#mg-algorithm-type-solver-abstract-algorithm-content {
+}
+
+#mg-algorithm-type-solver-signature {
+    text-align: center;
+}
+
+#mg-algorithm-type-solver-all-parameters-container {
+    margin-left: 2em;
+    padding: 20px;
+}
+
+.mg-algorithm-type-solver-single-parameter-container {
+    padding: 2px;
+}
+
+.mg-algorithm-type-solver-parameter-name {
+}
+
+.mg-algorithm-type-solver-parameter-abstract-type {
+}
+
+.mg-algorithm-type-solver-parameter-concrete-type-dropdown {
+}
+
+#mg-algorithm-type-solver-solve-algorithm-types-button {
+    display: inline-block;
+    transition: all 0.5s;
+    border-style: solid;
+    border-radius: 15px;
+    border-width: 1px;
+    border-color: #888;
+    background: #f5f5f5;
+    padding: 4px 8px 4px 8px;
+}
+
+#mg-algorithm-type-solver-solve-algorithm-types-button:active {
+    transform: translateY(5px);
+}
+
+#mg-algorithm-type-solver-plans {
+    margin-top: 10px;
+}
+
+.mg-algorithm-type-solver-unsatisfiable-algorithm-label {
+    margin: 0px;
+    padding: 2px;
+    background: #efefef;
+    font-size: 15px;
+    overflow: hidden;
+    font-style: italic;
+}
+
+.mg-algorithm-type-solver-unsatisfiable-algorithm-label:before {
+    content: '\2715 \00a0';
+    margin-left: 5px;
+    font-size: 15px;
+    font-style: normal;
+}

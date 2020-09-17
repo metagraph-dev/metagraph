@@ -58,6 +58,15 @@ class Namespace:
     def __dir__(self):
         return self._registered
 
+    def to_dict(self):
+        result = {}
+        for key in self._registered:
+            value = getattr(self, key)
+            if isinstance(value, Namespace):
+                value = value.to_dict()
+            result[key] = value
+        return result
+
 
 class PlanNamespace:
     """
@@ -145,6 +154,17 @@ class Resolver:
         self.plugins = Namespace()
 
         self.plan = PlanNamespace(self)
+
+    def explore(self, embedded=None):
+        from ..explorer import service
+
+        if embedded is None:
+            import asyncio
+
+            loop = asyncio.get_event_loop()
+            embedded = loop.is_running()
+
+        return service.main(self, embedded)
 
     def register(self, plugins_by_name):
         """Register plugins for use with this resolver.
