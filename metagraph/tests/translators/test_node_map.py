@@ -86,6 +86,9 @@ def test_numpy_graphblas(default_plugin_resolver):
     x = NumpyNodeMap(data, mask=~missing)
     assert x.num_nodes == 3
     # Convert numpy -> graphblas
-    intermediate = GrblasNodeMap(grblas.Vector.from_values([2, 4, 6], [3, 4, -1]),)
-    y = dpr.translate(x, GrblasNodeMap)
+    intermediate = dpr.wrappers.NodeMap.GrblasNodeMap(
+        grblas.Vector.from_values([2, 4, 6], [3, 4, -1]),
+    )
+    # NOTE: this tests DelayedWrappers in dask mode in addition to the normal translation
+    y = dpr.translate(x, dpr.wrappers.NodeMap.GrblasNodeMap)
     dpr.assert_equal(y, intermediate)

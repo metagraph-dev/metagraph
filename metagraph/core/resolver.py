@@ -107,8 +107,8 @@ class PlanNamespace:
             Dispatcher(self._resolver, algo_name).signatures
         else:
             # choose the solutions requiring the fewest translations
-            algo = valid_algos[0]
-            return algo.display()
+            plan = valid_algos[0]
+            return plan
 
     @property
     def abstract_algorithms(self):

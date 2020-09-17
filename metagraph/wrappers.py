@@ -43,7 +43,6 @@ class GraphWrapper(Wrapper, abstract=Graph, register=False):
 class CompositeGraphWrapper(GraphWrapper, abstract=Graph, register=False):
     def __init__(self, edges, nodes=None):
         super().__init__()
-        self.value = (edges, nodes)
         self.edges = edges
         self.nodes = nodes
 

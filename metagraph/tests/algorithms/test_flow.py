@@ -1,4 +1,5 @@
 from metagraph.tests.util import default_plugin_resolver
+import metagraph as mg
 import networkx as nx
 from . import MultiVerify
 from typing import Tuple
@@ -51,7 +52,7 @@ v /      v /      v v
     nx_graph_answer = nx.DiGraph()
     nx_graph_answer.add_weighted_edges_from(ebunch_answer)
     expected_flow_value = 6
-    expected_graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph_answer)
+    expected_graph = mg.plugins.networkx.types.NetworkXGraph(nx_graph_answer)
 
     def cmp_func(x):
         actual_flow_value, actual_flow_graph = x

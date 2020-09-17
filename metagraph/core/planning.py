@@ -6,6 +6,7 @@ import inspect
 import numpy as np
 import scipy.sparse as ss
 from metagraph import config, Wrapper, NodeID
+from .dask.placeholder import Placeholder
 
 
 class MultiStepTranslator:
@@ -20,14 +21,14 @@ class MultiStepTranslator:
     def __len__(self):
         if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation path found for {self.src_type.__name__} -> {self.final_type.__name__}"
             )
         return len(self.translators)
 
     def __iter__(self):
         if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation path found for {self.src_type.__name__} -> {self.final_type.__name__}"
             )
         return iter(self.translators)
 
@@ -36,12 +37,12 @@ class MultiStepTranslator:
         if self.unsatisfiable:
             s.append("[Unsatisfiable Translation]")
             s.append(
-                "Translation {self.src_type.__name__} -> {self.final_type.__name__} unsatisfiable"
+                f"Translation {self.src_type.__name__} -> {self.final_type.__name__} unsatisfiable"
             )
         elif len(self) == 0:
             s.append("[Null Translation]")
             s.append(
-                "No translation required from {self.src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation required from {self.src_type.__name__} -> {self.final_type.__name__}"
             )
         elif len(self) > 1:
             s.append("[Multi-step Translation]")
@@ -68,11 +69,17 @@ class MultiStepTranslator:
     def __call__(self, src, **props):
         if self.unsatisfiable:
             raise ValueError(
-                "No translation path found for {src_type.__name__} -> {self.final_type.__name__}"
+                f"No translation path found for {self.src_type.__name__} -> {self.final_type.__name__}"
             )
 
         if not self.translators:
             return src
+
+        # Import here to avoid circular references
+        from .dask.resolver import DaskResolver
+
+        if isinstance(self.resolver, DaskResolver):
+            return self.resolver._add_translation_plan(self, src, **props)
 
         if config.get("core.logging.translations"):
             self.display()
@@ -90,8 +97,7 @@ class MultiStepTranslator:
     def find_translation(
         cls, resolver, src_type, dst_type, *, exact=False
     ) -> "MultiStepTranslator":
-        if isinstance(dst_type, type) and not issubclass(dst_type, ConcreteType):
-            dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
+        dst_type = resolver.class_to_concrete.get(dst_type, dst_type)
 
         if not isinstance(dst_type, type):
             dst_type = dst_type.__class__
@@ -218,6 +224,13 @@ class AlgorithmPlan:
         if self.unsatisfiable:
             combined_err_msg = "".join(["\n    " + msg for msg in self.err_msgs])
             raise ValueError(f"Algorithm not callable because: {combined_err_msg}")
+
+        # Import here to avoid circular references
+        from .dask.resolver import DaskResolver
+
+        if isinstance(self.resolver, DaskResolver):
+            return self.resolver._add_algorithm_plan(self, *args, **kwargs)
+
         # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
         args, kwargs = self.apply_abstract_defaults(
             self.resolver, self.algo.abstract_name, *args, **kwargs
@@ -302,6 +315,14 @@ class AlgorithmPlan:
             return
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
+
+            # Handle lazy objects which don't know their properties
+            if isinstance(arg_value, Placeholder):
+                if arg_typeclass is not param_type.__class__:
+                    return param_type
+                else:
+                    # TODO: add a self-translation step to ensure correct properties
+                    return
 
             requested_properties = set(param_type.props.keys())
             properties_dict = arg_typeclass.compute_concrete_properties(

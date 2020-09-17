@@ -2,6 +2,7 @@ from typing import Union, AnyStr, Callable, Tuple
 import math
 from metagraph import ConcreteType
 from metagraph.core.resolver import Resolver, Dispatcher
+from dask import is_dask_collection
 
 
 class UnsatisfiableAlgorithmError(Exception):
@@ -94,22 +95,26 @@ class MultiVerify:
                     ret_val = self._translate_atomic_type(
                         ret_val, expected_type, algo_path
                     )
+
+                # Compute any lazy objects
+                if is_dask_collection(ret_val):
+                    ret_val = ret_val.compute()
+                elif type(ret_val) is tuple:
+                    ret_val = tuple(
+                        x.compute() if is_dask_collection(x) else x for x in ret_val
+                    )
+
                 try:
                     cmp_func(ret_val)
                 except Exception:
                     print("Performing custom compare against:")
-
-                    def _print_ret_val(item):
+                    if not isinstance(ret_val, tuple):
+                        ret_val = (ret_val,)
+                    for item in ret_val:
                         if hasattr(item, "value"):
                             print(item.value)
                         else:
                             print(item)
-
-                    if isinstance(ret_val, tuple):
-                        for ret_val_elem in ret_val:
-                            _print_ret_val(ret_val_elem)
-                    else:
-                        _print_ret_val(ret_val)
                     raise
             except Exception:
                 print(f"Failed for {algo_path}")
@@ -154,6 +159,9 @@ class MultiVerify:
             compare_val = self._translate_atomic_type(
                 ret_val, type(expected_val), algo_path
             )
+            if is_dask_collection(compare_val):
+                compare_val = compare_val.compute()
+
             try:
                 if not expected_type.is_typeclass_of(compare_val):
                     raise TypeError(
@@ -164,13 +172,17 @@ class MultiVerify:
                 )
             except AssertionError:
                 print(f"compare_val        {compare_val}")
-                print(f"compare_val.value  {compare_val.value}")
+                if hasattr(compare_val, "value"):
+                    print(f"compare_val.value  {compare_val.value}")
                 print(f"expected_val       {expected_val}")
-                print(f"expected_val.value {expected_val.value}")
+                if hasattr(expected_val, "value"):
+                    print(f"expected_val.value {expected_val.value}")
                 # breakpoint()
                 raise
         else:
             # Normal Python type
+            if is_dask_collection(ret_val):
+                ret_val = ret_val.compute()
             if expected_type is float:
                 assert math.isclose(
                     ret_val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol

@@ -23,6 +23,7 @@ install:
 script:
     - black --check --diff metagraph
     - pytest
+    - pytest --dask --cov-append
     - conda build -c defaults -c conda-forge --python ${TRAVIS_PYTHON_VERSION} continuous_integration/conda
     - conda install -c conda-forge coveralls
     - coveralls

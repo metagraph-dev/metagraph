@@ -242,4 +242,10 @@ def default_plugin_resolver(request):  # pragma: no cover
         res.register(**find_plugins())
     else:
         res.load_plugins_from_environment()
+
+    if request.config.getoption("--dask", default=False):
+        from metagraph.dask import DaskResolver
+
+        res = DaskResolver(res)
+
     return res
