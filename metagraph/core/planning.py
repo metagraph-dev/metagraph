@@ -207,7 +207,7 @@ class AlgorithmPlan:
                 else:
                     s.append(f"** {varname} **")
                     anni = sig.parameters[varname].annotation
-                    s.append(self.__class__.string_for_annotation(anni))
+                    s.append(self.string_for_annotation(anni))
         s.append("---------------------")
         return "\n".join(s)
 
