@@ -16,14 +16,16 @@ dependencies:
   - pip
   - pip:
     - rst2pdf
+    - nest_asyncio
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata
   - numpy
   - networkx
   - pandas
-  - conda-forge::python-louvain
   - scipy
+  - dask
   - conda-forge::donfig
   - conda-forge::grblas
-  - dask
+  - conda-forge::python-louvain
+  - conda-forge::websockets
