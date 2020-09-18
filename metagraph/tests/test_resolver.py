@@ -314,7 +314,10 @@ def test_incorrect_signature_errors(example_resolver):
     ) -> IntType:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match="number of parameters"):
+    with pytest.raises(
+        TypeError,
+        match="is not found in abstract signature and must declare a default value",
+    ):
         registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
         registry.register(too_many_args)
         example_resolver.register(registry.plugins)
@@ -338,10 +341,19 @@ def test_incorrect_signature_errors(example_resolver):
         example_resolver.register(registry.plugins)
 
     @concrete_algorithm("power")
+    def swapped_args(p: IntType, x: IntType) -> IntType:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match=".p. does not match name of parameter"):
+        registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
+        registry.register(swapped_args)
+        example_resolver.register(registry.plugins)
+
+    @concrete_algorithm("power")
     def wrong_arg_name(X: IntType, p: IntType) -> IntType:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match='"X" does not match name of parameter'):
+    with pytest.raises(TypeError, match="Missing parameters: {.x.}"):
         registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
         registry.register(wrong_arg_name)
         example_resolver.register(registry.plugins)
@@ -433,7 +445,7 @@ def test_python_types_as_concrete_substitutes(example_resolver):
     )
     example_resolver.register(registry.plugins)
     algo_plan = example_resolver.find_algorithm_exact("testing.python_types", 3, 4)
-    assert algo_plan.algo == correct_python_type
+    assert algo_plan.algo.func == correct_python_type.func
 
 
 def test_type_of(example_resolver):
@@ -515,10 +527,12 @@ def test_find_algorithm(example_resolver):
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
         example_resolver.find_algorithm("does_not_exist", 1, thing=2)
 
-    assert example_resolver.find_algorithm("power", 1, 3).algo == int_power
-    assert example_resolver.find_algorithm("power", p=1, x=3).algo == int_power
+    assert example_resolver.find_algorithm("power", 1, 3).algo.func == int_power.func
+    assert (
+        example_resolver.find_algorithm("power", p=1, x=3).algo.func == int_power.func
+    )
     assert example_resolver.find_algorithm("power", 1, "4") is None
-    assert example_resolver.find_algorithm("power", 1, p=2).algo == int_power
+    assert example_resolver.find_algorithm("power", 1, p=2).algo.func == int_power.func
 
     with pytest.raises(TypeError, match="too many positional arguments"):
         example_resolver.find_algorithm("power", 1, 2, 3)
@@ -539,7 +553,7 @@ def test_find_algorithm(example_resolver):
     registry.register(correct_python_type)
     example_resolver.register(registry.plugins)
     plan = example_resolver.find_algorithm("testing.match_python_type", 2)
-    assert plan.algo == correct_python_type
+    assert plan.algo.func == correct_python_type.func
     assert example_resolver.find_algorithm("testing.match_python_type", set()) is None
 
 
@@ -558,7 +572,7 @@ def test_call_algorithm(example_resolver):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
     assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
-    assert example_resolver.call_algorithm("echo", 14) == 14
+    assert example_resolver.call_algorithm("echo_str", 14) == "14"
 
     od1 = OrderedDict([("a", 1), ("b", 2), ("c", 3)])
     od2 = OrderedDict([("c", 3), ("b", 2), ("a", 1)])
@@ -584,6 +598,27 @@ def test_call_algorithm_with_resolver(example_resolver):
     example_resolver.register(registry.plugins)
 
     assert example_resolver.call_algorithm("testing.inc_resolver", 4) == 12
+
+
+def test_call_using_dispatcher(example_resolver):
+    assert example_resolver.algos.power(2, 3) == 8
+    assert example_resolver.algos.power(p=2, x=3) == 9
+
+    with pytest.raises(TypeError, match="too many positional arguments"):
+        example_resolver.algos.echo_str(14, "$")
+
+    with pytest.raises(TypeError, match="got an unexpected keyword argument .prefix."):
+        example_resolver.algos.echo_str(14, prefix="$")
+
+
+def test_call_using_exact_dispatcher(example_resolver):
+    # Call with plugin at the end
+    assert example_resolver.algos.echo_str.example_plugin(14, "$") == "$14"
+    assert example_resolver.algos.echo_str.example_plugin(14, prefix="$") == "$14"
+    # Call with plugin at the start
+    assert (
+        example_resolver.plugins.example_plugin.algos.echo_str(14, prefix="$") == "$14"
+    )
 
 
 def test_call_algorithm_plan(example_resolver, capsys):
@@ -664,7 +699,7 @@ def test_plugin_specific_concrete_algorithms():
         if resolver_tree == plugin_tree:
             pass
         elif isinstance(resolver_tree, mg.core.resolver.Dispatcher):
-            assert hasattr(plugin_tree, "__call__")
+            assert isinstance(plugin_tree, mg.core.resolver.ExactDispatcher)
         elif isinstance(resolver_tree, set):
             assert plugin_tree.issubset(resolver_tree)
         elif isinstance(resolver_tree, dict):
@@ -907,7 +942,7 @@ def test_algorithm_versions():
         }
     )
     assert (
-        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1.__name__
+        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1._algo.__name__
         == "concrete_algo2"
     )
 
@@ -936,7 +971,7 @@ def test_algorithm_versions():
             }
         )
     assert (
-        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1.__name__
+        res.algos.test_algorithm_versions.test_abstract_algo.test_algorithm_versions1._algo.__name__
         == "concrete_algo1"
     )
 

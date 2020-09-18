@@ -39,7 +39,7 @@ C --4--- D
             dpr.wrappers.EdgeMap.ScipyEdgeMap(lengths_ss_matrix)
         ),
     )
-    MultiVerify(dpr, "traversal.all_pairs_shortest_paths", graph).assert_equals(
+    MultiVerify(dpr).compute("traversal.all_pairs_shortest_paths", graph).assert_equals(
         expected_answer
     )
 
@@ -71,7 +71,9 @@ v        v /        v
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
     correct_answer = dpr.wrappers.Vector.NumpyVector(np.array([0, 3, 4, 5, 6, 2, 7]))
-    MultiVerify(dpr, "traversal.bfs_iter", graph, 0).assert_equals(correct_answer)
+    MultiVerify(dpr).compute("traversal.bfs_iter", graph, 0).assert_equals(
+        correct_answer
+    )
 
 
 def test_bellman_ford(default_plugin_resolver):
@@ -107,7 +109,9 @@ v        v /        v
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
     )
-    MultiVerify(dpr, "traversal.bellman_ford", graph, 0).assert_equals(expected_answer)
+    MultiVerify(dpr).compute("traversal.bellman_ford", graph, 0).assert_equals(
+        expected_answer
+    )
 
 
 def test_dijkstra(default_plugin_resolver):
@@ -143,7 +147,9 @@ v        v /        v
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
         dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
     )
-    MultiVerify(dpr, "traversal.dijkstra", graph, 0).assert_equals(expected_answer)
+    MultiVerify(dpr).compute("traversal.dijkstra", graph, 0).assert_equals(
+        expected_answer
+    )
 
 
 def test_minimum_spanning_tree(default_plugin_resolver):
@@ -186,7 +192,7 @@ def test_minimum_spanning_tree(default_plugin_resolver):
     nx_graph_answer = nx.Graph()
     nx_graph_answer.add_weighted_edges_from(ebunch_answer)
     expected_answer = dpr.wrappers.Graph.NetworkXGraph(nx_graph_answer)
-    MultiVerify(dpr, "traversal.minimum_spanning_tree", graph).assert_equals(
+    MultiVerify(dpr).compute("traversal.minimum_spanning_tree", graph).assert_equals(
         expected_answer
     )
 
@@ -228,6 +234,6 @@ def test_minimum_spanning_tree_dicsconnected(default_plugin_resolver):
     nx_graph_answer = nx.Graph()
     nx_graph_answer.add_weighted_edges_from(ebunch_answer)
     expected_answer = dpr.wrappers.Graph.NetworkXGraph(nx_graph_answer)
-    MultiVerify(dpr, "traversal.minimum_spanning_tree", graph).assert_equals(
+    MultiVerify(dpr).compute("traversal.minimum_spanning_tree", graph).assert_equals(
         expected_answer
     )

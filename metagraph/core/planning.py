@@ -231,10 +231,6 @@ class AlgorithmPlan:
         if isinstance(self.resolver, DaskResolver):
             return self.resolver._add_algorithm_plan(self, *args, **kwargs)
 
-        # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
-        args, kwargs = self.apply_abstract_defaults(
-            self.resolver, self.algo.abstract_name, *args, **kwargs
-        )
         sig = self.algo.__signature__
         # inject resolver into the arguments if concrete algo requested it
         if self.algo._include_resolver:
@@ -254,10 +250,8 @@ class AlgorithmPlan:
     def build(
         cls, resolver, concrete_algorithm, *args, **kwargs
     ) -> Optional["AlgorithmPlan"]:
-        # Defaults are defined in the abstract signature; apply those prior to binding with concrete signature
-        args, kwargs = cls.apply_abstract_defaults(
-            resolver, concrete_algorithm.abstract_name, *args, **kwargs
-        )
+        abstract_algo = resolver.abstract_algorithms[concrete_algorithm.abstract_name]
+        abstract_params = abstract_algo.__signature__.parameters
         required_translations = {}
         err_msgs = []
         sig = concrete_algorithm.__signature__
@@ -269,8 +263,8 @@ class AlgorithmPlan:
         try:
             parameters = bound_args.signature.parameters
             for arg_name, arg_value in bound_args.arguments.items():
-                # do not consider resolver argument in signature matching
-                if concrete_algorithm._include_resolver and arg_name == "resolver":
+                # Only compare against listed abstract parameters; assume others are concrete specific
+                if arg_name not in abstract_params:
                     continue
                 param_type = parameters[arg_name].annotation
                 # If argument type is okay, no need to add an adjustment
@@ -402,15 +396,3 @@ class AlgorithmPlan:
         else:
             if not isinstance(arg_value, param_type):
                 return param_type
-
-    @staticmethod
-    def apply_abstract_defaults(resolver, algo_name, *args, **kwargs):
-        """
-        Returns new args and kwargs with defaults applied based on default defined by the abstract algorithm.
-        These new args and kwargs are suitable to use when calling concrete algorithms.
-        """
-        abstract_algo = resolver.abstract_algorithms[algo_name]
-        sig = abstract_algo.__signature__
-        bound_args = sig.bind(*args, **kwargs)
-        bound_args.apply_defaults()
-        return bound_args.args, bound_args.kwargs

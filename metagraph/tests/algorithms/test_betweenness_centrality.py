@@ -43,12 +43,12 @@ v        v /        v
         7: 0.0,
     }
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
-    MultiVerify(
-        dpr, "centrality.betweenness", graph, nodes, normalize=False,
+    MultiVerify(dpr).compute(
+        "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)
-    MultiVerify(dpr, "centrality.betweenness", graph, normalize=False,).assert_equals(
-        expected_answer
-    )
+    MultiVerify(dpr).compute(
+        "centrality.betweenness", graph, normalize=False,
+    ).assert_equals(expected_answer)
 
 
 def test_betweenness_centrality_multiple_hubs(default_plugin_resolver):
@@ -90,9 +90,9 @@ v /      |          v
         7: 0.0,
     }
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(expected_answer_unwrapped)
-    MultiVerify(
-        dpr, "centrality.betweenness", graph, nodes, normalize=False,
+    MultiVerify(dpr).compute(
+        "centrality.betweenness", graph, nodes, normalize=False,
     ).assert_equals(expected_answer)
-    MultiVerify(dpr, "centrality.betweenness", graph, normalize=False,).assert_equals(
-        expected_answer
-    )
+    MultiVerify(dpr).compute(
+        "centrality.betweenness", graph, normalize=False,
+    ).assert_equals(expected_answer)
