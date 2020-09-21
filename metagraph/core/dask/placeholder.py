@@ -42,7 +42,7 @@ class Placeholder(DaskMethodsMixin):
 
     def __init__(self, key, dsk=None):
         self._key = key
-        if dsk is None:
+        if dsk is None:  # pragma: no cover
             dsk = {}
         self._dsk = dsk
 

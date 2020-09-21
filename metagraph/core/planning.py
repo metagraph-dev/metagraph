@@ -9,6 +9,59 @@ from metagraph import config, Wrapper, NodeID
 from .dask.placeholder import Placeholder
 
 
+class TranslationMatrix:
+    def __init__(self, resolver, abstract):
+        self.abstract = abstract
+        # Note: Do not save `resolver` as an attribute -- `build_mst` may be called with a regular or dask resolver
+
+        # Build translation matrix
+        self.concrete_list = concrete_list = []
+        self.concrete_lookup = concrete_lookup = {}
+        included_abstract_types = set()
+        for ct in resolver.concrete_types:
+            if (
+                abstract is ct.abstract
+                or abstract in ct.abstract.unambiguous_subcomponents
+            ):
+                concrete_lookup[ct] = len(concrete_list)
+                concrete_list.append(ct)
+                included_abstract_types.add(ct.abstract)
+        m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)
+        for s, d in resolver.translators:
+            # only accept destinations of included abstract types
+            if d.abstract in included_abstract_types:
+                sidx = concrete_lookup[s]
+                didx = concrete_lookup[d]
+                m[sidx, didx] = True
+        self.sssp, self.predecessors = ss.csgraph.dijkstra(
+            m.tocsr(), return_predecessors=True, unweighted=True
+        )
+
+    def build_mst(self, resolver, src_type, dst_type):
+        mst = MultiStepTranslator(resolver, src_type, dst_type)
+        try:
+            sidx = self.concrete_lookup[src_type]
+            didx = self.concrete_lookup[dst_type]
+        except KeyError:
+            mst.unsatisfiable = True
+            return mst
+        if self.sssp[sidx, didx] == np.inf:
+            mst.unsatisfiable = True
+            return mst
+        # Path exists; use predecessor matrix to build up required transformations
+        concrete_list = self.concrete_list
+        while sidx != didx:
+            parent_idx = self.predecessors[sidx, didx]
+            next_translator = resolver.translators[
+                (concrete_list[parent_idx], concrete_list[didx])
+            ]
+            next_dst_type = concrete_list[didx]
+            mst.add_before(next_translator, next_dst_type)
+            didx = parent_idx
+
+        return mst
+
+
 class MultiStepTranslator:
     def __init__(self, resolver, src_type, final_type):
         self.resolver = resolver
@@ -113,59 +166,13 @@ class MultiStepTranslator:
 
         abstract = dst_type.abstract
         if abstract not in resolver.translation_matrices:
-            # Build translation matrix
-            concrete_list = []
-            concrete_lookup = {}
-            included_abstract_types = set()
-            for ct in resolver.concrete_types:
-                if (
-                    abstract is ct.abstract
-                    or abstract in ct.abstract.unambiguous_subcomponents
-                ):
-                    concrete_lookup[ct] = len(concrete_list)
-                    concrete_list.append(ct)
-                    included_abstract_types.add(ct.abstract)
-            m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)
-            for s, d in resolver.translators:
-                # only accept destinations of included abstract types
-                if d.abstract in included_abstract_types:
-                    sidx = concrete_lookup[s]
-                    didx = concrete_lookup[d]
-                    m[sidx, didx] = True
-            sssp, predecessors = ss.csgraph.dijkstra(
-                m.tocsr(), return_predecessors=True, unweighted=True
-            )
-            resolver.translation_matrices[abstract] = (
-                concrete_list,
-                concrete_lookup,
-                sssp,
-                predecessors,
+            resolver.translation_matrices[abstract] = TranslationMatrix(
+                resolver, abstract
             )
 
         # Lookup shortest path from stored results
-        packed_data = resolver.translation_matrices[abstract]
-        concrete_list, concrete_lookup, sssp, predecessors = packed_data
-        mst = MultiStepTranslator(resolver, src_type, dst_type)
-        try:
-            sidx = concrete_lookup[src_type]
-            didx = concrete_lookup[dst_type]
-        except KeyError:
-            mst.unsatisfiable = True
-            return mst
-        if sssp[sidx, didx] == np.inf:
-            mst.unsatisfiable = True
-            return mst
-        # Path exists; use predecessor matrix to build up required transformations
-        while sidx != didx:
-            parent_idx = predecessors[sidx, didx]
-            next_translator = resolver.translators[
-                (concrete_list[parent_idx], concrete_list[didx])
-            ]
-            next_dst_type = concrete_list[didx]
-            mst.add_before(next_translator, next_dst_type)
-            didx = parent_idx
-
-        return mst
+        trans_matrix = resolver.translation_matrices[abstract]
+        return trans_matrix.build_mst(resolver, src_type, dst_type)
 
 
 class AlgorithmPlan:

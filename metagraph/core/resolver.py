@@ -15,7 +15,7 @@ from .plugin import (
     AbstractAlgorithm,
     ConcreteAlgorithm,
 )
-from .planning import MultiStepTranslator, AlgorithmPlan
+from .planning import MultiStepTranslator, AlgorithmPlan, TranslationMatrix
 from .entrypoints import load_plugins
 from . import typing as mgtyping
 from .. import config
@@ -141,11 +141,7 @@ class Resolver:
 
         # translation graph matrices
         # Single-sourch shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
-        # Stored result is (concrete_types list, concrete_types lookup, sssp_matrix, predecessors_matrix)
-        self.translation_matrices: Dict[
-            AbstractType,
-            Tuple[List[ConcreteType], Dict[ConcreteType, int], np.ndarray, np.ndarray],
-        ] = {}
+        self.translation_matrices: Dict[AbstractType, TranslationMatrix] = {}
 
         self.algos = Namespace()
         self.wrappers = Namespace()
@@ -274,8 +270,10 @@ class Resolver:
             path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
             tree.wrappers._register(path, wr)
 
-        if tree_is_resolver and len(concrete_types) > 0:
-            self.translation_matrices.clear()  # Force a rebuild with new concrete types
+        if tree_is_resolver and (len(concrete_types) > 0 or len(translators) > 0):
+            # Wipe out existing translation matrices (if any)
+            self.translation_matrices.clear()
+
         for ct in concrete_types:
             name = ct.__qualname__
             # ct.abstract cannot be None due to ConcreteType.__init_subclass__
@@ -297,10 +295,6 @@ class Resolver:
             # Make types available via resolver.types.<abstract name>.<concrete name>
             path = f"{ct.abstract.__name__}.{ct.__name__}"
             tree.types._register(path, ct)
-
-        if tree_is_resolver and len(translators) > 0:
-            # Wipe out existing translation matrices (if any)
-            self.translation_matrices = {}
 
         for tr in translators:
             signature = inspect.signature(tr.func)
