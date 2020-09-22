@@ -12,6 +12,7 @@ from metagraph.plugins.scipy.algorithms import ss_graph_filter_edges
 from metagraph.plugins.networkx.algorithms import nx_graph_aggregate_edges
 import grblas
 import networkx as nx
+import dask
 
 
 def test_translation_direct(default_plugin_resolver):
@@ -88,7 +89,11 @@ def test_algo_chain(default_plugin_resolver):
     g.add_weighted_edges_from(
         [(0, 1, 1), (0, 2, 2), (0, 3, 3), (0, 4, 4), (2, 4, 5), (3, 4, 6)]
     )
-    graph = ldpr.wrappers.Graph.NetworkXGraph(g)  # this is a DelayedWrapper
+    graph = ldpr.wrappers.Graph.NetworkXGraph(g)  # this is a Placeholder
+    assert (
+        repr(ldpr.wrappers.Graph.NetworkXGraph) == "DelayedWrapper<NetworkXGraphType>"
+    )
+    assert isinstance(graph, Placeholder)
     sum_of_all_edges = PythonNodeMap({0: 10, 1: 1, 2: 7, 3: 9, 4: 15})
     sum_of_filtered_edges = PythonNodeMap({0: 7, 1: 0, 2: 5, 3: 9, 4: 15})
     # Verify simple algorithm call works (no translations required)
@@ -100,7 +105,7 @@ def test_algo_chain(default_plugin_resolver):
     assert len(nm._dsk.keys()) == 2  # init, aggregate
     ldpr.assert_equal(nm, sum_of_all_edges)
     # Build chained algo call with translators
-    graph2 = ldpr.algos.util.graph.filter_edges(graph, lambda x: x > 2)
+    graph2 = ldpr.algos.util.graph.filter_edges(graph, func=lambda x: x > 2)
     assert isinstance(graph2, Placeholder)
     assert graph2.concrete_type is ScipyGraph.Type
     assert len(graph2._dsk.keys()) == 3  # init, translate, filter

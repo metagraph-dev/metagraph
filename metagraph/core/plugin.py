@@ -470,6 +470,8 @@ class Translator:
         if self._include_resolver:
             if resolver is None:
                 raise ValueError("`resolver` is None, but is required by translator")
+            if hasattr(resolver, "_resolver"):  # DaskResolver
+                resolver = resolver._resolver
             return self.func(src, resolver=resolver, **props)
         else:
             return self.func(src, **props)
@@ -572,6 +574,8 @@ class ConcreteAlgorithm:
                 raise ValueError(
                     "`resolver` is None, but is required by concrete algorithm"
                 )
+            if hasattr(resolver, "_resolver"):  # DaskResolver
+                resolver = resolver._resolver
             return self.func(*args, resolver=resolver, **kwargs)
         else:
             return self.func(*args, **kwargs)

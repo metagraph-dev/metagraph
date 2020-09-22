@@ -402,7 +402,7 @@ def test_python_types_in_signature(example_resolver):
         example_resolver.register(registry.plugins)
 
     @abstract_algorithm("testing.return_type")
-    def return_type(x: MyNumericAbstractType) -> int:  # pragma: nocover
+    def return_type(x: MyNumericAbstractType) -> int:  # pragma: no cover
         pass
 
     @concrete_algorithm("testing.return_type")
