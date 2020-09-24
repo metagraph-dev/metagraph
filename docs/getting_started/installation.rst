@@ -34,10 +34,11 @@ Required Dependencies
 
 These should be automatically installed when metagraph is installed
 
-  - `numpy <https://numpy.org>`_
-  - `scipy <https://scipy.org>`_
-  - `importlib_metadata <https://importlib-metadata.readthedocs.io/>`_
-  - `donfig <https://donfig.readthedocs.io/>`_
+  - `numpy <https://numpy.org>`__
+  - `scipy <https://scipy.org>`__
+  - `dask <https://dask.org/>`__
+  - `importlib_metadata <https://importlib-metadata.readthedocs.io/>`__
+  - `donfig <https://donfig.readthedocs.io/>`__
 
 
 Recommended Dependencies
@@ -71,43 +72,49 @@ Running tests requires additional libraries to be installed
 .. code-block::
 
     >>> pytest
-    =============================================================== test session starts ===============================================================
-    platform darwin -- Python 3.7.7, pytest-5.4.2, py-1.8.1, pluggy-0.13.1
+    ================================================================ test session starts ================================================================
+    platform darwin -- Python 3.7.7, pytest-5.4.2, py-1.9.0, pluggy-0.13.1
     rootdir: /projects/metagraph, inifile: setup.cfg, testpaths: metagraph/tests
     plugins: cov-2.8.1
-    collected 84 items
+    collected 125 items
 
-    metagraph/tests/test_config.py .                                                                                                            [  1%]
-    metagraph/tests/test_dtypes.py .                                                                                                            [  2%]
-    metagraph/tests/test_entrypoints.py ..                                                                                                      [  4%]
-    metagraph/tests/test_node_labels.py ...                                                                                                     [  8%]
-    metagraph/tests/test_plugin.py .........                                                                                                    [ 19%]
-    metagraph/tests/test_registry.py ..                                                                                                         [ 21%]
-    metagraph/tests/test_resolver.py ......................                                                                                     [ 47%]
-    metagraph/tests/test_toplevel.py ...                                                                                                        [ 51%]
-    metagraph/tests/test_typecache.py .                                                                                                         [ 52%]
-    metagraph/tests/test_types.py .                                                                                                             [ 53%]
-    metagraph/tests/algorithms/test_betweenness_centrality.py .                                                                                 [ 54%]
-    metagraph/tests/algorithms/test_clustering.py ....                                                                                          [ 59%]
-    metagraph/tests/algorithms/test_katz_centrality.py .                                                                                        [ 60%]
-    metagraph/tests/algorithms/test_pagerank.py .                                                                                               [ 61%]
-    metagraph/tests/algorithms/test_subgraph.py .                                                                                               [ 63%]
-    metagraph/tests/algorithms/test_traversal.py ....                                                                                           [ 67%]
-    metagraph/tests/algorithms/test_triangle_count.py .                                                                                         [ 69%]
-    metagraph/tests/translators/test_graph.py ...                                                                                               [ 72%]
-    metagraph/tests/translators/test_matrix.py ..                                                                                               [ 75%]
-    metagraph/tests/translators/test_nodes.py ......                                                                                            [ 82%]
-    metagraph/tests/translators/test_vector.py .                                                                                                [ 83%]
-    metagraph/tests/types/test_dataframe.py .                                                                                                   [ 84%]
-    metagraph/tests/types/test_edges.py ....                                                                                                    [ 89%]
-    metagraph/tests/types/test_matrix.py ...                                                                                                    [ 92%]
-    metagraph/tests/types/test_nodes.py ....                                                                                                    [ 97%]
-    metagraph/tests/types/test_vector.py ..                                                                                                     [100%]
+    metagraph/tests/test_config.py .                                                                                                              [  0%]
+    metagraph/tests/test_dask.py ...                                                                                                              [  3%]
+    metagraph/tests/test_dtypes.py .                                                                                                              [  4%]
+    metagraph/tests/test_entrypoints.py ...                                                                                                       [  6%]
+    metagraph/tests/test_multiverify.py .........                                                                                                 [ 13%]
+    metagraph/tests/test_node_labels.py ...                                                                                                       [ 16%]
+    metagraph/tests/test_plugin.py .........                                                                                                      [ 23%]
+    metagraph/tests/test_registry.py ..                                                                                                           [ 24%]
+    metagraph/tests/test_resolver.py ............................                                                                                 [ 47%]
+    metagraph/tests/test_toplevel.py ...                                                                                                          [ 49%]
+    metagraph/tests/test_typecache.py .                                                                                                           [ 50%]
+    metagraph/tests/test_types.py ...                                                                                                             [ 52%]
+    metagraph/tests/algorithms/test_betweenness_centrality.py ..                                                                                  [ 54%]
+    metagraph/tests/algorithms/test_bipartite.py .                                                                                                [ 55%]
+    metagraph/tests/algorithms/test_clustering.py ....                                                                                            [ 58%]
+    metagraph/tests/algorithms/test_flow.py .                                                                                                     [ 59%]
+    metagraph/tests/algorithms/test_katz_centrality.py .                                                                                          [ 60%]
+    metagraph/tests/algorithms/test_pagerank.py .                                                                                                 [ 60%]
+    metagraph/tests/algorithms/test_subgraph.py ..                                                                                                [ 62%]
+    metagraph/tests/algorithms/test_traversal.py ......                                                                                           [ 67%]
+    metagraph/tests/algorithms/test_triangle_count.py .                                                                                           [ 68%]
+    metagraph/tests/algorithms/test_utility.py .............                                                                                      [ 78%]
+    metagraph/tests/translators/test_graph.py ...                                                                                                 [ 80%]
+    metagraph/tests/translators/test_matrix.py ..                                                                                                 [ 82%]
+    metagraph/tests/translators/test_node_map.py ...                                                                                              [ 84%]
+    metagraph/tests/translators/test_node_set.py ...                                                                                              [ 87%]
+    metagraph/tests/translators/test_vector.py .                                                                                                  [ 88%]
+    metagraph/tests/types/test_dataframe.py .                                                                                                     [ 88%]
+    metagraph/tests/types/test_edges.py ...                                                                                                       [ 91%]
+    metagraph/tests/types/test_graph.py ..                                                                                                        [ 92%]
+    metagraph/tests/types/test_matrix.py ...                                                                                                      [ 95%]
+    metagraph/tests/types/test_nodes.py ....                                                                                                      [ 98%]
+    metagraph/tests/types/test_vector.py ..                                                                                                       [100%]
 
-    ================================================================ warnings summary =================================================================
+    ================================================================= warnings summary ==================================================================
     /miniconda3/envs/mg/lib/python3.7/site-packages/donfig/config_obj.py:30
-      /miniconda3/envs/mg/lib/python3.7/site-packages/donfig/config_obj.py:30: DeprecationWarning: Using or importing the ABCs
-             from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3,and in 3.9 it will stop working
+      /miniconda3/envs/mg/lib/python3.7/site-packages/donfig/config_obj.py:30: DeprecationWarning: Using or importing the ABCs from 'collections' instead of from 'collections.abc' is deprecated since Python 3.3,and in 3.9 it will stop working
         from collections import Mapping
 
     -- Docs: https://docs.pytest.org/en/latest/warnings.html
@@ -115,85 +122,108 @@ Running tests requires additional libraries to be installed
     ---------- coverage: platform darwin, python 3.7.7-final-0 -----------
     Name                                                        Stmts   Miss  Cover   Missing
     -----------------------------------------------------------------------------------------
-    metagraph/__init__.py                                          39      0   100%
+    metagraph/__init__.py                                          40      0   100%
     metagraph/algorithms/__init__.py                                1      0   100%
-    metagraph/algorithms/clustering.py                             13      0   100%
-    metagraph/algorithms/subgraph.py                               14      4    71%   7, 12, 17, 22
-    metagraph/algorithms/traversal.py                              15      4    73%   8, 13, 18, 27
-    metagraph/algorithms/vertex_ranking.py                          8      0   100%
+    metagraph/algorithms/bipartite.py                               4      0   100%
+    metagraph/algorithms/centrality.py                              9      0   100%
+    metagraph/algorithms/clustering.py                             15      0   100%
+    metagraph/algorithms/flow.py                                    6      0   100%
+    metagraph/algorithms/subgraph.py                                6      0   100%
+    metagraph/algorithms/traversal.py                              15      0   100%
+    metagraph/algorithms/utility.py                                28      0   100%
     metagraph/core/__init__.py                                      0      0   100%
+    metagraph/core/dask/__init__.py                                 0      0   100%
+    metagraph/core/dask/placeholder.py                             72     19    74%   14, 18, 27-32, 46, 62, 76-85, 111
+    metagraph/core/dask/resolver.py                               144     29    80%   92-94, 117-119, 160, 183, 188-207, 218-223, 226, 234, 247
     metagraph/core/dtypes.py                                       26      0   100%
-    metagraph/core/entrypoints.py                                  21      1    95%   41
-    metagraph/core/node_labels.py                                  49      7    86%   43, 45, 55, 57, 62, 69, 73
-    metagraph/core/planning.py                                    173     21    88%   19, 44, 46-50, 113, 140, 165-166, 171, 231-239
-    metagraph/core/plugin.py                                      252     21    92%   35, 54, 120, 171, 182, 190, 225, 238, 270, 308, 329, 364, 367, 382-384, 397-400, 452
+    metagraph/core/entrypoints.py                                  21      0   100%
+    metagraph/core/multiverify.py                                 178      1    99%   227
+    metagraph/core/node_labels.py                                  49      7    86%   46, 48, 58, 60, 65, 72, 76
+    metagraph/core/planning.py                                    255     37    85%   23, 29-33, 38-39, 43-44, 48-52, 71, 191, 208, 225-226, 286, 293, 308, 333, 345-348, 354, 362, 367-371, 385-386, 391-395, 398
+    metagraph/core/plugin.py                                      273     20    93%   36, 55, 125, 129, 133, 140, 191, 198, 216, 224, 259, 272, 304, 353, 374, 407, 410, 437, 472, 572
     metagraph/core/plugin_registry.py                              68      0   100%
-    metagraph/core/resolver.py                                    362      7    98%   241, 246, 257, 300, 536, 636-637
-    metagraph/core/typecache.py                                    47      1    98%   23
-    metagraph/plugins/__init__.py                                  28      0   100%
+    metagraph/core/resolver.py                                    537     46    91%   62-68, 159-167, 254, 259, 270, 313, 375, 379, 390, 427, 450, 513, 567, 604, 617, 619, 717, 792-793, 817-818, 859, 867-881, 964-965, 969-970
+    metagraph/core/typecache.py                                    47      5    89%   19, 22-25
+    metagraph/core/typing.py                                       50      7    86%   34, 53, 56-59, 69
+    metagraph/dask.py                                               4      0   100%
+    metagraph/explorer/__init__.py                                  1      1     0%   1
+    metagraph/explorer/api.py                                     243    243     0%   1-473
+    metagraph/explorer/service.py                                 109    109     0%   1-169
+    metagraph/plugins/__init__.py                                  32      0   100%
     metagraph/plugins/graphblas/__init__.py                         1      0   100%
-    metagraph/plugins/graphblas/translators.py                     51      6    88%   21-24, 28-31
-    metagraph/plugins/graphblas/types.py                          146     32    78%   65-66, 72-78, 86, 141-142, 160-163, 166, 172-179, 183-192, 204, 225, 229
+    metagraph/plugins/graphblas/algorithms.py                      39      0   100%
+    metagraph/plugins/graphblas/translators.py                     93     13    86%   23-26, 30-33, 48-51, 122, 125, 132
+    metagraph/plugins/graphblas/types.py                          169     27    84%   83, 86, 102-111, 120, 127, 194-195, 246-253, 268-279, 311, 317, 357
     metagraph/plugins/networkx/__init__.py                          1      0   100%
-    metagraph/plugins/networkx/algorithms.py                       79      2    97%   79-80
-    metagraph/plugins/networkx/translators.py                      23      1    96%   30
-    metagraph/plugins/networkx/types.py                            67      3    96%   41, 69, 73
+    metagraph/plugins/networkx/algorithms.py                      143      0   100%
+    metagraph/plugins/networkx/translators.py                      36     14    61%   28-29, 40-56
+    metagraph/plugins/networkx/types.py                           211    107    49%   11, 32, 64, 91, 95, 128-137, 172, 178, 184, 193-272, 287-336
     metagraph/plugins/numpy/__init__.py                             1      0   100%
-    metagraph/plugins/numpy/algorithms.py                           4      0   100%
-    metagraph/plugins/numpy/translators.py                         71      8    89%   10-13, 18, 88-90
-    metagraph/plugins/numpy/types.py                              151     17    89%   17, 19, 69, 73, 76-79, 125, 134-135, 171, 179, 181, 204-206, 226
+    metagraph/plugins/numpy/algorithms.py                          88     30    66%   24, 35-42, 54, 62-79, 90-96, 106-112
+    metagraph/plugins/numpy/translators.py                         55      3    95%   59-61
+    metagraph/plugins/numpy/types.py                              255     51    80%   31, 42-46, 49, 52-56, 59, 62-65, 93, 95, 119, 121, 127, 200, 209, 212, 224, 234-242, 253-256, 260, 262-264, 270-273, 354, 362, 364, 371-372, 392-394, 427
     metagraph/plugins/pandas/__init__.py                            1      0   100%
-    metagraph/plugins/pandas/translators.py                        17      1    94%   10
-    metagraph/plugins/pandas/types.py                              82      6    93%   39-40, 95-96, 117, 121
+    metagraph/plugins/pandas/algorithms.py                         12      0   100%
+    metagraph/plugins/pandas/translators.py                        35      1    97%   9
+    metagraph/plugins/pandas/types.py                             110     32    71%   54, 60-61, 64, 76-83, 157-158, 161, 174-202, 226
     metagraph/plugins/python/__init__.py                            1      0   100%
-    metagraph/plugins/python/translators.py                        21      1    95%   9
-    metagraph/plugins/python/types.py                              45      7    84%   15-16, 20-23, 44
+    metagraph/plugins/python/algorithms.py                         30      0   100%
+    metagraph/plugins/python/translators.py                        40      9    78%   10, 26-27, 38-44
+    metagraph/plugins/python/types.py                              59      5    92%   24, 27, 66, 69, 74
     metagraph/plugins/scipy/__init__.py                             1      0   100%
-    metagraph/plugins/scipy/algorithms.py                          20      0   100%
-    metagraph/plugins/scipy/translators.py                         39      4    90%   23-26
-    metagraph/plugins/scipy/types.py                              113     20    82%   33-34, 61, 63, 70-89, 108, 127, 131
+    metagraph/plugins/scipy/algorithms.py                         125      2    98%   75-76
+    metagraph/plugins/scipy/translators.py                        119     21    82%   13-16, 24-27, 55, 128, 162-179
+    metagraph/plugins/scipy/types.py                              142     10    93%   33-34, 73, 79, 154-157, 163, 187, 250-251
     metagraph/tests/__init__.py                                     0      0   100%
-    metagraph/tests/algorithms/__init__.py                         87     37    57%   25, 38-47, 67-83, 87-88, 95-102, 131-133, 144, 150-157, 164
-    metagraph/tests/algorithms/test_betweenness_centrality.py      15      0   100%
+    metagraph/tests/algorithms/__init__.py                          1      0   100%
+    metagraph/tests/algorithms/test_betweenness_centrality.py      26      0   100%
+    metagraph/tests/algorithms/test_bipartite.py                   15      0   100%
     metagraph/tests/algorithms/test_clustering.py                  62      0   100%
     metagraph/tests/algorithms/test_densesparse.py                  1      0   100%
+    metagraph/tests/algorithms/test_flow.py                        25      0   100%
     metagraph/tests/algorithms/test_katz_centrality.py             13      0   100%
     metagraph/tests/algorithms/test_pagerank.py                    13      0   100%
-    metagraph/tests/algorithms/test_subgraph.py                    13      0   100%
-    metagraph/tests/algorithms/test_traversal.py                   41      0   100%
+    metagraph/tests/algorithms/test_subgraph.py                    24      0   100%
+    metagraph/tests/algorithms/test_traversal.py                   63      0   100%
     metagraph/tests/algorithms/test_triangle_count.py              10      0   100%
+    metagraph/tests/algorithms/test_utility.py                    146      0   100%
     metagraph/tests/bad_site_dir/__init__.py                        0      0   100%
+    metagraph/tests/bad_site_dir2/__init__.py                       0      0   100%
     metagraph/tests/plugins/__init__.py                             0      0   100%
     metagraph/tests/site_dir/__init__.py                            0      0   100%
-    metagraph/tests/site_dir/plugin1.py                            13      0   100%
+    metagraph/tests/site_dir/plugin1.py                            14      0   100%
     metagraph/tests/test_config.py                                  7      0   100%
+    metagraph/tests/test_dask.py                                   62      0   100%
     metagraph/tests/test_dtypes.py                                  8      0   100%
-    metagraph/tests/test_entrypoints.py                            17      0   100%
-    metagraph/tests/test_node_labels.py                            32      0   100%
-    metagraph/tests/test_plugin.py                                103      3    97%   52, 143-144
+    metagraph/tests/test_entrypoints.py                            20      0   100%
+    metagraph/tests/test_multiverify.py                           120      0   100%
+    metagraph/tests/test_node_labels.py                            36      0   100%
+    metagraph/tests/test_plugin.py                                106      0   100%
     metagraph/tests/test_registry.py                               32      0   100%
-    metagraph/tests/test_resolver.py                              423      9    98%   583, 646, 650, 654, 730, 734, 740, 746, 754
+    metagraph/tests/test_resolver.py                              517      0   100%
     metagraph/tests/test_toplevel.py                               21      0   100%
     metagraph/tests/test_typecache.py                              28      0   100%
-    metagraph/tests/test_types.py                                   8      0   100%
+    metagraph/tests/test_types.py                                  20      0   100%
     metagraph/tests/translators/__init__.py                         0      0   100%
-    metagraph/tests/translators/test_graph.py                      40      0   100%
+    metagraph/tests/translators/test_graph.py                      39      0   100%
     metagraph/tests/translators/test_matrix.py                     29      0   100%
-    metagraph/tests/translators/test_nodes.py                      64      0   100%
+    metagraph/tests/translators/test_node_map.py                   33      0   100%
+    metagraph/tests/translators/test_node_set.py                   26      0   100%
     metagraph/tests/translators/test_vector.py                     16      0   100%
     metagraph/tests/types/__init__.py                               0      0   100%
     metagraph/tests/types/test_dataframe.py                        10      0   100%
-    metagraph/tests/types/test_edges.py                           107      0   100%
+    metagraph/tests/types/test_edges.py                            78      0   100%
+    metagraph/tests/types/test_graph.py                            62      0   100%
     metagraph/tests/types/test_matrix.py                           41      0   100%
-    metagraph/tests/types/test_nodes.py                            34      0   100%
+    metagraph/tests/types/test_nodes.py                            36      0   100%
     metagraph/tests/types/test_vector.py                           31      0   100%
-    metagraph/tests/util.py                                       107      4    96%   50-51, 82, 96
-    metagraph/types.py                                             34      2    94%   7, 10
-    metagraph/wrappers.py                                          14      0   100%
+    metagraph/tests/util.py                                       110      6    95%   56-57, 103, 107, 109-110
+    metagraph/types.py                                             40      0   100%
+    metagraph/wrappers.py                                          65      0   100%
     -----------------------------------------------------------------------------------------
-    TOTAL                                                        3525    229    94%
+    TOTAL                                                        6006    855    86%
 
-    ========================================================== 84 passed, 1 warning in 5.67s ==========================================================
+    ========================================================== 125 passed, 1 warning in 16.60s ==========================================================
 
 .. raw:: html
 
