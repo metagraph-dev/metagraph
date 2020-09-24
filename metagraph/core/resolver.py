@@ -905,6 +905,24 @@ class Resolver:
             algo.display()
         return algo(*args, **kwargs)
 
+    def call_exact_algorithm(self, concrete_algo: ConcreteAlgorithm, *args, **kwargs):
+        args, kwargs = self._check_algorithm_signature(
+            concrete_algo.abstract_name, *args, allow_extras=True, **kwargs
+        )
+        plan = AlgorithmPlan.build(self, concrete_algo, *args, **kwargs)
+        if plan.unsatisfiable:
+            err_msgs = "\n".join(plan.err_msgs)
+            raise TypeError(
+                f"Incorrect input types and no valid translation path to solution.\n{err_msgs}"
+            )
+        elif plan.required_translations:
+            req_trans = ", ".join(plan.required_translations.keys())
+            raise TypeError(
+                f"Incorrect input types. Translations required for: {req_trans}"
+            )
+        else:
+            return plan(*args, **kwargs)
+
 
 class Dispatcher:
     """Impersonates abstract algorithm, but dispatches to a resolver to select
@@ -950,19 +968,4 @@ class ExactDispatcher:
         self.__wrapped__ = algo
 
     def __call__(self, *args, **kwargs):
-        args, kwargs = self._resolver._check_algorithm_signature(
-            self._algo.abstract_name, *args, allow_extras=True, **kwargs
-        )
-        plan = AlgorithmPlan.build(self._resolver, self._algo, *args, **kwargs)
-        if plan.unsatisfiable:
-            err_msgs = "\n".join(plan.err_msgs)
-            raise TypeError(
-                f"Incorrect input types and no valid translation path to solution.\n{err_msgs}"
-            )
-        elif plan.required_translations:
-            req_trans = ", ".join(plan.required_translations.keys())
-            raise TypeError(
-                f"Incorrect input types. Translations required for: {req_trans}"
-            )
-        else:
-            return plan(*args, **kwargs)
+        return self._resolver.call_exact_algorithm(self._algo, *args, **kwargs)

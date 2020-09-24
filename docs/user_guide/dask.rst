@@ -155,25 +155,25 @@ As an example, create a delayed constructor for building complete networkx graph
         import networkx as nx
         import itertools
 
-        def build_nx_complete(num_nodes):
+        def build_complete_nxgraph(num_nodes):
             g = nx.DiGraph()
             for src, dst in itertools.product(range(num_nodes), range(num_nodes)):
                 g.add_edge(src, dst)
             return res.wrappers.Graph.NetworkXGraph(g)
 
-        nx_complete = dres.delayed_wrapper(build_nx_complete, res.types.Graph.NetworkXGraphType)
-        print(nx_complete)
+        nx_complete_factory = dres.delayed_wrapper(build_nx_complete, res.types.Graph.NetworkXGraphType)
+        print(nx_complete_factory)
 
     DelayedWrapper<NetworkXGraphType>
 
-``nx_complete`` is a delayed constructor which return objects that are of type ``NetworkXGraphType``.
-Calling it using the same signature as the function ``build_nx_complete`` will yield a ``NetworkXGraphTypePlaceholder``
-object whose construction has been delayed.
+``nx_complete_factory`` is a delayed constructor which return objects that are of type ``NetworkXGraphType``.
+Calling it using the same signature as the function ``build_complete_nxgraph`` will yield a
+``NetworkXGraphTypePlaceholder`` object whose construction has been delayed.
 
 \
     .. code-block:: python
 
-        my_graph = nx_complete(100)
+        my_graph = nx_complete_factory(100)
         my_graph
 
     <types.NetworkXGraphTypePlaceholder at 0x7fbd51122590>
