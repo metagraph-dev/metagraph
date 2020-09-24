@@ -46,5 +46,5 @@ deploy:
         tags: true
     user: __token__
     password:
-        secure: STAN_TODO_PYPI_TOKEN_GOES_HERE
+        secure: "srywlZwXIUox4sgGl4tUwwUdy4IV7oAKXsK/OiPavI0ZQozGaq3pwgTN+h4yNcM1U3cfN1rkG76CtIP05Jy6VDKKfmtN6Y5TVXQ8Axd9yQl4+V8xb2vds35YlLUoY99QAMxNczgcheECj2N65nOLK6XmH6+aMtNTdjHWuliaLfiL19MTJHgazOgtu2bGulgibkpS0COs3yB3BPTRMef3O52Q3R/ZA+wZ7uz54xGAbrtjSmOQqlgQNh38z5vYWrLdZstdSWu5SHAz9TY4/n+fMlwPgA98i6zHa79nfZK7cpTKA2ltTDqODRyePUVsEMhGCAKJFrVpgRMUcKBFgBUKuMFd3ctMjdMlKzrNATeHZXK2ASK3TN3x/BRDOaQh8k9cM7pjxerNXkyH/rj+NwETMyd3dmyUXpJ0DvEQCnvOCGzvRH9+cNfnSjJYT+Psevj4cFfIa6W5Uc1WeEjdSWyjMjkSNCSLv5ifZ5iCwT5UF/mCpUyf2lOB2r4qFQlo8elHZTZZpL5FR68OsTn5KEQZmlT/bbPskCUNLC5fH629n7lODbx5gW5OWwHTe3X98wNv92WjEJp4VIiAFvncM1asSmht2YBd3dfXp8eHn8D8KujESUaugnaqZ/tWfJgGdRMl73F8wskcIrDTp87PT0oh7GAkMpmOBW9geM+S/7yOUEw="
     distributions: "sdist bdist_wheel"
