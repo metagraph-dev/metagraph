@@ -73,13 +73,13 @@ class MultiResult:
     def custom_compare(self, cmp_func: Callable):
         return self._verifier.custom_compare(self, cmp_func)
 
-    def assert_equals(
+    def assert_equal(
         self,
         expected_val: Union[ConcreteType, Tuple[ConcreteType]],
         rel_tol=1e-9,
         abs_tol=0.0,
     ):
-        return self._verifier.assert_equals(
+        return self._verifier.assert_equal(
             self, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
         )
 
@@ -267,7 +267,7 @@ class MultiVerify:
                         print(item)
                 raise
 
-    def assert_equals(
+    def assert_equal(
         self,
         multi_result: MultiResult,
         expected_val: Union[ConcreteType, Tuple[ConcreteType]],

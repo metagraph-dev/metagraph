@@ -42,7 +42,7 @@ v /      v /      v v
     results = mv.compute("flow.max_flow", graph, source_node, target_node)
 
     # Compare flow rate
-    results[0].assert_equals(expected_flow_value)
+    results[0].assert_equal(expected_flow_value)
 
     # Normalize actual flow to prepare to transform
     actual_flow = results[1].normalize(dpr.wrappers.Graph.NetworkXGraph)
@@ -57,7 +57,7 @@ v /      v /      v v
     out_bottleneck = mv.transform(
         dpr.algos.util.nodemap.select.core_python, out_edges, bottleneck_nodes
     )
-    out_bottleneck.assert_equals(expected_nodemap)
+    out_bottleneck.assert_equal(expected_nodemap)
 
     # Compare sum of in edges for bottleneck nodes
     in_edges = mv.transform(
@@ -71,4 +71,4 @@ v /      v /      v v
     in_bottleneck = mv.transform(
         "util.nodemap.select.core_python", in_edges, bottleneck_nodes
     )
-    in_bottleneck.assert_equals(expected_nodemap)
+    in_bottleneck.assert_equal(expected_nodemap)

@@ -31,4 +31,4 @@ def test_pagerank(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(networkx_graph)
     MultiVerify(dpr).compute(
         dpr.algos.centrality.pagerank, graph, tolerance=1e-7
-    ).assert_equals(expected_val, rel_tol=1e-5)
+    ).assert_equal(expected_val, rel_tol=1e-5)
