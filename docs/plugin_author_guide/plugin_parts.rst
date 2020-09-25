@@ -226,24 +226,17 @@ Here's an example translator:
 
  .. code-block:: python
 
-    from metagraph.plugins.networkx.types import NetworkXEdgeMap
-    from metagraph.plugins.pandas.types import PandasEdgeMap
-    import networkx as nx
+    from metagraph.plugins.graphblas.types import GrblasNodeMap
+    from metagraph.plugins.python.types import PythonNodeMap
 
     @translator
-    def edgemap_from_pandas(x: PandasEdgeMap, **props) -> NetworkXEdgeMap:
-        cur_props = PandasEdgeMap.Type.compute_abstract_properties(x, ["is_directed"])
-        if cur_props["is_directed"]:
-            out = nx.DiGraph()
-        else:
-            out = nx.Graph()
-        g = x.value[[x.src_label, x.dst_label, x.weight_label]]
-        out.add_weighted_edges_from(g.itertuples(index=False, name="WeightedEdge"))
-        return NetworkXEdgeMap(out, weight_label="weight",)
+    def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> PythonNodeMap:
+        idx, vals = x.value.to_values()
+        data = dict(zip(idx, vals))
+        return PythonNodeMap(data)
 
-The implementation of translators is fairly straightforward. We determine if the Pandas edge map is directed, create a
-corresponding directed or undirected NetworkX graph, take the edges from the Pandas edge map, and insert corresponding
-edges into the NetworkX graph.
+The implementation of translators should be as complicated as required to adequately convert from any version of
+one type into another type. In many cases, however, the logic can be very simple, as is the case in this example.
 
 The ``translator`` decorator allows the Metagraph resolver to use this translator. How the decorator are used will be
 explained in more detail in the :ref:`End-to-End Plugin Pathway<end_to_end_plugin_pathway>`.
@@ -254,8 +247,7 @@ Metagraph plugin ecosystem.
 
 When writing translators, it's infeasible to write a translator from a single concrete type to every other concrete
 type due to the explosive number of possible translation paths. Thus, it's recommended to at least (when possible) write
-translators to the core Metagraph concrete types. Since the core concrete types have many translators between them and
-since many plugins provide translators the core concrete types, the core concrete types act as a translation hub to the
+translators to the core Metagraph concrete types. The core concrete types can act as a translation hub to the
 concrete types introduced in external plugins.
 
 For more about translators, see :ref:`here<translators>`.
