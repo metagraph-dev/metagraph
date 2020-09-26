@@ -3,7 +3,8 @@ from dask.base import tokenize
 from dask import delayed, is_dask_collection
 from ..resolver import Resolver, Namespace, PlanNamespace, Dispatcher, ExactDispatcher
 from .placeholder import Placeholder, DelayedWrapper
-from ..plugin import ConcreteType, MetaWrapper
+from ..plugin import ConcreteType, MetaWrapper, ConcreteAlgorithm
+from ..planning import AlgorithmPlan
 from typing import Optional
 
 
@@ -253,4 +254,19 @@ class DaskResolver:
             # Calling the plan will trigger a call to `_add_algorithm_plan`.
             #   The AlgorithmPlan knows about and checks for a DaskResolver
             #   when the plan is called.
+            return plan(*args, **kwargs)
+
+    def call_exact_algorithm(self, concrete_algo: ConcreteAlgorithm, *args, **kwargs):
+        plan = AlgorithmPlan.build(self, concrete_algo, *args, **kwargs)
+        if plan.unsatisfiable:
+            err_msgs = "\n".join(plan.err_msgs)
+            raise TypeError(
+                f"Incorrect input types and no valid translation path to solution.\n{err_msgs}"
+            )
+        elif plan.required_translations:
+            req_trans = ", ".join(plan.required_translations.keys())
+            raise TypeError(
+                f"Incorrect input types. Translations required for: {req_trans}"
+            )
+        else:
             return plan(*args, **kwargs)

@@ -20,8 +20,7 @@
 /******************/
 
 #mg-explorer-navigation-bar {
-    text-align: center;
-    padding: 0px;
+    padding: 0px 10px;
     width: 100%;
     box-shadow: 0 2px 6px rgba(0,0,0,0.125);
     overflow-x: auto;
@@ -31,6 +30,7 @@
 
 #mg-explorer-navigation-bar ul {
     display: inline-block;
+    width: 100%;
     list-style-type: none;
     margin-block-start: 0px;
     margin-block-end: 0px;
@@ -41,8 +41,9 @@
 
 #mg-explorer-navigation-bar li {
     display: inline-block;
-    border: 1px solid rgba(0,0,0,.125);
+    border: 1px solid #577d9e54;
     border-radius: 3px;
+    color: #577d9e;
     padding: 3px;
     margin: 10px;
     transition: all 0.5s;
@@ -55,7 +56,7 @@
 }
 
 #mg-explorer-navigation-bar li:hover {
-    border: 1px solid rgba(0,0,0,0.5);
+    border: 1px solid #577d9e;
     box-shadow: 0 3px 6px rgba(0,0,0,0.1);
 }
 
@@ -66,7 +67,21 @@
     padding-right: 0.5rem;
 }
 #mg-explorer-navigation-bar li.active {
-    border: 1px solid #000;
+    border: 1px solid #577d9e;
+    color: #fff;
+    background-color: #577d9e;
+}
+
+#mg-explorer-close-button {
+    border-color: #a9444254 !important;
+    color: #a94442 !important;
+    float: right;
+    margin-right: 30px !important;
+    font-weight: bolder;
+}
+
+#mg-explorer-close-button:hover {
+    border: 1px solid #a94442 !important;
 }
 
 /****************/

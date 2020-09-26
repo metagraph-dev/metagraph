@@ -53,21 +53,23 @@ Here's an example:
         x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
         assert x.num_nodes == 3
 
-        # Convert python -> compactnumpy
-        intermediate = CompactNumpyNodeMap(np.array([12.5, 33.4, -1.2]), {0: 0, 1: 1, 42: 2})
+        # Convert python -> numpy
+        intermediate = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), node_ids=np.array([0, 1, 42]))
 
-        y = r.translate(x, CompactNumpyNodeMap)
+        y = r.translate(x, NumpyNodeMap)
         r.assert_equal(y, intermediate)
 
-        # Convert python <- compactnumpy
+        # Convert python <- numpy
         x2 = r.translate(y, PythonNodeMap)
         r.assert_equal(x, x2)
 
-Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ compact node map and back again.
+Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ node map and back again.
 
 We use the Metagraph resolver's ``translate`` method to translate as necessary and ``assert_equal`` method to verify that
 the translations are valid. The Metagraph resolver's ``assert_equal`` method utilizes the ``assert_equal`` implemented by
 the relevant concrete types.
+
+.. _testing_algorithms:
 
 Testing Algorithms
 ------------------
@@ -78,177 +80,255 @@ When testing concrete algorithms, simply testing that outputs for given inputs m
 for verifying that the outputs also match the results from concrete algorithms written in other plugins (that correspond
 to the same abstract algorithm).
 
-We highly recommend using the utility ``metagraph.tests.algorithms.MultiVerify`` as it verifies that all concrete algorithms
-for a given abstract algorithm get the same result.
+We highly recommend using the utility ``metagraph.core.multiverify.MultiVerify`` as it verifies that all concrete
+algorithms for a given abstract algorithm give the same result.
 
-It does this by finding all the concrete algorithms for the given abstract algorithm (known to the given resolver),
-using the given resolver's translators to translate the given input types to the appropriate types for every concrete
-algorithm, and using the ``assert_equal`` method of the concrete types to verify that all the results from all the concrete
+It does this by finding all the concrete algorithms for the given abstract algorithm,
+using the resolver's translators to translate the input types to the appropriate types for each concrete
+algorithm, and using the ``assert_equal`` method of the concrete types to verify that results from all the concrete
 algorithms are the same.
 
-This additionally also indirectly tests translators.
+This also indirectly tests translators.
 
-.. _plugin_testing_multiverify_with_assert_equals:
+MultiVerify and MultiResults
+----------------------------
 
-MultiVerify with assert_equals
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+``MultiVerify(r)`` creates a MultiVerify instance bound to the Resolver ``r``.
 
-Here's an example of how to use ``metagraph.tests.algorithms.MultiVerify``:
+Following creation, ``.compute()`` is called to exercise all implementations of an abstract algorithm.
+The signature for ``compute`` is:
+
+\
+    .. code-block:: python
+
+        r = mg.resolver
+
+        mv = MultiVerify(r)
+        results = mv.compute("path.to.abstract.algorithm", *args, **kwargs)
+
+The abstract algorithm path is identical to the path used to call the algorithm from the resolver.
+For example, "centrality.pagerank" and ``resolver.algos.centrality.pagerank`` are equivalent ways to
+point to PageRank abstract algorithm.
+
+The ``args`` and ``kwargs`` of the algorithm are passed in following the algorithm name in a manner similar
+to ``functools.partial``.
+
+The result of calling ``compute`` is a ``MultiResult`` instance.
+
+MultiResult
+~~~~~~~~~~~
+
+The ``MultiResult`` contains a map of all concrete algorithms and their associated return values.
+
+MultiResults can be used in several ways:
+
+``.normalize(type)``
+    Converts all results to a consistent type
+
+``.assert_equal(expected_value)``
+    Compares all results against an expected value
+
+``custom_compare(cmp_func)``
+    Passes each result to a comparison function
+
+``MultiVerify.transform(exact_algo, *args, **kwargs)``
+    The MultiResult is an argument to ``transform``, allowing further refinement of the result using additional
+    Metagraph algorithms
+
+``[index]``
+    If the concrete algorithms return tuples, slicing the MultiResult will return a new MultiResult
+    with each tuple sliced accordingly
+
+normalize
+~~~~~~~~~
+
+Calling ``results.normalize(type)`` will perform the translation of those results to the indicated
+type. This is a pre-requisite step for several other operations, although it is not required for ``assert_equal``
+as the type of the comparison is known and ``normalize`` is called under the hood.
+
+The result of calling ``normalize`` is a new ``MultiResult`` with the same concrete algorithm list, but all results
+are of a uniform type.
+
+assert_equal
+~~~~~~~~~~~~
+
+``assert_equal`` compares and expected result with each value of the ``MultiResult``. The output of each
+algorithm is translated to the same type as the expected result before calling the type's ``assert_equal``
+method.
+
+Here's an example:
 
 .. code-block:: python
 
     import networkx as nx
     import numpy as np
     import metagraph as mg
-    from metagraph.tests.algorithms import MultiVerify
+    from metagraph.core.multiverify import MultiVerify
 
-    def test_pagerank(default_plugin_resolver):
-        """
-              +-+
-     ------>  |1|
-     |        +-+
-     |
-     |         |
-     |         v
-
-    +-+  <--  +-+       +-+
-    |0|       |2|  <--  |3|
-    +-+  -->  +-+       +-+
-    """
-        r = mg.resolver
-        networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
-        networkx_graph = nx.DiGraph()
-        networkx_graph.add_edges_from(networkx_graph_data)
-        data = {
-            0: 0.37252685132844066,
-            1: 0.19582391181458728,
-            2: 0.3941492368569718,
-            3: 0.037500000000000006,
-        }
-        expected_val = r.wrappers.NodeMap.PythonNodeMap(data)
-        graph = r.wrappers.EdgeMap.NetworkXEdgeMap(networkx_graph)
-        MultiVerify(
-            r,
-            "link_analysis.pagerank",
-            graph,
-            tolerance=1e-7
-        ).assert_equals(expected_val, rel_tol=1e-5)
-
-This is a simple test of `Page Rank <https://en.wikipedia.org/wiki/PageRank>`_.
-
-The first several lines are fairly straightforward set up.
-
-The first noteworthy line is:
-
-.. code-block:: python
-
+    r = mg.resolver
+    networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
+    networkx_graph = nx.DiGraph()
+    networkx_graph.add_edges_from(networkx_graph_data)
+    data = {
+        0: 0.37252685132844066,
+        1: 0.19582391181458728,
+        2: 0.3941492368569718,
+        3: 0.037500000000000006,
+    }
     expected_val = r.wrappers.NodeMap.PythonNodeMap(data)
+    graph = r.wrappers.Graph.NetworkXGraph(networkx_graph)
 
-We're generating a Python node map with our expected results.
-
-Next, we generate our input graph.
-
-.. code-block:: python
-
-    graph = r.wrappers.EdgeMap.NetworkXEdgeMap(networkx_graph)
-
-The last line demonstrates how to use ``metagraph.tests.algorithms.MultiVerify``:
-
-.. code-block:: python
-
-    MultiVerify(
-        r,
-        "link_analysis.pagerank",
+    MultiVerify(r).compute(
+        "centrality.pagerank",
         graph,
         tolerance=1e-7
-    ).assert_equals(expected_val, rel_tol=1e-5)
+    ).assert_equal(expected_val, rel_tol=1e-5)
 
-Note the use of ``MultiVerify(r, "link_analysis.pagerank", graph, tolerance=1e-7)``. This generates an instance of the
-``MultiVerify`` class. The first parameter is the resolver to use. The second parameter is the name of the abstract
-algorithm whose concrete algorithms are being tested. The remaining positional and keyword arguments passed into the
-``MultiVerify`` initializer (in this example, ``graph`` and ``tolerance=1e-7``) are the inputs passed to the concrete
-algorithms (the given resolver is used to translate these inputs to the types appropriate for each concrete algorithm).
 
-Once the ``MultiVerify`` instance is created, the ``assert_equals`` method of ``MultiVerify`` is invoked. It takes an expected
-value and optionally a relative (via the keyword "rel_tol") and absolute (via the keyword "abs_tol") tolerance. The
-relative and absolute tolerances are used to account for minor differences in float values.
+Calling ``.assert_equal()`` with the expected value and any parameters affecting the comparison accuracy
+will perform the assertions. If no ``AssertionError`` is raised, then the results from all concrete algorithms
+match the expected value.
 
-Using a ``MultiVerify`` instance with the ``assert_equals`` method tests that all of the concrete algorithms known to the
-given resolver get the same result. The resolver's translators are used to translate the concrete algorithm inputs to
-the necessary type (which indirectly tests translators). This helps sanity check not just one concrete algorithm, but
-also sanity checks that all concrete algorithms behave similarly.
+If any fail, an error is raised with additional information of which algorithm produced the failing results.
 
-MultiVerify with custom_compare
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+custom_compare
+~~~~~~~~~~~~~~
 
-Sometimes, ``MultiVerify.assert_equals`` is insufficient for verifying that multiple concrete algorithms have the same
-behavior.
+Sometimes, ``assert_equal`` is insufficient for verifying that multiple concrete algorithms have the same
+behavior. ``custom_compare`` gives the user full flexibility over how to compare results which by nature are
+non-deterministic.
 
 Consider the `Louvain community detection algorithm <https://en.wikipedia.org/wiki/Louvain_modularity>`_. This algorithm
-attempts to find communities in a graph that minimize a modularity metric. This is frequently a computationally
-intractable task depending on the modularity metric given. Louvain community detection uses heuristics to minimize
-the modularity. Different implementations may yield different community assignments due to non-determinism, random
-initialization, parallelism, or a variety of other factors. Thus, simply checking for the same community label
-assignments for each node in a node map may be insufficient.
+attempts to find communities in a graph that minimize a modularity metric, but includes elements of randomness in
+the solution. Thus, simply checking for the same community label assignments for each node in a node map is insufficient.
 
-The ``custom_compare`` method of ``MultiVerify`` can be useful here.
-
-Here's an example of how to use the ``custom_compare`` method of ``MultiVerify`` to test concrete algorithms for Louvain community detection:
+Here's an example of how ``custom_compare`` might be used to verify reasonable correctness:
 
 .. code-block:: python
 
     import metagraph as mg
-    from metagraph.tests.algorithms import MultiVerify
+    from metagraph.core.multiverify import MultiVerify
 
-    def test_louvain(default_plugin_resolver):
-        """
-    0 ---2-- 1        5 --10-- 6
-    |      / |        |      /
-    |     /  |        |     /
-    1   7    3        5   11
-    |  /     |        |  /
-    | /      |        | /
-    3 --8--- 4        2 --6--- 7
-        """
-        r = mg.resolver
-        ebunch = [
-            (0, 3, 1),
-            (1, 0, 2),
-            (1, 4, 3),
-            (2, 5, 5),
-            (2, 7, 6),
-            (3, 1, 7),
-            (3, 4, 8),
-            (5, 6, 10),
-            (6, 2, 11),
-        ]
-        nx_graph = nx.Graph()
-        nx_graph.add_weighted_edges_from(ebunch)
-        graph = r.wrappers.EdgeMap.NetworkXEdgeMap(nx_graph, weight_label="weight")
+    r = mg.resolver
+    ebunch = [
+        (0, 3, 1),
+        (1, 0, 2),
+        (1, 4, 3),
+        (2, 5, 5),
+        (2, 7, 6),
+        (3, 1, 7),
+        (3, 4, 8),
+        (5, 6, 10),
+        (6, 2, 11),
+    ]
+    nx_graph = nx.Graph()
+    nx_graph.add_weighted_edges_from(ebunch)
+    graph = r.wrappers.Graph.NetworkXGraph(nx_graph)
 
-        def cmp_func(x):
-            x_graph, modularity_score = x
-            assert x_graph.num_nodes == 8, x_graph.num_nodes
-            assert modularity_score > 0.45
+    def cmp_func(x):
+        x_graph, modularity_score = x
+        assert x_graph.num_nodes == 8, x_graph.num_nodes
+        assert modularity_score > 0.45
 
-        MultiVerify(r, "clustering.louvain_community", graph).custom_compare(cmp_func)
+    results = MultiVerify(r).compute("clustering.louvain_community", graph)
+    results.normalize(r.types.NodeMap.PythonNodeMap).custom_compare(cmp_func)
 
 ``custom_compare`` takes a comparison function (in this example ``cmp_func``). The comparison function is passed the output
 of each concrete algorithm and verifies expected behavior.
 
+To ensure that the comparison function only has to deal with a single type, ``normalize`` is typically called prior
+to calling ``custom_compare``. In this case, the normalization is not strictly necessary as all ``NodeMap`` objects
+have a ``.num_nodes`` property.
+
 In this example, ``cmp_func`` simply takes the modularity score and verifies that it is above a selected threshold.
 
-The ``custom_compare`` method of ``MultiVerify`` is useful for cases where concrete algorithms might operate non-deterministically
-or that yield approximate results.
+transform
+~~~~~~~~~
 
-Additionally, the ``custom_compare`` method can also be useful for algorithms that return graphs. Different concrete
-algorithms might return isomorphic graphs, but checking for graph isomorphism in general is intractable. Using a custom
-compare function can be useful in these cases since a priori knowledge of the expected output graph can make graph
-isomorphism checking very fast. For example, if the expected output graph has only one node with 4 out edges, we can
-quickly identify the corresponding node.
+While ``assert_equal`` is for exact matches and ``custom_compare`` gives full flexibility, ``transform`` provides
+a hybrid solution to the problem of non-deterministic results.
 
-Suggestions for MultiVerify Extensions
---------------------------------------
+Often, while the solution is non-deterministic, there are elements of the solution which will be deterministic.
+Consider a max-flow problem. At the bottlenecks, the flow into a node will be consistent for any correct solution.
+Thus, if we can remove all other nodes and simply compare values for the bottleneck nodes, we could use the simpler
+``assert_equal`` method. That is where ``transform`` comes in to play.
 
-If you find that the utilities provided by ``MultiVerify`` for testing consistent behavior across all concrete algorithm
-implementations for a given abstract algorithm are lacking, please let us know `here <https://github.com/ContinuumIO/metagraph/issues>`_.
+``transform`` behaves nearly identically to ``compute`` with two key differences:
+
+1. At least one arg of kwarg must be a normalized ``MultiResult``.
+2. The first argument is not the path to an abstract algorithm. It must be an exact algorithm call.
+
+The reason for these differences is that we are not trying to exercise all concrete algorithms to check for correctness.
+Instead, we simply want to run all the results through the same algorithm in order to simplify the result in
+preparation for a call to ``assert_equal`` or ``custom_compare``.
+
+Multiple transforms can be performed on the results, chained together sequentially.
+
+Here is an example for max flow:
+
+.. code-block:: python
+
+    r = mg.resolver
+    nx_graph = nx.DiGraph()
+    nx_graph.add_weighted_edges_from([
+        (0, 1, 9),
+        (0, 3, 10),
+        (1, 4, 3),
+        (2, 7, 6),
+        (3, 1, 2),
+        (3, 4, 8),
+        (4, 5, 7),
+        (4, 2, 4),
+        (5, 2, 5),
+        (5, 6, 1),
+        (6, 2, 11),
+    ])
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+
+    # These are the elements of the result which *are* deterministic
+    expected_flow_value = 6
+    bottleneck_nodes = dpr.wrappers.NodeSet.PythonNodeSet({2, 4})
+    expected_nodemap = dpr.wrappers.NodeMap.PythonNodeMap({2: 6, 4: 6})
+
+    mv = MultiVerify(dpr)
+    results = mv.compute("flow.max_flow", graph, source_node=0, target_node=7)
+
+    # Note: each algorithm returns a tuple of (flow_rate, graph_of_flow_values)
+
+    # Compare flow rate
+    results[0].assert_equal(expected_flow_value)
+
+    # Normalize actual flow to prepare to transform
+    actual_flow = results[1].normalize(dpr.wrappers.Graph.NetworkXGraph)
+
+    # Compare sum of out edges for bottleneck nodes
+    out_edges = mv.transform(
+        dpr.plugins.core_networkx.algos.util.graph.aggregate_edges,
+        actual_flow,
+        lambda x, y: x + y,
+        initial_value=0,
+    )
+    out_bottleneck = mv.transform(
+        dpr.plugins.core_python.algos.util.nodemap.select, out_edges, bottleneck_nodes
+    )
+    out_bottleneck.assert_equal(expected_nodemap)
+
+The result from max flow is a tuple of (flow_rate, graph_of_flow_values). The flow rate is compared first by
+indexing into the results and using ``assert_equal`` with the expected flow value.
+
+The graph of flow values is first normalized, then transformed by aggregating edges and another transformation
+to filter to only keep the bottleneck nodes. At this point, the results are deterministic and can be compared
+using ``assert_equal``.
+
+The workflow for each concrete algorithm was:
+
+1. Compute max flow
+2. The flow rate was compared against the expected value
+3. The flow graph was normalized to a networkx graph
+4. The flow graph was translated to a node map using the core_networkx plugin's version of "graph.aggregate_edges"
+5. The node map was filtered using the core_python plugin's version of "nodemap.select"
+6. The smaller node map was compared against the expected result
+
+This comparison could have been done using ``custom_compare`` and manually calculating the flow rate out of
+the bottleneck nodes, but using ``transform`` allows easy access to existing
+utility algorithms which are often adequate to extract the deterministic portions and compare using ``assert_equal``.

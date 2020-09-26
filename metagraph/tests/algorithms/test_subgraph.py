@@ -26,7 +26,7 @@ def test_extract_graph(default_plugin_resolver):
     extracted_graph = dpr.wrappers.Graph.NetworkXGraph(nx_extracted_graph)
     MultiVerify(dpr).compute(
         "subgraph.extract_subgraph", graph, desired_nodes_wrapped
-    ).assert_equals(extracted_graph)
+    ).assert_equal(extracted_graph)
 
 
 def test_k_core(default_plugin_resolver):
@@ -51,4 +51,4 @@ def test_k_core(default_plugin_resolver):
     )
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     k_core_graph = dpr.wrappers.Graph.NetworkXGraph(nx_k_core_graph)
-    MultiVerify(dpr).compute("subgraph.k_core", graph, k).assert_equals(k_core_graph)
+    MultiVerify(dpr).compute("subgraph.k_core", graph, k).assert_equal(k_core_graph)

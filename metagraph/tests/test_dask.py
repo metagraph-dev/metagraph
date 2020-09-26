@@ -116,3 +116,23 @@ def test_algo_chain(default_plugin_resolver):
     assert nm2.concrete_type is PythonNodeMap.Type
     assert len(nm2._dsk.keys()) == 5  # init, translate, filter, translate, aggregate
     ldpr.assert_equal(nm2, sum_of_filtered_edges)
+
+
+def test_call_using_dispatcher(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    if not isinstance(dpr, DaskResolver):
+        dpr = DaskResolver(dpr)
+    pnm = dpr.wrappers.NodeMap.PythonNodeMap({0: 1, 1: 2})
+    result = dpr.algos.util.nodemap.reduce(pnm, lambda x, y: x + y)
+    assert result.compute() == 3
+
+
+def test_call_using_exact_dispatcher(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    if not isinstance(dpr, DaskResolver):
+        dpr = DaskResolver(dpr)
+    g = nx.Graph()
+    g.add_weighted_edges_from([(0, 1, 12), (1, 2, 5), (2, 0, 8)])
+    nxg = dpr.wrappers.Graph.NetworkXGraph(g)
+    result = dpr.algos.centrality.pagerank.core_networkx(nxg)
+    assert isinstance(result, Placeholder)

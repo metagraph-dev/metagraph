@@ -25,4 +25,5 @@ interacting with external plugins, but does not cover writing plugins. See the
    algorithm_list
    data_loading_and_export
    nodes
+   dask
    visualization

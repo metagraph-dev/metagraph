@@ -23,7 +23,7 @@ import typing
 from typing import Tuple, List, Any
 from collections import OrderedDict
 
-from .util import site_dir, example_resolver
+from .util import site_dir, example_resolver, default_plugin_resolver
 
 
 def test_namespace():

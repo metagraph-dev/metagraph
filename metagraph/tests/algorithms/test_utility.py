@@ -24,7 +24,7 @@ def test_nodeset_choose_random(default_plugin_resolver):
 def test_nodeset_from_vector(default_plugin_resolver):
     dpr = default_plugin_resolver
     np_node_vector = dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3]))
-    MultiVerify(dpr).compute("util.nodeset.from_vector", np_node_vector).assert_equals(
+    MultiVerify(dpr).compute("util.nodeset.from_vector", np_node_vector).assert_equal(
         dpr.wrappers.NodeSet.NumpyNodeSet(mask=np.array([0, 1, 1, 1], dtype=bool))
     )
 
@@ -34,19 +34,19 @@ def test_nodemap_sort(default_plugin_resolver):
     py_node_map_unwrapped = {index: index * 100 for index in range(1, 8)}
     py_node_map = dpr.wrappers.NodeMap.PythonNodeMap(py_node_map_unwrapped)
     mv = MultiVerify(dpr)
-    mv.compute("util.nodemap.sort", py_node_map).assert_equals(
+    mv.compute("util.nodemap.sort", py_node_map).assert_equal(
         dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4, 5, 6, 7]))
     )
-    mv.compute("util.nodemap.sort", py_node_map, True, 4).assert_equals(
+    mv.compute("util.nodemap.sort", py_node_map, True, 4).assert_equal(
         dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4]))
     )
-    mv.compute("util.nodemap.sort", py_node_map, True).assert_equals(
+    mv.compute("util.nodemap.sort", py_node_map, True).assert_equal(
         dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4, 5, 6, 7]))
     )
-    mv.compute("util.nodemap.sort", py_node_map, False, 3).assert_equals(
+    mv.compute("util.nodemap.sort", py_node_map, False, 3).assert_equal(
         dpr.wrappers.Vector.NumpyVector(np.array([7, 6, 5]))
     )
-    mv.compute("util.nodemap.sort", py_node_map, False).assert_equals(
+    mv.compute("util.nodemap.sort", py_node_map, False).assert_equal(
         dpr.wrappers.Vector.NumpyVector(np.array([7, 6, 5, 4, 3, 2, 1]))
     )
 
@@ -56,7 +56,7 @@ def test_nodemap_select(default_plugin_resolver):
     node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
     node_set = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids={2, 3})
     correct_answer = dpr.wrappers.NodeMap.PythonNodeMap({2: 22, 3: 33})
-    MultiVerify(dpr).compute("util.nodemap.select", node_map, node_set).assert_equals(
+    MultiVerify(dpr).compute("util.nodemap.select", node_map, node_set).assert_equal(
         correct_answer
     )
 
@@ -69,13 +69,13 @@ def test_nodemap_filter(default_plugin_resolver):
     def filter_func(x):
         return x % 2 == 0
 
-    MultiVerify(dpr).compute(
-        "util.nodemap.filter", node_map, filter_func
-    ).assert_equals(correct_answer)
+    MultiVerify(dpr).compute("util.nodemap.filter", node_map, filter_func).assert_equal(
+        correct_answer
+    )
     filter_func = lambda x: x % 2 == 0
-    MultiVerify(dpr).compute(
-        "util.nodemap.filter", node_map, filter_func
-    ).assert_equals(correct_answer)
+    MultiVerify(dpr).compute("util.nodemap.filter", node_map, filter_func).assert_equal(
+        correct_answer
+    )
 
 
 def test_nodemap_apply(default_plugin_resolver):
@@ -85,7 +85,7 @@ def test_nodemap_apply(default_plugin_resolver):
     correct_answer = dpr.wrappers.NodeMap.PythonNodeMap(
         {1: 1100, 2: 2200, 3: 3300, 4: 4400}
     )
-    MultiVerify(dpr).compute("util.nodemap.apply", node_map, apply_func).assert_equals(
+    MultiVerify(dpr).compute("util.nodemap.apply", node_map, apply_func).assert_equal(
         correct_answer
     )
 
@@ -95,9 +95,9 @@ def test_nodemap_reduce(default_plugin_resolver):
     node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
     reduce_func = lambda x, y: x + y
     correct_answer = 110
-    MultiVerify(dpr).compute(
-        "util.nodemap.reduce", node_map, reduce_func
-    ).assert_equals(correct_answer)
+    MultiVerify(dpr).compute("util.nodemap.reduce", node_map, reduce_func).assert_equal(
+        correct_answer
+    )
 
 
 def test_graph_aggregate_edges_directed(default_plugin_resolver):
@@ -138,28 +138,28 @@ v        v /        v
     )
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, True
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
         {0: 1.0, 1: 6.0, 2: 120.0, 3: 56.0, 4: 9.0, 5: 10.0, 6: 11.0, 7: 1.0,}
     )
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, True
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
         {0: 2.0, 1: 7.0, 2: 11.0, 3: 1.0, 4: 96.0, 5: 45.0, 6: 10.0, 7: 6.0,}
     )
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, False
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
         {node: 1.0 for node in range(8)}
     )
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, False
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
 
 def test_graph_aggregate_edges_undirected(default_plugin_resolver):
@@ -200,20 +200,20 @@ def test_graph_aggregate_edges_undirected(default_plugin_resolver):
     )
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, True
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, True
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, False
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
     expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
         {node: 1.0 for node in range(8)}
     )
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, False
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
 
 def test_graph_filter_edges(default_plugin_resolver):
@@ -251,7 +251,7 @@ v        v /        v
         [(2, 7, 6), (3, 1, 7), (3, 4, 8), (4, 5, 9), (5, 6, 10), (6, 2, 11),]
     )
     expected_answer = dpr.wrappers.Graph.NetworkXGraph(expected_answer_nx_graph)
-    MultiVerify(dpr).compute("util.graph.filter_edges", graph, func).assert_equals(
+    MultiVerify(dpr).compute("util.graph.filter_edges", graph, func).assert_equal(
         expected_answer
     )
 
@@ -305,7 +305,7 @@ v        v /        v
     expected_answer = dpr.wrappers.Graph.NetworkXGraph(expected_answer_nx_graph)
     MultiVerify(dpr).compute(
         "util.graph.assign_uniform_weight", graph, initial_weight
-    ).assert_equals(expected_answer)
+    ).assert_equal(expected_answer)
 
 
 def test_graph_build(default_plugin_resolver):
@@ -328,7 +328,7 @@ def test_graph_build(default_plugin_resolver):
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
     nodes = dpr.wrappers.NodeSet.NumpyNodeSet(mask=np.ones(6, dtype=bool))
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equals(expected_answer)
+    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
     # Edge Map + Node Map
     """
@@ -348,7 +348,7 @@ def test_graph_build(default_plugin_resolver):
     node_map_data = np.array([99, 10, 99, 30, 40, 50])
     nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data)
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equals(expected_answer)
+    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
     # Edge Set + Node Map
     """
@@ -366,7 +366,7 @@ def test_graph_build(default_plugin_resolver):
     node_map_data = np.array([99, 10, 99, 30, 40, 50])
     nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data)
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equals(expected_answer)
+    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
     # Edge Set + Node Set
     """
@@ -383,7 +383,7 @@ def test_graph_build(default_plugin_resolver):
     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
     nodes = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids=np.array([0, 1, 2, 3, 4, 5]))
     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equals(expected_answer)
+    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
 
 # TODO This test tests that the concrete types don't depend on node lists being sorted; enable when node list order-independence is implemented
@@ -410,7 +410,7 @@ def test_graph_build(default_plugin_resolver):
 #     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1,5,3,4])
 #     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
 #     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(
+#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equal(
 #         expected_answer
 #     )
 
@@ -438,7 +438,7 @@ def test_graph_build(default_plugin_resolver):
 #     node_map_data[mask] = np.array([10, 30, 40, 50])
 #     nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data, mask=mask)
 #     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equals(
+#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equal(
 #         expected_answer
 #     )
 #     # TODO test edgeset + nodemap
@@ -461,6 +461,6 @@ def test_edge_map_from_edgeset(default_plugin_resolver):
         ([9, 9, 9, 9], ([0, 1, 2, 2], [2, 2, 0, 1])), dtype=np.int64
     )
     expected_answer = dpr.wrappers.EdgeMap.ScipyEdgeMap(expected_matrix, [0, 2, 7])
-    MultiVerify(dpr).compute("util.edge_map.from_edgeset", edgeset, 9).assert_equals(
+    MultiVerify(dpr).compute("util.edge_map.from_edgeset", edgeset, 9).assert_equal(
         expected_answer
     )
