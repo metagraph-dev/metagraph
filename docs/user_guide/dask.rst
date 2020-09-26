@@ -1,12 +1,13 @@
 .. _dask:
 
-Lazy Computation with Dask
-==========================
+Usage with Dask
+===============
 
-`Dask <https://dask.org/>`__ is integrated into Metagraph to provide lazy computation as well as lazy loading of data.
+`Dask <https://dask.org/>`__ is integrated into Metagraph to allow algorithms and translations to be run in Dask task
+graphs, and to accept Dask data structures as input.
 
-Most libraries which integrate ``dask`` attempt to require as few changes to a user's code as possible to
-move from standard mode into dask mode (often simply a new import).
+Most libraries which integrate Dask attempt to require as few changes to a user's code as possible to
+move from standard mode into Dask mode (often simply a new import).
 
 For example, here is basic Numpy code:
 
@@ -38,11 +39,11 @@ And here is the same code written using ``dask.array``, the equivalent of a nump
 The DaskResolver
 ----------------
 
-The primary element of Metagraph that is replaced in a lazy context is the ``Resolver``. A new ``DaskResolver``
+The primary element of Metagraph that is replaced for usage with Dask is the ``Resolver``. A new ``DaskResolver``
 wraps a ``Resolver`` and intercepts translations and algorithm calls, adding them to the task graph rather than
 executing them directly.
 
-To access the default dask resolver, use ``metagraph.dask.resolver``.
+To access the default Dask resolver, use ``metagraph.dask.resolver``.
 
 Here is basic Metagraph code to translate between types:
 
@@ -59,7 +60,7 @@ Here is basic Metagraph code to translate between types:
 
     {0: 5, 1: 4, 2: 3, 3: 2, 4: 1}
 
-And here is the same code using the dask resolver:
+And here is the same code using the Dask resolver:
 
 \
     .. code-block:: python
@@ -107,8 +108,8 @@ need to create a custom ``Resolver``, converting that into its lazy equivalent i
 Placeholders
 ------------
 
-A ``Placeholder`` is the lazy equivalent of a ``ConcreteType`` and each concrete type will have a corresponding
-class in the dask resolver. The class name is the name of the concrete type with "Placeholder" tacked on as
+A ``Placeholder`` is the Dask equivalent of a ``ConcreteType`` and each concrete type will have a corresponding
+class in the Dask resolver. The class name is the name of the concrete type with "Placeholder" tacked on as
 as suffix.
 
 For example, ``NetworkXGraphType`` has a ``NetworkXGraphTypePlaceholder`` class.
@@ -178,13 +179,13 @@ Calling it using the same signature as the function ``build_complete_nxgraph`` w
 
     <types.NetworkXGraphTypePlaceholder at 0x7fbd51122590>
 
-Because ``my_graph`` is a Placeholder, it can be used in algorithm calls and translations by the dask resolver.
+Because ``my_graph`` is a Placeholder, it can be used in algorithm calls and translations by the Dask resolver.
 
 
 Visualizing the task graph
 --------------------------
 
-One very nice benefit of building up a lazy task graph is that dask comes with builtin visualization features.
+One very nice benefit of building up a Dask task graph is that Dask comes with builtin visualization features.
 
 Let's take ``my_graph`` from above, translate it, and call an algorithm. Before actually computing anything,
 we will visualize the steps Metagraph will take.
