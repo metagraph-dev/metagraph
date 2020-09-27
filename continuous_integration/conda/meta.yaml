@@ -25,6 +25,7 @@ requirements:
     - donfig
     - grblas
     - dask
+    - distributed
     - nest-asyncio
 
 test:
