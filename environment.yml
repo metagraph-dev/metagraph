@@ -13,6 +13,7 @@ dependencies:
   - nbsphinx
   - notebook
   - conda-forge::pydata-sphinx-theme
+  - matplotlib
   - pip
   - pip:
     - rst2pdf

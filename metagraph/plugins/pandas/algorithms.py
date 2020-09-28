@@ -7,8 +7,8 @@ import numpy as np
 if has_pandas:
     import pandas as pd
 
-    @concrete_algorithm("util.edge_map.from_edgeset")
-    def pd_edge_map_from_edgeset(
+    @concrete_algorithm("util.edgemap.from_edgeset")
+    def pd_edgemap_from_edgeset(
         edgeset: PandasEdgeSet, default_value: Any,
     ) -> PandasEdgeMap:
         new_df = edgeset.value.copy()

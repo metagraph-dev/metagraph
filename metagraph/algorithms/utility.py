@@ -41,8 +41,8 @@ def nodemap_reduce(x: NodeMap, func: Callable[[Any, Any], Any]) -> Any:
     pass  # pragma: no cover
 
 
-@abstract_algorithm("util.edge_map.from_edgeset")
-def edge_map_from_edgeset(edgeset: EdgeSet, default_value: Any,) -> EdgeMap:
+@abstract_algorithm("util.edgemap.from_edgeset")
+def edgemap_from_edgeset(edgeset: EdgeSet, default_value: Any) -> EdgeMap:
     pass  # pragma: no cover
 
 
@@ -87,5 +87,14 @@ def graph_assign_uniform_weight(
 def graph_build(
     edges: mg.Union[EdgeSet, EdgeMap],
     nodes: mg.Optional[mg.Union[NodeSet, NodeMap]] = None,
+) -> Graph:
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("util.graph.collapse_by_label")
+def graph_collapse_by_label(
+    graph: Graph(is_directed=False),
+    labels: NodeMap,
+    aggregator: Callable[[Any, Any], Any],
 ) -> Graph:
     pass  # pragma: no cover

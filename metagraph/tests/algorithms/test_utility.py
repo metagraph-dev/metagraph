@@ -445,7 +445,7 @@ def test_graph_build(default_plugin_resolver):
 #     # TODO test edgeset + nodeset
 
 
-def test_edge_map_from_edgeset(default_plugin_resolver):
+def test_edgemap_from_edgeset(default_plugin_resolver):
     dpr = default_plugin_resolver
     #    0 2 7
     # 0 [    1]
@@ -461,6 +461,6 @@ def test_edge_map_from_edgeset(default_plugin_resolver):
         ([9, 9, 9, 9], ([0, 1, 2, 2], [2, 2, 0, 1])), dtype=np.int64
     )
     expected_answer = dpr.wrappers.EdgeMap.ScipyEdgeMap(expected_matrix, [0, 2, 7])
-    MultiVerify(dpr).compute("util.edge_map.from_edgeset", edgeset, 9).assert_equal(
+    MultiVerify(dpr).compute("util.edgemap.from_edgeset", edgeset, 9).assert_equal(
         expected_answer
     )
