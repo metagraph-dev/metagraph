@@ -1,4 +1,7 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.plugins.python.types import PythonNodeMap
 from metagraph.plugins.numpy.types import NumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap

@@ -1,4 +1,7 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.core.resolver import Resolver
 from metagraph.dask import DaskResolver
 from metagraph.core.dask.placeholder import Placeholder
@@ -10,7 +13,6 @@ from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.scipy.types import ScipyGraph
 from metagraph.plugins.scipy.algorithms import ss_graph_filter_edges
 from metagraph.plugins.networkx.algorithms import nx_graph_aggregate_edges
-import grblas
 import networkx as nx
 import dask
 

@@ -25,7 +25,7 @@ requirements:
     - donfig
     - grblas
     - dask
-    - distributed
+    - python-graphviz
     - nest-asyncio
 
 test:

@@ -1,4 +1,7 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.scipy.types import ScipyGraph, ScipyEdgeMap
 from metagraph.plugins.numpy.types import NumpyNodeMap

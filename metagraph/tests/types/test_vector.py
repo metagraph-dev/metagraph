@@ -1,8 +1,10 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.plugins.numpy.types import NumpyVector
 from metagraph.plugins.graphblas.types import GrblasVectorType
 import numpy as np
-import grblas
 
 
 def test_numpy():

@@ -1,4 +1,7 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.core.resolver import Resolver
 from metagraph.core.multiverify import (
     MultiVerify,
