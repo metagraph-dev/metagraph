@@ -1,10 +1,12 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.plugins.pandas.types import PandasEdgeMap, PandasEdgeSet
 from metagraph.plugins.graphblas.types import GrblasEdgeMap
 from metagraph.plugins.scipy.types import ScipyEdgeMap
 from metagraph import NodeLabels
 import pandas as pd
-import grblas
 import scipy.sparse as ss
 import numpy as np
 

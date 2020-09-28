@@ -1,4 +1,7 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph import NodeLabels
 from metagraph.tests.util import default_plugin_resolver
 from metagraph.plugins.python.types import PythonNodeMap

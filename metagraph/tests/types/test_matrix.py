@@ -1,10 +1,12 @@
 import pytest
+
+grblas = pytest.importorskip("grblas")
+
 from metagraph.plugins.numpy.types import NumpyMatrix
 from metagraph.plugins.scipy.types import ScipyMatrixType
 from metagraph.plugins.graphblas.types import GrblasMatrixType
 import numpy as np
 import scipy.sparse as ss
-import grblas
 
 
 def test_numpy():
