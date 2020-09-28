@@ -19,6 +19,7 @@ setup(
         "python-louvain",
         "nest-asyncio",
         "dask[array,dataframe,delayed,distributed]",
+        "graphviz",
     ],
     include_package_data=True,
     entry_points={"metagraph.plugins": ["plugins=metagraph.plugins:find_plugins",]},
