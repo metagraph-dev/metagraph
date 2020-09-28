@@ -215,8 +215,8 @@ if has_scipy:
     ) -> ScipyGraph:
         return ScipyGraph(edges, nodes)
 
-    @concrete_algorithm("util.edge_map.from_edgeset")
-    def ss_edge_map_from_edgeset(
+    @concrete_algorithm("util.edgemap.from_edgeset")
+    def ss_edgemap_from_edgeset(
         edgeset: ScipyEdgeSet, default_value: Any,
     ) -> ScipyEdgeMap:
         new_matrix = edgeset.value.copy()

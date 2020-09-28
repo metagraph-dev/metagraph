@@ -26,15 +26,6 @@ def louvain_community_step(
     pass  # pragma: no cover
 
 
-@abstract_algorithm("util.graph.collapse_by_label")
-def collapse_by_label(
-    graph: Graph(is_directed=False),
-    labels: NodeMap,
-    aggregator: Callable[[Any, Any], Any],
-) -> Graph:
-    pass  # pragma: no cover
-
-
 @abstract_algorithm("cluster.triangle_count")
 def triangle_count(graph: Graph(is_directed=False)) -> int:
     """Counts the number of unique triangles in an undirected graph"""
