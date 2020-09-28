@@ -18,7 +18,7 @@ setup(
         "pandas",
         "python-louvain",
         "nest-asyncio",
-        "dask[array,dataframe,delayed,distributed]",
+        "dask[array,dataframe,delayed]",
         "graphviz",
     ],
     include_package_data=True,
