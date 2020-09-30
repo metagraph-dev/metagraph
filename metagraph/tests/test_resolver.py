@@ -23,7 +23,7 @@ import typing
 from typing import Tuple, List, Any
 from collections import OrderedDict
 
-from .util import site_dir, example_resolver, default_plugin_resolver
+from .util import site_dir, example_resolver
 
 
 def test_namespace():
@@ -572,7 +572,7 @@ def test_call_algorithm(example_resolver):
         example_resolver.call_algorithm("power", 1, "4")
     assert example_resolver.call_algorithm("power", 2, p=3) == 8
     assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
-    assert example_resolver.call_algorithm("echo_str", 14) == "14"
+    assert example_resolver.call_algorithm("echo_str", 14) == "14 <echo>"
 
     od1 = OrderedDict([("a", 1), ("b", 2), ("c", 3)])
     od2 = OrderedDict([("c", 3), ("b", 2), ("a", 1)])
@@ -605,7 +605,7 @@ def test_call_using_dispatcher(example_resolver):
     assert example_resolver.algos.power(p=2, x=3) == 9
 
     with pytest.raises(TypeError, match="too many positional arguments"):
-        example_resolver.algos.echo_str(14, "$")
+        example_resolver.algos.echo_str(14, "...", "$")
 
     with pytest.raises(TypeError, match="got an unexpected keyword argument .prefix."):
         example_resolver.algos.echo_str(14, prefix="$")
@@ -613,11 +613,14 @@ def test_call_using_dispatcher(example_resolver):
 
 def test_call_using_exact_dispatcher(example_resolver):
     # Call with plugin at the end
-    assert example_resolver.algos.echo_str.example_plugin(14, "$") == "$14"
-    assert example_resolver.algos.echo_str.example_plugin(14, prefix="$") == "$14"
+    assert example_resolver.algos.echo_str.example_plugin(14, "...", "$") == "$14..."
+    assert (
+        example_resolver.algos.echo_str.example_plugin(14, prefix="$") == "$14 <echo>"
+    )
     # Call with plugin at the start
     assert (
-        example_resolver.plugins.example_plugin.algos.echo_str(14, prefix="$") == "$14"
+        example_resolver.plugins.example_plugin.algos.echo_str(14, prefix="$")
+        == "$14 <echo>"
     )
 
 

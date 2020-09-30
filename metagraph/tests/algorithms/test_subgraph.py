@@ -4,14 +4,14 @@ from . import MultiVerify
 
 
 def test_extract_graph(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-       / |        |      / 
-      /  |        |     /   
-    7    3        5   11   
-   /     |        |  /    
-  /      |        | /      
-3        4        2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+           / |        |      /
+          /  |        |     /
+        7    3        5   11
+       /     |        |  /
+      /      |        | /
+    3        4        2 --6--- 7
     """
     dpr = default_plugin_resolver
     nx_graph = nx.Graph()
@@ -30,14 +30,14 @@ def test_extract_graph(default_plugin_resolver):
 
 
 def test_k_core(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-       / |        |      / 
-      /  |        |     /   
-    7    3        5   11   
-   /     |        |  /    
-  /      |        | /      
-3        4        2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+           / |        |      /
+          /  |        |     /
+        7    3        5   11
+       /     |        |  /
+      /      |        | /
+    3        4        2 --6--- 7
     """
     dpr = default_plugin_resolver
     k = 2

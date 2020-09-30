@@ -4,7 +4,7 @@ from . import MultiVerify
 
 
 def test_graph_projection(default_plugin_resolver):
-    """
+    r"""
     0  1  2  3
     |\   /|\  \
     | \ / | \  \

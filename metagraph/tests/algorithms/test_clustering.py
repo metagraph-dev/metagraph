@@ -6,14 +6,14 @@ from . import MultiVerify
 
 
 def test_connected_components(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-|      / |        |      / 
-|     /  |        |     /   
-1   7    3        5   11   
-|  /     |        |  /    
-| /      |        | /      
-3 --8--- 4        2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+    |      / |        |      /
+    |     /  |        |     /
+    1   7    3        5   11
+    |  /     |        |  /
+    | /      |        | /
+    3 --8--- 4        2 --6--- 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -53,20 +53,20 @@ def test_connected_components(default_plugin_resolver):
 
 
 def test_strongly_connected_components(default_plugin_resolver):
-    """
-          +-+
- ----9->  |1|
- |        +-+
- | 
- |         |
- |         6
- |         |
- |         v
+    r"""
+              +-+
+     ----9->  |1|
+     |        +-+
+     |
+     |         |
+     |         6
+     |         |
+     |         v
 
-+-+  <-7-  +-+        +-+
-|0|        |2|  <-5-  |3|
-+-+  -8->  +-+        +-+
-"""
+    +-+  <-7-  +-+        +-+
+    |0|        |2|  <-5-  |3|
+    +-+  -8->  +-+        +-+
+    """
     dpr = default_plugin_resolver
     networkx_graph_data = [(0, 1, 9), (0, 2, 8), (2, 0, 7), (1, 2, 6), (3, 2, 5)]
     nx_graph = nx.DiGraph()
@@ -90,14 +90,14 @@ def test_strongly_connected_components(default_plugin_resolver):
 
 
 def test_louvain(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-|      / |        |      / 
-|     /  |        |     /   
-1   7    3        5   11   
-|  /     |        |  /    
-| /      |        | /      
-3 --8--- 4        2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+    |      / |        |      /
+    |     /  |        |     /
+    1   7    3        5   11
+    |  /     |        |  /
+    | /      |        | /
+    3 --8--- 4        2 --6--- 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -126,14 +126,14 @@ def test_louvain(default_plugin_resolver):
 
 
 def test_label_propagation(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-|      / |        |      / 
-|     /  |        |     /   
-1   7    3        5   11   
-|  /     |        |  /    
-| /      |        | /      
-3 --8--- 4        2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+    |      / |        |      /
+    |     /  |        |     /
+    1   7    3        5   11
+    |  /     |        |  /
+    | /      |        | /
+    3 --8--- 4        2 --6--- 7
     """
     dpr = default_plugin_resolver
     ebunch = [

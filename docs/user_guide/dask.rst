@@ -117,7 +117,7 @@ For example, ``NetworkXGraphType`` has a ``NetworkXGraphTypePlaceholder`` class.
 The purpose of Placeholders is to delay computation while still providing information to Metagraph about the
 resultant type, allowing further chaining of the delayed computations.
 
-This is an example of chained translations showing how Placeholders function:
+This is an example of chained operations showing how Placeholders function:
 
 \
     .. code-block:: python
@@ -125,15 +125,15 @@ This is an example of chained translations showing how Placeholders function:
         x = dres.wrappers.NodeMap.NumpyNodeMap(np.array([5, 4, 3, 2, 1]))
         y = dres.translate(x, dres.types.NodeMap.PythonNodeMapType)
         print(type(y))
-        y2 = dres.algos.util.nodemap.apply(y, lambda n: n * n)
+        z = dres.algos.util.nodemap.apply(y, lambda n: n * n)
         print(type(z))
         z.compute().value
 
-    <class 'types.PythonNodeMapTypePlaceholder'>
-    <class 'types.PythonNodeMapTypePlaceholder'>
-    {0: 25, 1: 16, 2: 9, 3: 4, 4: 1}
+    | <class 'types.PythonNodeMapTypePlaceholder'>
+    | <class 'types.PythonNodeMapTypePlaceholder'>
+    | {0: 25, 1: 16, 2: 9, 3: 4, 4: 1}
 
-``y`` is a Placeholder, but Metagraph is able to take it as input to ``util.nodemap.apply`` because the
+``y`` is a Placeholder, but Metagraph is able to use it as input to ``util.nodemap.apply`` because the
 type is known. Properties are not know at this time, so failure may still occur when the result is computed,
 but it allows for the general workflow of translations and algorithm calls to be built into a task graph
 via intermediate Placeholder objects.
@@ -162,7 +162,7 @@ As an example, create a delayed constructor for building complete networkx graph
                 g.add_edge(src, dst)
             return res.wrappers.Graph.NetworkXGraph(g)
 
-        nx_complete_factory = dres.delayed_wrapper(build_nx_complete, res.types.Graph.NetworkXGraphType)
+        nx_complete_factory = dres.delayed_wrapper(build_complete_nxgraph, res.types.Graph.NetworkXGraphType)
         print(nx_complete_factory)
 
     DelayedWrapper<NetworkXGraphType>

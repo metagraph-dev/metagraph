@@ -176,15 +176,15 @@ def float_ln(x: FloatType) -> FloatType:
 
 
 @plugin.abstract_algorithm("echo_str")
-def abstract_echo(x: Any) -> str:  # pragma: no cover
+def abstract_echo(x: Any, suffix: Any = " <echo>") -> str:  # pragma: no cover
     pass
 
 
 @plugin.concrete_algorithm("echo_str")
-def simple_echo(x: Any, prefix=None) -> str:  # pragma: no cover
+def simple_echo(x: Any, suffix: Any, prefix=None) -> str:  # pragma: no cover
     if prefix:
-        return f"{prefix}{x}"
-    return str(x)
+        return f"{prefix}{x}{suffix}"
+    return f"{x}{suffix}"
 
 
 @plugin.abstract_algorithm("odict_rev")

@@ -5,18 +5,18 @@ from . import MultiVerify
 
 
 def test_pagerank(default_plugin_resolver):
-    """
-          +-+
- ------>  |1|
- |        +-+
- | 
- |         |
- |         v
+    r"""
+              +-+
+     ------>  |1|
+     |        +-+
+     |
+     |         |
+     |         v
 
-+-+  <--  +-+       +-+
-|0|       |2|  <--  |3|
-+-+  -->  +-+       +-+
-"""
+    +-+  <--  +-+       +-+
+    |0|       |2|  <--  |3|
+    +-+  -->  +-+       +-+
+    """
     dpr = default_plugin_resolver
     networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
     networkx_graph = nx.DiGraph()

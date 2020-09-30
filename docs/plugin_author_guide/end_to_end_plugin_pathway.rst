@@ -122,7 +122,7 @@ There are decorators for abstract algorithms, concrete algorithms, and translato
 * ``concrete_algorithm``
 * ``translator``
 
-To make abstract types, concrete types, and wrappers findable by the the ``register_from_modules`` method, we must
+To make abstract types, concrete types, and wrappers findable by the ``register_from_modules`` method, we must
 define them as being subclasses of certain Metagraph base classes.
 
 Abstract types must be subclasses of ``metagraph.AbstractType``.

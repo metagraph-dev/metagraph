@@ -26,10 +26,15 @@ if has_pandas:
             rel_tol=1e-9,
             abs_tol=0.0,
         ):
-            digits_precision = round(-math.log(rel_tol, 10))
-            pd.testing.assert_frame_equal(
-                obj1, obj2, check_like=True, check_less_precise=digits_precision
-            )
+            if pd.__version__ > "1.1.0":
+                pd.testing.assert_frame_equal(
+                    obj1, obj2, check_like=True, rtol=rel_tol, atol=abs_tol
+                )
+            else:
+                digits_precision = round(-math.log(rel_tol, 10))
+                pd.testing.assert_frame_equal(
+                    obj1, obj2, check_like=True, check_less_precise=digits_precision
+                )
 
     class PandasEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         def __init__(

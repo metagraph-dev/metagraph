@@ -5,14 +5,14 @@ from . import MultiVerify
 
 
 def test_betweenness_centrality_single_hub(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|      ^ |      ^ ^      / 
-|     /  |     /  |     /   
-1    7   3    9   5   11   
-|   /    |  /     |   /    
-v        v /        v      
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |      ^ |      ^ ^      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |   /    |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -52,14 +52,14 @@ v        v /        v
 
 
 def test_betweenness_centrality_multiple_hubs(default_plugin_resolver):
-    """
-0 --10-> 1 --1--> 5 --10-> 6
-|      ^ ^        ^      / 
-0.1   /  |        |     /   
-|    10  10       5   11   
-|  _/    |        |   /    
-v /      |          v      
-3 -0.1-> 4 --1--> 2 --6--> 7
+    r"""
+    0 --10-> 1 --1--> 5 --10-> 6
+    |      ^ ^        ^      /
+    0.1   /  |        |     /
+    |    10  10       5   11
+    |  _/    |        |   /
+    v /      |          v
+    3 -0.1-> 4 --1--> 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
