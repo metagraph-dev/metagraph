@@ -129,9 +129,9 @@ This is an example of chained operations showing how Placeholders function:
         print(type(z))
         z.compute().value
 
-    <class 'types.PythonNodeMapTypePlaceholder'>
-    <class 'types.PythonNodeMapTypePlaceholder'>
-    {0: 25, 1: 16, 2: 9, 3: 4, 4: 1}
+    | <class 'types.PythonNodeMapTypePlaceholder'>
+    | <class 'types.PythonNodeMapTypePlaceholder'>
+    | {0: 25, 1: 16, 2: 9, 3: 4, 4: 1}
 
 ``y`` is a Placeholder, but Metagraph is able to use it as input to ``util.nodemap.apply`` because the
 type is known. Properties are not know at this time, so failure may still occur when the result is computed,
