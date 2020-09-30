@@ -5,14 +5,14 @@ from . import MultiVerify
 
 
 def test_max_flow(default_plugin_resolver):
-    """
-0 ---9-> 1        5 --1--> 6
-|      ^ |      ^ |      /
-|     /  |     /  |     /
-10   2   3    7   5   11
-|  _/    |  /     |   /
-v /      v /      v v
-3 --8--> 4 ---4-> 2 --6--> 7
+    r"""
+    0 ---9-> 1        5 --1--> 6
+    |      ^ |      ^ |      /
+    |     /  |     /  |     /
+    10   2   3    7   5   11
+    |  _/    |  /     |   /
+    v /      v /      v v
+    3 --8--> 4 ---4-> 2 --6--> 7
     """
     dpr = default_plugin_resolver
     source_node = 0

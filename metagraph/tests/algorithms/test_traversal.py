@@ -6,13 +6,13 @@ from . import MultiVerify
 
 
 def test_all_pairs_shortest_paths(default_plugin_resolver):
-    """
-A --1--- B
-|     _/ |
-|   _9   |
-3  /     2
-| /      |
-C --4--- D
+    r"""
+    A --1--- B
+    |     _/ |
+    |   _9   |
+    3  /     2
+    | /      |
+    C --4--- D
     """
     dpr = default_plugin_resolver
     graph_ss_matrix = ss.csr_matrix(
@@ -45,14 +45,14 @@ C --4--- D
 
 
 def test_bfs_iter(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|        |      ^ ^      / 
-|        |     /  |     /   
-1        3    9   5   11   
-|        |  /     |   /    
-v        v /        v      
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |        |      ^ ^      /
+    |        |     /  |     /
+    1        3    9   5   11
+    |        |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -77,14 +77,14 @@ v        v /        v
 
 
 def test_bellman_ford(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|      ^ |      ^ ^      /
-|     /  |     /  |     /
-1    7   3    9   5   11
-|   /    |  /     |   /
-v        v /        v
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |      ^ |      ^ ^      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |   /    |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -115,14 +115,14 @@ v        v /        v
 
 
 def test_dijkstra(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|      ^ |      ^ ^      /
-|     /  |     /  |     /
-1    7   3    9   5   11
-|   /    |  /     |   /
-v        v /        v
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |      ^ |      ^ ^      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |   /    |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -153,14 +153,14 @@ v        v /        v
 
 
 def test_minimum_spanning_tree(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-|      / |      / |      /
-|     /  |     /  |     /
-1    7   3    9   5   11
-|  _/    |  /     |  /
-| /      | /      | /
-3 --8--- 4 ---4-- 2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+    |      / |      / |      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |  _/    |  /     |  /
+    | /      | /      | /
+    3 --8--- 4 ---4-- 2 --6--- 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -198,14 +198,14 @@ def test_minimum_spanning_tree(default_plugin_resolver):
 
 
 def test_minimum_spanning_tree_dicsconnected(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-|      / |        |      /
-|     /  |        |     /
-1    7   3        5   11
-|  _/    |        |  /
-| /      |        | /
-3 --8--- 4        2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+    |      / |        |      /
+    |     /  |        |     /
+    1    7   3        5   11
+    |  _/    |        |  /
+    | /      |        | /
+    3 --8--- 4        2 --6--- 7
     """
     dpr = default_plugin_resolver
     ebunch = [

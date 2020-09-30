@@ -101,14 +101,14 @@ def test_nodemap_reduce(default_plugin_resolver):
 
 
 def test_graph_aggregate_edges_directed(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|      ^ |      ^ ^      / 
-|     /  |     /  |     /   
-1    7   3    9   5   11   
-|   /    |  /     |   /    
-v        v /        v      
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |      ^ |      ^ ^      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |   /    |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     import operator
 
@@ -163,14 +163,14 @@ v        v /        v
 
 
 def test_graph_aggregate_edges_undirected(default_plugin_resolver):
-    """
-0 ---2-- 1        5 --10-- 6
-|      / |      / |      / 
-|     /  |     /  |     /   
-1    7   3    9   5   11   
-|  _/    |  /     |  _/    
-| /      | /      | /      
-3 --8--- 4 ---4-- 2 --6--- 7
+    r"""
+    0 ---2-- 1        5 --10-- 6
+    |      / |      / |      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |  _/    |  /     |  _/
+    | /      | /      | /
+    3 --8--- 4 ---4-- 2 --6--- 7
     """
     import operator
 
@@ -217,14 +217,14 @@ def test_graph_aggregate_edges_undirected(default_plugin_resolver):
 
 
 def test_graph_filter_edges(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|      ^ |      ^ ^      / 
-|     /  |     /  |     /   
-1    7   3    9   5   11   
-|   /    |  /     |   /    
-v        v /        v      
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |      ^ |      ^ ^      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |   /    |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -257,14 +257,14 @@ v        v /        v
 
 
 def test_assign_uniform_weight(default_plugin_resolver):
-    """
-0 <--2-- 1        5 --10-> 6
-|      ^ |      ^ ^      / 
-|     /  |     /  |     /   
-1    7   3    9   5   11   
-|   /    |  /     |   /    
-v        v /        v      
-3 --8--> 4 <--4-- 2 --6--> 7
+    r"""
+    0 <--2-- 1        5 --10-> 6
+    |      ^ |      ^ ^      /
+    |     /  |     /  |     /
+    1    7   3    9   5   11
+    |   /    |  /     |   /
+    v        v /        v
+    3 --8--> 4 <--4-- 2 --6--> 7
     """
     dpr = default_plugin_resolver
     ebunch = [
@@ -312,13 +312,13 @@ def test_graph_build(default_plugin_resolver):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
     # Edge Map + Node Set
-    """
-1 --1--- 5      2
-|     _/ |
-|   _9   |
-3  /     2
-| /      |
-3 --4--- 4      0
+    r"""
+    1 --1--- 5      2
+    |     _/ |
+    |   _9   |
+    3  /     2
+    | /      |
+    3 --4--- 4      0
     """
     graph_ss_matrix = ss.csr_matrix(
         np.array(
@@ -331,13 +331,13 @@ def test_graph_build(default_plugin_resolver):
     mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
     # Edge Map + Node Map
-    """
-1(10) --1--- 5(50)      2(99)
-|           /  |
-|    ___9__/   |
-3   /          2
-|  /           |
-3(30) --4--- 4(40)      0(99)
+    r"""
+    1(10) --1--- 5(50)      2(99)
+    |           /  |
+    |    ___9__/   |
+    3   /          2
+    |  /           |
+    3(30) --4--- 4(40)      0(99)
     """
     graph_ss_matrix = ss.csr_matrix(
         np.array(
@@ -351,13 +351,13 @@ def test_graph_build(default_plugin_resolver):
     mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
     # Edge Set + Node Map
-    """
-1(10) ------ 5(50)      2(99)
-|           /  |
-|    ______/   |
-|   /          |
-|  /           |
-3(30) ------ 4(40)      0(99)
+    r"""
+    1(10) ------ 5(50)      2(99)
+    |           /  |
+    |    ______/   |
+    |   /          |
+    |  /           |
+    3(30) ------ 4(40)      0(99)
     """
     graph_ss_matrix = ss.csr_matrix(
         np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0]], dtype=bool)
@@ -369,13 +369,13 @@ def test_graph_build(default_plugin_resolver):
     mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
 
     # Edge Set + Node Set
-    """
-1 ------ 5      2
-|     _/ |
-|   _/   |
-|  /     |
-| /      |
-3 ------ 4      0
+    r"""
+    1 ------ 5      2
+    |     _/ |
+    |   _/   |
+    |  /     |
+    | /      |
+    3 ------ 4      0
     """
     graph_ss_matrix = ss.csr_matrix(
         np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0]], dtype=bool)
@@ -415,13 +415,13 @@ def test_graph_build(default_plugin_resolver):
 #     )
 
 #     # Edge Map + Node Map
-#     """
-# 1(10) --1--- 5(50)      2
-# |           /  |
-# |    ___9__/   |
-# 3   /          2
-# |  /           |
-# 3(30) --4--- 4(40)      0
+#     r"""
+#     1(10) --1--- 5(50)      2
+#     |           /  |
+#     |    ___9__/   |
+#     3   /          2
+#     |  /           |
+#     3(30) --4--- 4(40)      0
 #     """
 #     graph_ss_matrix = ss.csr_matrix(
 #         np.array(
