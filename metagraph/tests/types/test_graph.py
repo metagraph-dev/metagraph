@@ -45,7 +45,7 @@ def test_networkx():
     )
     g_diff1 = nx.DiGraph()
     g_diff1.add_weighted_edges_from(
-        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 3), (2, 1, 333)]
+        [(0, 0, 1), (0, 1, 2), (1, 1, 0), (1, 2, 333), (2, 1, 3)]
     )
     with pytest.raises(AssertionError):
         NetworkXGraph.Type.assert_equal(

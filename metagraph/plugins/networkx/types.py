@@ -142,12 +142,12 @@ if has_networkx:
                         val1 = d1[obj1.edge_weight_label]
                         val2 = d2[obj2.edge_weight_label]
 
-                    if aprops1["edge_dtype"] == "float":
-                        assert math.isclose(
-                            val1, val2, rel_tol=rel_tol, abs_tol=abs_tol
-                        ), f"{(e1, e2)} {val1} not close to {val2}"
-                    else:
-                        assert val1 == val2, f"{(e1, e2)} {val1} != {val2}"
+                        if aprops1["edge_dtype"] == "float":
+                            assert math.isclose(
+                                val1, val2, rel_tol=rel_tol, abs_tol=abs_tol
+                            ), f"{(e1, e2)} {val1} not close to {val2}"
+                        else:
+                            assert val1 == val2, f"{(e1, e2)} {val1} != {val2}"
 
     class NetworkXBipartiteGraph(BipartiteGraphWrapper, abstract=BipartiteGraph):
         def __init__(
@@ -328,9 +328,9 @@ if has_networkx:
                         val1 = d1[obj1.edge_weight_label]
                         val2 = d2[obj2.edge_weight_label]
 
-                    if aprops1["edge_dtype"] == "float":
-                        assert math.isclose(
-                            val1, val2, rel_tol=rel_tol, abs_tol=abs_tol
-                        ), f"{(e1, e2)} {val1} not close to {val2}"
-                    else:
-                        assert val1 == val2, f"{(e1, e2)} {val1} != {val2}"
+                        if aprops1["edge_dtype"] == "float":
+                            assert math.isclose(
+                                val1, val2, rel_tol=rel_tol, abs_tol=abs_tol
+                            ), f"{(e1, e2)} {val1} not close to {val2}"
+                        else:
+                            assert val1 == val2, f"{(e1, e2)} {val1} != {val2}"
