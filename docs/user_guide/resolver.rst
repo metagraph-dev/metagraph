@@ -97,6 +97,8 @@ CuGraph and another which takes Pandas EdgeLists.
 The choice of which path to take depends on the number of translations as well as the performance
 of the concrete algorithms. Metagraph will attempt to minimize the total time taken.
 
+.. _exact_algorithm_call:
+
 Exact Algorithm Call
 ~~~~~~~~~~~~~~~~~~~~
 
