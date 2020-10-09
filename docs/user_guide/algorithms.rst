@@ -71,14 +71,18 @@ As with the abstract algorithm, the actual name of the Python function does not 
 There is no convention for what it should be named.
 
 Notice that the signature matches the abstract algorithm, but choosing a concrete type rather
-than the abstract type.
+than the abstract type. Concrete algorithms must contain a matching entry for every parameter
+in the abstract signature, but may contain additional parameters which are specialized to this
+implementation.
+
+Each additional parameter must contain a default value. When calling using the normal dispatch
+mechanism, these default values will be used. The only way for a user to indicate a value for
+the additional parameters is to make an :ref:`exact algorithm call<exact_algorithm_call>`.
 
 The body of the function can be as complex as needed. Often, when building a plugin for an
 existing library, the concrete algorithm body is quite short because it calls the underlying
 library's implementation. The only thing else to do is package the results in the correct
 concrete type and return.
-
-*Open issue:* How to add custom parameters that can be passed when calling exact algorithms?
 
 
 Using the Resolver in Concrete Algorithms
