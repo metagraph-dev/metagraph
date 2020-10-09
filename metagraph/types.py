@@ -125,4 +125,11 @@ class BipartiteGraph(AbstractType):
     unambiguous_subcomponents = {EdgeSet}
 
 
+#################################
+# Embedding
+#################################
+class NodeEmbedding(AbstractType):
+    pass
+
+
 del AbstractType, Wrapper

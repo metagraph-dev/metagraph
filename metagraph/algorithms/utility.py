@@ -1,7 +1,17 @@
 import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import NodeSet, NodeMap, Vector, NodeID, EdgeSet, EdgeMap, Graph
-from typing import Any, Callable
+from metagraph.types import (
+    NodeSet,
+    NodeMap,
+    Vector,
+    Matrix,
+    NodeID,
+    EdgeSet,
+    EdgeMap,
+    Graph,
+    NodeEmbedding,
+)
+from typing import Any, Tuple, Callable
 
 
 @abstract_algorithm("util.nodeset.choose_random")
@@ -97,4 +107,9 @@ def graph_collapse_by_label(
     labels: NodeMap,
     aggregator: Callable[[Any, Any], Any],
 ) -> Graph:
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("util.node_embedding.apply")
+def node_embedding_apply(embedding: NodeEmbedding, nodes: Vector) -> Matrix:
     pass  # pragma: no cover
