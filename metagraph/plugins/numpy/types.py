@@ -483,4 +483,4 @@ class NumpyNodeEmbedding(NodeEmbeddingWrapper, abstract=NodeEmbedding):
 
     def copy(self):
         nodes = self.nodes if self.nodes is None else self.nodes.copy()
-        return NumpyNodeEmbedding(self.edges.matrix(), nodes=nodes)
+        return NumpyNodeEmbedding(self.matrix.np_matrix(copy=True), nodes=nodes)
