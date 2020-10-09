@@ -8,6 +8,7 @@ from .types import (
     # EdgeTable,
     Graph,
     BipartiteGraph,
+    NodeEmbedding,
 )
 from typing import Set, Dict, Any
 
@@ -148,3 +149,86 @@ class CompositeGraphWrapper(GraphWrapper, abstract=Graph, register=False):
 
 class BipartiteGraphWrapper(Wrapper, abstract=BipartiteGraph, register=False):
     pass
+
+
+class NodeEmbeddingWrapper(Wrapper, abstract=NodeEmbedding, register=False):
+    def __init__(self, matrix, nodes=None):
+        super().__init__()
+        self.matrix = matrix
+        self.nodes = nodes
+
+    class TypeMixin:
+        _matrix_prop_map = {
+            "matrix_is_dense": "is_dense",
+            "matrix_is_square": "is_square",
+            "matrix_dtype": "dtype",
+        }
+        _nodes_prop_map = {e: e for e in NodeMap.properties.keys()}
+
+        @classmethod
+        def _extract_props(cls, props, map):
+            ret = {}
+            for gprop, prop in map.items():
+                if gprop in props:
+                    ret[prop] = props[gprop]
+            return ret
+
+        @classmethod
+        def _compute_subprops(cls, ret, obj, props, map):
+            gprops_needed = (map.keys() & props) - ret.keys()
+            if gprops_needed and obj is not None:
+                klass = type(obj)
+                vals = klass.Type.compute_abstract_properties(
+                    obj, {prop for gprop, prop in map.items() if gprop in gprops_needed}
+                )
+                for gprop, prop in map.items():
+                    if prop in vals:
+                        ret[gprop] = vals[prop]
+
+        @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            ret = known_props.copy()
+            cls._compute_subprops(ret, obj.matrix, props, cls._matrix_prop_map)
+            cls._compute_subprops(ret, obj.nodes, props, _nodes_prop_map)
+            return ret
+
+        @classmethod
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+
+            matrix_class = type(obj1.matrix).Type
+            matrix_class.assert_equal(
+                obj1.matrix,
+                obj2.matrix,
+                cls._extract_props(aprops1, cls._matrix_prop_map),
+                cls._extract_props(aprops2, cls._matrix_prop_map),
+                {},
+                {},
+                rel_tol=rel_tol,
+                abs_tol=abs_tol,
+            )
+
+            nodes_class = type(obj1.nodes).Type
+            nodes_class.assert_equal(
+                obj1.nodes,
+                obj2.nodes,
+                cls._extract_props(aprops1, cls._nodes_prop_map),
+                cls._extract_props(aprops2, cls._nodes_prop_map),
+                {},
+                {},
+                rel_tol=rel_tol,
+                abs_tol=abs_tol,
+            )

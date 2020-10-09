@@ -1,8 +1,8 @@
 from typing import Set, Dict, Any
 import numpy as np
 from metagraph import dtypes, Wrapper
-from metagraph.types import Vector, Matrix, NodeSet, NodeMap
-from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
+from metagraph.types import Vector, Matrix, NodeSet, NodeMap, NodeEmbedding
+from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper, NodeEmbeddingWrapper
 
 
 class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
@@ -230,16 +230,41 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 len(id2pos) == len(data), f"node_ids must be the same length as data"
             )
 
-    def __getitem__(self, node_id):
+    def __len__(self):
+        return self.num_nodes
+
+    def _get_single_item(self, node_id):
         if self.mask is not None:
-            if self.mask[node_id]:
+            if not self.mask[node_id]:
                 raise ValueError(f"node {node_id} is not in the NodeMap")
         elif self.id2pos is not None:
             if node_id not in self.id2pos:
                 raise ValueError(f"node {node_id} is not in the NodeMap")
-            pos = self.id2pos[node_id]
-            return self.value[pos]
+            node_id = self.id2pos[node_id]
         return self.value[node_id]
+
+    def _get_multiple_items(self, node_ids: np.ndarray):
+        if self.mask is not None:
+            if (node_ids >= len(self.mask)).any() or not self.mask[node_ids].all():
+                out_of_bounds_ids = node_ids[node_ids >= len(self.mask)]
+                mask_missing_ids = np.flatnonzero(~self.mask[node_ids])
+                missing_nodes = list(out_of_bounds_ids) + list(mask_missing_ids)
+                raise ValueError(f"nodes {missing_nodes} are not in the NodeMap")
+        elif self.id2pos is not None:
+            missing_ids = [
+                node_id for node_id in node_ids if node_id not in self.id2pos
+            ]
+            if missing_ids:
+                raise ValueError(f"nodes {missing_ids} are not in the NodeMap")
+            node_ids = [self.id2pos[node_id] for node_id in node_ids]
+        return self.value[node_ids]
+
+    def __getitem__(self, key):
+        return (
+            self._get_multiple_items(key)
+            if isinstance(key, np.ndarray)
+            else self._get_single_item(key)
+        )
 
     @property
     def num_nodes(self):
@@ -367,6 +392,16 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     def shape(self):
         return self.value.shape
 
+    def np_matrix(self, copy=False):
+        """copy=False doesn't guarantee no copy is made since accounting for the mask forces a copy"""
+        if self.mask is None:
+            matrix = self.value
+            if copy:
+                matrix = matrix.copy()
+        else:
+            matrix = self.value * self.mask
+        return matrix
+
     def copy(self):
         mask = None if self.mask is None else self.mask.copy()
         return NumpyMatrix(self.value.copy(), mask=mask)
@@ -433,3 +468,19 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
                     assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
                 else:
                     assert (d1 == d2).all().all()
+
+
+class NumpyNodeEmbedding(NodeEmbeddingWrapper, abstract=NodeEmbedding):
+    def __init__(self, matrix, nodes=None):
+        super().__init__(matrix, nodes)
+        self._assert_instance(matrix, NumpyMatrix)
+        if nodes is not None:
+            self._assert_instance(nodes, NumpyNodeMap)
+            self._assert(
+                len(nodes) == matrix.value.shape[0],
+                f"Node count ({len(nodes)}) and matrix row count ({matrix.value.shape[0]})do not match.",
+            )
+
+    def copy(self):
+        nodes = self.nodes if self.nodes is None else self.nodes.copy()
+        return NumpyNodeEmbedding(self.edges.matrix(), nodes=nodes)
