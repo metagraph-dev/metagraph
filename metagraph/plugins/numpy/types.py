@@ -245,11 +245,12 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
 
     def _get_multiple_items(self, node_ids: np.ndarray):
         if self.mask is not None:
-            if (node_ids >= len(self.mask)).any() or not self.mask[node_ids].all():
-                out_of_bounds_ids = node_ids[node_ids >= len(self.mask)]
-                mask_missing_ids = np.flatnonzero(~self.mask[node_ids])
-                missing_nodes = list(out_of_bounds_ids) + list(mask_missing_ids)
-                raise ValueError(f"nodes {missing_nodes} are not in the NodeMap")
+            if (node_ids >= len(self.mask)).any():
+                out_of_bound_ids = list(node_ids[node_ids > len(self.mask)])
+                raise ValueError(f"{out_of_bound_ids} are out of bounds")
+            if not self.mask[node_ids].all():
+                mask_missing_ids = list(np.flatnonzero(~self.mask[node_ids]))
+                raise ValueError(f"nodes {mask_missing_ids} are not in the NodeMap")
         elif self.id2pos is not None:
             missing_ids = [
                 node_id for node_id in node_ids if node_id not in self.id2pos
