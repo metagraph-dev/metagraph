@@ -132,5 +132,5 @@ def np_embedding_apply(
     embedding: NumpyNodeEmbedding, nodes: NumpyVector
 ) -> NumpyMatrix:
     indices = embedding.nodes[nodes.value]
-    matrix = embedding.matrix.np_matrix(copy=False)[indices]
+    matrix = embedding.matrix.value[indices]
     return NumpyMatrix(matrix)

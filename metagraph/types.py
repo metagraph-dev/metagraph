@@ -129,7 +129,9 @@ class BipartiteGraph(AbstractType):
 # Embedding
 #################################
 class NodeEmbedding(AbstractType):
-    pass
+    properties = {
+        "matrix_dtype": DTYPE_CHOICES,
+    }
 
 
 del AbstractType, Wrapper
