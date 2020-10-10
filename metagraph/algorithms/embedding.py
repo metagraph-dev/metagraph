@@ -10,5 +10,7 @@ def node2vec_train(
     walks_per_node: int,
     walk_length: int,
     embedding_size: int,
+    epochs: int,
+    learning_rate: float,
 ) -> NodeEmbedding:
     pass  # pragma: no cover

@@ -405,6 +405,12 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
         mask = None if self.mask is None else self.mask.copy()
         return NumpyMatrix(self.value.copy(), mask=mask)
 
+    def __getitem__(self, key):
+        item = self.value[key]
+        if self.mask is not None:
+            item = item[self.mask[key]]
+        return item
+
     class TypeMixin:
         @classmethod
         def _compute_abstract_properties(

@@ -33,6 +33,10 @@ class Matrix(AbstractType):
         "dtype": DTYPE_CHOICES,
     }
 
+    @Wrapper.required_method
+    def __getitem__(self, key):
+        raise NotImplementedError()
+
 
 class DataFrame(AbstractType):
     pass
