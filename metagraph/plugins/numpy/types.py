@@ -261,8 +261,8 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
 
     def __getitem__(self, key):
         return (
-            self._get_multiple_items(key)
-            if isinstance(key, np.ndarray)
+            self._get_multiple_items(np.array(key))
+            if hasattr(key, "__len__")
             else self._get_single_item(key)
         )
 
