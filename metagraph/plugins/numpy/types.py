@@ -257,7 +257,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             ]
             if missing_ids:
                 raise ValueError(f"nodes {missing_ids} are not in the NodeMap")
-            node_ids = [self.id2pos[node_id] for node_id in node_ids]
+            node_ids = np.vectorize(self.id2pos.__getitem__)(node_ids)
         return self.value[node_ids]
 
     def __getitem__(self, key):
