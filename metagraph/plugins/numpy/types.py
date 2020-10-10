@@ -392,14 +392,12 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     def shape(self):
         return self.value.shape
 
-    def as_dense(self, copy=False):
-        """copy=False doesn't guarantee no copy is made since accounting for the mask forces a copy"""
-        if self.mask is None:
-            matrix = self.value
-            if copy:
-                matrix = matrix.copy()
-        else:
-            matrix = self.value * self.mask
+    def as_dense(self, fill_value=0, copy=False):
+        matrix = self.value
+        if self.mask is not None:
+            matrix[~self.mask] = fill_value
+        if copy:
+            matrix = matrix.copy()
         return matrix
 
     def copy(self):
