@@ -464,3 +464,34 @@ def test_edgemap_from_edgeset(default_plugin_resolver):
     MultiVerify(dpr).compute("util.edgemap.from_edgeset", edgeset, 9).assert_equal(
         expected_answer
     )
+
+
+def test_node_embedding_apply(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    matrix = np.arange(6).reshape(2, 3)
+    matrix = dpr.wrappers.Matrix.NumpyMatrix(matrix)
+    nodes = dpr.wrappers.NodeMap.NumpyNodeMap(
+        np.array([0, 1]), node_ids=np.array([9990, 9991])
+    )
+    embedding = dpr.wrappers.NodeEmbedding.NumpyNodeEmbedding(matrix, nodes)
+
+    MultiVerify(dpr).compute(
+        "util.node_embedding.apply",
+        embedding,
+        dpr.wrappers.Vector.NumpyVector(np.array([9990])),
+    ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[0, 1, 2]])))
+    MultiVerify(dpr).compute(
+        "util.node_embedding.apply",
+        embedding,
+        dpr.wrappers.Vector.NumpyVector(np.array([9991])),
+    ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[3, 4, 5]])))
+    MultiVerify(dpr).compute(
+        "util.node_embedding.apply",
+        embedding,
+        dpr.wrappers.Vector.NumpyVector(np.array([9990, 9991])),
+    ).assert_equal(matrix)
+    MultiVerify(dpr).compute(
+        "util.node_embedding.apply",
+        embedding,
+        dpr.wrappers.Vector.NumpyVector(np.array([9991, 9990])),
+    ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[3, 4, 5], [0, 1, 2]])))

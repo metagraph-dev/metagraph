@@ -1,7 +1,13 @@
 import numpy as np
 from functools import reduce
 from metagraph import concrete_algorithm, NodeID
-from .types import NumpyVector, NumpyNodeMap, NumpyNodeSet
+from .types import (
+    NumpyVector,
+    NumpyMatrix,
+    NumpyNodeMap,
+    NumpyNodeSet,
+    NumpyNodeEmbedding,
+)
 from typing import Any, Callable, Optional
 from .. import has_numba
 
@@ -119,3 +125,12 @@ def np_nodemap_reduce(x: NumpyNodeMap, func: Callable[[Any, Any], Any]) -> Any:
     if not isinstance(func, np.ufunc):
         func = np.frompyfunc(func, 2, 1)
     return func.reduce(present_values)
+
+
+@concrete_algorithm("util.node_embedding.apply")
+def np_embedding_apply(
+    embedding: NumpyNodeEmbedding, nodes: NumpyVector
+) -> NumpyMatrix:
+    indices = embedding.nodes[nodes.value]
+    matrix = embedding.matrix.value[indices]
+    return NumpyMatrix(matrix)
