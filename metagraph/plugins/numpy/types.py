@@ -395,10 +395,10 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
 
     def as_dense(self, fill_value=0, copy=False):
         matrix = self.value
-        if self.mask is not None:
-            matrix[~self.mask] = fill_value
         if copy:
             matrix = matrix.copy()
+        if self.mask is not None:
+            matrix[~self.mask] = fill_value
         return matrix
 
     def copy(self):
@@ -487,5 +487,5 @@ class NumpyNodeEmbedding(NodeEmbeddingWrapper, abstract=NodeEmbedding):
             )
 
     def copy(self):
-        nodes = self.nodes if self.nodes is None else self.nodes.copy()
+        nodes = None if self.nodes is None else self.nodes.copy()
         return NumpyNodeEmbedding(self.matrix.as_dense(copy=True), nodes=nodes)
