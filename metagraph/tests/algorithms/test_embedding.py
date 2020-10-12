@@ -51,8 +51,8 @@ def test_node2vec(default_plugin_resolver):
 
         for a_index in a_indices:
             for b_index in b_indices:
-                a_vector = embedding.matrix[a_index]
-                b_vector = embedding.matrix[b_index]
+                a_vector = np_matrix[a_index]
+                b_vector = np_matrix[b_index]
 
                 a_to_a_center = euclidean_dist(a_vector, a_centroid)
                 b_to_b_center = euclidean_dist(b_vector, b_centroid)
