@@ -206,8 +206,8 @@ class NodeEmbeddingWrapper(Wrapper, abstract=NodeEmbedding, register=False):
             matrix_class.assert_equal(
                 obj1.matrix,
                 obj2.matrix,
-                {"dtype": aprops1["dtype"]},
-                {"dtype": aprops2["dtype"]},
+                {"dtype": aprops1["matrix_dtype"]},
+                {"dtype": aprops2["matrix_dtype"]},
                 {},
                 {},
                 rel_tol=rel_tol,
@@ -218,8 +218,8 @@ class NodeEmbeddingWrapper(Wrapper, abstract=NodeEmbedding, register=False):
             nodes_class.assert_equal(
                 obj1.nodes,
                 obj2.nodes,
-                {"dtype": aprops1["dtype"]},
-                {"dtype": aprops2["dtype"]},
+                {},
+                {},
                 {},
                 {},
                 rel_tol=rel_tol,
