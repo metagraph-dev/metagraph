@@ -11,7 +11,7 @@ import numpy as np
 import grblas
 
 
-def test_python_2_numpy(default_plugin_resolver):
+def test_python_2_numpy_node_ids(default_plugin_resolver):
     dpr = default_plugin_resolver
     x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
     assert x.num_nodes == 3
@@ -23,6 +23,27 @@ def test_python_2_numpy(default_plugin_resolver):
     dpr.assert_equal(y, intermediate)
     # Convert python <- numpy
     x2 = dpr.translate(y, PythonNodeMap)
+    dpr.assert_equal(x, x2)
+
+
+def test_numpy_mask_2_python(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    x = NumpyNodeMap(
+        np.array([100, 101, 99999, 103]), mask=np.array([1, 1, 0, 1], dtype=bool)
+    )
+    assert x[0] == 100
+    assert x[1] == 101
+    with pytest.raises(ValueError, match="is not in the NodeMap"):
+        x[2]
+    assert x[3] == 103
+    assert (x[np.array([0, 1, 3])] == [100, 101, 103]).all()
+    assert x.num_nodes == 3
+    # Convert numpy -> python
+    intermediate = PythonNodeMap({0: 100, 1: 101, 3: 103})
+    y = dpr.translate(x, PythonNodeMap)
+    dpr.assert_equal(y, intermediate)
+    # Convert numpy <- python
+    x2 = dpr.translate(y, NumpyNodeMap)
     dpr.assert_equal(x, x2)
 
 
