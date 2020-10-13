@@ -98,3 +98,8 @@ def graph_collapse_by_label(
     aggregator: Callable[[Any, Any], Any],
 ) -> Graph:
     pass  # pragma: no cover
+
+
+@abstract_algorithm("util.graph.isomorphic")
+def graph_isomorphic(g1: Graph, g2: Graph,) -> bool:
+    pass  # pragma: no cover

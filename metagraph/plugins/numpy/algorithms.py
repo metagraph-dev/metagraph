@@ -66,11 +66,11 @@ def np_nodemap_select(x: NumpyNodeMap, nodes: NumpyNodeSet) -> NumpyNodeMap:
             )
             present_value_positions = np.flatnonzero(selected_node_map.mask)
             positions_to_remove = np.setdiff1d(
-                present_value_positions, nodes.value, assume_unique=True
+                present_value_positions, nodes.node_set, assume_unique=True
             )
             selected_node_map.mask[positions_to_remove] = False
         else:
-            if len(nodes_mask) == len(x.mask):
+            if len(nodes) == len(x.mask):
                 nodes_mask = nodes.mask
             else:
                 nodes_mask = nodes.mask.copy()
@@ -104,7 +104,7 @@ def np_nodemap_apply(x: NumpyNodeMap, func: Callable[[Any], Any]) -> NumpyNodeMa
     if x.id2pos is not None:
         new_node_map = NumpyNodeMap(func_vectorized(x.value), node_ids=x.pos2id.copy())
     elif x.mask is not None:
-        results = func_vectorized(new_node_map.value[new_node_map.mask])
+        results = func_vectorized(x.value[x.mask])
         new_data = np.empty_like(x.value, dtype=results.dtype)
         new_data[x.mask] = results
         new_node_map = NumpyNodeMap(new_data, mask=x.mask.copy())
