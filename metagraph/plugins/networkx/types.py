@@ -121,8 +121,12 @@ if has_networkx:
                 g1 = obj1.value
                 g2 = obj2.value
                 # Compare
-                assert g1.nodes() == g2.nodes(), f"{g1.nodes()} != {g2.nodes()}"
-                assert g1.edges() == g2.edges(), f"{g1.edges()} != {g2.edges()}"
+                assert (
+                    g1.nodes() == g2.nodes()
+                ), f"node mismatch: {g1.nodes()} != {g2.nodes()}"
+                assert (
+                    g1.edges() == g2.edges()
+                ), f"edge mismatch: {g1.edges()} != {g2.edges()}"
 
                 if aprops1.get("node_type") == "map":
                     for n, d1 in g1.nodes(data=True):

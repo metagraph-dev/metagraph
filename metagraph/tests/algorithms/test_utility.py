@@ -1,3 +1,4 @@
+import pytest
 from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
 import numpy as np
@@ -495,3 +496,24 @@ def test_node_embedding_apply(default_plugin_resolver):
         embedding,
         dpr.wrappers.Vector.NumpyVector(np.array([9991, 9990])),
     ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[3, 4, 5], [0, 1, 2]])))
+
+
+def test_isomorphic(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    #   0 1 2 3 4            0 1 2 3 4
+    # 0 1 1 - 1 -     2 -> 0 - - - 1 1
+    # 1 - - 1 - -     4 -> 1 - - 1 - -
+    # 2 1 1 - - -     3 -> 2 1 - 1 - 1
+    # 3 - 1 1 - -     0 -> 3 - - 1 - 1
+    # 4 1 - - - -     1 -> 4 - - - 1 -
+    g1 = nx.DiGraph()
+    g1.add_edges_from(
+        [(0, 0), (0, 1), (0, 3), (1, 2), (2, 0), (2, 1), (3, 1), (3, 2), (4, 0)]
+    )
+    g2 = nx.DiGraph()
+    g2.add_edges_from(
+        [(0, 3), (0, 4), (1, 2), (2, 0), (2, 2), (2, 4), (3, 2), (3, 4), (4, 3)]
+    )
+    graph1 = dpr.wrappers.Graph.NetworkXGraph(g1)
+    graph2 = dpr.wrappers.Graph.NetworkXGraph(g2)
+    MultiVerify(dpr).compute("util.graph.isomorphic", graph1, graph2).assert_equal(True)

@@ -111,7 +111,7 @@ def graph_collapse_by_label(
 
 
 @abstract_algorithm("util.graph.isomorphic")
-def graph_isomorphic(g1: Graph, g2: Graph,) -> bool:
+def graph_isomorphic(g1: Graph, g2: Graph) -> bool:
     pass  # pragma: no cover
 
 

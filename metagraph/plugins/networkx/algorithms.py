@@ -1,7 +1,7 @@
 import metagraph as mg
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_networkx, has_community, has_pandas
-from typing import Tuple, Iterable, Any, Callable
+from typing import Tuple, Any, Callable
 
 
 if has_networkx:
@@ -89,6 +89,25 @@ if has_networkx:
             edge_weight_label=graph.edge_weight_label,
         )
 
+    if nx.__version__ >= "2.4":
+
+        @concrete_algorithm("subgraph.k_truss")
+        def nx_k_truss(graph: NetworkXGraph, k: int) -> NetworkXGraph:
+            if nx.__version__ < "2.5":
+                # v2.4 uses `k` rather than `k-2` as everyone else uses
+                k -= 2
+            k_truss_graph = nx.k_truss(graph.value, k)
+            return NetworkXGraph(
+                k_truss_graph,
+                node_weight_label=graph.node_weight_label,
+                edge_weight_label=graph.edge_weight_label,
+            )
+
+    @concrete_algorithm("subgraph.maximal_independent_set")
+    def maximal_independent_set(graph: NetworkXGraph) -> PythonNodeSet:
+        nodes = nx.maximal_independent_set(graph.value)
+        return PythonNodeSet(set(nodes))
+
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
         graph: NetworkXGraph, source_node: NodeID
@@ -132,10 +151,7 @@ if has_networkx:
 
     @concrete_algorithm("centrality.betweenness")
     def nx_betweenness_centrality(
-        graph: NetworkXGraph,
-        nodes: mg.Optional[PythonNodeSet],
-        normalize: bool,
-        # include_endpoints: bool,
+        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSet], normalize: bool,
     ) -> PythonNodeMap:
         if nodes is None:
             sources = targets = graph.value.nodes
@@ -147,9 +163,28 @@ if has_networkx:
             targets=targets,
             normalized=normalize,
             weight=graph.edge_weight_label,
-            # endpoints=include_endpoints,
         )
-        return PythonNodeMap(node_to_score_map,)
+        return PythonNodeMap(node_to_score_map)
+
+    @concrete_algorithm("centrality.closeness")
+    def nx_closeness_centrality(
+        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSet], normalize: bool,
+    ) -> PythonNodeMap:
+        pass
+
+    @concrete_algorithm("centrality.degree")
+    def nx_degree_centrality(graph: NetworkXGraph, normalize: bool,) -> PythonNodeMap:
+        pass
+
+    @concrete_algorithm("centrality.eigenvector")
+    def nx_eigenvector_centrality(graph: NetworkXGraph,) -> PythonNodeMap:
+        pass
+
+    @concrete_algorithm("centrality.hits")
+    def nx_hits_centrality(
+        graph: NetworkXGraph, max_iter: int, tol: float, normalize: bool,
+    ) -> Tuple[PythonNodeMap, PythonNodeMap]:
+        pass
 
     @concrete_algorithm("traversal.bfs_iter")
     def nx_breadth_first_search(
@@ -190,6 +225,29 @@ if has_networkx:
             edge_weight_label=graph.edge_weight_label,
         )
         return (flow_value, flow_graph)
+
+    @concrete_algorithm("flow.min_cut")
+    def nx_min_cut(
+        graph: NetworkXGraph, source_node: NodeID, target_node: NodeID,
+    ) -> Tuple[float, NetworkXGraph]:
+        g = graph.value
+        flow_value, (reachable, non_reachable) = nx.minimum_cut(
+            g, source_node, target_node, capacity=graph.edge_weight_label
+        )
+        # Build graph containing cut edges
+        nx_cut_graph = type(g)()
+        nx_cut_graph.add_nodes_from(g.nodes(data=True))
+        for u, nbrs in ((n, g[n]) for n in reachable):
+            for v in nbrs:
+                if v in non_reachable:
+                    edge_attrs = g.edges[u, v]
+                    nx_cut_graph.add_edge(u, v, **edge_attrs)
+        cut_graph = NetworkXGraph(
+            nx_cut_graph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
+        return flow_value, cut_graph
 
     @concrete_algorithm("util.graph.aggregate_edges")
     def nx_graph_aggregate_edges(
@@ -243,6 +301,47 @@ if has_networkx:
         return NetworkXGraph(
             result_nx_graph, graph.node_weight_label, graph.edge_weight_label
         )
+
+    @concrete_algorithm("clustering.coloring.greedy")
+    def nx_greedy_coloring(graph: NetworkXGraph) -> Tuple[PythonNodeMap, int]:
+        colors = nx.greedy_color(graph.value)
+        unique_colors = set(colors.values())
+        return PythonNodeMap(colors), len(unique_colors)
+
+    @concrete_algorithm("subgraph.sample.node_sampling")
+    def nx_node_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
+        pass  # pragma: no cover
+
+    @concrete_algorithm("subgraph.sample.edge_sampling")
+    def nx_edge_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
+        pass  # pragma: no cover
+
+    @concrete_algorithm("subgraph.sample.ties")
+    def nx_ties(graph: NetworkXGraph, p: float) -> NetworkXGraph:
+        """
+        Totally Induced Edge Sampling method
+        https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=2743&context=cstech
+        """
+        pass  # pragma: no cover
+
+    @concrete_algorithm("subgraph.sample.random_walk")
+    def nx_random_walk_sampling(
+        graph: NetworkXGraph,
+        num_steps: mg.Optional[int],
+        num_nodes: mg.Optional[int],
+        num_edges: mg.Optional[int],
+        jump_probability: float,
+        start_node: mg.Optional[NodeID],
+    ) -> NetworkXGraph:
+        """
+        Sample using random walks
+
+        Sampling ends when number of steps, nodes, or edges are reached (first to occur if multiple are specified).
+        For each step, there is a jump_probability to reset the walk.
+        When resetting the walk, if start_node is specified, always reset to this node. If not specified, every reset
+            picks a new node in the graph at random.
+        """
+        pass  # pragma: no cover
 
 
 if has_networkx and has_community:

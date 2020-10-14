@@ -197,7 +197,7 @@ def test_minimum_spanning_tree(default_plugin_resolver):
     )
 
 
-def test_minimum_spanning_tree_dicsconnected(default_plugin_resolver):
+def test_minimum_spanning_tree_disconnected(default_plugin_resolver):
     r"""
     0 ---2-- 1        5 --10-- 6
     |      / |        |      /
