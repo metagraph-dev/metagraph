@@ -4,7 +4,7 @@ import networkx as nx
 from . import MultiVerify
 
 
-def test_extract_graph(default_plugin_resolver):
+def test_extract_subgraph(default_plugin_resolver):
     r"""
     0 ---2-- 1        5 --10-- 6
            / |        |      /
@@ -114,7 +114,68 @@ def test_maximial_independent_set(default_plugin_resolver):
 
 
 def test_subisomorphic(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    #   0 1 2 3 4 | 5 6 7 8             0 1 2 3 4
+    # 0 1 1 - 1 - | - 1 - -      2 -> 0 - - - 1 1
+    # 1 - - 1 - - | - - - -      4 -> 1 - - 1 - -
+    # 2 1 1 - - - | 1 - 1 1      3 -> 2 1 - 1 - 1
+    # 3 - 1 1 - - | - - - 1      0 -> 3 - - 1 - 1
+    # 4 1 - - - - | - 1 - 1      1 -> 4 - - - 1 -
+    # -------------
+    # 5 - - 1 - 1   - - - -
+    # 6 - - - - 1   1 - 1 -
+    # 7 - 1 - - 1   - 1 1 -
+    # 8 - - 1 - -   1 1 - -
+    big_g = nx.DiGraph()
+    big_g.add_edges_from(
+        [
+            (0, 0),
+            (0, 1),
+            (0, 3),
+            (0, 6),
+            (1, 2),
+            (2, 0),
+            (2, 1),
+            (2, 5),
+            (2, 7),
+            (2, 8),
+            (3, 1),
+            (3, 2),
+            (3, 8),
+            (4, 0),
+            (4, 6),
+            (4, 8),
+            (5, 2),
+            (5, 4),
+            (6, 4),
+            (6, 5),
+            (6, 7),
+            (7, 1),
+            (7, 4),
+            (7, 6),
+            (7, 7),
+            (8, 2),
+            (8, 5),
+            (8, 6),
+        ]
+    )
+    g1 = nx.DiGraph()
+    g1.add_edges_from(
+        [(0, 0), (0, 1), (0, 3), (1, 2), (2, 0), (2, 1), (3, 1), (3, 2), (4, 0)]
+    )
+    g2 = nx.DiGraph()
+    g2.add_edges_from(
+        [(0, 3), (0, 4), (1, 2), (2, 0), (2, 2), (2, 4), (3, 2), (3, 4), (4, 3)]
+    )
+    big_graph = dpr.wrappers.Graph.NetworkXGraph(big_g)
+    graph1 = dpr.wrappers.Graph.NetworkXGraph(g1)
+    graph2 = dpr.wrappers.Graph.NetworkXGraph(g2)
+    MultiVerify(dpr).compute("subgraph.subisomorphic", big_graph, graph1).assert_equal(
+        True
+    )
+    MultiVerify(dpr).compute("subgraph.subisomorphic", big_graph, graph2).assert_equal(
+        True
+    )
 
 
 def test_node_sampling(default_plugin_resolver):

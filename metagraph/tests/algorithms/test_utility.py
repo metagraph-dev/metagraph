@@ -101,6 +101,45 @@ def test_nodemap_reduce(default_plugin_resolver):
     )
 
 
+def test_graph_degree(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    #   0 1 2 3 4
+    # 0 - 5 - - 2
+    # 1 - - 2 - -
+    # 2 1 - 4 - -
+    # 3 1 - - - 7
+    # 4 6 - - - -
+    g = nx.DiGraph()
+    g.add_weighted_edges_from(
+        [
+            (0, 1, 5),
+            (0, 4, 2),
+            (1, 2, 2),
+            (2, 0, 1),
+            (2, 2, 4),
+            (3, 0, 1),
+            (3, 4, 7),
+            (4, 0, 6),
+        ]
+    )
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+    e_out = dpr.wrappers.NodeMap.PythonNodeMap({0: 2, 1: 1, 2: 2, 3: 2, 4: 1})
+    e_in = dpr.wrappers.NodeMap.PythonNodeMap({0: 3, 1: 1, 2: 2, 3: 0, 4: 2})
+    e_all = dpr.wrappers.NodeMap.PythonNodeMap({0: 5, 1: 2, 2: 4, 3: 2, 4: 3})
+    e_none = dpr.wrappers.NodeMap.PythonNodeMap({i: 0 for i in range(5)})
+    mv = MultiVerify(dpr)
+    mv.compute("util.graph.degree", graph).assert_equal(e_out)
+    mv.compute("util.graph.degree", graph, in_edges=True, out_edges=False).assert_equal(
+        e_in
+    )
+    mv.compute("util.graph.degree", graph, in_edges=True, out_edges=True).assert_equal(
+        e_all
+    )
+    mv.compute(
+        "util.graph.degree", graph, in_edges=False, out_edges=False
+    ).assert_equal(e_none)
+
+
 def test_graph_aggregate_edges_directed(default_plugin_resolver):
     r"""
     0 <--2-- 1        5 --10-> 6

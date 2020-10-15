@@ -4,15 +4,6 @@ from metagraph.types import Graph, NodeMap, NodeSet, NodeID
 from typing import Tuple
 
 
-@abstract_algorithm("centrality.degree")
-def degree_centrality(graph: Graph, normalize: bool = True) -> NodeMap:
-    """
-    Computes the degree of each node.
-    If scaled, the value is scaled by (# of nodes - 1)
-    """
-    pass  # pragma: no cover
-
-
 @abstract_algorithm("centrality.betweenness")
 def betweenness_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
@@ -47,7 +38,6 @@ def pagerank(
 def closeness_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
     nodes: mg.Optional[NodeSet] = None,
-    normalize: bool = True,
 ) -> NodeMap:
     pass  # pragma: no cover
 

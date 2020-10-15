@@ -18,7 +18,7 @@ Installing using conda
 
 ::
 
-    conda install -c conda-forge metagraph
+    conda install -c metagraph metagraph
 
 
 Installing from PyPI

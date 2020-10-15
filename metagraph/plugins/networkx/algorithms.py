@@ -168,23 +168,36 @@ if has_networkx:
 
     @concrete_algorithm("centrality.closeness")
     def nx_closeness_centrality(
-        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSet], normalize: bool,
+        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSet],
     ) -> PythonNodeMap:
-        pass
-
-    @concrete_algorithm("centrality.degree")
-    def nx_degree_centrality(graph: NetworkXGraph, normalize: bool,) -> PythonNodeMap:
-        pass
+        if nodes is None:
+            result = nx.closeness_centrality(
+                graph.value, distance=graph.edge_weight_label
+            )
+        else:
+            result = {
+                node: nx.closeness_centrality(
+                    graph.value, node, distance=graph.edge_weight_label
+                )
+                for node in nodes.value
+            }
+        return PythonNodeMap(result)
 
     @concrete_algorithm("centrality.eigenvector")
-    def nx_eigenvector_centrality(graph: NetworkXGraph,) -> PythonNodeMap:
-        pass
+    def nx_eigenvector_centrality(
+        graph: NetworkXGraph, maxiter: bool = 100, tol: float = 1e-6
+    ) -> PythonNodeMap:
+        result = nx.eigenvector_centrality(
+            graph.value, maxiter, tol, weight=graph.edge_weight_label
+        )
+        return PythonNodeMap(result)
 
     @concrete_algorithm("centrality.hits")
     def nx_hits_centrality(
         graph: NetworkXGraph, max_iter: int, tol: float, normalize: bool,
     ) -> Tuple[PythonNodeMap, PythonNodeMap]:
-        pass
+        hubs, authority = nx.hits(graph.value, max_iter, tol, normalized=normalize)
+        return PythonNodeMap(hubs), PythonNodeMap(authority)
 
     @concrete_algorithm("traversal.bfs_iter")
     def nx_breadth_first_search(
@@ -248,6 +261,22 @@ if has_networkx:
             edge_weight_label=graph.edge_weight_label,
         )
         return flow_value, cut_graph
+
+    @concrete_algorithm("util.graph.degree")
+    def nx_graph_degree(
+        graph: NetworkXGraph, in_edges: bool, out_edges: bool
+    ) -> PythonNodeMap:
+        if in_edges and out_edges:
+            ins = graph.value.in_degree()
+            outs = graph.value.out_degree()
+            d = {n: ins[n] + o for n, o in outs}
+        elif in_edges:
+            d = dict(graph.value.in_degree())
+        elif out_edges:
+            d = dict(graph.value.out_degree())
+        else:
+            d = {n: 0 for n in graph.value.nodes()}
+        return PythonNodeMap(d)
 
     @concrete_algorithm("util.graph.aggregate_edges")
     def nx_graph_aggregate_edges(

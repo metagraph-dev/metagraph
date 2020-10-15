@@ -3,13 +3,10 @@ from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
 import numpy as np
 from . import MultiVerify
+from metagraph.plugins.networkx.types import NetworkXGraph
 
 
-def test_degree_centrality(default_plugin_resolver):
-    pytest.xfail()
-
-
-def test_betweenness_centrality_single_hub(default_plugin_resolver):
+def build_standard_graph():
     r"""
     0 <--2-- 1        5 --10-> 6
     |      ^ |      ^ ^      /
@@ -19,7 +16,6 @@ def test_betweenness_centrality_single_hub(default_plugin_resolver):
     v        v /        v
     3 --8--> 4 <--4-- 2 --6--> 7
     """
-    dpr = default_plugin_resolver
     ebunch = [
         (0, 3, 1),
         (1, 0, 2),
@@ -35,7 +31,12 @@ def test_betweenness_centrality_single_hub(default_plugin_resolver):
     ]
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    return NetworkXGraph(nx_graph)
+
+
+def test_betweenness_centrality_single_hub(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    graph = build_standard_graph()
     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5, 6, 7})
     expected_answer_unwrapped = {
         0: 1.0,
@@ -175,12 +176,74 @@ def test_pagerank_centrality(default_plugin_resolver):
 
 
 def test_closeness_centrality(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    graph = build_standard_graph()
+    nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5, 6, 7})
+    expected = dpr.wrappers.NodeMap.PythonNodeMap(
+        {
+            0: 0.051948051948051945,
+            1: 0.03809523809523809,
+            2: 0.02990033222591362,
+            3: 0.14285714285714285,
+            4: 0.08035714285714285,
+            5: 0.06679035250463822,
+            6: 0.04250295159386069,
+            7: 0.03271028037383177,
+        }
+    )
+    MultiVerify(dpr).compute("centrality.closeness", graph).assert_equal(expected)
+    MultiVerify(dpr).compute("centrality.closeness", graph, nodes).assert_equal(
+        expected
+    )
 
 
 def test_eigenvector_centrality(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    graph = build_standard_graph()
+    expected = dpr.wrappers.NodeMap.PythonNodeMap(
+        {
+            0: 3.718912841322492e-24,
+            1: 4.4815545088477956e-24,
+            2: 0.5668908376472616,
+            3: 1.54302627577451e-24,
+            4: 0.2304676227496987,
+            5: 0.4988989293616064,
+            6: 0.5070599863741589,
+            7: 0.34570143412454807,
+        }
+    )
+    MultiVerify(dpr).compute("centrality.eigenvector", graph).assert_equal(
+        expected, rel_tol=1e-3
+    )
 
 
 def test_hits_centrality(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    graph = build_standard_graph()
+    hubs = dpr.wrappers.NodeMap.PythonNodeMap(
+        {
+            0: 1.0693502568464412e-135,
+            1: 0.0940640958864079,
+            2: 0.3219827031019462,
+            3: 0.36559982252958123,
+            4: 0.2183519269850825,
+            5: 1.069350256846441e-11,
+            6: 1.451486288792823e-06,
+            7: 0.0,
+        }
+    )
+    authority = dpr.wrappers.NodeMap.PythonNodeMap(
+        {
+            0: 0.014756025909040777,
+            1: 0.2007333553742929,
+            2: 1.5251309332182024e-06,
+            3: 1.2359669426636484e-134,
+            4: 0.35256375000871987,
+            5: 0.2804151003457033,
+            6: 1.2359669426636479e-11,
+            7: 0.15153024321895017,
+        }
+    )
+    MultiVerify(dpr).compute("centrality.hits", graph, tol=1e-06).assert_equal(
+        (hubs, authority), rel_tol=1e-3
+    )
