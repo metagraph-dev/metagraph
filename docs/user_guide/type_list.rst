@@ -449,3 +449,27 @@ If any node has a weight, all nodes must have a weight. This includes nodes from
 both node sets 0 and 1.
 
 If any edge has a weight, all edges must have a weight.
+
+
+NodeEmbedding
+-------------
+
+Holds an embedding for each node, extracted from a graph.
+Conceptually, this can be thought of as a dense matrix with each row applying to a single NodeID.
+
+Abstract Properties:
+
+- matrix_dtype: ["str", "float", "int", "bool"]
+
+→ NumpyNodeEmbedding
+~~~~~~~~~~~~~~~~~~~~
+
+:ConcreteType: ``NumpyNodeEmbedding.Type``
+:value_type: ``NumpyNodeEmbedding``
+:data objects:
+    ``.matrix``: ``NumpyMatrix``
+
+    ``.nodes``: optional ``NumpyNodeMap``
+
+If ``nodes`` is None, the nodes are assumed to be fully sequential, corresponding to the height
+of the matrix.
