@@ -2,6 +2,7 @@ import metagraph as mg
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_networkx, has_community, has_pandas
 from typing import Tuple, Any, Callable
+import random
 
 
 if has_networkx:
@@ -339,11 +340,61 @@ if has_networkx:
 
     @concrete_algorithm("subgraph.sample.node_sampling")
     def nx_node_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
-        pass  # pragma: no cover
+        if p <= 0 or p > 1:
+            raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
+        aprops = NetworkXGraph.Type.compute_abstract_properties(
+            graph, {"node_type", "edge_type"}
+        )
+        g = graph.value
+        ns = set(n for n in g.nodes() if random.random() < p)
+        subgraph = type(g)()
+        if aprops["node_type"] == "map":
+            for n in ns:
+                subgraph.add_node(n, **g.nodes[n])
+        else:
+            subgraph.add_nodes_from(ns)
+        # Add edges which exist between selected nodes
+        if aprops["edge_type"] == "map":
+            for n in ns:
+                for nbr in set(g.neighbors(n)) & ns:
+                    subgraph.add_edge(n, nbr, **g[n][nbr])
+        else:
+            for n in ns:
+                for nbr in set(g.neighbors(n)) & ns:
+                    subgraph.add_edge(n, nbr)
+        return NetworkXGraph(
+            subgraph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
 
     @concrete_algorithm("subgraph.sample.edge_sampling")
     def nx_edge_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
-        pass  # pragma: no cover
+        if p <= 0 or p > 1:
+            raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
+        aprops = NetworkXGraph.Type.compute_abstract_properties(
+            graph, {"node_type", "edge_type"}
+        )
+        g = graph.value
+        es = set(e for e in g.edges() if random.random() < p)
+        ns = set(src for src, dst in es) | set(dst for src, dst in es)
+        subgraph = type(g)()
+        if aprops["node_type"] == "map":
+            for n in ns:
+                subgraph.add_node(n, **g.nodes[n])
+        else:
+            subgraph.add_nodes_from(ns)
+        # Add edges which exist between selected nodes
+        if aprops["edge_type"] == "map":
+            for e in es:
+                subgraph.add_edge(*e, **g.edges[e])
+        else:
+            subgraph.add_edges_from(es)
+        return NetworkXGraph(
+            subgraph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
 
     @concrete_algorithm("subgraph.sample.ties")
     def nx_ties(graph: NetworkXGraph, p: float) -> NetworkXGraph:
@@ -351,7 +402,34 @@ if has_networkx:
         Totally Induced Edge Sampling method
         https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=2743&context=cstech
         """
-        pass  # pragma: no cover
+        if p <= 0 or p > 1:
+            raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
+        aprops = NetworkXGraph.Type.compute_abstract_properties(
+            graph, {"node_type", "edge_type"}
+        )
+        g = graph.value
+        es = set(e for e in g.edges() if random.random() < p)
+        ns = set(src for src, dst in es) | set(dst for src, dst in es)
+        subgraph = type(g)()
+        if aprops["node_type"] == "map":
+            for n in ns:
+                subgraph.add_node(n, **g.nodes[n])
+        else:
+            subgraph.add_nodes_from(ns)
+        # Add edges which exist between selected nodes
+        if aprops["edge_type"] == "map":
+            for n in ns:
+                for nbr in set(g.neighbors(n)) & ns:
+                    subgraph.add_edge(n, nbr, **g[n][nbr])
+        else:
+            for n in ns:
+                for nbr in set(g.neighbors(n)) & ns:
+                    subgraph.add_edge(n, nbr)
+        return NetworkXGraph(
+            subgraph,
+            node_weight_label=graph.node_weight_label,
+            edge_weight_label=graph.edge_weight_label,
+        )
 
     @concrete_algorithm("subgraph.sample.random_walk")
     def nx_random_walk_sampling(
@@ -370,7 +448,56 @@ if has_networkx:
         When resetting the walk, if start_node is specified, always reset to this node. If not specified, every reset
             picks a new node in the graph at random.
         """
-        pass  # pragma: no cover
+        if jump_probability <= 0 or jump_probability > 1:
+            raise ValueError(
+                f"`jump_probability` must be between 0 and 1, found {jump_probability}"
+            )
+        if num_steps is None and num_nodes is None and num_edges is None:
+            raise ValueError(
+                "Must specify at least one of num_steps, num_nodes, or num_edges"
+            )
+
+        g = graph.value
+        out_g = type(g)()
+        if start_node is None:
+            possible_nodes = list(g.nodes())
+            current_node = random.choice(possible_nodes)
+        else:
+            current_node = start_node
+            if len(g[current_node]) == 0:
+                # We always start with this, and there are no out edges, so we will never finish
+                out_g.add_node(current_node, **g.nodes[current_node])
+                return NetworkXGraph(out_g)
+
+        out_g.add_node(current_node, **g.nodes[current_node])
+
+        counter = 0
+        while True:
+            counter += 1
+
+            nbrs = list(g[current_node])
+            if len(nbrs) > 0 and random.random() >= jump_probability:
+                prev_node = current_node
+                current_node = random.choice(nbrs)
+                out_g.add_node(current_node, **g.nodes[current_node])
+                out_g.add_edge(
+                    prev_node, current_node, **g.edges[prev_node, current_node]
+                )
+            else:
+                # Reset
+                if start_node is None:
+                    current_node = random.choice(possible_nodes)
+                else:
+                    current_node = start_node
+
+            if num_steps is not None and counter >= num_steps:
+                break
+            if num_nodes is not None and len(out_g) >= num_nodes:
+                break
+            if num_edges is not None and out_g.size() >= num_edges:
+                break
+
+        return NetworkXGraph(out_g)
 
 
 if has_networkx and has_community:

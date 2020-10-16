@@ -179,16 +179,118 @@ def test_subisomorphic(default_plugin_resolver):
 
 
 def test_node_sampling(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    # Build a complete graph, then add a bunch of disconnected nodes
+    # Node Sampling should pick some of the disconnected nodes for the subgraph
+    g = nx.complete_graph(25)
+    g.add_nodes_from(range(25, 50))
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+
+    def cmp_func(subgraph):
+        subg = subgraph.value
+        assert 0 < len(subg.nodes()) < len(g.nodes()), f"# nodes = {len(subg.nodes())}"
+        # Verify some of the isolated nodes were chosen
+        assert subg.nodes() & set(range(25, 50)), f"no isolated nodes found in subgraph"
+        # Verify edges from complete portion of the graph were added
+        complete_nodes = subg.nodes() & set(range(25))
+        assert len(complete_nodes) > 0, f"no complete nodes found in subgraph"
+        for n in complete_nodes:
+            assert (
+                len(subg[n]) == len(complete_nodes) - 1
+            )  # definition of complete graph
+
+    results = MultiVerify(dpr).compute("subgraph.sample.node_sampling", graph, 0.4)
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
 
 def test_edge_sampling(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    # Build a complete graph, then add a bunch of disconnected nodes
+    # Edge Sampling should not pick any of the disconnected nodes for the subgraph
+    # For the nodes attached to chosen edges, additional edges should not be added to the subgraph
+    g = nx.complete_graph(25)
+    g.add_nodes_from(range(25, 50))
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+
+    def cmp_func(subgraph):
+        subg = subgraph.value
+        assert 0 < len(subg.nodes()) < len(g.nodes()), f"# nodes = {len(subg.nodes())}"
+        # Verify none of the isolated nodes were chosen
+        assert not subg.nodes() & set(
+            range(25, 50)
+        ), f"isolated nodes found in subgraph"
+        # Verify not all edges from complete portion of the graph were added
+        possible_edges = len(subg.nodes()) - 1
+        for n in subg.nodes():
+            assert len(subg[n]) < possible_edges, f"all possible edges were added"
+
+    results = MultiVerify(dpr).compute("subgraph.sample.edge_sampling", graph, 0.4)
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
 
 def test_totally_induced_edge_sampling(default_plugin_resolver):
-    pytest.xfail()
+    dpr = default_plugin_resolver
+    # Build a complete graph, then add a bunch of disconnected nodes
+    # TIES should not pick any of the disconnected nodes for the subgraph
+    # For the nodes attached to chosen edges, all additional edges should be added to the subgraph
+    g = nx.complete_graph(25)
+    g.add_nodes_from(range(25, 50))
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+
+    def cmp_func(subgraph):
+        subg = subgraph.value
+        assert 0 < len(subg.nodes()) < len(g.nodes()), f"# nodes = {len(subg.nodes())}"
+        # Verify none of the isolated nodes were chosen
+        assert not subg.nodes() & set(
+            range(25, 50)
+        ), f"isolated nodes found in subgraph"
+        # Verify all edges from complete portion of the graph were added
+        possible_edges = len(subg.nodes()) - 1
+        for n in subg.nodes():
+            assert len(subg[n]) == possible_edges, f"not all possible edges were added"
+
+    results = MultiVerify(dpr).compute("subgraph.sample.ties", graph, 0.4)
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
 
-def test_random_walk_sampling(default_plugin_resolver):
-    pytest.xfail()
+def test_random_walk_sampling_1(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    # Build a long chain so random sampling has no randomness
+    g = nx.Graph()
+    for i in range(50):
+        g.add_edge(i, i + 1)
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+
+    def cmp_func(subgraph):
+        subg = subgraph.value
+        assert set(subg.nodes()) == set(range(21))
+
+    results = MultiVerify(dpr).compute(
+        "subgraph.sample.random_walk",
+        graph,
+        num_edges=20,
+        start_node=0,
+        jump_probability=0.015,
+    )
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
+
+
+def test_random_walk_sampling_2(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    # Build two disconnected components. Randomly sampling should never leave the starting component.
+    # Keep going until all nodes in the starting component have been visited
+    g1 = nx.complete_graph(7)
+    g2 = nx.complete_graph(range(10, 17))
+    g = nx.Graph()
+    g.update(g1)
+    g.update(g2)
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+
+    def cmp_func(subgraph):
+        subg = subgraph.value
+        assert set(subg.nodes()) == set(range(10, 17))
+
+    results = MultiVerify(dpr).compute(
+        "subgraph.sample.random_walk", graph, num_nodes=7, start_node=12
+    )
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
