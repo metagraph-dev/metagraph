@@ -104,7 +104,9 @@ if has_scipy and has_grblas:
         gm = x.value[active_nodes, active_nodes].new()
         rows, cols, vals = gm.to_values()
         sm = ss.coo_matrix(
-            (vals, (rows, cols)), dtype=dtype_grblas_to_mg[x.value.dtype.name]
+            (vals, (rows, cols)),
+            dtype=dtype_grblas_to_mg[x.value.dtype.name],
+            shape=gm.shape,
         )
         return ScipyEdgeMap(sm, node_list=active_nodes)
 
