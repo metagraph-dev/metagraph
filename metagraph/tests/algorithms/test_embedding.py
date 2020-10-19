@@ -23,11 +23,11 @@ def test_node2vec(default_plugin_resolver):
 
     p = 1.0
     q = 0.5
-    walks_per_node = 8
-    walk_length = 8
+    walks_per_node = 12
+    walk_length = 12
     embedding_size = 25
-    epochs = 10_000
-    learning_rate = 1e-3
+    epochs = 15
+    learning_rate = 5e-2
     embedding = mv.compute(
         "embedding.train.node2vec",
         graph,
@@ -59,7 +59,7 @@ def test_node2vec(default_plugin_resolver):
                 a_to_b = euclidean_dist(a_vector, b_vector)
 
                 assert a_to_a_center < a_to_b
-                assert a_to_a_center < a_to_b
+                assert b_to_b_center < a_to_b
 
     embedding.normalize(dpr.types.NodeEmbedding.NumpyNodeEmbeddingType).custom_compare(
         cmp_func
