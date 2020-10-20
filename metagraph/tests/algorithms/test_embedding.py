@@ -65,7 +65,6 @@ def test_node2vec(default_plugin_resolver):
 def test_graphwave(default_plugin_resolver):
     dpr = default_plugin_resolver
 
-    # make uneven barbell graph
     complete_graph_size = 10
     path_length = 11
     nx_graph = nx.barbell_graph(m1=complete_graph_size, m2=path_length)
