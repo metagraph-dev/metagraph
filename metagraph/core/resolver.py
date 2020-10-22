@@ -440,9 +440,9 @@ class Resolver:
             # Non-abstract type class is assumed to be Python type
             return obj, False
         if isinstance(obj, mgtyping.Combo):
-            if obj.kind not in {"python", "abstract"}:
+            if obj.kind not in {"python", "abstract", "node_id"}:
                 raise TypeError(
-                    f"{abst_algo.func.__qualname__} {msg} may not have Concrete types not allowed in Union"
+                    f"{abst_algo.func.__qualname__} {msg} may not have Concrete types in Union"
                 )
             return obj, False
         if isinstance(obj, AbstractType):

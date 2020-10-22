@@ -56,6 +56,13 @@ def edgemap_from_edgeset(edgeset: EdgeSet, default_value: Any) -> EdgeMap:
     pass  # pragma: no cover
 
 
+@abstract_algorithm("util.graph.degree")
+def graph_degree(
+    graph: Graph, in_edges: bool = False, out_edges: bool = True,
+) -> NodeMap:
+    pass  # pragma: no cover
+
+
 @abstract_algorithm("util.graph.aggregate_edges")
 def graph_aggregate_edges(
     graph: Graph(edge_type="map"),
@@ -107,6 +114,11 @@ def graph_collapse_by_label(
     labels: NodeMap,
     aggregator: Callable[[Any, Any], Any],
 ) -> Graph:
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("util.graph.isomorphic")
+def graph_isomorphic(g1: Graph, g2: Graph) -> bool:
     pass  # pragma: no cover
 
 

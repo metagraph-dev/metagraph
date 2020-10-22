@@ -1,3 +1,4 @@
+import pytest
 from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
 import numpy as np
@@ -98,6 +99,45 @@ def test_nodemap_reduce(default_plugin_resolver):
     MultiVerify(dpr).compute("util.nodemap.reduce", node_map, reduce_func).assert_equal(
         correct_answer
     )
+
+
+def test_graph_degree(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    #   0 1 2 3 4
+    # 0 - 5 - - 2
+    # 1 - - 2 - -
+    # 2 1 - 4 - -
+    # 3 1 - - - 7
+    # 4 6 - - - -
+    g = nx.DiGraph()
+    g.add_weighted_edges_from(
+        [
+            (0, 1, 5),
+            (0, 4, 2),
+            (1, 2, 2),
+            (2, 0, 1),
+            (2, 2, 4),
+            (3, 0, 1),
+            (3, 4, 7),
+            (4, 0, 6),
+        ]
+    )
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+    e_out = dpr.wrappers.NodeMap.PythonNodeMap({0: 2, 1: 1, 2: 2, 3: 2, 4: 1})
+    e_in = dpr.wrappers.NodeMap.PythonNodeMap({0: 3, 1: 1, 2: 2, 3: 0, 4: 2})
+    e_all = dpr.wrappers.NodeMap.PythonNodeMap({0: 5, 1: 2, 2: 4, 3: 2, 4: 3})
+    e_none = dpr.wrappers.NodeMap.PythonNodeMap({i: 0 for i in range(5)})
+    mv = MultiVerify(dpr)
+    mv.compute("util.graph.degree", graph).assert_equal(e_out)
+    mv.compute("util.graph.degree", graph, in_edges=True, out_edges=False).assert_equal(
+        e_in
+    )
+    mv.compute("util.graph.degree", graph, in_edges=True, out_edges=True).assert_equal(
+        e_all
+    )
+    mv.compute(
+        "util.graph.degree", graph, in_edges=False, out_edges=False
+    ).assert_equal(e_none)
 
 
 def test_graph_aggregate_edges_directed(default_plugin_resolver):
@@ -495,3 +535,24 @@ def test_node_embedding_apply(default_plugin_resolver):
         embedding,
         dpr.wrappers.Vector.NumpyVector(np.array([9991, 9990])),
     ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[3, 4, 5], [0, 1, 2]])))
+
+
+def test_isomorphic(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    #   0 1 2 3 4            0 1 2 3 4
+    # 0 1 1 - 1 -     2 -> 0 - - - 1 1
+    # 1 - - 1 - -     4 -> 1 - - 1 - -
+    # 2 1 1 - - -     3 -> 2 1 - 1 - 1
+    # 3 - 1 1 - -     0 -> 3 - - 1 - 1
+    # 4 1 - - - -     1 -> 4 - - - 1 -
+    g1 = nx.DiGraph()
+    g1.add_edges_from(
+        [(0, 0), (0, 1), (0, 3), (1, 2), (2, 0), (2, 1), (3, 1), (3, 2), (4, 0)]
+    )
+    g2 = nx.DiGraph()
+    g2.add_edges_from(
+        [(0, 3), (0, 4), (1, 2), (2, 0), (2, 2), (2, 4), (3, 2), (3, 4), (4, 3)]
+    )
+    graph1 = dpr.wrappers.Graph.NetworkXGraph(g1)
+    graph2 = dpr.wrappers.Graph.NetworkXGraph(g2)
+    MultiVerify(dpr).compute("util.graph.isomorphic", graph1, graph2).assert_equal(True)

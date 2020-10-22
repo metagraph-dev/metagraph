@@ -4,6 +4,14 @@ import itertools
 from metagraph import ConcreteType
 from metagraph.core.resolver import Resolver, Dispatcher, ExactDispatcher
 from dask import is_dask_collection
+import warnings
+
+try:
+    import pytest
+
+    has_pytest = True
+except ImportError:
+    has_pytest = False
 
 
 class UnsatisfiableAlgorithmError(Exception):
@@ -122,6 +130,12 @@ class MultiVerify:
                 )
 
         all_concrete_algos = set(self.resolver.concrete_algorithms[algo])
+        if not all_concrete_algos:
+            msg = f"No concrete algorithms exist which implement {algo}"
+            if has_pytest:
+                pytest.skip(msg)
+            else:
+                warnings.warn(msg)  # pragma: no cover
         plans = self.resolver.find_algorithm_solutions(algo, *args, **kwargs)
         # Check if any concrete algorithm failed to find a valid plan
         for plan in plans:

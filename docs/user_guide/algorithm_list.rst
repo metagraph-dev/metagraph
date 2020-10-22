@@ -12,7 +12,7 @@ Graphs often have natural structure which can be discovered, allowing them to be
 
 .. py:function:: clustering.connected_components(graph: Graph(is_directed=False)) -> NodeMap
 
-    The connected components algorithm groups nodes of an **undirected** graph into subgraphs where all subgraph nodes
+    The connected components algorithm groups nodes of an undirected graph into subgraphs where all subgraph nodes
     are reachable within a component.
 
     :rtype: a dense NodeMap where each node is assigned an integer indicating the component.
@@ -45,6 +45,14 @@ Graphs often have natural structure which can be discovered, allowing them to be
 .. py:function:: cluster.triangle_count(graph: Graph(is_directed=False)) -> int
 
     This algorithms returns the total number of triangles in the graph.
+
+
+.. py:function:: clustering.coloring.greedy(graph: Graph(is_directed=False)) -> Tuple[NodeMap, int]
+
+    Attempts to find the minimum number of colors required to label the graph such that no connected nodes have the
+    same color. Color is represented as a value from 0..n.
+
+    :rtype: (color for each node, number of unique colors)
 
 
 Traversal
@@ -123,6 +131,22 @@ Many algorithms assign a ranking or value to each vertex/node in the graph based
     This algorithm determines the importance of a given node in the network based on links between important nodes.
 
 
+.. py:function:: centrality.closeness(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), nodes: Optional[NodeSet] = None) -> NodeMap
+
+    Calculates the closeness centrality metric, which estimates the average distance from a node to all other nodes.
+    A high closeness score indicates a small average distance to other nodes.
+
+.. py:function:: centrality.eigenvector(graph: Graph(edge_type="map", edge_dtype={"int", "float"})) -> NodeMap
+
+    Calculates the eigenvector centrality, which estimates the importance of a node in the graph.
+
+.. py:function:: centrality.hits(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), max_iter: int = 100, tol: float = 1e-05, normalize: bool = True) -> Tuple[NodeMap, NodeMap]
+
+    Hyperlink-Induced Topic Search (HITS) centrality ranks nodes based on incoming and outgoing edges.
+
+    :rtype: (hubs, authority)
+
+
 Subgraph
 --------
 
@@ -136,7 +160,50 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 
 .. py:function:: subgraph.k_core(graph: Graph(is_directed=False), k: int) -> Graph
 
-    This algorithm finds a maximal subgraph that contains nodes of at least degree *k*.
+    This algorithm finds a maximal subgraph that contains nodes of at least degree ``k``.
+
+
+.. py:function:: subgraph.k_truss(graph: Graph(is_directed=False), k: int) -> Graph
+
+    Finds the maximal subgraph whose edges are supported by ``k`` - 2 other edges forming triangles.
+
+
+.. py:function:: subgraph.maximal_independent_set(graph: Graph) -> NodeSet
+
+    Finds a maximal set of independent nodes, meaning the nodes in the set share no edges with each other
+    and no additional nodes in the graph can be added which satisfy this criteria.
+
+
+.. py:function:: subgraph.subisomorphic(graph: Graph, subgraph: Graph) -> bool
+
+    Indicates whether ``subgraph`` is an isomorphic subcomponent of ``graph``.
+
+
+.. py:function:: subgraph.sample.node_sampling(graph: Graph, p: float = 0.20) -> Graph
+
+    Returns a subgraph created by randomly sampling nodes and including edges which exist between sampled
+    nodes in the original graph.
+
+
+.. py:function:: subgraph.sample.edge_sampling(graph: Graph, p: float = 0.20) -> Graph
+
+    Returns a subgraph created by randomly sampling edges and including both node endpoints.
+
+
+.. py:function:: subgraph.sample.ties(graph: Graph, p: float = 0.20) -> Graph
+
+    Totally Induced Edge Sampling extends edge sampling by also including any edges between the nodes
+    which exist in the original graph. See the `paper <https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=2743&context=cstech>`__
+    for more details.
+
+
+.. py:function:: subgraph.sample.random_walk(graph: Graph, num_steps: Optional[int] = None, num_nodes: Optional[int] = None, num_edges: Optional[int] = None, jump_probability: int = 0.15, start_node: Optional[NodeID] = None) -> Graph
+
+    Samples the graph using a random walk. For each step, there is a ``jump_probability`` to reset the walk.
+    When resetting the walk, if the ``start_node`` is specified, it always returns to this node. Otherwise a random
+    node is chosen for each resetting. The sampling stops when any of ``num_steps``, ``num_nodes``, or ``num_edges`` is
+    reached.
+
 
 
 Bipartite
@@ -156,9 +223,18 @@ Algorithms pertaining to the flow capacity of edges.
 
 .. py:function:: flow.max_flow(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID, target_node: NodeID) -> Tuple[float, Graph]
 
-    Compute the maximum flow possible from source_node to target_node
+    Compute the maximum flow possible from ``source_node`` to ``target_node``.
 
-    :rtype: (max_flow_rate, compute_flow_graph)
+    :rtype: (max flow rate, computed flow graph)
+
+
+.. py:function:: flow.min_cut(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID, target_node: NodeID) -> Tuple[float, Graph]
+
+    Compute the minimum cut to separate source from target node. This is the list of edges which disconnect the graph
+    along edges with sum to the minimum weight.
+    Performing this computation yields the maximum flow.
+
+    :rtype: (max flow rate, graph containing cut edges)
 
 
 Utility
@@ -168,7 +244,7 @@ These algorithms are small utility functions which perform common operations nee
 
 .. py:function:: util.nodeset.choose_random(x: NodeSet, k: int) -> NodeSet
 
-    Given a set of nodes, choose k random nodes (no duplicates).
+    Given a set of nodes, choose ``k`` random nodes (no duplicates).
 
 .. py:function:: util.nodeset.from_vector(x: Vector) -> NodeSet
 
@@ -198,6 +274,10 @@ These algorithms are small utility functions which perform common operations nee
 
     Converts and EdgeSet into an EdgeMap by giving each edge a default value.
 
+.. py:function:: util.graph.degree(graph: Graph, in_edges: bool = False, out_edges: bool = True) -> NodeMap
+
+    Computes the degree of each node. ``in_edges`` and ``out_edges`` can be used to control which degree is computed.
+
 .. py:function:: util.graph.aggregate_edges(graph: Graph(edge_type="map"), func: Callable[[Any, Any], Any]), initial_value: Any, in_edges: bool = False, out_edges: bool = True) -> NodeMap
 
     Aggregates the edge weights around a node, returning a single value per node.
@@ -225,3 +305,21 @@ These algorithms are small utility functions which perform common operations nee
 
     Collapse a Graph into a smaller Graph by combining clusters of nodes into a single node.
     ``labels`` indicates the node groupings. ``aggregator`` indicates how to combine edge weights.
+
+.. py:function:: util.graph.isomorphic(g1: Graph, g2: Graph) -> bool
+
+    Indicates whether ``g1`` and ``g2`` are isomorphic.
+
+.. py:function:: util.node_embedding.apply(embedding: NodeEmbedding, nodes: Vector) -> Matrix
+
+    Returns a dense matrix given an embedding and a vector of NodeIDs.
+
+
+Embedding
+---------
+
+Embeddings convert graph nodes or whole graphs into a dense vector representations.
+
+.. py:function:: embedding.train.node2vec(graph: Graph, p: float, q: float, walks_per_node: int, walk_length: int, embedding_size: int, epochs: int, learning_rate: float) -> NodeEmbedding
+
+    Computes the `node2vec <https://snap.stanford.edu/node2vec/>`__ embedding.

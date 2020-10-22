@@ -4,6 +4,7 @@ Containers which mimic `typing` containers, but which allow for instances rather
 ex. typing.Optional[MyAbstractType] works, but typing.Optional[MyAbstractType(some_prop=True)] fails
 """
 from .plugin import AbstractType, ConcreteType, MetaWrapper
+from ..types import NodeID
 
 
 class Combo:
@@ -30,6 +31,8 @@ class Combo:
                 this_kind = "abstract"
             elif isinstance(t, ConcreteType):
                 this_kind = "concrete"
+            elif t is NodeID:
+                this_kind = "node_id"
             else:
                 raise TypeError(f"type within Union or Optional may not be {type(t)}")
 

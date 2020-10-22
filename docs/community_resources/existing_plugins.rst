@@ -16,5 +16,5 @@ plugin, see the :ref:`plugin author guide<plugin_author_guide>`.
 Plugins we know about
 ---------------------
 
-  - metagraph-cuda
-  - metagraph-igraph
+  - `metagraph-cuda <https://github.com/metagraph-dev/metagraph-cuda>`__
+  - `metagraph-igraph <https://github.com/metagraph-dev/metagraph-igraph>`__
