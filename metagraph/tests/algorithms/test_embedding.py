@@ -20,10 +20,10 @@ def test_node2vec(default_plugin_resolver):
     mv = MultiVerify(dpr)
     p = 1.0
     q = 0.5
-    walks_per_node = 8
-    walk_length = 8
+    walks_per_node = 12
+    walk_length = 12
     embedding_size = 25
-    epochs = 2
+    epochs = 15
     learning_rate = 5e-2
     embedding = mv.compute(
         "embedding.train.node2vec",
@@ -51,6 +51,7 @@ def test_node2vec(default_plugin_resolver):
                 a_to_a_center = euclidean_dist(a_vector, a_centroid)
                 b_to_b_center = euclidean_dist(b_vector, b_centroid)
                 a_to_b = euclidean_dist(a_vector, b_vector)
+
                 assert a_to_a_center < a_to_b
                 assert b_to_b_center < a_to_b
 
