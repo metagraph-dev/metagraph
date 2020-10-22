@@ -212,9 +212,9 @@ def test_eigenvector_centrality(default_plugin_resolver):
             7: 0.34570143412454807,
         }
     )
-    MultiVerify(dpr).compute("centrality.eigenvector", graph).assert_equal(
-        expected, rel_tol=1e-3
-    )
+    MultiVerify(dpr).compute(
+        "centrality.eigenvector", graph, tolerance=1e-06
+    ).assert_equal(expected, rel_tol=1e-3)
 
 
 def test_hits_centrality(default_plugin_resolver):
@@ -244,6 +244,6 @@ def test_hits_centrality(default_plugin_resolver):
             7: 0.15153024321895017,
         }
     )
-    MultiVerify(dpr).compute("centrality.hits", graph, tol=1e-06).assert_equal(
-        (hubs, authority), rel_tol=1e-3
-    )
+    MultiVerify(dpr).compute(
+        "centrality.hits", graph, maxiter=100, tolerance=1e-06
+    ).assert_equal((hubs, authority), rel_tol=1e-3)

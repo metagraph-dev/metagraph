@@ -45,6 +45,8 @@ def closeness_centrality(
 @abstract_algorithm("centrality.eigenvector")
 def eigenvector_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}),
+    maxiter: int = 50,
+    tolerance: float = 1e-05,
 ) -> NodeMap:
     pass  # pragma: no cover
 
@@ -52,8 +54,8 @@ def eigenvector_centrality(
 @abstract_algorithm("centrality.hits")
 def hits_centrality(
     graph: Graph(edge_type="map", edge_dtype={"int", "float"}, is_directed=True),
-    max_iter: int = 100,
-    tol: float = 1e-05,
+    maxiter: int = 50,
+    tolerance: float = 1e-05,
     normalize: bool = True,
 ) -> Tuple[NodeMap, NodeMap]:
     """Return (hubs, authority)"""

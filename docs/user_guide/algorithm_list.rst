@@ -12,7 +12,7 @@ Graphs often have natural structure which can be discovered, allowing them to be
 
 .. py:function:: clustering.connected_components(graph: Graph(is_directed=False)) -> NodeMap
 
-    The connected components algorithm groups nodes of an **undirected** graph into subgraphs where all subgraph nodes
+    The connected components algorithm groups nodes of an undirected graph into subgraphs where all subgraph nodes
     are reachable within a component.
 
     :rtype: a dense NodeMap where each node is assigned an integer indicating the component.
@@ -160,12 +160,12 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 
 .. py:function:: subgraph.k_core(graph: Graph(is_directed=False), k: int) -> Graph
 
-    This algorithm finds a maximal subgraph that contains nodes of at least degree *k*.
+    This algorithm finds a maximal subgraph that contains nodes of at least degree ``k``.
 
 
 .. py:function:: subgraph.k_truss(graph: Graph(is_directed=False), k: int) -> Graph
 
-    Finds the subgraph of edges with are part of k-2 triangles.
+    Finds the maximal subgraph whose edges are supported by ``k`` - 2 other edges forming triangles.
 
 
 .. py:function:: subgraph.maximal_independent_set(graph: Graph) -> NodeSet
@@ -176,7 +176,7 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 
 .. py:function:: subgraph.subisomorphic(graph: Graph, subgraph: Graph) -> bool
 
-    Indicates whether subgraph is an isomorphic subcomponent of graph.
+    Indicates whether ``subgraph`` is an isomorphic subcomponent of ``graph``.
 
 
 .. py:function:: subgraph.sample.node_sampling(graph: Graph, p: float = 0.20) -> Graph
@@ -199,9 +199,9 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 
 .. py:function:: subgraph.sample.random_walk(graph: Graph, num_steps: Optional[int] = None, num_nodes: Optional[int] = None, num_edges: Optional[int] = None, jump_probability: int = 0.15, start_node: Optional[NodeID] = None) -> Graph
 
-    Samples the graph using a random walk. For each step, there is a jump_probability to reset the walk.
-    When resetting the walk, if the start_node is specified, it always returns to this node. Otherwise a random
-    node is chosen for each resetting. The sampling stops when any of num_steps, num_nodes, or num_edges is
+    Samples the graph using a random walk. For each step, there is a ``jump_probability`` to reset the walk.
+    When resetting the walk, if the ``start_node`` is specified, it always returns to this node. Otherwise a random
+    node is chosen for each resetting. The sampling stops when any of ``num_steps``, ``num_nodes``, or ``num_edges`` is
     reached.
 
 
@@ -223,7 +223,7 @@ Algorithms pertaining to the flow capacity of edges.
 
 .. py:function:: flow.max_flow(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID, target_node: NodeID) -> Tuple[float, Graph]
 
-    Compute the maximum flow possible from source_node to target_node
+    Compute the maximum flow possible from ``source_node`` to ``target_node``.
 
     :rtype: (max flow rate, computed flow graph)
 
@@ -244,7 +244,7 @@ These algorithms are small utility functions which perform common operations nee
 
 .. py:function:: util.nodeset.choose_random(x: NodeSet, k: int) -> NodeSet
 
-    Given a set of nodes, choose k random nodes (no duplicates).
+    Given a set of nodes, choose ``k`` random nodes (no duplicates).
 
 .. py:function:: util.nodeset.from_vector(x: Vector) -> NodeSet
 
@@ -322,4 +322,4 @@ Embeddings convert graph nodes or whole graphs into a dense vector representatio
 
 .. py:function:: embedding.train.node2vec(graph: Graph, p: float, q: float, walks_per_node: int, walk_length: int, embedding_size: int, epochs: int, learning_rate: float) -> NodeEmbedding
 
-    Computes the node2vec embedding.
+    Computes the `node2vec <https://snap.stanford.edu/node2vec/>`__ embedding.

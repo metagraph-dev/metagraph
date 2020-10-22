@@ -186,18 +186,18 @@ if has_networkx:
 
     @concrete_algorithm("centrality.eigenvector")
     def nx_eigenvector_centrality(
-        graph: NetworkXGraph, maxiter: bool = 100, tol: float = 1e-6
+        graph: NetworkXGraph, maxiter: int, tolerance: float
     ) -> PythonNodeMap:
         result = nx.eigenvector_centrality(
-            graph.value, maxiter, tol, weight=graph.edge_weight_label
+            graph.value, maxiter, tolerance, weight=graph.edge_weight_label
         )
         return PythonNodeMap(result)
 
     @concrete_algorithm("centrality.hits")
     def nx_hits_centrality(
-        graph: NetworkXGraph, max_iter: int, tol: float, normalize: bool,
+        graph: NetworkXGraph, maxiter: int, tolerance: float, normalize: bool,
     ) -> Tuple[PythonNodeMap, PythonNodeMap]:
-        hubs, authority = nx.hits(graph.value, max_iter, tol, normalized=normalize)
+        hubs, authority = nx.hits(graph.value, maxiter, tolerance, normalized=normalize)
         return PythonNodeMap(hubs), PythonNodeMap(authority)
 
     @concrete_algorithm("traversal.bfs_iter")
