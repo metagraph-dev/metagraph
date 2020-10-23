@@ -7,6 +7,7 @@ from . import MultiVerify
 
 euclidean_dist = lambda a, b: np.linalg.norm(a - b)
 
+
 def test_node2vec(default_plugin_resolver):
     dpr = default_plugin_resolver
     # make uneven barbell graph
@@ -133,6 +134,7 @@ def test_graphwave(default_plugin_resolver):
         cmp_func
     )
 
+
 # def test_hope_katz(default_plugin_resolver):
 #     dpr = default_plugin_resolver
 
@@ -152,7 +154,7 @@ def test_graphwave(default_plugin_resolver):
 
 #     nx_graph.add_edge(0, 1_000, weight = 1)
 #     nx_graph.add_edge(10, 1_000, weight = 1)
-    
+
 #     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
 #     mv = MultiVerify(dpr)
@@ -166,7 +168,7 @@ def test_graphwave(default_plugin_resolver):
 
 #     def cmp_func(embedding):
 #         np_matrix = embedding.matrix.as_dense(copy=False)
-        
+
 #         mean_a_vector = np.stack(np_matrix[embedding.nodes[a_node]] for a_node in a_nodes).mean(axis=0)
 #         mean_b_vector = np.stack(np_matrix[embedding.nodes[b_node]] for b_node in b_nodes).mean(axis=0)
 
@@ -175,7 +177,7 @@ def test_graphwave(default_plugin_resolver):
 
 #         print(f"max_dist_from_mean_a {repr(max_dist_from_mean_a)}")
 #         print(f"max_dist_from_mean_b {repr(max_dist_from_mean_b)}")
-        
+
 #         assert False
 
 #     embedding.normalize(dpr.types.NodeEmbedding.NumpyNodeEmbeddingType).custom_compare(

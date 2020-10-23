@@ -26,25 +26,26 @@ def graphwave_train(
 ) -> NodeEmbedding:
     pass  # pragma: no cover
 
+
 @abstract_algorithm("embedding.train.hope.katz")
 def hope_katz_train(
-        graph: Graph(edge_type="map", is_directed=True),
-        embedding_size: int,
-        beta: float
+    graph: Graph(edge_type="map", is_directed=True), embedding_size: int, beta: float
 ) -> NodeEmbedding:
     # embedding_size is ideally even since HOPE learns 2 embedding vectors of size embedding_size // 2 and concatenates them
     pass  # pragma: no cover
 
+
 @abstract_algorithm("embedding.train.graph_sage.mean")
 def graph_sage_mean_train(
-        graph: Graph(edge_type="map", is_directed=True),
-        node_features: NodeEmbedding,
-        walk_length: int,
-        walks_per_node: int,
-        layer_sizes: Vector,
-        samples_per_layer: Vector,
-        epochs: int,
-        learning_rate: float,
-        batch_size: int,
+    graph: Graph(edge_type="map", is_directed=True),
+    node_features: NodeEmbedding,
+    walk_length: int,
+    walks_per_node: int,
+    layer_sizes: Vector,
+    samples_per_layer: Vector,
+    epochs: int,
+    learning_rate: float,
+    batch_size: int,
 ) -> GraphSageNodeEmbedding:
+    # returned embeddings will have size equal to layer_sizes[-1]
     pass  # pragma: no cover
