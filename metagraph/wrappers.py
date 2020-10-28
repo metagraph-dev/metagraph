@@ -9,6 +9,7 @@ from .types import (
     Graph,
     BipartiteGraph,
     NodeEmbedding,
+    GraphSageNodeEmbedding,
 )
 from typing import Set, Dict, Any
 
@@ -225,3 +226,9 @@ class NodeEmbeddingWrapper(Wrapper, abstract=NodeEmbedding, register=False):
                 rel_tol=rel_tol,
                 abs_tol=abs_tol,
             )
+
+
+class GraphSageNodeEmbeddingWrapper(
+    Wrapper, abstract=GraphSageNodeEmbedding, register=False
+):
+    pass

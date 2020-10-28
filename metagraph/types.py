@@ -134,4 +134,8 @@ class NodeEmbedding(AbstractType):
     }
 
 
+class GraphSageNodeEmbedding(AbstractType):
+    pass
+
+
 del AbstractType, Wrapper

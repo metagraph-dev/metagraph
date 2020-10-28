@@ -10,6 +10,7 @@ from metagraph.types import (
     EdgeMap,
     Graph,
     NodeEmbedding,
+    GraphSageNodeEmbedding,
 )
 from typing import Any, Tuple, Callable
 
@@ -124,4 +125,11 @@ def graph_isomorphic(g1: Graph, g2: Graph) -> bool:
 
 @abstract_algorithm("util.node_embedding.apply")
 def node_embedding_apply(embedding: NodeEmbedding, nodes: Vector) -> Matrix:
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("util.graph_sage_node_embedding.apply")
+def graph_sage_node_embedding_apply(
+    embedding: GraphSageNodeEmbedding, graph: Graph, node_features: NodeEmbedding
+) -> Matrix:
     pass  # pragma: no cover

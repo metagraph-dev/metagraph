@@ -120,6 +120,18 @@ class NumpyVector(Wrapper, abstract=Vector):
             if mask.shape != data.shape:
                 raise ValueError("mask must be the same shape as data")
 
+    @property
+    def shape(self):
+        return self.value.shape
+
+    def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
+        vector = self.value
+        if copy or self.mask is not None:
+            vector = vector.copy()
+        if self.mask is not None:
+            vector[~self.mask] = fill_value
+        return vector
+
     def __len__(self):
         return len(self.value)
 
@@ -393,9 +405,9 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
     def shape(self):
         return self.value.shape
 
-    def as_dense(self, fill_value=0, copy=False):
+    def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
         matrix = self.value
-        if copy:
+        if copy or self.mask is not None:
             matrix = matrix.copy()
         if self.mask is not None:
             matrix[~self.mask] = fill_value
@@ -482,4 +494,5 @@ class NumpyNodeEmbedding(NodeEmbeddingWrapper, abstract=NodeEmbedding):
 
     def copy(self):
         nodes = None if self.nodes is None else self.nodes.copy()
-        return NumpyNodeEmbedding(self.matrix.as_dense(copy=True), nodes=nodes)
+        matrix = NumpyMatrix(self.matrix.as_dense(copy=True))
+        return NumpyNodeEmbedding(matrix, nodes=nodes)
