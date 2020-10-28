@@ -1,0 +1,19 @@
+This branch exists to enable GitHub to refresh diffs.
+
+What happens is:
+1. PR #1 is opened against master
+2. PR #2 is opened against master
+3. PR #2 is merged
+4. PR #1 rebases to the latest master, grabbing changes from PR #2
+5. The diff for PR #1 shows all the changes that happened in PR #2 as if they were new changes
+
+This is a known issue on GitHub and they don't seem to want to change it.
+
+The workaround is:
+1. Go to PR #1
+2. Click the Edit button next to the title
+3. Change the "into" dropdown to this branch and Save
+4. Edit again and change back to master
+
+This will force GitHub to recompute the diff and realize that all changes from PR #2 are already in master
+
