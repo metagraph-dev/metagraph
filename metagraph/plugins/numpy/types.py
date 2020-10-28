@@ -126,7 +126,7 @@ class NumpyVector(Wrapper, abstract=Vector):
 
     def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
         vector = self.value
-        if copy:
+        if copy or self.mask is not None:
             vector = vector.copy()
         if self.mask is not None:
             vector[~self.mask] = fill_value
@@ -407,7 +407,7 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
 
     def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
         matrix = self.value
-        if copy:
+        if copy or self.mask is not None:
             matrix = matrix.copy()
         if self.mask is not None:
             matrix[~self.mask] = fill_value
