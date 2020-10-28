@@ -133,7 +133,9 @@ class NodeEmbedding(AbstractType):
         "matrix_dtype": DTYPE_CHOICES,
     }
 
+
 class GraphSageNodeEmbedding(AbstractType):
     pass
+
 
 del AbstractType, Wrapper

@@ -227,6 +227,8 @@ class NodeEmbeddingWrapper(Wrapper, abstract=NodeEmbedding, register=False):
                 abs_tol=abs_tol,
             )
 
-class GraphSageNodeEmbeddingWrapper(Wrapper, abstract=GraphSageNodeEmbedding, register=False):
-    pass
 
+class GraphSageNodeEmbeddingWrapper(
+    Wrapper, abstract=GraphSageNodeEmbedding, register=False
+):
+    pass
