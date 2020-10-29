@@ -6,7 +6,7 @@ from . import MultiVerify
 from metagraph.plugins.networkx.types import NetworkXGraph
 
 
-def build_standard_graph():
+def build_standard_graph(directed=True):
     r"""
     0 <--2-- 1        5 --10-> 6
     |      ^ |      ^ ^      /
@@ -29,7 +29,7 @@ def build_standard_graph():
         (5, 6, 10),
         (6, 2, 11),
     ]
-    nx_graph = nx.DiGraph()
+    nx_graph = nx.DiGraph() if directed else nx.Graph()
     nx_graph.add_weighted_edges_from(ebunch)
     return NetworkXGraph(nx_graph)
 
@@ -177,18 +177,18 @@ def test_pagerank_centrality(default_plugin_resolver):
 
 def test_closeness_centrality(default_plugin_resolver):
     dpr = default_plugin_resolver
-    graph = build_standard_graph()
+    graph = build_standard_graph(directed=False)
     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5, 6, 7})
     expected = dpr.wrappers.NodeMap.PythonNodeMap(
         {
-            0: 0.051948051948051945,
-            1: 0.03809523809523809,
-            2: 0.02990033222591362,
-            3: 0.14285714285714285,
-            4: 0.08035714285714285,
-            5: 0.06679035250463822,
-            6: 0.04250295159386069,
-            7: 0.03271028037383177,
+            0: 0.10606060606060606,
+            1: 0.1206896551724138,
+            2: 0.1346153846153846,
+            3: 0.09722222222222222,
+            4: 0.1346153846153846,
+            5: 0.09210526315789473,
+            6: 0.0625,
+            7: 0.07954545454545454,
         }
     )
     MultiVerify(dpr).compute("centrality.closeness", graph).assert_equal(expected)
@@ -199,17 +199,17 @@ def test_closeness_centrality(default_plugin_resolver):
 
 def test_eigenvector_centrality(default_plugin_resolver):
     dpr = default_plugin_resolver
-    graph = build_standard_graph()
+    graph = build_standard_graph(directed=False)
     expected = dpr.wrappers.NodeMap.PythonNodeMap(
         {
-            0: 3.718912841322492e-24,
-            1: 4.4815545088477956e-24,
-            2: 0.5668908376472616,
-            3: 1.54302627577451e-24,
-            4: 0.2304676227496987,
-            5: 0.4988989293616064,
-            6: 0.5070599863741589,
-            7: 0.34570143412454807,
+            0: 0.020423514776793383,
+            1: 0.1216061915242645,
+            2: 0.4952504137080315,
+            3: 0.19192850773469566,
+            4: 0.40219428149335384,
+            5: 0.5208716146004136,
+            6: 0.5001662420138591,
+            7: 0.1394687823680235,
         }
     )
     MultiVerify(dpr).compute(

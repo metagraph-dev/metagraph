@@ -45,6 +45,7 @@ if has_scipy and has_networkx:
             sorted(x.value.nodes())
         )  # TODO do we necessarily have to sort? Expensive for large inputs
         is_sequential = ordered_nodes[-1] == len(ordered_nodes) - 1
+        orphan_nodes = set(nx.isolates(x.value))
         if aprops["node_type"] == "map":
             node_vals = np.array(
                 [x.value.nodes[n].get(x.node_weight_label) for n in ordered_nodes]
@@ -53,22 +54,21 @@ if has_scipy and has_networkx:
                 nodes = NumpyNodeMap(node_vals)
             else:
                 nodes = NumpyNodeMap(node_vals, node_ids=np.array(ordered_nodes))
-        elif not is_sequential:
+        elif not is_sequential or orphan_nodes:
             nodes = NumpyNodeSet(np.array(ordered_nodes))
         else:
             nodes = None
-        orphan_nodes = set(nx.isolates(x.value))
-        ordered_nodes = [n for n in ordered_nodes if n not in orphan_nodes]
+        nodes_with_edges = [n for n in ordered_nodes if n not in orphan_nodes]
         if aprops["edge_type"] == "map":
             m = nx.convert_matrix.to_scipy_sparse_matrix(
-                x.value, nodelist=ordered_nodes, weight=x.edge_weight_label,
+                x.value, nodelist=nodes_with_edges, weight=x.edge_weight_label,
             )
-            edges = ScipyEdgeMap(m, ordered_nodes)
+            edges = ScipyEdgeMap(m, nodes_with_edges)
         else:
             m = nx.convert_matrix.to_scipy_sparse_matrix(
-                x.value, nodelist=ordered_nodes
+                x.value, nodelist=nodes_with_edges
             )
-            edges = ScipyEdgeSet(m, ordered_nodes)
+            edges = ScipyEdgeSet(m, nodes_with_edges)
         return ScipyGraph(edges, nodes)
 
 

@@ -1,4 +1,4 @@
-# metagraph
+# Metagraph
 
 [![Build Status](https://travis-ci.org/metagraph-dev/metagraph.svg?branch=master)](https://travis-ci.org/metagraph-dev/metagraph)
 [![Coverage Status](https://coveralls.io/repos/metagraph-dev/metagraph/badge.svg?branch=master)](https://coveralls.io/r/metagraph-dev/metagraph)
@@ -9,6 +9,8 @@
 Python library for running graph algorithms on a variety of hardware backends.
 Data representing the graph will be automatically converted between available hardware options
 to find an efficient solution.
+
+Visit [ReadTheDocs page](https://metagraph.readthedocs.io/en/latest/) for more details.
 
 ## Development Environment
 
