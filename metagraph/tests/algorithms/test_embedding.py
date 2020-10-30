@@ -20,7 +20,6 @@ def test_node2vec(default_plugin_resolver):
         nx_graph.add_edge(node, node + 1)
     nx_graph.add_edge(50, 80)  # have non-consecutive node ids
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
-    mv = MultiVerify(dpr)
     p = 1.0
     q = 0.5
     walks_per_node = 12
@@ -28,22 +27,12 @@ def test_node2vec(default_plugin_resolver):
     embedding_size = 25
     epochs = 15
     learning_rate = 5e-2
-    embedding = mv.compute(
-        "embedding.train.node2vec",
-        graph,
-        p,
-        q,
-        walks_per_node,
-        walk_length,
-        embedding_size,
-        epochs,
-        learning_rate,
-    )
 
-    def cmp_func(embedding):
-        a_indices = list(range(10))
-        b_indices = list(range(51, 71))
-        np_matrix = embedding.matrix.as_dense(copy=False)
+    def cmp_func(matrix_node_map_pair):
+        matrix, node_map = matrix_node_map_pair
+        a_indices = node_map[a_nodes]
+        b_indices = node_map[b_nodes]
+        np_matrix = matrix.as_dense(copy=False)
         a_centroid = np_matrix[a_indices].mean(0)
         b_centroid = np_matrix[b_indices].mean(0)
         for a_index in a_indices:
@@ -58,7 +47,19 @@ def test_node2vec(default_plugin_resolver):
                 assert a_to_a_center < a_to_b
                 assert b_to_b_center < a_to_b
 
-    embedding.normalize(dpr.types.NodeEmbedding.NumpyNodeEmbeddingType).custom_compare(
+    MultiVerify(dpr).compute(
+        "embedding.train.node2vec",
+        graph,
+        p,
+        q,
+        walks_per_node,
+        walk_length,
+        embedding_size,
+        epochs,
+        learning_rate,
+    ).normalize(
+        (dpr.types.Matrix.NumpyMatrixType, dpr.types.NodeMap.NumpyNodeMapType)
+    ).custom_compare(
         cmp_func
     )
 
@@ -90,26 +91,12 @@ def test_graphwave(default_plugin_resolver):
 
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
-    mv = MultiVerify(dpr)
-
-    scales = dpr.wrappers.Vector.NumpyVector(np.array([5, 10]))
-    sample_point_count = 50
-    sample_point_max = 100.0
-    chebyshev_degree = 20
-    embedding = mv.compute(
-        "embedding.train.graphwave",
-        graph,
-        scales,
-        sample_point_count,
-        sample_point_max,
-        chebyshev_degree,
-    )
-
-    def cmp_func(embedding):
-        np_matrix = embedding.matrix.as_dense(copy=False)
+    def cmp_func(matrix_node_map_pair):
+        matrix, node_map = matrix_node_map_pair
+        np_matrix = matrix.as_dense(copy=False)
 
         class_to_vectors = {c: [] for c in classes}
-        for node_id in range(len(nx_graph.nodes)):
+        for node_id in node_map.pos2id:
             c = node_to_class[node_id]
             class_to_vectors[c].append(np_matrix[node_id])
 
@@ -130,7 +117,20 @@ def test_graphwave(default_plugin_resolver):
         for c, max_dist in class_to_max_dist_from_mean.items():
             assert max_dist < 0.325
 
-    embedding.normalize(dpr.types.NodeEmbedding.NumpyNodeEmbeddingType).custom_compare(
+    scales = dpr.wrappers.Vector.NumpyVector(np.array([5, 10]))
+    sample_point_count = 50
+    sample_point_max = 100.0
+    chebyshev_degree = 20
+    MultiVerify(dpr).compute(
+        "embedding.train.graphwave",
+        graph,
+        scales,
+        sample_point_count,
+        sample_point_max,
+        chebyshev_degree,
+    ).normalize(
+        (dpr.types.Matrix.NumpyMatrixType, dpr.types.NodeMap.NumpyNodeMapType)
+    ).custom_compare(
         cmp_func
     )
 
