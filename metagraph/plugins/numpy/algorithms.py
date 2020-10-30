@@ -6,7 +6,6 @@ from .types import (
     NumpyMatrix,
     NumpyNodeMap,
     NumpyNodeSet,
-    NumpyNodeEmbedding,
 )
 from typing import Any, Callable, Optional
 from .. import has_numba
@@ -129,8 +128,8 @@ def np_nodemap_reduce(x: NumpyNodeMap, func: Callable[[Any, Any], Any]) -> Any:
 
 @concrete_algorithm("util.node_embedding.apply")
 def np_embedding_apply(
-    embedding: NumpyNodeEmbedding, nodes: NumpyVector
+    matrix: NumpyMatrix, node2row: NumpyNodeMap, nodes: NumpyVector
 ) -> NumpyMatrix:
-    indices = embedding.nodes[nodes.value]
-    matrix = embedding.matrix.value[indices]
+    indices = node2row[nodes.value]
+    matrix = matrix.value[indices]
     return NumpyMatrix(matrix)
