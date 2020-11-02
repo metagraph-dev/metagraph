@@ -30,7 +30,7 @@ if has_grblas:
         data = x.value.dup()
         # Force all values to be 1's to indicate no weights
         data[:, :](data.S) << 1
-        return GrblasEdgeSet(data, transposed=x.transposed)
+        return GrblasEdgeSet(data)
 
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
@@ -84,6 +84,7 @@ if has_grblas and has_scipy:
 
     @translator
     def edgeset_from_scipy(x: ScipyEdgeSet, **props) -> GrblasEdgeSet:
+        aprops = ScipyEdgeSet.Type.compute_abstract_properties(x, {"is_directed"})
         m = x.value.tocoo()
         node_list = x.node_list
         size = max(node_list) + 1
@@ -94,10 +95,13 @@ if has_grblas and has_scipy:
             nrows=size,
             ncols=size,
         )
-        return GrblasEdgeSet(out, transposed=x.transposed)
+        gbes = GrblasEdgeSet(out)
+        GrblasEdgeSet.Type.preset_abstract_properties(gbes, **aprops)
+        return gbes
 
     @translator
     def edgemap_from_scipy(x: ScipyEdgeMap, **props) -> GrblasEdgeMap:
+        aprops = ScipyEdgeMap.Type.compute_abstract_properties(x, {"is_directed"})
         m = x.value.tocoo()
         node_list = x.node_list
         size = max(node_list) + 1
@@ -110,7 +114,9 @@ if has_grblas and has_scipy:
             ncols=size,
             dtype=dtype,
         )
-        return GrblasEdgeMap(out, transposed=x.transposed)
+        gem = GrblasEdgeMap(out)
+        GrblasEdgeMap.Type.preset_abstract_properties(gem, **aprops)
+        return gem
 
     @translator(include_resolver=True)
     def graph_from_scipy(x: ScipyGraph, *, resolver, **props) -> GrblasGraph:

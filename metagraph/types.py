@@ -16,7 +16,10 @@ class NodeID:
 NodeID = NodeID()
 
 
-DTYPE_CHOICES = ["str", "float", "int", "bool"]
+DTYPE_CHOICES = ["float", "int", "bool"]
+# Note: "str" removed until further discussion can resolve how to propertly deal with strings
+#       Numpy dtype is challenging with "|S32" and "<U32" showing up rather than "object"
+#       Also, what to do about plugins which cannot handle string data types?
 
 
 class Vector(AbstractType):
@@ -86,7 +89,7 @@ class EdgeMap(AbstractType):
     properties = {
         "is_directed": [True, False],
         "dtype": DTYPE_CHOICES,
-        "has_negative_weights": [True, False],
+        "has_negative_weights": [True, False, None],
     }
     unambiguous_subcomponents = {EdgeSet}
 

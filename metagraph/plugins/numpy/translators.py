@@ -36,11 +36,15 @@ if has_scipy:
         # This is trickier than simply calling .toarray() because
         # scipy.sparse assumes empty means zero
         # Mask is required To properly handle any non-empty zeros
-        existing = x.copy().astype(bool)  # don't modify original
-        data = x.toarray()
-        existing.data = np.ones_like(existing.data)
-        existing_mask = existing.toarray()
-        return NumpyMatrix(data, mask=existing_mask)
+        aprops = ScipyMatrixType.compute_abstract_properties(x, {"is_dense"})
+        if aprops["is_dense"]:
+            return NumpyMatrix(x.toarray())
+        else:
+            existing = x.copy().astype(bool)  # don't modify original
+            data = x.toarray()
+            existing.data = np.ones_like(existing.data)
+            existing_mask = existing.toarray()
+            return NumpyMatrix(data, mask=existing_mask)
 
 
 if has_grblas:

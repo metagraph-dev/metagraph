@@ -52,8 +52,12 @@ if has_pandas:
             self.index = df.set_index([src_label, dst_label]).index
 
             if not is_directed:
-                # Ensure no duplicates
-                rev_index = df.set_index([dst_label, src_label]).index
+                # Ensure no duplicates (ignoring self-loops)
+                rev_index = (
+                    df[df[src_label] != df[dst_label]]
+                    .set_index([dst_label, src_label])
+                    .index
+                )
                 dups = self.index & rev_index
                 if len(dups) > 0:
                     raise ValueError(
@@ -104,9 +108,22 @@ if has_pandas:
                 g1 = obj1.value
                 g2 = obj2.value
                 assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
-                assert len(obj1.index & obj2.index) == len(
-                    obj1.index
-                ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
+                if aprops1["is_directed"]:
+                    assert len(obj1.index & obj2.index) == len(
+                        obj1.index
+                    ), f"edge mismatch {obj1.index ^ obj2.index}"
+                else:  # undirected
+                    full1 = (
+                        obj1.index
+                        | g1.set_index([obj1.dst_label, obj1.src_label]).index
+                    )
+                    full2 = (
+                        obj2.index
+                        | g2.set_index([obj2.dst_label, obj2.src_label]).index
+                    )
+                    assert len(full1 & full2) == len(
+                        full1
+                    ), f"edge mismatch {full1 ^ full2}"
 
     class PandasEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         """
@@ -149,8 +166,12 @@ if has_pandas:
             self.index = df.set_index([src_label, dst_label]).index
 
             if not is_directed:
-                # Ensure no duplicates
-                rev_index = df.set_index([dst_label, src_label]).index
+                # Ensure no duplicates (ignoring self-loops)
+                rev_index = (
+                    df[df[src_label] != df[dst_label]]
+                    .set_index([dst_label, src_label])
+                    .index
+                )
                 dups = self.index & rev_index
                 if len(dups) > 0:
                     raise ValueError(
@@ -223,16 +244,43 @@ if has_pandas:
                 g1 = obj1.value
                 g2 = obj2.value
                 assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
-                assert len(obj1.index & obj2.index) == len(
-                    obj1.index
-                ), f"{len(obj1.index & obj2.index)} != {len(obj1.index)}"
+
+                if aprops1["is_directed"]:
+                    assert len(obj1.index & obj2.index) == len(
+                        obj1.index
+                    ), f"edge mismatch {obj1.index ^ obj2.index}"
+                else:  # undirected
+                    full1 = (
+                        obj1.index
+                        | g1.set_index([obj1.dst_label, obj1.src_label]).index
+                    )
+                    full2 = (
+                        obj2.index
+                        | g2.set_index([obj2.dst_label, obj2.src_label]).index
+                    )
+                    assert len(full1 & full2) == len(
+                        full1
+                    ), f"edge mismatch {full1 ^ full2}"
+
                 # Ensure dataframes are indexed the same
                 if not (obj1.index == obj2.index).all():
-                    g2 = (
-                        g2.set_index(obj2.index)
-                        .reindex(obj1.index)
-                        .reset_index(drop=True)
-                    )
+                    if aprops1["is_directed"]:
+                        g2 = (
+                            g2.set_index(obj2.index)
+                            .reindex(obj1.index)
+                            .reset_index(drop=True)
+                        )
+                    else:
+                        # Add reversed so index can find matching entries
+                        g2_rev = g2.copy()
+                        g2_rev[obj2.src_label] = g2[obj2.dst_label]
+                        g2_rev[obj2.dst_label] = g2[obj2.src_label]
+                        g2_rev = g2_rev[
+                            g2_rev[obj2.src_label] != g2_rev[obj2.dst_label]
+                        ]
+                        g2 = pd.concat([g2, g2_rev])
+                        g2 = g2.set_index([obj2.src_label, obj2.dst_label])
+                        g2 = g2.reindex(obj1.index).reset_index(drop=True)
                 # Compare
                 v1 = g1[obj1.weight_label]
                 v2 = g2[obj2.weight_label]

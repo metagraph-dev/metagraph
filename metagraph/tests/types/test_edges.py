@@ -133,38 +133,6 @@ def test_graphblas():
             {},
             {},
         )
-    # Transposed
-    GrblasEdgeMap.Type.assert_equal(
-        GrblasEdgeMap(g_int),
-        GrblasEdgeMap(
-            grblas.Matrix.from_values(
-                [0, 1, 1, 1, 2], [0, 0, 1, 2, 1], [1, 2, 0, 3, 3]
-            ),
-            transposed=True,
-        ),
-        iprops,
-        iprops,
-        {},
-        {},
-    )
-    GrblasEdgeMap.Type.assert_equal(
-        GrblasEdgeMap(g_int, transposed=True),
-        GrblasEdgeMap(
-            grblas.Matrix.from_values([0, 1, 1, 1, 2], [0, 0, 1, 2, 1], [1, 2, 0, 3, 3])
-        ),
-        iprops,
-        iprops,
-        {},
-        {},
-    )
-    GrblasEdgeMap.Type.assert_equal(
-        GrblasEdgeMap(g_int, transposed=True),
-        GrblasEdgeMap(g_int, transposed=True),
-        iprops,
-        iprops,
-        {},
-        {},
-    )
 
 
 def test_scipy():
@@ -238,33 +206,3 @@ def test_scipy():
             {},
             {},
         )
-    # Transposed
-    ScipyEdgeMap.Type.assert_equal(
-        ScipyEdgeMap(g_int),
-        ScipyEdgeMap(
-            ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1]))),
-            transposed=True,
-        ),
-        iprops,
-        iprops,
-        {},
-        {},
-    )
-    ScipyEdgeMap.Type.assert_equal(
-        ScipyEdgeMap(g_int, transposed=True),
-        ScipyEdgeMap(
-            ss.coo_matrix(([1, 2, 0, 3, 3], ([0, 1, 1, 1, 2], [0, 0, 1, 2, 1])))
-        ),
-        iprops,
-        iprops,
-        {},
-        {},
-    )
-    ScipyEdgeMap.Type.assert_equal(
-        ScipyEdgeMap(g_int, transposed=True),
-        ScipyEdgeMap(g_int, transposed=True),
-        iprops,
-        iprops,
-        {},
-        {},
-    )

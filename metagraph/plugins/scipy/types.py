@@ -21,7 +21,8 @@ if has_scipy:
             # fast properties
             for prop in {"is_dense", "dtype", "is_square"} - ret.keys():
                 if prop == "is_dense":
-                    ret[prop] = False
+                    nrows, ncols = obj.shape
+                    ret[prop] = obj.nnz == nrows * ncols
                 if prop == "dtype":
                     ret[prop] = dtypes.dtypes_simplified[obj.dtype]
                 if prop == "is_square":
@@ -62,13 +63,20 @@ if has_scipy:
                 assert (obj1 != obj2).nnz == 0, f"{(obj1 != obj2).toarray()}"
 
     class ScipyEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
-        def __init__(self, data, node_list=None, transposed=False):
+        """
+        scipy.sparse matrix is the minimal size to contain all edges.
+        If nodes are not sequential, a node_list must be provided to map the matrix index to NodeId.
+        Nodes which are present in the matrix but have no edges are not allowed as
+            they will not survive a roundtrip translation.
+        The actual values in the matrix are unused.
+        """
+
+        def __init__(self, data, node_list=None):
             super().__init__()
             self._assert_instance(data, ss.spmatrix)
             nrows, ncols = data.shape
             self._assert(nrows == ncols, "Adjacency Matrix must be square")
             self.value = data
-            self.transposed = transposed
             if node_list is None:
                 node_list = np.arange(nrows)
             elif not isinstance(node_list, np.ndarray):
@@ -76,11 +84,7 @@ if has_scipy:
             self.node_list = node_list
 
         def copy(self):
-            return ScipyEdgeSet(
-                self.value.copy(),
-                node_list=self.node_list.copy(),
-                transposed=self.transposed,
-            )
+            return ScipyEdgeSet(self.value.copy(), node_list=self.node_list.copy())
 
         class TypeMixin:
             @classmethod
@@ -118,12 +122,9 @@ if has_scipy:
                     obj1.node_list == obj2.node_list
                 ).all(), f"node list mismatch: {obj1.node_list} != {obj2.node_list}"
                 assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-                # Handle transposed states
-                d1 = m1.T if obj1.transposed else m1
-                d2 = m2.T if obj2.transposed else m2
                 # Compare
-                d1 = d1.tocsr()
-                d2 = d2.tocsr()
+                d1 = m1.tocsr()
+                d2 = m2.tocsr()
                 assert (d1.indptr == d2.indptr).all(), f"{d1.indptr == d2.indptr}"
                 # Ensure sorted indices for numpy matching to work
                 d1.sort_indices()
@@ -131,15 +132,21 @@ if has_scipy:
                 assert (d1.indices == d2.indices).all(), f"{d1.indices == d2.indices}"
 
     class ScipyEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
+        """
+        scipy.sparse matrix is the minimal size to contain all edges.
+        If nodes are not sequential, a node_list must be provided to map the matrix index to NodeId.
+        Nodes which are present in the matrix but have no edges are not allowed as
+            they will not survive a roundtrip translation.
+        """
+
         def __init__(
-            self, data, node_list=None, transposed=False,
+            self, data, node_list=None,
         ):
             super().__init__()
             self._assert_instance(data, ss.spmatrix)
             nrows, ncols = data.shape
             self._assert(nrows == ncols, "Adjacency Matrix must be square")
             self.value = data
-            self.transposed = transposed
             if node_list is None:
                 node_list = np.arange(nrows)
             elif not isinstance(node_list, np.ndarray):
@@ -154,9 +161,7 @@ if has_scipy:
             node_list = (
                 self.node_list if self.node_list is None else self.node_list.copy()
             )
-            return ScipyEdgeMap(
-                self.value.copy(), node_list=node_list, transposed=self.transposed
-            )
+            return ScipyEdgeMap(self.value.copy(), node_list=node_list)
 
         @property
         def format(self):
@@ -213,12 +218,9 @@ if has_scipy:
                     obj1.node_list == obj2.node_list
                 ).all(), f"node list mismatch: {obj1.node_list} != {obj2.node_list}"
                 assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-                # Handle transposed states
-                d1 = m1.T if obj1.transposed else m1
-                d2 = m2.T if obj2.transposed else m2
                 # Compare
-                d1 = d1.tocsr()
-                d2 = d2.tocsr()
+                d1 = m1.tocsr()
+                d2 = m2.tocsr()
                 assert (d1.indptr == d2.indptr).all(), f"{d1.indptr == d2.indptr}"
                 # Ensure sorted indices for numpy matching to work
                 d1.sort_indices()

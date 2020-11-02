@@ -187,9 +187,7 @@ if has_scipy:
             if isinstance(graph.edges.value, ss.coo_matrix)
             else graph.edges.value.tocoo(copy=True)
         )
-        result_edge_map = ScipyEdgeMap(
-            result_matrix, graph.edges.node_list, graph.edges.transposed
-        )
+        result_edge_map = ScipyEdgeMap(result_matrix, graph.edges.node_list)
         to_keep_mask = func_vectorized(result_edge_map.value.data)
         if not to_keep_mask.all():
             result_edge_map.value.row = result_edge_map.value.row[to_keep_mask]
@@ -202,9 +200,7 @@ if has_scipy:
     def ss_graph_assign_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
         matrix = graph.edges.value.copy()
         matrix.data.fill(weight)
-        edge_map = ScipyEdgeMap(
-            matrix, node_list=graph.edges.node_list, transposed=graph.edges.transposed
-        )
+        edge_map = ScipyEdgeMap(matrix, node_list=graph.edges.node_list)
         nodes = None if graph.nodes is None else graph.nodes.copy()
         return ScipyGraph(edge_map, nodes=nodes)
 
@@ -221,4 +217,4 @@ if has_scipy:
     ) -> ScipyEdgeMap:
         new_matrix = edgeset.value.copy()
         new_matrix.data.fill(default_value)
-        return ScipyEdgeMap(new_matrix, edgeset.node_list.copy(), edgeset.transposed)
+        return ScipyEdgeMap(new_matrix, edgeset.node_list.copy())

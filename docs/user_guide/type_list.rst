@@ -15,7 +15,7 @@ Vector
 Abstract Properties:
 
 - is_dense: [True, False]
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 
 → Grblas Vector
 ~~~~~~~~~~~~~~~
@@ -43,7 +43,7 @@ Abstract Properties:
 
 - is_dense: [True, False]
 - is_square: [True, False]
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 
 
 → Grblas Matrix
@@ -147,7 +147,7 @@ A set of NodeIDs and associated values, one for each node.
 
 Abstract Properties:
 
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 
 Can be translated to:
 
@@ -270,7 +270,7 @@ A set of edges connecting nodes. Each edge is associated with a value (i.e. weig
 Abstract Properties:
 
 - is_directed: [True, False]
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 - has_negative_weights: [True, False]
 
 Can be translated to:
@@ -349,9 +349,9 @@ Abstract Properties:
 
 - is_directed: [True, False]
 - node_type: ["set", "map"]
-- node_dtype: ["str", "float", "int", "bool", None]
+- node_dtype: ["float", "int", "bool", None]
 - edge_type: ["set", "map"]
-- edge_dtype: ["str", "float", "int", "bool", None]
+- edge_dtype: ["float", "int", "bool", None]
 - edge_has_negative_weights: [True, False, None]
 
 Can be translated to:
@@ -418,10 +418,10 @@ Abstract Properties:
 - is_directed: [True, False]
 - node0_type: ["set", "map"]
 - node1_type: ["set", "map"]
-- node0_dtype: ["str", "float", "int", "bool", None]
-- node1_dtype: ["str", "float", "int", "bool", None]
+- node0_dtype: ["float", "int", "bool", None]
+- node1_dtype: ["float", "int", "bool", None]
 - edge_type: ["set", "map"]
-- edge_dtype: ["str", "float", "int", "bool", None]
+- edge_dtype: ["float", "int", "bool", None]
 - edge_has_negative_weights: [True, False, None]
 
 Can be translated to:
@@ -459,7 +459,7 @@ Conceptually, this can be thought of as a dense matrix with each row applying to
 
 Abstract Properties:
 
-- matrix_dtype: ["str", "float", "int", "bool"]
+- matrix_dtype: ["float", "int", "bool"]
 
 → NumpyNodeEmbedding
 ~~~~~~~~~~~~~~~~~~~~

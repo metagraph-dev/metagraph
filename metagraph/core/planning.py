@@ -23,7 +23,7 @@ class TranslationMatrix:
                 abstract is ct.abstract
                 or abstract in ct.abstract.unambiguous_subcomponents
             ):
-                concrete_lookup[ct] = len(concrete_list)
+                concrete_lookup[ct] = len(concrete_list)  # index position
                 concrete_list.append(ct)
                 included_abstract_types.add(ct.abstract)
         m = ss.dok_matrix((len(concrete_list), len(concrete_list)), dtype=bool)

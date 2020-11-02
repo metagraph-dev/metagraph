@@ -181,7 +181,7 @@ if has_grblas:
             # fast properties
             for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
                 if prop == "is_dense":
-                    ret[prop] = False
+                    ret[prop] = obj.nvals == obj.nrows * obj.ncols
                 if prop == "is_square":
                     ret[prop] = obj.nrows == obj.ncols
                 if prop == "dtype":
@@ -219,24 +219,29 @@ if has_grblas:
 
     def find_active_nodes(m):
         """
-        Given a grblas.Matrix, returns a list of the active nodes
-        Active nodes are defined as having an edge. i.e. non-orphan nodes
+        Given a grblas.Matrix, returns a list of the active nodes.
+        Active nodes are defined as having an edge.
         """
         v = m.reduce_rows(grblas.monoid.any).new()
         h = m.reduce_columns(grblas.monoid.any).new()
         v << v.ewise_add(h, grblas.monoid.any)
         idx, _ = v.to_values()
+        # TODO: revisit this once grblas returns numpy arrays directly
         return list(idx)
 
     class GrblasEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
-        def __init__(
-            self, data, transposed=False,
-        ):
+        """
+        Matrix id is the NodeId. Only information about the edges is preserved, meaning nrows and ncols
+        are irrelevant. They must be large enough to hold all nodes attached to edges, but otherwise provide
+        no information about nodes which have no edges.
+        The actual values in the Matrix are not used.
+        """
+
+        def __init__(self, data):
             super().__init__()
             self._assert_instance(data, grblas.Matrix)
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
-            self.transposed = transposed
 
         class TypeMixin:
             @classmethod
@@ -271,22 +276,22 @@ if has_grblas:
                     v1.nvals == v2.nvals
                 ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
                 assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-                # Handle transposed states
-                d1 = v1.T if obj1.transposed else v1
-                d2 = v2.T if obj2.transposed else v2
                 # Compare
-                shape_match = d1.ewise_mult(d2, grblas.binary.pair).new()
+                shape_match = v1.ewise_mult(v2, grblas.binary.pair).new()
                 assert shape_match.nvals == v1.nvals, f"edges do not match"
 
     class GrblasEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
-        def __init__(
-            self, data, transposed=False,
-        ):
+        """
+        Matrix id is the NodeId. Only information about the edges is preserved, meaning nrows and ncols
+        are irrelevant. They must be large enough to hold all nodes attached to edges, but otherwise provide
+        no information about nodes which have no edges.
+        """
+
+        def __init__(self, data):
             super().__init__()
             self._assert_instance(data, grblas.Matrix)
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
-            self.transposed = transposed
 
         class TypeMixin:
             @classmethod
@@ -340,16 +345,18 @@ if has_grblas:
                     v1.nvals == v2.nvals
                 ), f"num nodes mismatch: {v1.nvals} != {v2.nvals}"
                 assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-                # Handle transposed states
-                d1 = v1.T if obj1.transposed else v1
-                d2 = v2.T if obj2.transposed else v2
                 # Compare
                 if v1.dtype.name in {"FP32", "FP64"}:
-                    assert d1.isclose(d2, rel_tol=rel_tol, abs_tol=abs_tol)
+                    assert v1.isclose(v2, rel_tol=rel_tol, abs_tol=abs_tol)
                 else:
-                    assert d1.isequal(d2)
+                    assert v1.isequal(v2)
 
     class GrblasGraph(CompositeGraphWrapper, abstract=Graph):
+        """
+        Matrix id is the NodeId. Only information about the edges is preserved in the Matrix.
+        Information about orphan nodes is contained in the active_nodes boolean Vector.
+        """
+
         def __init__(self, edges, nodes=None):
             # Auto convert simple matrix to EdgeMap
             # Anything more complicated requires explicit creation of the EdgeMap or EdgeSet

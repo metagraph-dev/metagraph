@@ -3,11 +3,50 @@ import pytest
 grblas = pytest.importorskip("grblas")
 
 from metagraph.tests.util import default_plugin_resolver
+from . import RoundTripper
 from metagraph.plugins.numpy.types import NumpyMatrix
 from metagraph.plugins.graphblas.types import GrblasMatrixType
 from metagraph.plugins.scipy.types import ScipyMatrixType
 import numpy as np
 import scipy.sparse as ss
+
+
+def test_matrix_roundtrip_dense_square(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    mat = np.array([[1.1, 2.2, 3.3], [3.3, 3.3, 9.9], [3.3, 0.0, -3.3]])
+    rt.verify_round_trip(NumpyMatrix(mat))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(int)))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(bool)))
+
+
+def test_matrix_roundtrip_sparse_square(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    mat = np.array([[1.1, 2.2, 3.3], [3.3, 3.3, 9.9], [3.3, 0.0, -3.3]])
+    mask = mat != 3.3
+    rt.verify_round_trip(NumpyMatrix(mat, mask=mask))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(int), mask=mask))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(bool), mask=mask))
+
+
+def test_matrix_roundtrip_dense_rect(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    mat = np.array(
+        [[1.1, 2.2, 3.3], [3.3, 3.3, 9.9], [3.3, 0.0, -3.3], [-1.1, 2.7, 3.3]]
+    )
+    rt.verify_round_trip(NumpyMatrix(mat))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(int)))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(bool)))
+
+
+def test_matrix_roundtrip_sparse_rect(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    mat = np.array(
+        [[1.1, 2.2, 3.3], [3.3, 3.3, 9.9], [3.3, 0.0, -3.3], [-1.1, 2.7, 3.3]]
+    )
+    mask = mat != 3.3
+    rt.verify_round_trip(NumpyMatrix(mat, mask=mask))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(int), mask=mask))
+    rt.verify_round_trip(NumpyMatrix(mat.astype(bool), mask=mask))
 
 
 def test_numpy_2_scipy(default_plugin_resolver):

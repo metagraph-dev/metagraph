@@ -1,8 +1,15 @@
 import pytest
 from metagraph.tests.util import default_plugin_resolver
+from . import RoundTripper
 from metagraph.plugins.python.types import PythonNodeSet
 from metagraph.plugins.numpy.types import NumpyNodeSet, NumpyNodeMap
 import numpy as np
+
+
+def test_nodeset_roundtrip(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    ns = PythonNodeSet({2, 3, 55})
+    rt.verify_round_trip(ns)
 
 
 def test_np_nodemap_2_np_nodeset(default_plugin_resolver):

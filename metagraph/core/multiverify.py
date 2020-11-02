@@ -329,6 +329,7 @@ class MultiVerify:
                     val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
                 )
             except AssertionError:
+                print(f"assert_equal failed for {algo_path}")
                 print(f"val {val}")
                 if hasattr(val, "value"):
                     print(f"val.value {val.value}")

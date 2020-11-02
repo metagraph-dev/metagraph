@@ -13,18 +13,21 @@ if has_scipy:
         data = x.value.copy()
         # Force all values to be 1's to indicate no weights
         data.data = np.ones_like(data.data)
-        return ScipyEdgeSet(data, x.node_list, x.transposed)
+        return ScipyEdgeSet(data, x.node_list)
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
-        # scipy.sparse assumes zero mean empty
+        # scipy.sparse assumes zero is empty
         # To work around this limitation, we use a mask
-        # and directly set .data after construction
+        # and directly set `.data` after construction
         if x.mask is None:
-            mat = ss.coo_matrix(x)
-            nrows, ncols = mat.shape
-            if mat.nnz != nrows * ncols:
+            if (x.value == 0).any():
+                mask = x.value.copy()
+                mask[:, :] = 1
+                mat = ss.coo_matrix(mask)
                 mat.data = x.value.flatten()
+            else:
+                mat = ss.coo_matrix(x.value)
         else:
             mat = ss.coo_matrix(x.mask)
             mat.data = x.value[x.mask]
@@ -92,14 +95,20 @@ if has_scipy and has_grblas:
 
     @translator
     def edgeset_from_graphblas(x: GrblasEdgeSet, **props) -> ScipyEdgeSet:
+        aprops = GrblasEdgeSet.Type.compute_abstract_properties(x, {"is_directed"})
         active_nodes = find_active_nodes(x.value)
         gm = x.value[active_nodes, active_nodes].new()
         rows, cols, _ = gm.to_values()
-        sm = ss.coo_matrix(([True] * len(rows), (rows, cols)), dtype=bool)
-        return ScipyEdgeSet(sm, node_list=active_nodes)
+        sm = ss.coo_matrix(
+            ([True] * len(rows), (rows, cols)), shape=gm.shape, dtype=bool
+        )
+        ses = ScipyEdgeSet(sm, node_list=active_nodes)
+        ScipyEdgeSet.Type.preset_abstract_properties(ses, **aprops)
+        return ses
 
     @translator
     def edgemap_from_graphblas(x: GrblasEdgeMap, **props) -> ScipyEdgeMap:
+        aprops = GrblasEdgeMap.Type.compute_abstract_properties(x, {"is_directed"})
         active_nodes = find_active_nodes(x.value)
         gm = x.value[active_nodes, active_nodes].new()
         rows, cols, vals = gm.to_values()
@@ -108,7 +117,9 @@ if has_scipy and has_grblas:
             dtype=dtype_grblas_to_mg[x.value.dtype.name],
             shape=gm.shape,
         )
-        return ScipyEdgeMap(sm, node_list=active_nodes)
+        sem = ScipyEdgeMap(sm, node_list=active_nodes)
+        ScipyEdgeMap.Type.preset_abstract_properties(sem, **aprops)
+        return sem
 
     @translator(include_resolver=True)
     def graph_from_graphblas(x: GrblasGraph, *, resolver, **props) -> ScipyGraph:
@@ -148,16 +159,21 @@ if has_scipy and has_pandas:
         target_positions = x.value[x.dst_label].map(get_id_pos)
         weights = x.value[x.weight_label]
         if not is_directed:
+            nonself = source_positions != target_positions
             source_positions, target_positions = (
-                pd.concat([source_positions, target_positions]),
-                pd.concat([target_positions, source_positions]),
+                pd.concat([source_positions, target_positions[nonself]]),
+                pd.concat([target_positions, source_positions[nonself]]),
             )
-            weights = pd.concat([weights, weights])
+            weights = pd.concat([weights, weights[nonself]])
         matrix = ss.coo_matrix(
             (weights, (source_positions, target_positions)),
             shape=(num_nodes, num_nodes),
         ).tocsr()
-        return ScipyEdgeMap(matrix, node_list)
+        ss_edgemap = ScipyEdgeMap(matrix, node_list)
+        ScipyEdgeMap.Type.preset_abstract_properties(
+            ss_edgemap, is_directed=is_directed
+        )
+        return ss_edgemap
 
     @translator
     def edgeset_from_pandas(x: PandasEdgeSet, **props) -> ScipyEdgeSet:
@@ -170,12 +186,18 @@ if has_scipy and has_pandas:
         source_positions = x.value[x.src_label].map(get_id_pos)
         target_positions = x.value[x.dst_label].map(get_id_pos)
         if not is_directed:
+            nonself = source_positions != target_positions
             source_positions, target_positions = (
-                pd.concat([source_positions, target_positions]),
-                pd.concat([target_positions, source_positions]),
+                pd.concat([source_positions, target_positions[nonself]]),
+                pd.concat([target_positions, source_positions[nonself]]),
             )
         matrix = ss.coo_matrix(
             (np.ones(len(source_positions)), (source_positions, target_positions)),
             shape=(num_nodes, num_nodes),
         ).tocsr()
-        return ScipyEdgeSet(matrix, node_list)
+        ss_edgeset = ScipyEdgeSet(matrix, node_list)
+        # Set is_directed property
+        ScipyEdgeSet.Type.preset_abstract_properties(
+            ss_edgeset, is_directed=is_directed
+        )
+        return ss_edgeset

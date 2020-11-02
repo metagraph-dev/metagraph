@@ -8,7 +8,8 @@ import math
 def _determine_dtype(all_values):
     all_types = {type(v) for v in all_values}
     if not all_types or (all_types - {float, int, bool}):
-        return "str"
+        # return "str"
+        raise TypeError(f"unable to determine dtype, all_types={all_types}")
     for type_ in (float, int, bool):
         if type_ in all_types:
             return str(type_.__name__)
