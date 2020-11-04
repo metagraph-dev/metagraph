@@ -9,7 +9,7 @@ from ..types import NodeID
 
 class Combo:
     def __init__(self, types, *, optional=False, strict=None):
-        # Ensure all AbstractTypes or all ConcreteType or all Python types, but not mixed
+        # Ensure all AbstractTypes or all ConcreteType or all Python types or all UniformIterable, but not mixed
         kind = None
         checked_types = set()
         for t in types:
@@ -33,6 +33,10 @@ class Combo:
                 this_kind = "concrete"
             elif t is NodeID:
                 this_kind = "node_id"
+            elif isinstance(t, UniformIterable):
+                this_kind = "uniform_iterable"
+            elif getattr(t, "__origin__", None) in {list}:  # expand this as necessary
+                this_kind = "uniform_iterable"
             else:
                 raise TypeError(f"type within Union or Optional may not be {type(t)}")
 
@@ -92,3 +96,27 @@ class Optional:
 
 # Convert to singleton
 Optional = Optional()
+
+
+class UniformIterable:
+    def __init__(self, element_type, container_name):
+        if type(element_type) is type and issubclass(
+            element_type, (AbstractType, ConcreteType)
+        ):
+            element_type = element_type()
+        if type(element_type) is MetaWrapper:
+            element_type = element_type.Type()
+        self.element_type = element_type
+        self.container_name = container_name
+
+    def __repr__(self):
+        return f"{self.container_name}[{self.element_type}]"
+
+
+class List:
+    def __getitem__(self, element_type):
+        return UniformIterable(element_type, self.__class__.__qualname__)
+
+
+# Convert to singleton
+List = List()

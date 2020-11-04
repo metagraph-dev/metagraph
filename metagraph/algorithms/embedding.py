@@ -1,3 +1,4 @@
+import metagraph as mg
 from metagraph import abstract_algorithm
 from metagraph.types import Graph, Matrix, Vector, NodeMap, GraphSageNodeEmbedding
 from typing import Tuple
@@ -14,6 +15,17 @@ def node2vec_train(
     epochs: int,
     learning_rate: float,
 ) -> Tuple[Matrix, NodeMap]:
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("embedding.train.graph2vec")
+def graph2vec_train(
+    graphs: mg.List[Graph(edge_type="set", is_directed=False)],
+    subgraph_degree: int,
+    embedding_size: int,
+    epochs: int,
+    learning_rate: float,
+) -> Matrix:
     pass  # pragma: no cover
 
 

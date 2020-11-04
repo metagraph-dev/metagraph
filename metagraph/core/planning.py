@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Any
 from .plugin import ConcreteType
-from .typing import Combo
+from .typing import Combo, UniformIterable
 from collections import abc
 import inspect
 import numpy as np
@@ -334,6 +334,29 @@ class AlgorithmPlan:
 
             if not param_type.is_satisfied_by(arg_type):
                 return param_type
+        elif isinstance(param_type, UniformIterable):
+            if isinstance(param_type.element_type, ConcreteType):
+                target_param_types = [
+                    AlgorithmPlan._check_arg_type(
+                        resolver, arg_name, arg_value_element, param_type.element_type
+                    )
+                    for arg_value_element in arg_value
+                ]
+                num_unique_target_param_types = len(set(target_param_types))
+                if num_unique_target_param_types == 1:
+                    if target_param_types[0] is None:
+                        return
+                    return param_type[
+                        target_param_types[0]
+                    ]  # TODO verify that this translation is handled
+            elif all(
+                isinstance(arg_value_element, param_type.element_type)
+                for arg_value_element in arg_value
+            ):
+                return
+            raise TypeError(
+                f"{arg_name} {arg_value} does not match {param_type.element_type}"
+            )
         elif isinstance(param_type, Combo):
             if arg_value is None:
                 if not param_type.optional:

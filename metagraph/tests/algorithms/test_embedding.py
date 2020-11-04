@@ -64,6 +64,58 @@ def test_node2vec(default_plugin_resolver):
     )
 
 
+def test_graph2vec(default_plugin_resolver):
+    try:
+        from sklearn.mixture import GaussianMixture
+    except:
+        pytest.skip("scikit-learn not installed.")
+
+    dpr = default_plugin_resolver
+    complete_graphs = [
+        nx.complete_graph(np.arange(i * 30, i * 30 + 20)) for i in range(12)
+    ]
+    path_graphs = [nx.path_graph(10 * (i + 1)) for i in range(12)]
+    random_graphs = [nx.connected_watts_strogatz_graph(30, 10, 0.5) for i in range(12)]
+    nx_graphs = complete_graphs + path_graphs + random_graphs
+    graphs = list(map(dpr.wrappers.Graph.NetworkXGraph, nx_graphs))
+    subgraph_degree = 10
+    embedding_size = 2
+    epochs = 8
+    learning_rate = 5e-2
+
+    def cmp_func(matrix):
+        np_matrix = matrix.as_dense(copy=False)
+        gmm = GaussianMixture(3)
+        predicted_labels = gmm.fit_predict(np_matrix)
+
+        complete_graph_labels = predicted_labels[0 : len(complete_graphs)]
+        path_graph_labels = predicted_labels[
+            len(complete_graphs) : len(complete_graphs) + len(random_graphs)
+        ]
+        random_graph_labels = predicted_labels[
+            len(complete_graphs) + len(random_graphs) :
+        ]
+
+        assert len(np.unique(complete_graph_labels)) == 1
+        assert len(np.unique(path_graph_labels)) == 1
+        assert len(np.unique(random_graph_labels)) == 1
+
+        complete_graph_label = complete_graph_labels[0]
+        path_graph_label = path_graph_labels[0]
+        random_graph_label = random_graph_labels[0]
+
+        assert complete_graph_label != path_graph_label != random_graph_label
+
+    MultiVerify(dpr).compute(
+        "embedding.train.graph2vec",
+        graphs,
+        subgraph_degree,
+        embedding_size,
+        epochs,
+        learning_rate,
+    ).normalize(dpr.types.Matrix.NumpyMatrixType).custom_compare(cmp_func)
+
+
 def test_graphwave(default_plugin_resolver):
     dpr = default_plugin_resolver
 
