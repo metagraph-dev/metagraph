@@ -188,54 +188,86 @@ def test_graphwave(default_plugin_resolver):
     )
 
 
-# def test_hope_katz(default_plugin_resolver):
-#     dpr = default_plugin_resolver
+def test_hope_katz(default_plugin_resolver):
+    try:
+        from sklearn.mixture import GaussianMixture
+    except:
+        pytest.skip("scikit-learn not installed.")
 
-#     # make two unidirectional circle graphs connected by one node
-#     a_nodes = np.arange(10)
-#     b_nodes = np.arange(10, 20)
+    dpr = default_plugin_resolver
 
-#     nx_graph = nx.DiGraph()
+    # Random Graph Generation Parameters
 
-#     for i in range(9):
-#         a_src_node = a_nodes[i]
-#         a_dst_node = a_nodes[i+1]
-#         b_src_node = b_nodes[i]
-#         b_dst_node = b_nodes[i+1]
-#         nx_graph.add_edge(a_src_node, a_dst_node, weight = 25)
-#         nx_graph.add_edge(b_src_node, b_dst_node, weight = 25)
+    graph_size = 100
+    erdos_renyi_probability = 0.9
 
-#     nx_graph.add_edge(0, 1_000, weight = 1)
-#     nx_graph.add_edge(10, 1_000, weight = 1)
+    # Generate Graph (two Erdos-Renyi graphs connected by bridge)
 
-#     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    a_graph = nx.erdos_renyi_graph(graph_size, p=erdos_renyi_probability, directed=True)
+    a_end_node = max(a_graph.nodes())
 
-#     mv = MultiVerify(dpr)
+    b_graph = nx.erdos_renyi_graph(
+        len(a_graph.nodes()), p=erdos_renyi_probability, directed=True
+    )
+    b_graph = nx.relabel_nodes(
+        b_graph, {i: i + len(a_graph.nodes()) * 2 for i in a_graph.nodes()}
+    )
+    b_end_node = max(b_graph.nodes())
 
-#     embedding_size = 10
-#     embedding = mv.compute(
-#         "embedding.train.hope.katz",
-#         graph,
-#         embedding_size,
-#     )
+    nx_graph = nx.compose(a_graph, b_graph)
 
-#     def cmp_func(embedding):
-#         np_matrix = embedding.matrix.as_dense(copy=False)
+    number_of_bridging_nodes = 5
+    assert number_of_bridging_nodes < len(a_graph.nodes)
+    for start_node_delta in range(number_of_bridging_nodes):
+        nx_graph.add_edge(
+            a_end_node + start_node_delta, a_end_node + start_node_delta + 1
+        )
+        nx_graph.add_edge(
+            b_end_node + start_node_delta, b_end_node + start_node_delta + 1
+        )
 
-#         mean_a_vector = np.stack(np_matrix[embedding.nodes[a_node]] for a_node in a_nodes).mean(axis=0)
-#         mean_b_vector = np.stack(np_matrix[embedding.nodes[b_node]] for b_node in b_nodes).mean(axis=0)
+    center_node_id = max(nx_graph.nodes()) * 2
+    nx_graph.add_edge(a_end_node + number_of_bridging_nodes, center_node_id)
+    nx_graph.add_edge(b_end_node + number_of_bridging_nodes, center_node_id)
 
-#         max_dist_from_mean_a = max(euclidean_dist(mean_a_vector, np_matrix[embedding.nodes[a_node]]) for a_node in a_nodes)
-#         max_dist_from_mean_b = max(euclidean_dist(mean_b_vector, np_matrix[embedding.nodes[b_node]]) for b_node in b_nodes)
+    # Verify Results
 
-#         print(f"max_dist_from_mean_a {repr(max_dist_from_mean_a)}")
-#         print(f"max_dist_from_mean_b {repr(max_dist_from_mean_b)}")
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    embedding_size = 24
+    beta = 0.1
 
-#         assert False
+    def cmp_func(matrix_node_map_pair):
+        matrix, node_map = matrix_node_map_pair
 
-#     embedding.normalize(dpr.types.NodeEmbedding.NumpyNodeEmbeddingType).custom_compare(
-#         cmp_func
-#     )
+        a_indices = node_map[a_graph.nodes]
+        b_indices = node_map[b_graph.nodes]
+
+        gmm = GaussianMixture(2)
+        predicted_labels = gmm.fit_predict(matrix.value)
+        a_labels = predicted_labels[a_indices]
+        b_labels = predicted_labels[b_indices]
+
+        a_histogram = np.histogram(a_labels, bins=[0, 1])[0]
+        b_histogram = np.histogram(b_labels, bins=[0, 1])[0]
+
+        assert any(a_histogram > 95)
+        assert any(b_histogram > 95)
+
+        a_label = np.argmax(a_histogram)
+        b_label = np.argmax(b_histogram)
+        a_variances = np.sum(gmm.covariances_[a_label] * np.eye(embedding_size), axis=0)
+        b_variances = np.sum(gmm.covariances_[b_label] * np.eye(embedding_size), axis=0)
+
+        assert a_variances.max() < 0.20
+        assert b_variances.max() < 0.20
+
+    MultiVerify(dpr).compute(
+        "embedding.train.hope.katz", graph, embedding_size, beta,
+    ).normalize(
+        (dpr.types.Matrix.NumpyMatrixType, dpr.types.NodeMap.NumpyNodeMapType)
+    ).custom_compare(
+        cmp_func
+    )
 
 
 def test_graph_sage_mean(default_plugin_resolver):
