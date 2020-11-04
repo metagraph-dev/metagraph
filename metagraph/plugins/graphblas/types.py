@@ -370,7 +370,7 @@ if has_grblas:
         Matrix positional index is the NodeId. Only information about the edges is preserved in the Matrix.
         Information about which nodes are present in the graph are contained in the nodes Vector. NodeIds
         missing from `nodes` are assumed to be missing in the graph. Otherwise they are contained in the graph,
-        including orphan nodes.
+        including isolate nodes.
         """
 
         def __init__(self, matrix, nodes=None):

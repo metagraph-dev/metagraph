@@ -6,12 +6,13 @@ if has_pandas:
 
     @translator
     def edgemap_to_edgeset(x: PandasEdgeMap, **props) -> PandasEdgeSet:
-        return PandasEdgeSet(x.value, x.src_label, x.dst_label)
+        return PandasEdgeSet(
+            x.value, x.src_label, x.dst_label, is_directed=x.is_directed
+        )
 
 
 if has_pandas and has_scipy:
     import pandas as pd
-    import scipy.sparse as ss
     from ..scipy.types import ScipyEdgeMap, ScipyEdgeSet
 
     @translator

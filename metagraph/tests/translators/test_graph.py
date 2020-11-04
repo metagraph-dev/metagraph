@@ -8,7 +8,7 @@ from metagraph.plugins.numpy.types import NumpyNodeSet
 from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet, ScipyGraph
 from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.graphblas.types import GrblasEdgeMap
-from metagraph.plugins.pandas.types import PandasEdgeMap
+from metagraph.plugins.pandas.types import PandasEdgeSet
 from metagraph import NodeLabels
 import networkx as nx
 import scipy.sparse as ss
@@ -249,6 +249,64 @@ def test_graph_roundtrip_undirected_weighted_nodevals(default_plugin_resolver):
         g, {edge: int(wgt) for edge, wgt in zip(edges, edge_weights)}, name="weight"
     )
     rt.verify_round_trip(NetworkXGraph(g))
+
+
+def test_graph_edgeset_oneway_directed(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    g = nx.DiGraph()
+    g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
+    g.add_edges_from([(1, 3), (3, 1), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)])
+    graph = NetworkXGraph(g)
+    df = pd.DataFrame(
+        {"source": [3, 3, 1, 5, 7, 9, 11, 5], "target": [5, 1, 3, 7, 9, 3, 10, 5]}
+    )
+    edgeset = PandasEdgeSet(df, is_directed=True)
+    rt.verify_one_way(graph, edgeset)
+
+
+def test_graph_edgeset_oneway_directed_symmetric(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    g = nx.DiGraph()
+    g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
+    g.add_edges_from(
+        [(1, 3), (3, 1), (3, 5), (5, 3), (3, 9), (9, 3), (5, 5), (11, 10), (10, 11)]
+    )
+    graph = NetworkXGraph(g)
+    df = pd.DataFrame(
+        {
+            "source": [1, 3, 3, 5, 3, 9, 5, 11, 10],
+            "target": [3, 1, 5, 3, 9, 3, 5, 10, 11],
+        }
+    )
+    edgeset = PandasEdgeSet(df, is_directed=True)
+    rt.verify_one_way(graph, edgeset)
+
+
+def test_graph_edgeset_oneway_undirected(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    g = nx.Graph()
+    g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
+    g.add_edges_from([(1, 3), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)])
+    graph = NetworkXGraph(g)
+    df = pd.DataFrame(
+        {"source": [11, 1, 3, 5, 7, 9, 5], "target": [10, 3, 5, 7, 9, 3, 5]}
+    )
+    edgeset = PandasEdgeSet(df, is_directed=False)
+    rt.verify_one_way(graph, edgeset)
+
+
+def test_graph_nodeset_oneway(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    g = nx.Graph()
+    nodes = [1, 3, 5, 7, 8, 9, 10, 11, 15]
+    node_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0, 0.01, 15.2]
+    edges = [(1, 3), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)]
+    g.add_nodes_from(nodes)
+    g.add_edges_from(edges)
+    nx.set_node_attributes(
+        g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
+    )
+    rt.verify_one_way(NetworkXGraph(g), NumpyNodeSet(nodes))
 
 
 def test_networkx_scipy_graph_from_edgemap(default_plugin_resolver):

@@ -213,4 +213,52 @@ class RoundTripper:
            e. If the translation from `start` through the translator and on to `end` is not possible (no translators
                  satisfy the required types), raise an error.
         """
-        raise NotImplementedError()
+        ct_start = self.resolver.typeclass_of(start)
+        ct_end = self.resolver.typeclass_of(end)
+        at_start = ct_start.abstract
+        at_end = ct_end.abstract
+        if at_start is at_end:
+            raise TypeError(f"start and end must have different abstract types")
+        # Find all translators across abstract types
+        for (source, target), trans_func in self.resolver.translators.items():
+            if source.abstract is at_start and target.abstract is at_end:
+                # Find the translation path
+                prep_plan = MultiStepTranslator.find_translation(
+                    self.resolver, ct_start, source
+                )
+                if prep_plan.unsatisfiable:
+                    raise UnreachableTranslationError(
+                        f"Unable to verify translator from {source} to {target}. Impossible to reach source."
+                    )
+                finish_plan = MultiStepTranslator.find_translation(
+                    self.resolver, target, ct_end
+                )
+                if finish_plan.unsatisfiable:
+                    raise UnreachableTranslationError(
+                        f"Unable to verify translator from {source} to {target}. Impossible to return from target."
+                    )
+
+                # Apply the translations
+                prep_obj = prep_plan(start)
+                ct_prep = self.resolver.typeclass_of(prep_obj)
+                assert (
+                    ct_prep is source
+                ), f"Translation from {ct_start} to {source} returned an object of type {ct_prep}"
+                inflight_obj = trans_func(prep_obj, resolver=self.resolver)
+                ct_inflight = self.resolver.typeclass_of(inflight_obj)
+                assert (
+                    ct_inflight is target
+                ), f"Translation from {source} to {target} returned an object of type {ct_inflight}"
+                unverified_obj = finish_plan(inflight_obj)
+                ct_unverified = self.resolver.typeclass_of(unverified_obj)
+                assert (
+                    ct_unverified is ct_end
+                ), f"Translation from {target} to {ct_end} returned an object of type {ct_unverified}"
+                # Check for equivalency with `end`
+                waypoints = [prep_plan.src_type] + prep_plan.dst_types
+                waypoints = waypoints[:-1] + [source, target] + finish_plan.dst_types
+                self.mv.compare_values(
+                    end,
+                    unverified_obj,
+                    f"one-way trip from {'->'.join(wp.__name__ for wp in waypoints)}",
+                )

@@ -6,7 +6,7 @@ from metagraph import NodeLabels
 from metagraph.tests.util import default_plugin_resolver
 from . import RoundTripper
 from metagraph.plugins.python.types import PythonNodeMap
-from metagraph.plugins.numpy.types import NumpyNodeMap
+from metagraph.plugins.numpy.types import NumpyNodeMap, NumpyNodeSet
 from metagraph.plugins.graphblas.types import GrblasNodeMap
 import numpy as np
 import grblas
@@ -19,6 +19,15 @@ def test_nodemap_roundtrip(default_plugin_resolver):
     rt.verify_round_trip(NumpyNodeMap(vals, node_ids=nodes))
     rt.verify_round_trip(NumpyNodeMap(vals.astype(int), node_ids=nodes))
     rt.verify_round_trip(NumpyNodeMap(vals.astype(bool), node_ids=nodes))
+
+
+def test_nodemap_nodeset_oneway(default_plugin_resolver):
+    rt = RoundTripper(default_plugin_resolver)
+    nodes = np.array([1, 2, 42, 99])
+    vals = np.array([12.5, 33.4, -1.2, 0.0])
+    start = NumpyNodeMap(vals, node_ids=nodes)
+    end = NumpyNodeSet(nodes)
+    rt.verify_one_way(start, end)
 
 
 def test_python_2_numpy_node_ids(default_plugin_resolver):

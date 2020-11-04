@@ -342,7 +342,7 @@ Graph
 -----
 
 A combination of edges and nodes, each of which may hold values or not.
-Additionally, a Graph may have orphan nodes (containing no edges), which
+Additionally, a Graph may have isolate nodes (containing no edges), which
 an EdgeSet/Map cannot have.
 
 Abstract Properties:
@@ -407,7 +407,7 @@ If any edge has a weight, all edges must have a weight.
 
     ``.node_vals``: optional ``np.ndarray``
 
-The sparse matrix must be a square matrix sized to hold all nodes in the graph (including orphan nodes).
+The sparse matrix must be a square matrix sized to hold all nodes in the graph (including isolate nodes).
 
 If ``nodes`` is None, the nodes are assumed to be sequential for [0..nrows] of the matrix.
 If the nodes are not sequential, the ``node_list`` provides a mapping from matrix index to NodeId.

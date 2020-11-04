@@ -10,10 +10,13 @@ if has_scipy:
 
     @translator
     def edgemap_to_edgeset(x: ScipyEdgeMap, **props) -> ScipyEdgeSet:
+        aprops = ScipyEdgeMap.Type.compute_abstract_properties(x, {"is_directed"})
         data = x.value.copy()
         # Force all values to be 1's to indicate no weights
         data.data = np.ones_like(data.data)
-        return ScipyEdgeSet(data, x.node_list)
+        ses = ScipyEdgeSet(data, x.node_list)
+        ScipyEdgeSet.Type.preset_abstract_properties(ses, **aprops)
+        return ses
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:

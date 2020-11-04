@@ -289,7 +289,7 @@ These algorithms are small utility functions which perform common operations nee
 .. py:function:: util.graph.filter_edges(graph: Graph(edge_type="map"), func: Callable[[Any], bool]) -> Graph
 
     Removes edges if filter function returns True.
-    All nodes remain, even if they becomes orphan nodes in the graph.
+    All nodes remain, even if they becomes isolate nodes in the graph.
 
 .. py:function:: util.graph.assign_uniform_weight(graph: Graph, weight: Any = 1) -> Graph(edge_type="map")
 

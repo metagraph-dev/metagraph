@@ -27,10 +27,13 @@ if has_grblas:
 
     @translator
     def edgemap_to_edgeset(x: GrblasEdgeMap, **props) -> GrblasEdgeSet:
+        aprops = GrblasEdgeMap.Type.compute_abstract_properties(x, "is_directed")
         data = x.value.dup()
         # Force all values to be 1's to indicate no weights
         data[:, :](data.S) << 1
-        return GrblasEdgeSet(data)
+        ges = GrblasEdgeSet(data)
+        GrblasEdgeSet.Type.preset_abstract_properties(ges, **aprops)
+        return ges
 
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
