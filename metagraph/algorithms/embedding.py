@@ -63,3 +63,16 @@ def graph_sage_mean_train(
 ) -> GraphSageNodeEmbedding:
     # returned embeddings will have size equal to layer_sizes[-1]
     pass  # pragma: no cover
+
+
+@abstract_algorithm("embedding.train.line")
+def line_train(
+    graph: Graph,
+    walks_per_node: int,
+    negative_sample_count: int,
+    embedding_size: int,
+    epochs: int,
+    learning_rate: float,
+    batch_size: int,
+) -> Tuple[Matrix, NodeMap]:
+    pass  # pragma: no cover

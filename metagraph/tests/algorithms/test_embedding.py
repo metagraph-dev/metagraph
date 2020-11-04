@@ -437,3 +437,96 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
                 assert 20 <= unseen_b_node_neighbor_index < 50
 
     matrix.normalize(dpr.types.Matrix.NumpyMatrixType).custom_compare(cmp_func)
+
+
+def test_line(default_plugin_resolver):
+    try:
+        from sklearn.mixture import GaussianMixture
+    except:
+        pytest.skip("scikit-learn not installed.")
+
+    dpr = default_plugin_resolver
+
+    # Graph Generation Parameters
+
+    layer_sizes = [100, 20, 10, 20, 100, 20, 10, 20, 100]
+
+    # Generate Graph
+
+    nx_graph = nx.Graph()
+
+    all_nodes = list(range(sum(layer_sizes)))
+
+    for node in all_nodes:
+        nx_graph.add_node(node)
+
+    layer_index_to_end_indices = np.cumsum(layer_sizes).tolist()
+    layer_index_to_start_indices = [0] + layer_index_to_end_indices[:-1]
+    layer_index_to_nodes = [
+        all_nodes[start:end]
+        for start, end in zip(layer_index_to_start_indices, layer_index_to_end_indices)
+    ]
+    assert layer_sizes == list(map(len, layer_index_to_nodes))
+
+    for layer_index, layer_nodes in enumerate(layer_index_to_nodes[:-1]):
+        next_layer_nodes = layer_index_to_nodes[layer_index + 1]
+        for layer_node in layer_nodes:
+            for next_layer_node in next_layer_nodes:
+                nx_graph.add_edge(layer_node, next_layer_node)
+
+    assert nx.is_connected(nx_graph)
+
+    def cmp_func(matrix_node_map_pair):
+        matrix, node_map = matrix_node_map_pair
+
+        a_nodes = layer_index_to_nodes[0]
+        b_nodes = layer_index_to_nodes[4]
+        c_nodes = layer_index_to_nodes[8]
+
+        a_indices = node_map[a_nodes]
+        b_indices = node_map[b_nodes]
+        c_indices = node_map[c_nodes]
+
+        gmm = GaussianMixture(3)
+        predicted_labels = gmm.fit_predict(matrix.value)
+        a_labels = predicted_labels[a_indices]
+        b_labels = predicted_labels[b_indices]
+        c_labels = predicted_labels[c_indices]
+
+        assert len(np.unique(a_labels)) == 1
+        assert len(np.unique(b_labels)) == 1
+        assert len(np.unique(c_labels)) == 1
+
+        a_label = a_labels[0]
+        b_label = b_labels[0]
+        c_label = c_labels[0]
+        a_variances = np.sum(gmm.covariances_[a_label] * np.eye(embedding_size), axis=0)
+        b_variances = np.sum(gmm.covariances_[b_label] * np.eye(embedding_size), axis=0)
+        c_variances = np.sum(gmm.covariances_[c_label] * np.eye(embedding_size), axis=0)
+
+        assert a_variances.max() < 0.15
+        assert b_variances.max() < 0.15
+        assert c_variances.max() < 0.15
+
+    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    walks_per_node = 8
+    negative_sample_count = 5
+    embedding_size = 10
+    epochs = 10
+    learning_rate = 0.25
+    batch_size = 1
+
+    MultiVerify(dpr).compute(
+        "embedding.train.line",
+        graph,
+        walks_per_node,
+        negative_sample_count,
+        embedding_size,
+        epochs,
+        learning_rate,
+        batch_size,
+    ).normalize(
+        (dpr.types.Matrix.NumpyMatrixType, dpr.types.NodeMap.NumpyNodeMapType)
+    ).custom_compare(
+        cmp_func
+    )
