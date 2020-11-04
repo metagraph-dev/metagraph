@@ -118,26 +118,45 @@ if has_grblas and has_scipy:
         GrblasEdgeMap.Type.preset_abstract_properties(gem, **aprops)
         return gem
 
-    @translator(include_resolver=True)
-    def graph_from_scipy(x: ScipyGraph, *, resolver, **props) -> GrblasGraph:
+    @translator
+    def graph_from_scipy(x: ScipyGraph, **props) -> GrblasGraph:
         aprops = ScipyGraph.Type.compute_abstract_properties(
-            x, {"node_type", "edge_type"}
+            x, {"node_type", "edge_type", "node_dtype", "edge_dtype", "is_directed"}
         )
-        nodes = None
+
+        size = x.node_list.max() + 1
+
         if aprops["node_type"] == "map":
-            nodes = resolver.translate(x.nodes, GrblasNodeMap)
+            dtype = dtype_mg_to_grblas[x.node_vals.dtype]
+            nodes = grblas.Vector.from_values(
+                x.node_list, x.node_vals, size=size, dtype=dtype
+            )
         elif aprops["node_type"] == "set":
-            if x.nodes is not None:
-                nodes = resolver.translate(x.nodes, GrblasNodeSet)
+            nodes = grblas.Vector.from_values(
+                x.node_list, [True] * len(x.node_list), size=size, dtype=bool
+            )
+        else:
+            raise TypeError(f"Cannot translate with node_type={aprops['node_type']}")
+
+        edges = x.value.tocoo()
+        rows = x.node_list[edges.row]
+        cols = x.node_list[edges.col]
 
         if aprops["edge_type"] == "map":
-            edges = resolver.translate(x.edges, GrblasEdgeMap)
+            dtype = dtype_mg_to_grblas[edges.data.dtype]
+            matrix = grblas.Matrix.from_values(
+                rows, cols, edges.data, nrows=size, ncols=size, dtype=dtype
+            )
         elif aprops["edge_type"] == "set":
-            edges = resolver.translate(x.edges, GrblasEdgeSet)
+            matrix = grblas.Matrix.from_values(
+                rows, cols, [True] * len(rows), nrows=size, ncols=size, dtype=bool
+            )
         else:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
-        return GrblasGraph(edges=edges, nodes=nodes)
+        gg = GrblasGraph(matrix, nodes=nodes)
+        GrblasGraph.Type.preset_abstract_properties(gg, **aprops)
+        return gg
 
     @translator
     def matrix_from_scipy(x: ScipyMatrixType, **props) -> GrblasMatrixType:

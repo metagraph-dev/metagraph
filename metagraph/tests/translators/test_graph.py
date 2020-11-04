@@ -264,7 +264,7 @@ def test_networkx_scipy_graph_from_edgemap(default_plugin_resolver):
     m = ss.coo_matrix(
         ([3, 1, 2, 3, 0], ([0, 1, 1, 2, 2], [2, 1, 2, 0, 2])), dtype=np.int64
     )
-    intermediate = ScipyGraph(ScipyEdgeMap(m, [0, 2, 7]))
+    intermediate = ScipyGraph(m, [0, 2, 7])
     y = dpr.translate(x, ScipyGraph)
     dpr.assert_equal(y, intermediate)
 
@@ -279,10 +279,8 @@ def test_networkx_scipy_graph_from_edgeset(default_plugin_resolver):
     # 0 [    1]
     # 2 [  1 1]
     # 7 [1   1]
-    m = ss.coo_matrix(
-        ([1, 1, 1, 1, 1], ([0, 1, 1, 2, 2], [2, 1, 2, 0, 2])), dtype=np.int64
-    )
-    intermediate = ScipyGraph(ScipyEdgeSet(m, [0, 2, 7]))
+    m = ss.coo_matrix(([1, 1, 1, 1, 1], ([0, 1, 1, 2, 2], [2, 1, 2, 0, 2])), dtype=bool)
+    intermediate = ScipyGraph(m, [0, 2, 7])
     y = dpr.translate(x, ScipyGraph)
     dpr.assert_equal(y, intermediate)
 

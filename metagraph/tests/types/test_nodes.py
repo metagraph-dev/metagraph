@@ -129,9 +129,9 @@ def test_numpy_compact():
             {},
             {},
         )
-    # Non-monotonic
-    with pytest.raises(TypeError):
-        NumpyNodeMap(np.array([5, 1, 3]), node_ids=np.array([7, 0, 2])),
+    # Non-monotonic sorting
+    nnm = NumpyNodeMap(np.array([5, 1, 3]), node_ids=np.array([7, 0, 2]))
+    assert (nnm.value == [1, 3, 5]).all()
 
 
 def test_graphblas():

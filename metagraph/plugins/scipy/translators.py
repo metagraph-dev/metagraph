@@ -42,37 +42,25 @@ if has_scipy and has_networkx:
     @translator
     def graph_from_networkx(x: NetworkXGraph, **props) -> ScipyGraph:
         aprops = NetworkXGraph.Type.compute_abstract_properties(
-            x, {"node_type", "edge_type"}
+            x, {"node_type", "edge_type", "node_dtype", "edge_dtype", "is_directed"}
         )
-        ordered_nodes = list(
-            sorted(x.value.nodes())
-        )  # TODO do we necessarily have to sort? Expensive for large inputs
-        is_sequential = ordered_nodes[-1] == len(ordered_nodes) - 1
-        orphan_nodes = set(nx.isolates(x.value))
+        node_list = list(sorted(x.value.nodes()))
+        node_vals = None
         if aprops["node_type"] == "map":
             node_vals = np.array(
-                [x.value.nodes[n].get(x.node_weight_label) for n in ordered_nodes]
+                [x.value.nodes[n].get(x.node_weight_label) for n in node_list]
             )
-            if is_sequential:
-                nodes = NumpyNodeMap(node_vals)
-            else:
-                nodes = NumpyNodeMap(node_vals, node_ids=np.array(ordered_nodes))
-        elif not is_sequential or orphan_nodes:
-            nodes = NumpyNodeSet(np.array(ordered_nodes))
-        else:
-            nodes = None
-        nodes_with_edges = [n for n in ordered_nodes if n not in orphan_nodes]
+
         if aprops["edge_type"] == "map":
             m = nx.convert_matrix.to_scipy_sparse_matrix(
-                x.value, nodelist=nodes_with_edges, weight=x.edge_weight_label,
+                x.value, nodelist=node_list, weight=x.edge_weight_label,
             )
-            edges = ScipyEdgeMap(m, nodes_with_edges)
         else:
-            m = nx.convert_matrix.to_scipy_sparse_matrix(
-                x.value, nodelist=nodes_with_edges
-            )
-            edges = ScipyEdgeSet(m, nodes_with_edges)
-        return ScipyGraph(edges, nodes)
+            m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=node_list)
+
+        sg = ScipyGraph(m, node_list, node_vals)
+        ScipyGraph.Type.preset_abstract_properties(sg, **aprops)
+        return sg
 
 
 if has_scipy and has_grblas:
@@ -124,23 +112,34 @@ if has_scipy and has_grblas:
     @translator(include_resolver=True)
     def graph_from_graphblas(x: GrblasGraph, *, resolver, **props) -> ScipyGraph:
         aprops = GrblasGraph.Type.compute_abstract_properties(
-            x, {"node_type", "edge_type"}
+            x, {"node_type", "edge_type", "node_dtype", "edge_dtype", "is_directed"}
         )
-        nodes = None
+
+        node_list, node_vals = x.nodes.to_values()
+        node_list = np.array(node_list)
         if aprops["node_type"] == "map":
-            nodes = resolver.translate(x.nodes, NumpyNodeMap)
-        elif aprops["node_type"] == "set":
-            if x.nodes is not None:
-                nodes = resolver.translate(x.nodes, NumpyNodeSet)
+            node_vals = np.array(node_vals)
+        else:
+            node_vals = None
+        size = len(node_list)
+
+        compressed = x.value[node_list, node_list].new()
+        rows, cols, vals = compressed.to_values()
 
         if aprops["edge_type"] == "map":
-            edges = resolver.translate(x.edges, ScipyEdgeMap)
+            dtype = dtype_grblas_to_mg[x.value.dtype.name]
+            matrix = ss.coo_matrix(
+                (vals, (rows, cols)), shape=(size, size), dtype=dtype
+            )
         elif aprops["edge_type"] == "set":
-            edges = resolver.translate(x.edges, ScipyEdgeSet)
+            ones = np.ones_like(rows)
+            matrix = ss.coo_matrix((ones, (rows, cols)), shape=(size, size), dtype=bool)
         else:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
-        return ScipyGraph(edges=edges, nodes=nodes)
+        sg = ScipyGraph(matrix, node_list, node_vals)
+        ScipyGraph.Type.preset_abstract_properties(sg, **aprops)
+        return sg
 
 
 if has_scipy and has_pandas:

@@ -18,7 +18,9 @@ if has_grblas:
     def grblas_triangle_count(graph: GrblasGraph) -> int:
         # Burkhardt method: num_triangles = sum(sum(A @ A) * A) / 6
         # We do it in two steps: a matrix multiplication then a reduction
-        A = graph.edges.value
+        node_list, _ = graph.nodes.to_values()
+        node_list = list(node_list)
+        A = graph.value[node_list, node_list].new()
         val = A.mxm(
             A.T,  # Transpose here assumes symmetric matrix stored by row (the default for SuiteSparse:GraphBLAS)
             gb.semiring.plus_pair[
@@ -35,19 +37,19 @@ if has_grblas:
     ) -> GrblasNodeMap:
         # `scale_edges` matrix does the bulk of the work; it's what distributes
         # the current value of a vertex to its neighbors
-        A = graph.edges.value
+        A = graph.value
         N = A.ncols
         scale_edges = A.apply(gb.unary.one).new(dtype=float)
         node_scale = scale_edges.reduce_rows().new()  # num edges
         node_scale << node_scale.apply(gb.unary.minv)  # 1 / num_edges
         index, vals = node_scale.to_values()  # TODO: implement diag and use here
         node_scale_diag = gb.Matrix.from_values(index, index, vals, ncols=N, nrows=N)
-        scale_edges(mask=scale_edges.S)[:, :] = 0.85
+        scale_edges(mask=scale_edges.S)[:, :] = damping
         scale_edges << scale_edges.T.mxm(node_scale_diag)  # 0.85 / num_edges
 
         # `base` vector gets added to the result every iteration
         base = gb.Vector.new(float, N)
-        base[:] = 0.15 / N
+        base[:] = (1 - damping) / N
 
         # `r` vector holds the results
         r = gb.Vector.new(float, N)
@@ -65,30 +67,32 @@ if has_grblas:
                 break
         return GrblasNodeMap(r)
 
-    @concrete_algorithm("util.graph.build")
-    def grblas_graph_build(
-        edges: Union[GrblasEdgeSet, GrblasEdgeMap],
-        nodes: Union[GrblasNodeSet, GrblasNodeMap, None],
-    ) -> GrblasGraph:
-        return GrblasGraph(edges, nodes)
+    # @concrete_algorithm("util.graph.build")
+    # def grblas_graph_build(
+    #     edges: Union[GrblasEdgeSet, GrblasEdgeMap],
+    #     nodes: Union[GrblasNodeSet, GrblasNodeMap, None],
+    # ) -> GrblasGraph:
+    #     raise NotImplementedError()
 
     @concrete_algorithm("subgraph.extract_subgraph")
     def grblas_extract_subgraph(
         graph: GrblasGraph, nodes: GrblasNodeSet
     ) -> GrblasGraph:
-        g = graph.edges.value
+        aprops = GrblasGraph.Type.compute_abstract_properties(
+            graph, {"is_directed", "node_type", "edge_type", "node_dtype", "edge_dtype"}
+        )
+        g = graph.value
         chosen_nodes, _ = nodes.value.to_values()
         chosen_nodes = list(chosen_nodes)
         g2 = gb.Matrix.new(g.dtype, g.nrows, g.ncols)
         g2[chosen_nodes, chosen_nodes] << g[chosen_nodes, chosen_nodes].new()
-        edges = GrblasEdgeMap(g2)
-        # Handle node values
-        if graph.nodes is not None and isinstance(graph.nodes, GrblasNodeMap):
-            n = graph.nodes.value
-            n2 = gb.Vector.new(n.dtype, n.size)
-            n2[chosen_nodes] << n2[chosen_nodes].new()
-            nodes = n2
-        return GrblasGraph(edges, nodes)
+
+        n = graph.nodes
+        n2 = gb.Vector.new(n.dtype, n.size)
+        n2[chosen_nodes] << n[chosen_nodes].new()
+        gg = GrblasGraph(g2, n2)
+        GrblasGraph.Type.preset_abstract_properties(gg, **aprops)
+        return gg
 
     # @concrete_algorithm("subgraph.sample.node_sampling")
     # def grblas_node_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:

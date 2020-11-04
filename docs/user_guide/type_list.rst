@@ -365,12 +365,15 @@ Can be translated to:
 :ConcreteType: ``GrblasGraph.Type``
 :value_type: ``GrblasGraph``
 :data objects:
-    ``.edges``: ``GrblasEdgeSet`` or ``GrblasEdgeMap``
+    ``.value``: adjacency ``grblas.Matrix``
 
-    ``.nodes``: optional ``GrblasNodeSet`` or ``GrblasNodeMap``
+    ``.nodes``: optional ``grblas.Vector``
 
-If ``nodes`` is None, the nodes are assumed to be fully represented by the nodes in the
-EdgeSet or EdgeMap.
+The position index in the sparse matrix indicates the NodeId.
+
+If ``nodes`` is None, the nodes are assumed to be sequential for [0..nrows] of the matrix.
+``nodes`` indicate which nodes are present in the graph and may also indicate the value associated
+with each node.
 
 → NetworkX Graph
 ~~~~~~~~~~~~~~~~
@@ -398,12 +401,19 @@ If any edge has a weight, all edges must have a weight.
 :ConcreteType: ``ScipyGraph.Type``
 :value_type: ``ScipyGraph``
 :data objects:
-    ``.edges``: ``ScipyEdgeSet`` or ``ScipyEdgeMap``
+    ``.value``: adjacency ``scipy.sparse.spmatrix``
 
-    ``.nodes``: optional ``NumpyNodeSet`` or ``NumpyNodeMap``
+    ``.node_list``: optional ``np.ndarray``
 
-If ``nodes`` is None, the nodes are assumed to be fully represented by the nodes in the
-EdgeSet or EdgeMap.
+    ``.node_vals``: optional ``np.ndarray``
+
+The sparse matrix must be a square matrix sized to hold all nodes in the graph (including orphan nodes).
+
+If ``nodes`` is None, the nodes are assumed to be sequential for [0..nrows] of the matrix.
+If the nodes are not sequential, the ``node_list`` provides a mapping from matrix index to NodeId.
+
+If values are associated with each node, they will be contained in ``node_vals``. Otherwise it will
+be None.
 
 
 BipartiteGraph

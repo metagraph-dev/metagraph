@@ -358,55 +358,61 @@ def test_graph_build(default_plugin_resolver):
     |   _9   |
     3  /     2
     | /      |
-    3 --4--- 4      0
+    3 --4--- 4      9
     """
-    graph_ss_matrix = ss.csr_matrix(
+    edgemap_ss_matrix = ss.csr_matrix(
         np.array(
             [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0]], dtype=np.int64
         )
     )
-    edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    nodes = dpr.wrappers.NodeSet.NumpyNodeSet(mask=np.ones(6, dtype=bool))
-    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
+    graph_ss_matrix = edgemap_ss_matrix.copy()
+    graph_ss_matrix.resize(6, 6)
+    edgemap = dpr.wrappers.EdgeMap.ScipyEdgeMap(edgemap_ss_matrix, [1, 3, 4, 5])
+    nodeset = dpr.wrappers.NodeSet.NumpyNodeSet({1, 2, 3, 4, 5, 9})
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix, [1, 3, 4, 5, 2, 9])
+    mv.compute("util.graph.build", edgemap, nodeset).assert_equal(expected_answer)
 
     # Edge Map + Node Map
     r"""
-    1(10) --1--- 5(50)      2(99)
+    1(10) --1--- 5(50)      2(98)
     |           /  |
     |    ___9__/   |
     3   /          2
     |  /           |
-    3(30) --4--- 4(40)      0(99)
+    3(30) --4--- 4(40)      9(99)
     """
-    graph_ss_matrix = ss.csr_matrix(
-        np.array(
-            [[0, 3, 0, 1], [3, 0, 4, 9], [0, 4, 0, 2], [1, 9, 2, 0]], dtype=np.int64
-        )
+    node_map_data = np.array([99, 10, 98, 30, 40, 50])
+    nodemap = dpr.wrappers.NodeMap.NumpyNodeMap(
+        node_map_data, node_ids=[9, 1, 2, 3, 4, 5]
     )
-    edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    node_map_data = np.array([99, 10, 99, 30, 40, 50])
-    nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data)
-    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(
+        graph_ss_matrix, [1, 3, 4, 5, 9, 2], [10, 30, 40, 50, 99, 98]
+    )
+    mv.compute("util.graph.build", edgemap, nodemap).assert_equal(expected_answer)
 
     # Edge Set + Node Map
     r"""
-    1(10) ------ 5(50)      2(99)
+    1(10) ------ 5(50)      2(98)
     |           /  |
     |    ______/   |
     |   /          |
     |  /           |
-    3(30) ------ 4(40)      0(99)
+    3(30) ------ 4(40)      9(99)
     """
-    graph_ss_matrix = ss.csr_matrix(
+    edgeset_ss_matrix = ss.csr_matrix(
         np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0]], dtype=bool)
     )
-    edges = dpr.wrappers.EdgeSet.ScipyEdgeSet(graph_ss_matrix, [1, 3, 4, 5])
-    node_map_data = np.array([99, 10, 99, 30, 40, 50])
-    nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data)
-    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
+    graph_ss_matrix = edgeset_ss_matrix.copy()
+    graph_ss_matrix.resize(6, 6)
+    edgeset = dpr.wrappers.EdgeSet.ScipyEdgeSet(edgeset_ss_matrix, [1, 3, 4, 5])
+    node_map_data = np.array([99, 10, 98, 30, 40, 50])
+    nodemap = dpr.wrappers.NodeMap.NumpyNodeMap(
+        node_map_data, node_ids=[9, 1, 2, 3, 4, 5]
+    )
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(
+        graph_ss_matrix, [1, 3, 4, 5, 2, 9], [10, 30, 40, 50, 98, 99]
+    )
+    mv.compute("util.graph.build", edgeset, nodemap).assert_equal(expected_answer)
 
     # Edge Set + Node Set
     r"""
@@ -415,15 +421,11 @@ def test_graph_build(default_plugin_resolver):
     |   _/   |
     |  /     |
     | /      |
-    3 ------ 4      0
+    3 ------ 4      9
     """
-    graph_ss_matrix = ss.csr_matrix(
-        np.array([[0, 1, 0, 1], [1, 0, 1, 1], [0, 1, 0, 1], [1, 1, 1, 0]], dtype=bool)
-    )
-    edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1, 3, 4, 5])
-    nodes = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids=np.array([0, 1, 2, 3, 4, 5]))
-    expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-    mv.compute("util.graph.build", edges, nodes).assert_equal(expected_answer)
+    nodeset = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids=np.array([9, 1, 2, 3, 4, 5]))
+    expected_answer = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix, [1, 3, 4, 5, 9, 2])
+    mv.compute("util.graph.build", edgeset, nodeset).assert_equal(expected_answer)
 
 
 # TODO This test tests that the concrete types don't depend on node lists being sorted; enable when node list order-independence is implemented

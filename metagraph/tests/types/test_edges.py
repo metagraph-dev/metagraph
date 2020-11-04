@@ -197,6 +197,21 @@ def test_scipy():
         {},
         {},
     )
+    #    0 2 7      2 7 0
+    # 0 [1 2  ]  2 [0 3  ]
+    # 2 [  0 3]  7 [3    ]
+    # 7 [  3  ]  0 [2   1]
+    g_int_reordered = ss.coo_matrix(
+        ([0, 3, 3, 2, 1], ([0, 0, 1, 2, 2], [0, 1, 0, 0, 2])), dtype=np.int64
+    )
+    ScipyEdgeMap.Type.assert_equal(
+        ScipyEdgeMap(g_int, [0, 2, 7]),
+        ScipyEdgeMap(g_int_reordered, [2, 7, 0]),
+        iprops,
+        iprops,
+        {},
+        {},
+    )
     with pytest.raises(AssertionError):
         ScipyEdgeMap.Type.assert_equal(
             ScipyEdgeMap(g_int, [0, 2, 7]),

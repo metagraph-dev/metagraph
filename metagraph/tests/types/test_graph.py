@@ -1,10 +1,7 @@
 import pytest
 
-grblas = pytest.importorskip("grblas")
-
 from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.scipy.types import ScipyGraph, ScipyEdgeMap
-from metagraph.plugins.numpy.types import NumpyNodeMap
 import networkx as nx
 import numpy as np
 import scipy.sparse as ss
@@ -168,8 +165,8 @@ def test_scipy():
         )
     # Node index affects comparison
     ScipyGraph.Type.assert_equal(
-        ScipyGraph(ScipyEdgeMap(g_int, [0, 2, 7])),
-        ScipyGraph(ScipyEdgeMap(g_int, [0, 2, 7])),
+        ScipyGraph(g_int, [0, 2, 7]),
+        ScipyGraph(g_int, [0, 2, 7]),
         aprops,
         aprops,
         {},
@@ -177,19 +174,27 @@ def test_scipy():
     )
     with pytest.raises(AssertionError):
         ScipyGraph.Type.assert_equal(
-            ScipyGraph(ScipyEdgeMap(g_int, [0, 2, 7])),
-            ScipyGraph(ScipyEdgeMap(g_int, [0, 1, 2])),
+            ScipyGraph(g_int, [0, 2, 7]),
+            ScipyGraph(g_int, [0, 1, 2]),
             aprops,
             aprops,
             {},
             {},
         )
     # Node weights affect comparison
-    nodes1 = NumpyNodeMap(np.array([10, 20, 30]))
-    nodes2 = NumpyNodeMap(np.array([10, 20, 33]))
+    nodes1 = np.array([10, 20, 30])
+    nodes2 = np.array([10, 20, 33])
     ScipyGraph.Type.assert_equal(
-        ScipyGraph(ScipyEdgeMap(g_int), nodes1),
-        ScipyGraph(ScipyEdgeMap(g_int), nodes1),
+        ScipyGraph(g_int, node_vals=nodes1),
+        ScipyGraph(g_int, node_vals=nodes1),
+        {**aprops, "node_type": "map"},
+        {**aprops, "node_type": "map"},
+        {},
+        {},
+    )
+    ScipyGraph.Type.assert_equal(
+        ScipyGraph(g_int, [0, 2, 7], node_vals=nodes1),
+        ScipyGraph(g_int, [0, 2, 7], node_vals=nodes1),
         {**aprops, "node_type": "map"},
         {**aprops, "node_type": "map"},
         {},
@@ -197,8 +202,162 @@ def test_scipy():
     )
     with pytest.raises(AssertionError):
         ScipyGraph.Type.assert_equal(
-            ScipyGraph(ScipyEdgeMap(g_int), nodes1),
-            ScipyGraph(ScipyEdgeMap(g_int), nodes2),
+            ScipyGraph(g_int, node_vals=nodes1),
+            ScipyGraph(g_int, node_vals=nodes2),
+            {**aprops, "node_type": "map"},
+            {**aprops, "node_type": "map"},
+            {},
+            {},
+        )
+
+
+def test_graphblas():
+    grblas = pytest.importorskip("grblas")
+    from metagraph.plugins.graphblas.types import GrblasGraph
+
+    # [1 2  ]
+    # [  0 3]
+    # [  3  ]
+    aprops = {
+        "is_directed": True,
+        "node_type": "set",
+        "edge_type": "map",
+        "edge_dtype": "int",
+    }
+    m_int = grblas.Matrix.from_values(
+        [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], nrows=3, ncols=3, dtype=int
+    )
+    m_float = grblas.Matrix.from_values(
+        [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 2, 0, 3, 3], nrows=3, ncols=3, dtype=float
+    )
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_int), GrblasGraph(m_int.dup()), aprops, aprops, {}, {}
+    )
+    m_close = m_float.dup()
+    m_close[0, 0] << 1.0000000000001
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_close),
+        GrblasGraph(m_float),
+        {**aprops, "edge_dtype": "float"},
+        {**aprops, "edge_dtype": "float"},
+        {},
+        {},
+    )
+    m_diff = grblas.Matrix.from_values(
+        [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 3, 0, 3, 3], nrows=3, ncols=3, dtype=int
+    )
+    #                                                                       ^^^ changed
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_int), GrblasGraph(m_diff), aprops, aprops, {}, {}
+        )
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_int),
+            GrblasGraph(
+                grblas.Matrix.from_values(
+                    [0, 0, 1, 1, 2], [0, 1, 1, 2, 0], [1, 2, 0, 3, 3], dtype=int
+                )
+                # change is here                                       ^^^
+            ),
+            aprops,
+            aprops,
+            {},
+            {},
+        )
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_int),
+            GrblasGraph(
+                grblas.Matrix.from_values(
+                    [0, 0, 1, 1, 2, 2],
+                    [0, 1, 1, 2, 1, 2],
+                    [1, 2, 0, 3, 3, 0],
+                    dtype=int,
+                )
+                # extra element                          ^^^                 ^^^                 ^^^
+            ),
+            aprops,
+            aprops,
+            {},
+            {},
+        )
+    # Active nodes affects comparison
+    m_sparse = grblas.Matrix.new(dtype=m_int.dtype, nrows=8, ncols=8)
+    m_sparse[[0, 2, 7], [0, 2, 7]] << m_int
+    active = grblas.Vector.from_values([0, 2, 7], [True, True, True], size=8)
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_sparse, active),
+        GrblasGraph(m_sparse, active),
+        aprops,
+        aprops,
+        {},
+        {},
+    )
+    active_extra = grblas.Vector.from_values(
+        [0, 2, 4, 7], [True, True, True, True], size=8
+    )
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_sparse, active),
+            GrblasGraph(m_sparse, active_extra),
+            aprops,
+            aprops,
+            {},
+            {},
+        )
+    # The active mask only looks at structure, not values. So this next test should fail.
+    active_mixed_boolean = grblas.Vector.from_values(
+        [0, 2, 4, 7], [True, True, False, True], size=8
+    )
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_sparse, active),
+            GrblasGraph(m_sparse, active_mixed_boolean),
+            aprops,
+            aprops,
+            {},
+            {},
+        )
+    m_sparse_other = grblas.Matrix.new(dtype=m_int.dtype, nrows=8, ncols=8)
+    m_sparse_other[[0, 5, 7], [0, 5, 7]] << m_int
+    active_other = grblas.Vector.from_values([0, 5, 7], [True, True, True], size=8)
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_sparse, active),
+            GrblasGraph(m_sparse_other, active_other),
+            aprops,
+            aprops,
+            {},
+            {},
+        )
+    # Test different size matrices
+    m_sparse_big = grblas.Matrix.new(dtype=m_int.dtype, nrows=28, ncols=28)
+    m_sparse_big[[0, 2, 7], [0, 2, 7]] << m_int
+    active_big = grblas.Vector.from_values([0, 2, 7], [True, True, True], size=28)
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_sparse_big, nodes=active_big),
+        GrblasGraph(m_sparse, nodes=active),
+        aprops,
+        aprops,
+        {},
+        {},
+    )
+    # Node weights affect comparison
+    nodes1 = grblas.Vector.from_values([0, 1, 2], [10, 20, 30])
+    nodes2 = grblas.Vector.from_values([0, 1, 2], [10, 20, 33])
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_int, nodes1),
+        GrblasGraph(m_int, nodes1),
+        {**aprops, "node_type": "map"},
+        {**aprops, "node_type": "map"},
+        {},
+        {},
+    )
+    with pytest.raises(AssertionError):
+        GrblasGraph.Type.assert_equal(
+            GrblasGraph(m_int, nodes=nodes1),
+            GrblasGraph(m_int, nodes=nodes2),
             {**aprops, "node_type": "map"},
             {**aprops, "node_type": "map"},
             {},

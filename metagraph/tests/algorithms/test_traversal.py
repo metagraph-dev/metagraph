@@ -15,12 +15,13 @@ def test_all_pairs_shortest_paths(default_plugin_resolver):
     C --4--- D
     """
     dpr = default_plugin_resolver
+    node_list = [12, 13, 4, 19]
     graph_ss_matrix = ss.csr_matrix(
         np.array(
             [[0, 1, 3, 0], [1, 0, 9, 2], [3, 9, 0, 4], [0, 2, 4, 0]], dtype=np.int64
         )
     )
-    graph = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix)
+    graph = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix, node_list)
     parents_ss_matrix = ss.csr_matrix(
         np.array(
             [[0, 0, 0, 1], [1, 0, 0, 1], [2, 0, 0, 2], [1, 3, 3, 0]], dtype=np.int64
@@ -32,12 +33,8 @@ def test_all_pairs_shortest_paths(default_plugin_resolver):
         )
     )
     expected_answer = (
-        dpr.wrappers.Graph.ScipyGraph(
-            dpr.wrappers.EdgeMap.ScipyEdgeMap(parents_ss_matrix)
-        ),
-        dpr.wrappers.Graph.ScipyGraph(
-            dpr.wrappers.EdgeMap.ScipyEdgeMap(lengths_ss_matrix)
-        ),
+        dpr.wrappers.Graph.ScipyGraph(parents_ss_matrix, node_list),
+        dpr.wrappers.Graph.ScipyGraph(lengths_ss_matrix, node_list),
     )
     MultiVerify(dpr).compute("traversal.all_pairs_shortest_paths", graph).assert_equal(
         expected_answer

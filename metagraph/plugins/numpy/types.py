@@ -15,6 +15,12 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             (node_ids is None) ^ (mask is None),
             "Either node_ids or mask must be present, but not both",
         )
+
+        # TODO: continue to accept mask as input
+        #       coerce data into nicer format
+        #       sorted node_ids
+        #       use np.searchsorted for fast lookup
+
         if mask is not None:
             self._assert_instance(mask, np.ndarray)
             self._assert(mask.dtype == bool, "Only boolean masks are allowed")
@@ -24,7 +30,9 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
                 self.node_set = node_ids
                 self.node_array = np.array(list(node_ids))
                 self.node_array.sort()
-            elif isinstance(node_ids, np.ndarray):
+            elif isinstance(node_ids, (np.ndarray, list, tuple)):
+                if not isinstance(node_ids, np.ndarray):
+                    node_ids = np.array(node_ids)
                 self.node_array = node_ids
                 self.node_set = set(node_ids)
             else:
@@ -207,13 +215,21 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
         If there are not missing nodes, mask and node_ids are not required.
         """
         super().__init__()
-        self._assert_instance(data, np.ndarray)
+        self._assert_instance(data, (np.ndarray, list, tuple))
+        if not isinstance(data, np.ndarray):
+            data = np.array(data)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
         self.value = data
         self.mask = None
         self.id2pos = None
         self.pos2id = None
+
+        # TODO: continue to accept mask or node_ids
+        #       coerce data into a consistent format:
+        #       sorted node_ids
+        #       values of the same size as node_ids
+        #       use np.searchsorted for fast lookup
 
         # Check input data
         if mask is not None:
@@ -229,18 +245,24 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 pos2id = np.empty((len(node_ids),), dtype=int)
                 for node_id, pos in node_ids.items():
                     pos2id[pos] = node_id
-            elif isinstance(node_ids, np.ndarray):
+            elif isinstance(node_ids, (np.ndarray, list, tuple)):
+                if not isinstance(node_ids, np.ndarray):
+                    node_ids = np.array(node_ids)
                 pos2id = node_ids
                 id2pos = {node_id: pos for pos, node_id in enumerate(node_ids)}
             else:
                 raise ValueError(f"Invalid type for node_ids: {type(node_ids)}")
-            self.id2pos = id2pos
-            self.pos2id = pos2id
-            # Ensure all node ids are monotonically increasing
-            self._assert(np.all(np.diff(pos2id) > 0), "Node IDs must be ordered")
             self._assert(
                 len(id2pos) == len(data), f"node_ids must be the same length as data"
             )
+            # Ensure all node ids are monotonically increasing
+            if not np.all(np.diff(pos2id) > 0):
+                sorter = np.argsort(pos2id)
+                pos2id = pos2id[sorter]
+                id2pos = {node_id: pos for pos, node_id in enumerate(pos2id)}
+                self.value = data[sorter]
+            self.id2pos = id2pos
+            self.pos2id = pos2id
 
     def __len__(self):
         return self.num_nodes
