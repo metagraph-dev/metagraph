@@ -14,9 +14,7 @@ if has_scipy:
         data = x.value.copy()
         # Force all values to be 1's to indicate no weights
         data.data = np.ones_like(data.data)
-        ses = ScipyEdgeSet(data, x.node_list)
-        ScipyEdgeSet.Type.preset_abstract_properties(ses, **aprops)
-        return ses
+        return ScipyEdgeSet(data, x.node_list, aprops=aprops)
 
     @translator
     def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
@@ -61,9 +59,7 @@ if has_scipy and has_networkx:
         else:
             m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=node_list)
 
-        sg = ScipyGraph(m, node_list, node_vals)
-        ScipyGraph.Type.preset_abstract_properties(sg, **aprops)
-        return sg
+        return ScipyGraph(m, node_list, node_vals, aprops=aprops)
 
 
 if has_scipy and has_grblas:
@@ -93,9 +89,7 @@ if has_scipy and has_grblas:
         sm = ss.coo_matrix(
             ([True] * len(rows), (rows, cols)), shape=gm.shape, dtype=bool
         )
-        ses = ScipyEdgeSet(sm, node_list=active_nodes)
-        ScipyEdgeSet.Type.preset_abstract_properties(ses, **aprops)
-        return ses
+        return ScipyEdgeSet(sm, node_list=active_nodes, aprops=aprops)
 
     @translator
     def edgemap_from_graphblas(x: GrblasEdgeMap, **props) -> ScipyEdgeMap:
@@ -108,9 +102,7 @@ if has_scipy and has_grblas:
             dtype=dtype_grblas_to_mg[x.value.dtype.name],
             shape=gm.shape,
         )
-        sem = ScipyEdgeMap(sm, node_list=active_nodes)
-        ScipyEdgeMap.Type.preset_abstract_properties(sem, **aprops)
-        return sem
+        return ScipyEdgeMap(sm, node_list=active_nodes, aprops=aprops)
 
     @translator(include_resolver=True)
     def graph_from_graphblas(x: GrblasGraph, *, resolver, **props) -> ScipyGraph:
@@ -140,9 +132,7 @@ if has_scipy and has_grblas:
         else:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
-        sg = ScipyGraph(matrix, node_list, node_vals)
-        ScipyGraph.Type.preset_abstract_properties(sg, **aprops)
-        return sg
+        return ScipyGraph(matrix, node_list, node_vals, aprops=aprops)
 
 
 if has_scipy and has_pandas:
@@ -171,11 +161,7 @@ if has_scipy and has_pandas:
             (weights, (source_positions, target_positions)),
             shape=(num_nodes, num_nodes),
         ).tocsr()
-        ss_edgemap = ScipyEdgeMap(matrix, node_list)
-        ScipyEdgeMap.Type.preset_abstract_properties(
-            ss_edgemap, is_directed=is_directed
-        )
-        return ss_edgemap
+        return ScipyEdgeMap(matrix, node_list, aprops={"is_directed": is_directed})
 
     @translator
     def edgeset_from_pandas(x: PandasEdgeSet, **props) -> ScipyEdgeSet:
@@ -197,9 +183,4 @@ if has_scipy and has_pandas:
             (np.ones(len(source_positions)), (source_positions, target_positions)),
             shape=(num_nodes, num_nodes),
         ).tocsr()
-        ss_edgeset = ScipyEdgeSet(matrix, node_list)
-        # Set is_directed property
-        ScipyEdgeSet.Type.preset_abstract_properties(
-            ss_edgeset, is_directed=is_directed
-        )
-        return ss_edgeset
+        return ScipyEdgeSet(matrix, node_list, aprops={"is_directed": is_directed})

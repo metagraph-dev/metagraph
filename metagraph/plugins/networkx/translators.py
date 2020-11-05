@@ -43,6 +43,4 @@ if has_networkx and has_scipy:
             }
             nx.set_node_attributes(nx_graph, node_weights, name="weight")
 
-        nxg = NetworkXGraph(nx_graph)
-        NetworkXGraph.Type.preset_abstract_properties(nxg, **aprops)
-        return nxg
+        return NetworkXGraph(nx_graph, aprops=aprops)

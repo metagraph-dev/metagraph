@@ -31,9 +31,7 @@ if has_grblas:
         data = x.value.dup()
         # Force all values to be 1's to indicate no weights
         data[:, :](data.S) << 1
-        ges = GrblasEdgeSet(data)
-        GrblasEdgeSet.Type.preset_abstract_properties(ges, **aprops)
-        return ges
+        return GrblasEdgeSet(data, aprops=aprops)
 
     @translator
     def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
@@ -98,9 +96,7 @@ if has_grblas and has_scipy:
             nrows=size,
             ncols=size,
         )
-        gbes = GrblasEdgeSet(out)
-        GrblasEdgeSet.Type.preset_abstract_properties(gbes, **aprops)
-        return gbes
+        return GrblasEdgeSet(out, aprops=aprops)
 
     @translator
     def edgemap_from_scipy(x: ScipyEdgeMap, **props) -> GrblasEdgeMap:
@@ -117,9 +113,7 @@ if has_grblas and has_scipy:
             ncols=size,
             dtype=dtype,
         )
-        gem = GrblasEdgeMap(out)
-        GrblasEdgeMap.Type.preset_abstract_properties(gem, **aprops)
-        return gem
+        return GrblasEdgeMap(out, aprops=aprops)
 
     @translator
     def graph_from_scipy(x: ScipyGraph, **props) -> GrblasGraph:
@@ -157,9 +151,7 @@ if has_grblas and has_scipy:
         else:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
-        gg = GrblasGraph(matrix, nodes=nodes)
-        GrblasGraph.Type.preset_abstract_properties(gg, **aprops)
-        return gg
+        return GrblasGraph(matrix, nodes=nodes, aprops=aprops)
 
     @translator
     def matrix_from_scipy(x: ScipyMatrixType, **props) -> GrblasMatrixType:

@@ -457,8 +457,9 @@ class Wrapper(metaclass=MetaWrapper):
         # Point new Type class at this wrapper
         cls.Type.value_type = cls
 
-    def __init__(self):
-        pass
+    def __init__(self, *, aprops=None):
+        if aprops is not None:
+            self.Type.preset_abstract_properties(self, **aprops)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):

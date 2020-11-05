@@ -73,8 +73,8 @@ if has_grblas:
                 assert obj1.isequal(obj2, check_dtype=True)
 
     class GrblasNodeSet(NodeSetWrapper, abstract=NodeSet):
-        def __init__(self, data):
-            super().__init__()
+        def __init__(self, data, *, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
@@ -111,8 +111,8 @@ if has_grblas:
                 assert shape_match.nvals == v1.nvals, f"node ids do not match"
 
     class GrblasNodeMap(NodeMapWrapper, abstract=NodeMap):
-        def __init__(self, data):
-            super().__init__()
+        def __init__(self, data, *, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
@@ -237,8 +237,8 @@ if has_grblas:
         The actual values in the Matrix are not used.
         """
 
-        def __init__(self, data):
-            super().__init__()
+        def __init__(self, data, *, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(data, grblas.Matrix)
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
@@ -294,8 +294,8 @@ if has_grblas:
         no information about nodes which have no edges.
         """
 
-        def __init__(self, data):
-            super().__init__()
+        def __init__(self, data, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(data, grblas.Matrix)
             self._assert(data.nrows == data.ncols, "adjacency matrix must be square")
             self.value = data
@@ -373,7 +373,7 @@ if has_grblas:
         including isolate nodes.
         """
 
-        def __init__(self, matrix, nodes=None):
+        def __init__(self, matrix, nodes=None, *, aprops=None):
             """
             matrix: grblas.Matrix
             nodes: grblas.Vector
@@ -382,7 +382,7 @@ if has_grblas:
                 are considered as part of the graph. If nodes is provided, all non-missing items are considered
                 as active nodes in the graph. In other words, the structural mask is used, not the values.
             """
-            super().__init__()
+            super().__init__(aprops=aprops)
             self._assert_instance(matrix, grblas.Matrix)
             nrows, ncols = matrix.nrows, matrix.ncols
             self._assert(

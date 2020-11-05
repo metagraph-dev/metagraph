@@ -8,11 +8,11 @@ dtype_casting = {"str": str, "float": float, "int": int, "bool": bool}
 
 
 class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
-    def __init__(self, data):
+    def __init__(self, data, *, aprops=None):
         """
         data: set of node ids
         """
-        super().__init__()
+        super().__init__(aprops=aprops)
         self._assert_instance(data, set)
         self.value = data
 
@@ -47,11 +47,11 @@ class PythonNodeSet(NodeSetWrapper, abstract=NodeSet):
 
 
 class PythonNodeMap(NodeMapWrapper, abstract=NodeMap):
-    def __init__(self, data):
+    def __init__(self, data, *, aprops=None):
         """
         data: dict of node id: weight
         """
-        super().__init__()
+        super().__init__(aprops=aprops)
         self._assert_instance(data, dict)
         self.value = data
 

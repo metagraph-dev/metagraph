@@ -38,9 +38,15 @@ if has_pandas:
 
     class PandasEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         def __init__(
-            self, df, src_label="source", dst_label="target", *, is_directed=True
+            self,
+            df,
+            src_label="source",
+            dst_label="target",
+            *,
+            is_directed=True,
+            aprops=None,
         ):
-            super().__init__()
+            super().__init__(aprops=aprops)
             self._assert_instance(df, pd.DataFrame)
             self.value = df
             self.is_directed = is_directed
@@ -138,6 +144,7 @@ if has_pandas:
             weight_label="weight",
             *,
             is_directed=True,
+            aprops=None,
         ):
             """
             Create a new EdgeMap represented by a weighted edge list
@@ -150,7 +157,7 @@ if has_pandas:
                                           will raise an error
             :param node_label:
             """
-            super().__init__()
+            super().__init__(aprops=aprops)
             self._assert_instance(df, pd.DataFrame)
             self.value = df
             self.is_directed = is_directed

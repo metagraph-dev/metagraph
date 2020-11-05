@@ -71,8 +71,8 @@ if has_scipy:
         The actual values in the matrix are unused.
         """
 
-        def __init__(self, data, node_list=None):
-            super().__init__()
+        def __init__(self, data, node_list=None, *, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(data, ss.spmatrix)
             nrows, ncols = data.shape
             self._assert(nrows == ncols, "Adjacency Matrix must be square")
@@ -149,10 +149,8 @@ if has_scipy:
             they will not survive a roundtrip translation.
         """
 
-        def __init__(
-            self, data, node_list=None,
-        ):
-            super().__init__()
+        def __init__(self, data, node_list=None, *, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(data, ss.spmatrix)
             nrows, ncols = data.shape
             self._assert(nrows == ncols, "Adjacency Matrix must be square")
@@ -254,8 +252,8 @@ if has_scipy:
         node_vals (if populated) contains node weights
         """
 
-        def __init__(self, matrix, node_list=None, node_vals=None):
-            super().__init__()
+        def __init__(self, matrix, node_list=None, node_vals=None, *, aprops=None):
+            super().__init__(aprops=aprops)
             self._assert_instance(matrix, ss.spmatrix)
             nrows, ncols = matrix.shape
             self._assert(
