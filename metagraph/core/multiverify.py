@@ -274,8 +274,8 @@ class MultiVerify:
             except Exception:
                 print(f"[{algo_path}] Performing custom compare against:")
                 if not isinstance(result, tuple):
-                    ret_val = (result,)
-                for item in ret_val:
+                    result = (result,)
+                for item in result:
                     if hasattr(item, "value"):
                         print(item.value)
                     else:

@@ -133,12 +133,6 @@ class BipartiteGraph(AbstractType):
 #################################
 # Embedding
 #################################
-class NodeEmbedding(AbstractType):
-    properties = {
-        "matrix_dtype": DTYPE_CHOICES,
-    }
-
-
 class GraphSageNodeEmbedding(AbstractType):
     pass
 

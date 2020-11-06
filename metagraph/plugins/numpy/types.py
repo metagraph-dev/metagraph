@@ -1,8 +1,8 @@
 from typing import Set, Dict, Any
 import numpy as np
 from metagraph import dtypes, Wrapper
-from metagraph.types import Vector, Matrix, NodeSet, NodeMap, NodeEmbedding
-from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper, NodeEmbeddingWrapper
+from metagraph.types import Vector, Matrix, NodeSet, NodeMap
+from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
 class NumpyVector(Wrapper, abstract=Vector):
@@ -489,20 +489,3 @@ class NumpyMatrix(Wrapper, abstract=Matrix):
                     assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
                 else:
                     assert (d1 == d2).all().all()
-
-
-class NumpyNodeEmbedding(NodeEmbeddingWrapper, abstract=NodeEmbedding):
-    def __init__(self, matrix, nodes=None):
-        super().__init__(matrix, nodes)
-        self._assert_instance(matrix, NumpyMatrix)
-        if nodes is not None:
-            self._assert_instance(nodes, NumpyNodeMap)
-            self._assert(
-                len(nodes) == matrix.value.shape[0],
-                f"Node count ({len(nodes)}) and matrix row count ({matrix.value.shape[0]})do not match.",
-            )
-
-    def copy(self):
-        nodes = None if self.nodes is None else self.nodes.copy()
-        matrix = NumpyMatrix(self.matrix.as_dense(copy=True))
-        return NumpyNodeEmbedding(matrix, nodes=nodes)
