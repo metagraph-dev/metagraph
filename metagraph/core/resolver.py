@@ -6,7 +6,18 @@ import copy
 import inspect
 import warnings
 from collections import defaultdict, abc
-from typing import List, Tuple, Set, Dict, DefaultDict, Callable, Optional, Any, Union
+from typing import (
+    List,
+    Tuple,
+    Set,
+    Dict,
+    DefaultDict,
+    Callable,
+    Optional,
+    Any,
+    Union,
+    TypeVar,
+)
 from .plugin import (
     AbstractType,
     ConcreteType,
@@ -431,8 +442,14 @@ class Resolver:
         origin = getattr(obj, "__origin__", None)
         if origin == abc.Callable:
             return obj, False
-        if origin == Union:
+        elif origin == Union:
             return mgtyping.Union[obj.__args__], True
+        elif origin == list:
+            if isinstance(obj.__args__[0], TypeVar):
+                raise TypeError(
+                    f"{abst_algo.func.__qualname__} {msg} must pass exactly one parameter to List."
+                )
+            return mgtyping.List[obj.__args__[0]], True
 
         if type(obj) is type:
             if issubclass(obj, AbstractType):
@@ -440,10 +457,12 @@ class Resolver:
             # Non-abstract type class is assumed to be Python type
             return obj, False
         if isinstance(obj, mgtyping.Combo):
-            if obj.kind not in {"python", "abstract", "node_id"}:
+            if obj.kind not in {"python", "abstract", "node_id", "uniform_iterable"}:
                 raise TypeError(
                     f"{abst_algo.func.__qualname__} {msg} may not have Concrete types in Union"
                 )
+            return obj, False
+        elif isinstance(obj, mgtyping.UniformIterable):
             return obj, False
         if isinstance(obj, AbstractType):
             return obj, False
@@ -498,15 +517,25 @@ class Resolver:
 
     def _normalize_concrete_type(self, conc_type, abst_type: AbstractType):
         changed = False
+        origin = getattr(conc_type, "__origin__", None)
+
         if isinstance(abst_type, mgtyping.Combo) and not isinstance(
             conc_type, mgtyping.Combo
         ):
-            if getattr(conc_type, "__origin__", None) == Union:
+            if origin == Union:
                 conc_type = mgtyping.Combo(conc_type.__args__, strict=abst_type.strict)
             else:
                 conc_type = mgtyping.Combo(
                     [conc_type], optional=abst_type.optional, strict=abst_type.strict
                 )
+            changed = True
+        elif isinstance(abst_type, mgtyping.UniformIterable) and not isinstance(
+            conc_type, mgtyping.UniformIterable
+        ):
+            if origin == List:
+                conc_type = mgtyping.List(conc_type.__args__[0])
+            else:
+                conc_type = mgtyping.Combo(conc_type)
             changed = True
         elif isinstance(abst_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
@@ -593,7 +622,19 @@ class Resolver:
                         f'[{concrete.func.__qualname__}] argument "{conc_param.name}" does not match name of parameter in abstract function signature'
                     )
 
-                if isinstance(conc_type, mgtyping.Combo):
+                if isinstance(conc_type, mgtyping.UniformIterable):
+                    is_concrete = isinstance(conc_type.element_type, ConcreteType)
+                    valid_concrete = is_concrete and issubclass(
+                        conc_type.element_type.abstract,
+                        abst_type.element_type.__class__,
+                    )
+                    valid_non_concrete = (
+                        not is_concrete
+                        and conc_type.element_type == abst_type.element_type
+                    )
+                    if not valid_concrete and not valid_non_concrete:
+                        raise TypeError(f"{conc_type} does not match {abst_type}")
+                elif isinstance(conc_type, mgtyping.Combo):
                     if abst_type.optional != conc_type.optional:
                         raise TypeError(
                             f"{conc_type} does not match optional flag in {abst_type}"

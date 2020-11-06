@@ -15,7 +15,7 @@ from .core.plugin import (
 from .core import dtypes
 from .core.plugin_registry import PluginRegistry
 from .core.node_labels import NodeLabels
-from .core.typing import Union, Optional
+from .core.typing import Union, Optional, List
 from .types import NodeID
 from . import types, algorithms
 

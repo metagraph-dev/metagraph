@@ -20,7 +20,7 @@ from metagraph.core.resolver import (
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
 import typing
-from typing import Tuple, List, Any
+from typing import Tuple, List, Dict, Any
 from collections import OrderedDict
 
 from .util import site_dir, example_resolver
@@ -137,7 +137,7 @@ def test_register_errors():
         res.register(my_algo2_registry.plugins)
 
     @abstract_algorithm("testing.bad_input_type")
-    def my_algo_bad_input_type(a: List) -> Resolver:  # pragma: no cover
+    def my_algo_bad_list_input_type(a: List) -> Resolver:  # pragma: no cover
         pass
 
     @abstract_algorithm("testing.bad_output_type")
@@ -145,26 +145,48 @@ def test_register_errors():
         pass
 
     @abstract_algorithm("testing.bad_compound_output_type")
-    def my_algo_bad_compound_output_type(
+    def my_algo_bad_compound_list_output_type(
         a: Abstract1,
     ) -> Tuple[List, List]:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match='argument "a" may not be typing.List'):
+    with pytest.raises(TypeError, match="must pass exactly one parameter to List"):
         registry = PluginRegistry("test_register_errors_default_plugin")
-        registry.register(my_algo_bad_input_type)
+        registry.register(my_algo_bad_list_input_type)
         res_tmp = Resolver()
         res_tmp.register(registry.plugins)
 
-    with pytest.raises(TypeError, match="return type may not be an instance of"):
+    with pytest.raises(TypeError, match="return type may not be an instance of type"):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_output_type)
         res_tmp = Resolver()
         res_tmp.register(registry.plugins)
 
-    with pytest.raises(TypeError, match="return type may not be typing.List"):
+    with pytest.raises(TypeError, match="must pass exactly one parameter to List"):
         registry = PluginRegistry("test_register_errors_default_plugin")
-        registry.register(my_algo_bad_compound_output_type)
+        registry.register(my_algo_bad_compound_list_output_type)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    @abstract_algorithm("testing.bad_input_type")
+    def my_algo_bad_dict_input_type(a: Dict) -> Resolver:  # pragma: no cover
+        pass
+
+    @abstract_algorithm("testing.bad_compound_output_type")
+    def my_algo_bad_compound_dict_output_type(
+        a: Abstract1,
+    ) -> Tuple[Dict, Dict]:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match="may not be typing.Dict"):
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(my_algo_bad_dict_input_type)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    with pytest.raises(TypeError, match="may not be typing.Dict"):
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(my_algo_bad_compound_dict_output_type)
         res_tmp = Resolver()
         res_tmp.register(registry.plugins)
 
@@ -297,6 +319,52 @@ def test_union_signatures():
     with pytest.raises(TypeError, match="Cannot mix"):
         res_bad = Resolver()
         res_bad.register(registry.plugins)
+
+
+def test_list_signatures():
+    class Abstract1(AbstractType):
+        pass
+
+    class Abstract2(AbstractType):
+        pass
+
+    @abstract_algorithm("testing.typing_list_types")
+    def typing_list_types(
+        a: typing.List[int],
+        b: typing.Optional[typing.List[float]],
+        c: typing.Union[typing.List[int], typing.List[float]],
+        d: typing.List[Abstract1],
+        e: typing.Optional[typing.List[Abstract1]],
+    ) -> int:
+        pass  # pragma: no cover
+
+    @abstract_algorithm("testing.mg_list_types")
+    def mg_list_types(
+        a: mg.List[int],
+        b: mg.Optional[mg.List[float]],
+        c: mg.Union[mg.List[int], mg.List[float]],
+        d: mg.List[Abstract1],
+        e: mg.Optional[mg.List[Abstract1]],
+    ) -> int:
+        pass  # pragma: no cover
+
+    @abstract_algorithm("testing.mg_list_instances")
+    def mg_list_instances(
+        a: mg.List[Abstract1()],
+        b: mg.Optional[mg.List[Abstract1()]],
+        c: mg.Optional[Abstract2()],
+    ) -> int:
+        pass  # pragma: no cover
+
+    registry = PluginRegistry("test_list_signatures_good")
+    registry.register(Abstract1)
+    registry.register(Abstract2)
+    registry.register(typing_list_types)
+    registry.register(mg_list_types)
+    registry.register(mg_list_instances)
+
+    res_good = Resolver()
+    res_good.register(registry.plugins)
 
 
 def test_incorrect_signature_errors(example_resolver):
