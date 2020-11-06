@@ -68,7 +68,7 @@ def test_node2vec(default_plugin_resolver):
 def test_graph2vec(default_plugin_resolver):
     try:
         from sklearn.mixture import GaussianMixture
-    except:
+    except ModuleNotFoundError:
         pytest.skip("scikit-learn not installed.")
 
     dpr = default_plugin_resolver
@@ -191,7 +191,7 @@ def test_graphwave(default_plugin_resolver):
 def test_hope_katz(default_plugin_resolver):
     try:
         from sklearn.mixture import GaussianMixture
-    except:
+    except ModuleNotFoundError:
         pytest.skip("scikit-learn not installed.")
 
     dpr = default_plugin_resolver
@@ -314,7 +314,7 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
 
     try:
         from sklearn.neighbors import NearestNeighbors
-    except:
+    except ModuleNotFoundError:
         pytest.skip("scikit-learn not installed.")
 
     if "metagraph_stellargraph" not in dir(default_plugin_resolver.plugins):
@@ -442,7 +442,7 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
 def test_line(default_plugin_resolver):
     try:
         from sklearn.mixture import GaussianMixture
-    except:
+    except ModuleNotFoundError:
         pytest.skip("scikit-learn not installed.")
 
     dpr = default_plugin_resolver
