@@ -1,5 +1,4 @@
 from metagraph.tests.util import default_plugin_resolver
-from metagraph.plugins.python.types import PythonNodeMap
 import networkx as nx
 from typing import Tuple
 from . import MultiVerify
@@ -35,7 +34,7 @@ def test_connected_components(default_plugin_resolver):
         # clusters should be:
         # [0, 1, 3, 4]
         # [2, 5, 6, 7]
-        assert x.num_nodes == 8, x.num_nodes
+        assert len(x) == 8, f"{len(x)} != 8"
         c1 = set(x[i] for i in (0, 1, 3, 4))
         c2 = set(x[i] for i in (2, 5, 6, 7))
         assert len(c1) == 1, c1
@@ -77,7 +76,7 @@ def test_strongly_connected_components(default_plugin_resolver):
         # clusters should be:
         # [0, 1, 2]
         # [3]
-        assert x.num_nodes == 4, x.num_nodes
+        assert len(x) == 4, f"{len(x)} != 4"
         c1 = set(x[i] for i in (0, 1, 2))
         c2 = x[3]
         assert len(c1) == 1, c1
@@ -86,7 +85,7 @@ def test_strongly_connected_components(default_plugin_resolver):
 
     MultiVerify(dpr).compute(
         "clustering.strongly_connected_components", graph
-    ).normalize(PythonNodeMap.Type).custom_compare(cmp_func)
+    ).normalize(dpr.types.NodeMap.PythonNodeMapType).custom_compare(cmp_func)
 
 
 def test_triangle_count(default_plugin_resolver):
@@ -145,7 +144,7 @@ def test_louvain_step(default_plugin_resolver):
 
     def cmp_func(x):
         x_graph, modularity_score = x
-        assert x_graph.num_nodes == 8, x_graph.num_nodes
+        assert len(x_graph) == 8, f"{len(x_graph)} != 8"
         assert modularity_score > 0.45
 
     MultiVerify(dpr).compute("clustering.louvain_community", graph).custom_compare(
@@ -183,7 +182,7 @@ def test_label_propagation(default_plugin_resolver):
         # clusters should be:
         # [0, 1, 3, 4]
         # [2, 5, 6, 7]
-        assert x.num_nodes == 8, x.num_nodes
+        assert len(x) == 8, f"{len(x)} != 8"
         c1 = set(x[i] for i in (0, 1, 3, 4))
         c2 = set(x[i] for i in (2, 5, 6, 7))
         assert len(c1) == 1, c1
@@ -193,7 +192,7 @@ def test_label_propagation(default_plugin_resolver):
         assert c1 != c2, f"{c1}, {c2}"
 
     MultiVerify(dpr).compute("clustering.label_propagation_community", graph).normalize(
-        PythonNodeMap
+        dpr.types.NodeMap.PythonNodeMapType
     ).custom_compare(cmp_func)
 
 

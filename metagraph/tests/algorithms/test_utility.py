@@ -8,14 +8,13 @@ from . import MultiVerify
 
 def test_nodeset_choose_random(default_plugin_resolver):
     dpr = default_plugin_resolver
-    py_node_set_unwrapped = {100, 200, 300, 400, 500, 600, 700}
-    py_node_set = dpr.wrappers.NodeSet.PythonNodeSet(py_node_set_unwrapped)
+    py_node_set = {100, 200, 300, 400, 500, 600, 700}
     k = 3
 
     def cmp_func(x):
-        assert x.num_nodes == k
-        assert x.num_nodes < len(py_node_set_unwrapped)
-        assert x.value.issubset(py_node_set_unwrapped)
+        assert len(x) == k
+        assert len(x) < len(py_node_set)
+        assert x.issubset(py_node_set)
 
     MultiVerify(dpr).compute("util.nodeset.choose_random", py_node_set, k).normalize(
         dpr.types.NodeSet.PythonNodeSetType
@@ -32,8 +31,7 @@ def test_nodeset_from_vector(default_plugin_resolver):
 
 def test_nodemap_sort(default_plugin_resolver):
     dpr = default_plugin_resolver
-    py_node_map_unwrapped = {index: index * 100 for index in range(1, 8)}
-    py_node_map = dpr.wrappers.NodeMap.PythonNodeMap(py_node_map_unwrapped)
+    py_node_map = {index: index * 100 for index in range(1, 8)}
     mv = MultiVerify(dpr)
     mv.compute("util.nodemap.sort", py_node_map).assert_equal(
         dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4, 5, 6, 7]))
@@ -54,9 +52,9 @@ def test_nodemap_sort(default_plugin_resolver):
 
 def test_nodemap_select(default_plugin_resolver):
     dpr = default_plugin_resolver
-    node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
+    node_map = {1: 11, 2: 22, 3: 33, 4: 44}
     node_set = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids={2, 3})
-    correct_answer = dpr.wrappers.NodeMap.PythonNodeMap({2: 22, 3: 33})
+    correct_answer = {2: 22, 3: 33}
     MultiVerify(dpr).compute("util.nodemap.select", node_map, node_set).assert_equal(
         correct_answer
     )
@@ -64,8 +62,8 @@ def test_nodemap_select(default_plugin_resolver):
 
 def test_nodemap_filter(default_plugin_resolver):
     dpr = default_plugin_resolver
-    node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
-    correct_answer = dpr.wrappers.NodeSet.PythonNodeSet({2, 4})
+    node_map = {1: 11, 2: 22, 3: 33, 4: 44}
+    correct_answer = {2, 4}
 
     def filter_func(x):
         return x % 2 == 0
@@ -81,11 +79,9 @@ def test_nodemap_filter(default_plugin_resolver):
 
 def test_nodemap_apply(default_plugin_resolver):
     dpr = default_plugin_resolver
-    node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
+    node_map = {1: 11, 2: 22, 3: 33, 4: 44}
     apply_func = lambda x: x * 100
-    correct_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {1: 1100, 2: 2200, 3: 3300, 4: 4400}
-    )
+    correct_answer = {1: 1100, 2: 2200, 3: 3300, 4: 4400}
     MultiVerify(dpr).compute("util.nodemap.apply", node_map, apply_func).assert_equal(
         correct_answer
     )
@@ -93,7 +89,7 @@ def test_nodemap_apply(default_plugin_resolver):
 
 def test_nodemap_reduce(default_plugin_resolver):
     dpr = default_plugin_resolver
-    node_map = dpr.wrappers.NodeMap.PythonNodeMap({1: 11, 2: 22, 3: 33, 4: 44})
+    node_map = {1: 11, 2: 22, 3: 33, 4: 44}
     reduce_func = lambda x, y: x + y
     correct_answer = 110
     MultiVerify(dpr).compute("util.nodemap.reduce", node_map, reduce_func).assert_equal(
@@ -123,10 +119,10 @@ def test_graph_degree(default_plugin_resolver):
         ]
     )
     graph = dpr.wrappers.Graph.NetworkXGraph(g)
-    e_out = dpr.wrappers.NodeMap.PythonNodeMap({0: 2, 1: 1, 2: 2, 3: 2, 4: 1})
-    e_in = dpr.wrappers.NodeMap.PythonNodeMap({0: 3, 1: 1, 2: 2, 3: 0, 4: 2})
-    e_all = dpr.wrappers.NodeMap.PythonNodeMap({0: 5, 1: 2, 2: 4, 3: 2, 4: 3})
-    e_none = dpr.wrappers.NodeMap.PythonNodeMap({i: 0 for i in range(5)})
+    e_out = {0: 2, 1: 1, 2: 2, 3: 2, 4: 1}
+    e_in = {0: 3, 1: 1, 2: 2, 3: 0, 4: 2}
+    e_all = {0: 5, 1: 2, 2: 4, 3: 2, 4: 3}
+    e_none = {i: 0 for i in range(5)}
     mv = MultiVerify(dpr)
     mv.compute("util.graph.degree", graph).assert_equal(e_out)
     mv.compute("util.graph.degree", graph, in_edges=True, out_edges=False).assert_equal(
@@ -173,30 +169,49 @@ def test_graph_aggregate_edges_directed(default_plugin_resolver):
     func = operator.mul
     initial_value = 1.0
 
-    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {0: 2.0, 1: 42.0, 2: 1320.0, 3: 56.0, 4: 864.0, 5: 450.0, 6: 110.0, 7: 6.0,}
-    )
+    expected_answer = {
+        0: 2.0,
+        1: 42.0,
+        2: 1320.0,
+        3: 56.0,
+        4: 864.0,
+        5: 450.0,
+        6: 110.0,
+        7: 6.0,
+    }
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, True
     ).assert_equal(expected_answer)
 
-    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {0: 1.0, 1: 6.0, 2: 120.0, 3: 56.0, 4: 9.0, 5: 10.0, 6: 11.0, 7: 1.0,}
-    )
+    expected_answer = {
+        0: 1.0,
+        1: 6.0,
+        2: 120.0,
+        3: 56.0,
+        4: 9.0,
+        5: 10.0,
+        6: 11.0,
+        7: 1.0,
+    }
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, True
     ).assert_equal(expected_answer)
 
-    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {0: 2.0, 1: 7.0, 2: 11.0, 3: 1.0, 4: 96.0, 5: 45.0, 6: 10.0, 7: 6.0,}
-    )
+    expected_answer = {
+        0: 2.0,
+        1: 7.0,
+        2: 11.0,
+        3: 1.0,
+        4: 96.0,
+        5: 45.0,
+        6: 10.0,
+        7: 6.0,
+    }
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, False
     ).assert_equal(expected_answer)
 
-    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {node: 1.0 for node in range(8)}
-    )
+    expected_answer = {node: 1.0 for node in range(8)}
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, False
     ).assert_equal(expected_answer)
@@ -235,9 +250,16 @@ def test_graph_aggregate_edges_undirected(default_plugin_resolver):
     func = operator.mul
     initial_value = 1.0
 
-    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {0: 2.0, 1: 42.0, 2: 1320.0, 3: 56.0, 4: 864.0, 5: 450.0, 6: 110.0, 7: 6.0,}
-    )
+    expected_answer = {
+        0: 2.0,
+        1: 42.0,
+        2: 1320.0,
+        3: 56.0,
+        4: 864.0,
+        5: 450.0,
+        6: 110.0,
+        7: 6.0,
+    }
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, True, True
     ).assert_equal(expected_answer)
@@ -248,9 +270,7 @@ def test_graph_aggregate_edges_undirected(default_plugin_resolver):
         "util.graph.aggregate_edges", graph, func, initial_value, True, False
     ).assert_equal(expected_answer)
 
-    expected_answer = dpr.wrappers.NodeMap.PythonNodeMap(
-        {node: 1.0 for node in range(8)}
-    )
+    expected_answer = {node: 1.0 for node in range(8)}
     mv.compute(
         "util.graph.aggregate_edges", graph, func, initial_value, False, False
     ).assert_equal(expected_answer)

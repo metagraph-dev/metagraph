@@ -120,8 +120,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             else:
                 raise TypeError("node_ids must be a set or numpy array")
 
-    @property
-    def num_nodes(self):
+    def __len__(self):
         if self.mask is not None:
             node_count = self.mask.sum()
         else:
@@ -134,9 +133,6 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
         else:
             copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
         return copied_node_set
-
-    def __len__(self):
-        return self.num_nodes
 
     def nodes(self):
         if self.mask is not None:
@@ -176,9 +172,7 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             rel_tol=None,
             abs_tol=None,
         ):
-            assert (
-                obj1.num_nodes == obj2.num_nodes
-            ), f"size mismatch: {obj1.num_nodes} != {obj2.num_nodes}"
+            assert len(obj1) == len(obj2), f"size mismatch: {len(obj1)} != {len(obj2)}"
             if obj1.mask is not None and obj2.mask is not None:
                 assert (obj1.mask == obj2.mask).all(), f"node sets do not match"
             elif obj1.mask is not None:
@@ -264,9 +258,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             self.id2pos = id2pos
             self.pos2id = pos2id
 
-    def __len__(self):
-        return self.num_nodes
-
     def _get_single_item(self, node_id):
         if self.mask is not None:
             if not self.mask[node_id]:
@@ -301,8 +292,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             else self._get_single_item(key)
         )
 
-    @property
-    def num_nodes(self):
+    def __len__(self):
         if self.mask is not None:
             # Count number of True in the mask
             return self.mask.sum()
@@ -367,9 +357,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             rel_tol=1e-9,
             abs_tol=0.0,
         ):
-            assert (
-                obj1.num_nodes == obj2.num_nodes
-            ), f"{obj1.num_nodes} != {obj2.num_nodes}"
+            assert len(obj1) == len(obj2), f"{len(obj1)} != {len(obj2)}"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
 
             # Standardize obj1

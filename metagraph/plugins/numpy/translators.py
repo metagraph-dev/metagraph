@@ -2,7 +2,7 @@ import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
 from .types import NumpyMatrix, NumpyVector, NumpyNodeSet, NumpyNodeMap
-from ..python.types import PythonNodeMap, PythonNodeSet
+from ..python.types import PythonNodeMapType, PythonNodeSetType
 
 
 @translator
@@ -11,21 +11,21 @@ def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
 
 
 @translator
-def nodeset_from_python(x: PythonNodeSet, **props) -> NumpyNodeSet:
-    return NumpyNodeSet(np.array(sorted(x.value)))
+def nodeset_from_python(x: PythonNodeSetType, **props) -> NumpyNodeSet:
+    return NumpyNodeSet(np.array(sorted(x)))
 
 
 @translator
-def nodemap_from_python(x: PythonNodeMap, **props) -> NumpyNodeMap:
-    dtype = x._determine_dtype()
+def nodemap_from_python(x: PythonNodeMapType, **props) -> NumpyNodeMap:
+    aprops = PythonNodeMapType.compute_abstract_properties(x, {"dtype"})
+    dtype = aprops["dtype"]
     np_dtype = dtype if dtype != "str" else "object"
-    data = np.empty((len(x.value),), dtype=np_dtype)
-    lookup = {}
-    pyvals = x.value
-    for pos, node_id in enumerate(sorted(pyvals)):
-        data[pos] = pyvals[node_id]
-        lookup[node_id] = pos
-    return NumpyNodeMap(data, node_ids=lookup)
+    data = np.empty((len(x),), dtype=np_dtype)
+    node_ids = np.empty((len(x),), dtype=int)
+    for i, (node_id, val) in enumerate(x.items()):
+        node_ids[i] = node_id
+        data[i] = val
+    return NumpyNodeMap(data, node_ids=node_ids)
 
 
 if has_scipy:

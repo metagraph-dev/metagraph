@@ -2,7 +2,7 @@ import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas, has_scipy
 from ..numpy.types import NumpyVector, NumpyNodeMap, NumpyNodeSet
-from ..python.types import PythonNodeSet
+from ..python.types import PythonNodeSetType
 
 
 if has_grblas:
@@ -45,8 +45,8 @@ if has_grblas:
         return vec
 
     @translator
-    def nodeset_from_python(x: PythonNodeSet, **props) -> GrblasNodeSet:
-        nodes = list(sorted(x.value))
+    def nodeset_from_python(x: PythonNodeSetType, **props) -> GrblasNodeSet:
+        nodes = list(sorted(x))
         size = nodes[-1] + 1
         vec = grblas.Vector.from_values(nodes, [1] * len(nodes), size=size)
         return GrblasNodeSet(vec)

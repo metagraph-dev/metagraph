@@ -24,6 +24,7 @@ DTYPE_CHOICES = ["float", "int", "bool"]
 
 class Vector(AbstractType):
     properties = {
+        # TODO: remove is_dense
         "is_dense": [False, True],
         "dtype": DTYPE_CHOICES,
     }
@@ -31,6 +32,7 @@ class Vector(AbstractType):
 
 class Matrix(AbstractType):
     properties = {
+        # TODO: remove is_dense
         "is_dense": [False, True],
         "is_square": [False, True],
         "dtype": DTYPE_CHOICES,
@@ -45,8 +47,8 @@ class DataFrame(AbstractType):
 # Nodes
 #################################
 class NodeSet(AbstractType):
-    @Wrapper.required_property
-    def num_nodes(self):
+    @Wrapper.required_method
+    def __len__(self):
         raise NotImplementedError()
 
     @Wrapper.required_method
@@ -69,8 +71,8 @@ class NodeMap(AbstractType):
     def __contains__(self, key):
         raise NotImplementedError()
 
-    @Wrapper.required_property
-    def num_nodes(self):
+    @Wrapper.required_method
+    def __len__(self):
         raise NotImplementedError()
 
 

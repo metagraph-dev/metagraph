@@ -511,8 +511,10 @@ class Resolver:
         elif isinstance(abst_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
         ):
+            if type(conc_type) is type and issubclass(conc_type, ConcreteType):
+                return conc_type(), True
             # handle Python classes used as concrete types
-            if conc_type in self.class_to_concrete:
+            elif conc_type in self.class_to_concrete:
                 conc_type = self.class_to_concrete[conc_type]()
                 changed = True
             else:

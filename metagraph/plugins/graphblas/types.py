@@ -78,8 +78,7 @@ if has_grblas:
             self._assert_instance(data, grblas.Vector)
             self.value = data
 
-        @property
-        def num_nodes(self):
+        def __len__(self):
             return self.value.nvals
 
         def __contains__(self, key):
@@ -119,8 +118,7 @@ if has_grblas:
         def __getitem__(self, node_id):
             return self.value[node_id].value
 
-        @property
-        def num_nodes(self):
+        def __len__(self):
             return self.value.nvals
 
         def __contains__(self, key):

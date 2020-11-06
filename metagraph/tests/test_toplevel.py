@@ -13,13 +13,13 @@ def test_lazy_attributes():
         assert hasattr(mg, attr)
 
     with pytest.raises(TypeError, match="does not have a registered type"):
-        mg.typeclass_of(set())
+        mg.typeclass_of([])
 
     with pytest.raises(TypeError, match="does not have a registered type"):
-        mg.type_of(set())
+        mg.type_of([])
 
     with pytest.raises(TypeError, match="does not have a registered type"):
-        mg.translate(set(), "unknown type")
+        mg.translate([], "unknown type")
 
     assert isinstance(mg.resolver, Resolver)
     assert isinstance(mg.algos, Namespace)
@@ -27,10 +27,20 @@ def test_lazy_attributes():
 
 def test_dir():
     del mg.resolver  # make it seem like it was not loaded
-    assert set(
-        ["resolver", "translate", "typeclass_of", "type_of", "algos", "AbstractType"]
-    ).issubset(dir(mg))
+    assert {
+        "resolver",
+        "translate",
+        "typeclass_of",
+        "type_of",
+        "algos",
+        "AbstractType",
+    }.issubset(dir(mg))
     mg.resolver  # trigger resolver init
-    assert set(
-        ["resolver", "translate", "typeclass_of", "type_of", "algos", "AbstractType"]
-    ).issubset(dir(mg))
+    assert {
+        "resolver",
+        "translate",
+        "typeclass_of",
+        "type_of",
+        "algos",
+        "AbstractType",
+    }.issubset(dir(mg))

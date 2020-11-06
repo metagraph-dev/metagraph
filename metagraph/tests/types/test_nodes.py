@@ -2,7 +2,7 @@ import pytest
 
 grblas = pytest.importorskip("grblas")
 
-from metagraph.plugins.python.types import PythonNodeMap
+from metagraph.plugins.python.types import PythonNodeMapType
 from metagraph.plugins.numpy.types import NumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap
 from metagraph import NodeLabels
@@ -11,48 +11,38 @@ from grblas import Vector
 
 
 def test_python():
-    PythonNodeMap.Type.assert_equal(
-        PythonNodeMap({"A": 1, "B": 2, "C": 3}),
-        PythonNodeMap({"A": 1, "B": 2, "C": 3}),
+    PythonNodeMapType.assert_equal(
+        {"A": 1, "B": 2, "C": 3},
+        {"A": 1, "B": 2, "C": 3},
         {"dtype": "int"},
         {"dtype": "int"},
         {},
         {},
     )
-    PythonNodeMap.Type.assert_equal(
-        PythonNodeMap({"A": 1, "C": 3.333333333333333333333333, "B": 2}),
-        PythonNodeMap({"A": 1, "C": 3.333333333333333333333334, "B": 2 + 1e-9}),
+    PythonNodeMapType.assert_equal(
+        {"A": 1, "C": 3.333333333333333333333333, "B": 2},
+        {"A": 1, "C": 3.333333333333333333333334, "B": 2 + 1e-9},
         {"dtype": "float"},
         {"dtype": "float"},
         {},
         {},
     )
     with pytest.raises(AssertionError):
-        PythonNodeMap.Type.assert_equal(
-            PythonNodeMap({"A": 1}),
-            PythonNodeMap({"A": 1, "B": 2}),
+        PythonNodeMapType.assert_equal(
+            {"A": 1}, {"A": 1, "B": 2}, {"dtype": "int"}, {"dtype": "int"}, {}, {},
+        )
+    with pytest.raises(AssertionError):
+        PythonNodeMapType.assert_equal(
+            {"A": 1, "B": 22},
+            {"A": 1, "B": 2},
             {"dtype": "int"},
             {"dtype": "int"},
             {},
             {},
         )
     with pytest.raises(AssertionError):
-        PythonNodeMap.Type.assert_equal(
-            PythonNodeMap({"A": 1, "B": 22}),
-            PythonNodeMap({"A": 1, "B": 2}),
-            {"dtype": "int"},
-            {"dtype": "int"},
-            {},
-            {},
-        )
-    with pytest.raises(AssertionError):
-        PythonNodeMap.Type.assert_equal(
-            PythonNodeMap({"A": 1.1}),
-            PythonNodeMap({"A": 1}),
-            {"dtype": "float"},
-            {"dtype": "int"},
-            {},
-            {},
+        PythonNodeMapType.assert_equal(
+            {"A": 1.1}, {"A": 1}, {"dtype": "float"}, {"dtype": "int"}, {}, {},
         )
 
 

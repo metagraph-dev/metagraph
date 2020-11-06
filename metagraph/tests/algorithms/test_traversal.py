@@ -102,10 +102,7 @@ def test_bellman_ford(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
-    expected_answer = (
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
-    )
+    expected_answer = (node_to_parent_mapping, node_to_length_mapping)
     MultiVerify(dpr).compute("traversal.bellman_ford", graph, 0).assert_equal(
         expected_answer
     )
@@ -140,10 +137,7 @@ def test_dijkstra(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
-    expected_answer = (
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
-    )
+    expected_answer = (node_to_parent_mapping, node_to_length_mapping)
     MultiVerify(dpr).compute("traversal.dijkstra", graph, 0).assert_equal(
         expected_answer
     )

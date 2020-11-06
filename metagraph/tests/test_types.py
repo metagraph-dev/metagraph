@@ -10,7 +10,7 @@ def test_nodeset_not_implemented():
         0 in nodeset
 
     with pytest.raises(NotImplementedError):
-        nodeset.num_nodes()
+        len(nodeset)
 
 
 def test_nodemap_not_implemented():
@@ -23,7 +23,7 @@ def test_nodemap_not_implemented():
         nodemap[0]
 
     with pytest.raises(NotImplementedError):
-        nodemap.num_nodes()
+        len(nodemap)
 
 
 def test_node_id():

@@ -9,17 +9,17 @@ if has_networkx:
     import networkx as nx
     import numpy as np
     from .types import NetworkXGraph, NetworkXBipartiteGraph
-    from ..python.types import PythonNodeMap, PythonNodeSet
+    from ..python.types import PythonNodeMapType, PythonNodeSetType
     from ..numpy.types import NumpyVector
 
     @concrete_algorithm("centrality.pagerank")
     def nx_pagerank(
         graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float
-    ) -> PythonNodeMap:
+    ) -> PythonNodeMapType:
         pagerank = nx.pagerank(
             graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
         )
-        return PythonNodeMap(pagerank)
+        return pagerank
 
     @concrete_algorithm("centrality.katz")
     def nx_katz_centrality(
@@ -28,7 +28,7 @@ if has_networkx:
         immediate_neighbor_weight: float,
         maxiter: int,
         tolerance: float,
-    ) -> PythonNodeMap:
+    ) -> PythonNodeMapType:
         katz_centrality_scores = nx.katz_centrality(
             graph.value,
             alpha=attenuation_factor,
@@ -37,7 +37,7 @@ if has_networkx:
             tol=tolerance,
             weight=graph.edge_weight_label,
         )
-        return PythonNodeMap(katz_centrality_scores)
+        return katz_centrality_scores
 
     @concrete_algorithm("cluster.triangle_count")
     def nx_triangle_count(graph: NetworkXGraph) -> int:
@@ -48,37 +48,37 @@ if has_networkx:
         return total_triangles
 
     @concrete_algorithm("clustering.connected_components")
-    def nx_connected_components(graph: NetworkXGraph) -> PythonNodeMap:
-        index_to_label = dict()
+    def nx_connected_components(graph: NetworkXGraph) -> PythonNodeMapType:
+        index_to_label = {}
         for i, nodes in enumerate(nx.connected_components(graph.value)):
             for node in nodes:
                 index_to_label[node] = i
-        return PythonNodeMap(index_to_label,)
+        return index_to_label
 
     @concrete_algorithm("clustering.strongly_connected_components")
-    def nx_strongly_connected_components(graph: NetworkXGraph) -> PythonNodeMap:
-        index_to_label = dict()
+    def nx_strongly_connected_components(graph: NetworkXGraph) -> PythonNodeMapType:
+        index_to_label = {}
         for i, nodes in enumerate(nx.strongly_connected_components(graph.value)):
             for node in nodes:
                 index_to_label[node] = i
-        return PythonNodeMap(index_to_label,)
+        return index_to_label
 
     @concrete_algorithm("clustering.label_propagation_community")
-    def nx_label_propagation_community(graph: NetworkXGraph) -> PythonNodeMap:
+    def nx_label_propagation_community(graph: NetworkXGraph) -> PythonNodeMapType:
         communities = nx.algorithms.community.label_propagation.label_propagation_communities(
             graph.value
         )
-        index_to_label = dict()
+        index_to_label = {}
         for label, nodes in enumerate(communities):
             for node in nodes:
                 index_to_label[node] = label
-        return PythonNodeMap(index_to_label,)
+        return index_to_label
 
     @concrete_algorithm("subgraph.extract_subgraph")
     def nx_extract_subgraph(
-        graph: NetworkXGraph, nodes: PythonNodeSet
+        graph: NetworkXGraph, nodes: PythonNodeSetType
     ) -> NetworkXGraph:
-        subgraph = graph.value.subgraph(nodes.value)
+        subgraph = graph.value.subgraph(nodes)
         return NetworkXGraph(subgraph, edge_weight_label=graph.edge_weight_label)
 
     @concrete_algorithm("subgraph.k_core")
@@ -105,14 +105,14 @@ if has_networkx:
             )
 
     @concrete_algorithm("subgraph.maximal_independent_set")
-    def maximal_independent_set(graph: NetworkXGraph) -> PythonNodeSet:
+    def maximal_independent_set(graph: NetworkXGraph) -> PythonNodeSetType:
         nodes = nx.maximal_independent_set(graph.value)
-        return PythonNodeSet(set(nodes))
+        return set(nodes)
 
     @concrete_algorithm("traversal.bellman_ford")
     def nx_bellman_ford(
         graph: NetworkXGraph, source_node: NodeID
-    ) -> Tuple[PythonNodeMap, PythonNodeMap]:
+    ) -> Tuple[PythonNodeMapType, PythonNodeMapType]:
         predecessors_map, distance_map = nx.bellman_ford_predecessor_and_distance(
             graph.value, source_node
         )
@@ -120,15 +120,12 @@ if has_networkx:
             child: parents[0] if len(parents) > 0 else source_node
             for child, parents in predecessors_map.items()
         }
-        return (
-            PythonNodeMap(single_parent_map,),
-            PythonNodeMap(distance_map,),
-        )
+        return (single_parent_map, distance_map)
 
     @concrete_algorithm("traversal.dijkstra")
     def nx_dijkstra(
         graph: NetworkXGraph, source_node: NodeID  # , max_path_length: float
-    ) -> Tuple[PythonNodeMap, PythonNodeMap]:
+    ) -> Tuple[PythonNodeMapType, PythonNodeMapType]:
         predecessors_map, distance_map = nx.dijkstra_predecessor_and_distance(
             graph.value, source_node,  # cutoff=max_path_length,
         )
@@ -136,10 +133,7 @@ if has_networkx:
             child: parents[0] if len(parents) > 0 else source_node
             for child, parents in predecessors_map.items()
         }
-        return (
-            PythonNodeMap(single_parent_map,),
-            PythonNodeMap(distance_map,),
-        )
+        return (single_parent_map, distance_map)
 
     @concrete_algorithm("traversal.minimum_spanning_tree")
     def nx_minimum_spanning_tree(graph: NetworkXGraph) -> NetworkXGraph:
@@ -152,12 +146,12 @@ if has_networkx:
 
     @concrete_algorithm("centrality.betweenness")
     def nx_betweenness_centrality(
-        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSet], normalize: bool,
-    ) -> PythonNodeMap:
+        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSetType], normalize: bool,
+    ) -> PythonNodeMapType:
         if nodes is None:
             sources = targets = graph.value.nodes
         else:
-            sources = targets = nodes.value
+            sources = targets = nodes
         node_to_score_map = nx.betweenness_centrality_subset(
             graph.value,
             sources=sources,
@@ -165,12 +159,12 @@ if has_networkx:
             normalized=normalize,
             weight=graph.edge_weight_label,
         )
-        return PythonNodeMap(node_to_score_map)
+        return node_to_score_map
 
     @concrete_algorithm("centrality.closeness")
     def nx_closeness_centrality(
-        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSet],
-    ) -> PythonNodeMap:
+        graph: NetworkXGraph, nodes: mg.Optional[PythonNodeSetType],
+    ) -> PythonNodeMapType:
         if nodes is None:
             result = nx.closeness_centrality(
                 graph.value, distance=graph.edge_weight_label
@@ -180,25 +174,25 @@ if has_networkx:
                 node: nx.closeness_centrality(
                     graph.value, node, distance=graph.edge_weight_label
                 )
-                for node in nodes.value
+                for node in nodes
             }
-        return PythonNodeMap(result)
+        return result
 
     @concrete_algorithm("centrality.eigenvector")
     def nx_eigenvector_centrality(
         graph: NetworkXGraph, maxiter: int, tolerance: float
-    ) -> PythonNodeMap:
+    ) -> PythonNodeMapType:
         result = nx.eigenvector_centrality(
             graph.value, maxiter, tolerance, weight=graph.edge_weight_label
         )
-        return PythonNodeMap(result)
+        return result
 
     @concrete_algorithm("centrality.hits")
     def nx_hits_centrality(
         graph: NetworkXGraph, maxiter: int, tolerance: float, normalize: bool,
-    ) -> Tuple[PythonNodeMap, PythonNodeMap]:
+    ) -> Tuple[PythonNodeMapType, PythonNodeMapType]:
         hubs, authority = nx.hits(graph.value, maxiter, tolerance, normalized=normalize)
-        return PythonNodeMap(hubs), PythonNodeMap(authority)
+        return hubs, authority
 
     @concrete_algorithm("traversal.bfs_iter")
     def nx_breadth_first_search(
@@ -266,7 +260,7 @@ if has_networkx:
     @concrete_algorithm("util.graph.degree")
     def nx_graph_degree(
         graph: NetworkXGraph, in_edges: bool, out_edges: bool
-    ) -> PythonNodeMap:
+    ) -> PythonNodeMapType:
         if in_edges and out_edges:
             ins = graph.value.in_degree()
             outs = graph.value.out_degree()
@@ -277,7 +271,7 @@ if has_networkx:
             d = dict(graph.value.out_degree())
         else:
             d = {n: 0 for n in graph.value.nodes()}
-        return PythonNodeMap(d)
+        return d
 
     @concrete_algorithm("util.graph.aggregate_edges")
     def nx_graph_aggregate_edges(
@@ -286,7 +280,7 @@ if has_networkx:
         initial_value: Any,
         in_edges: bool,
         out_edges: bool,
-    ) -> PythonNodeMap:
+    ) -> PythonNodeMapType:
         result_dict = {node: initial_value for node in graph.value.nodes}
         if in_edges or out_edges:
             if in_edges != out_edges:
@@ -302,7 +296,7 @@ if has_networkx:
                     result_dict[start_node] = func(weight, result_dict[start_node])
                 if in_edges:
                     result_dict[end_node] = func(weight, result_dict[end_node])
-        return PythonNodeMap(result_dict)
+        return result_dict
 
     @concrete_algorithm("util.graph.filter_edges")
     def nx_graph_filter_edges(
@@ -333,10 +327,10 @@ if has_networkx:
         )
 
     @concrete_algorithm("clustering.coloring.greedy")
-    def nx_greedy_coloring(graph: NetworkXGraph) -> Tuple[PythonNodeMap, int]:
+    def nx_greedy_coloring(graph: NetworkXGraph) -> Tuple[PythonNodeMapType, int]:
         colors = nx.greedy_color(graph.value)
         unique_colors = set(colors.values())
-        return PythonNodeMap(colors), len(unique_colors)
+        return colors, len(unique_colors)
 
     @concrete_algorithm("subgraph.sample.node_sampling")
     def nx_node_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
@@ -503,33 +497,33 @@ if has_networkx:
 if has_networkx and has_community:
     import community as community_louvain
     from .types import NetworkXGraph
-    from ..python.types import PythonNodeMap
+    from ..python.types import PythonNodeMapType
 
     @concrete_algorithm("clustering.louvain_community")
-    def nx_louvain_community(graph: NetworkXGraph) -> Tuple[PythonNodeMap, float]:
+    def nx_louvain_community(graph: NetworkXGraph) -> Tuple[PythonNodeMapType, float]:
         index_to_label = community_louvain.best_partition(graph.value)
         modularity_score = community_louvain.modularity(index_to_label, graph.value)
         return (
-            PythonNodeMap(index_to_label,),
+            index_to_label,
             modularity_score,
         )
 
 
 if has_networkx and has_pandas:
     from ..pandas.types import PandasEdgeSet, PandasEdgeMap
-    from ..python.types import PythonNodeMap, PythonNodeSet
+    from ..python.types import PythonNodeMapType, PythonNodeSetType
 
     @concrete_algorithm("util.graph.build")
     def nx_graph_build_from_pandas(
         edges: mg.Union[PandasEdgeSet, PandasEdgeMap],
-        nodes: mg.Optional[mg.Union[PythonNodeSet, PythonNodeMap]],
+        nodes: mg.Optional[mg.Union[PythonNodeSetType, PythonNodeMapType]],
     ) -> NetworkXGraph:
         g = nx.DiGraph() if edges.is_directed else nx.Graph()
         if nodes is not None:
-            if type(nodes) is PythonNodeMap:
-                g.add_nodes_from((n, {"weight": v}) for n, v in nodes.value.items())
+            if PythonNodeMapType.is_typeclass_of(nodes):
+                g.add_nodes_from((n, {"weight": v}) for n, v in nodes.items())
             else:
-                g.add_nodes_from(nodes.value)
+                g.add_nodes_from(nodes)
         if type(edges) is PandasEdgeMap:
             df = edges.value[[edges.src_label, edges.dst_label, edges.weight_label]]
             g.add_weighted_edges_from(df.itertuples(index=False, name="WeightedEdge"))

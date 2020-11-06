@@ -14,6 +14,15 @@ except ImportError:
     has_pytest = False
 
 
+def ensure_computed(obj):
+    # Compute any lazy objects
+    if is_dask_collection(obj):
+        obj = obj.compute()
+    elif type(obj) is tuple:
+        obj = tuple(x.compute() if is_dask_collection(x) else x for x in obj)
+    return obj
+
+
 class UnsatisfiableAlgorithmError(Exception):
     pass
 
@@ -157,7 +166,7 @@ class MultiVerify:
             algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
             try:
                 ret_val = plan(*args, **kwargs)
-                results[algo_path] = self._ensure_computed(ret_val)
+                results[algo_path] = ensure_computed(ret_val)
             except Exception:  # pragma: no cover
                 print(f"Failed for {algo_path}")
                 raise
@@ -231,17 +240,9 @@ class MultiVerify:
                 tmp_bind.arguments[name] = tmp_bind.arguments[name]._results[algo]
             algo_key = algo_pair if len(algo_pair) > 1 else algo_pair[0]
             ret_val = exact_algo(*tmp_bind.args, **tmp_bind.kwargs)
-            output_results[algo_key] = self._ensure_computed(ret_val)
+            output_results[algo_key] = ensure_computed(ret_val)
 
         return MultiResult(self, output_results, normalized=True)
-
-    def _ensure_computed(self, obj):
-        # Compute any lazy objects
-        if is_dask_collection(obj):
-            obj = obj.compute()
-        elif type(obj) is tuple:
-            obj = tuple(x.compute() if is_dask_collection(x) else x for x in obj)
-        return obj
 
     def _translate_atomic_type(self, value, dst_type, algo_path):
         try:
@@ -257,7 +258,7 @@ class MultiVerify:
                 f"[{algo_path}] Unable to convert type {type(value)} "
                 f"into type {dst_type} for comparison"
             )
-        return self._ensure_computed(translated_value)
+        return ensure_computed(translated_value)
 
     def custom_compare(self, multi_result: MultiResult, cmp_func: Callable):
         """
@@ -315,8 +316,8 @@ class MultiVerify:
                 self.compare_values(expected_val, result, algo_path, rel_tol, abs_tol)
 
     def compare_values(self, expected_val, val, algo_path, rel_tol=1e-9, abs_tol=0.0):
-        expected_val = self._ensure_computed(expected_val)
-        val = self._ensure_computed(val)
+        expected_val = ensure_computed(expected_val)
+        val = ensure_computed(val)
 
         expected_type = self.resolver.class_to_concrete.get(
             type(expected_val), type(expected_val)
