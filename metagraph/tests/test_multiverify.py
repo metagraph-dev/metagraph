@@ -42,11 +42,11 @@ def test_multiresult_normalize(default_plugin_resolver):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
     nnm = dpr.wrappers.NodeMap.NumpyNodeMap(
-        np.array([1.1, 5.5]), node_ids=np.array([0, 2])
+        np.array([1.1, 5.5]), nodes=np.array([0, 2])
     )
     pnm = {0: 1.1, 2: 5.5}
 
-    mr = MultiResult(mv, {"testing.nnm": (nnm, 1), "testing.pnm": (pnm, 2),})
+    mr = MultiResult(mv, {"testing.nnm": (nnm, 1), "testing.pnm": (pnm, 2)})
     assert not mr._normalized
     norm1 = mr.normalize((dpr.wrappers.NodeMap.GrblasNodeMap, float))
     assert norm1._normalized
@@ -144,7 +144,7 @@ def test_transform(default_plugin_resolver):
     with pytest.raises(TypeError, match="requires at least one MultiResult argument"):
         mv.transform("util.nodemap.select.core_numpy", 1, 2)
 
-    mr_unnormalized = MultiResult(mv, {"testing.foo": 1, "testing.bar": 2,})
+    mr_unnormalized = MultiResult(mv, {"testing.foo": 1, "testing.bar": 2})
 
     with pytest.raises(TypeError, match="must be normalized"):
         mv.transform(

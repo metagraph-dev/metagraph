@@ -88,77 +88,57 @@ class NumpyVector(Wrapper, abstract=Vector):
 
 
 class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
-    def __init__(self, node_ids=None, *, mask=None, aprops=None):
+    def __init__(self, nodes, *, aprops=None):
         super().__init__(aprops=aprops)
-        self.node_array = None
-        self.node_set = None
-        self.mask = None
-        self._assert(
-            (node_ids is None) ^ (mask is None),
-            "Either node_ids or mask must be present, but not both",
-        )
+        self._assert_instance(nodes, (np.ndarray, list, tuple, set))
+        if not isinstance(nodes, np.ndarray):
+            if isinstance(nodes, set):
+                nodes = tuple(nodes)  # np.array doesn't accept sets
+            nodes = np.array(nodes)
+        if len(nodes.shape) != 1:
+            raise TypeError(f"Invalid number of dimensions: {len(nodes.shape)}")
+        if not issubclass(nodes.dtype.type, np.integer):
+            raise TypeError(f"Invalid dtype for NodeSet: {nodes.dtype}")
+        # Ensure sorted
+        nodes.sort()
+        # Ensure no duplicates
+        unique = np.diff(nodes) > 0
+        if not unique.all():
+            tmp = np.empty((unique.sum() + 1,), dtype=nodes.dtype)
+            tmp[0] = nodes[0]
+            tmp[1:] = nodes[1:][unique]
+            nodes = tmp
+        self.value = nodes
 
-        # TODO: continue to accept mask as input
-        #       coerce data into nicer format
-        #       sorted node_ids
-        #       use np.searchsorted for fast lookup
-
-        if mask is not None:
-            self._assert_instance(mask, np.ndarray)
-            self._assert(mask.dtype == bool, "Only boolean masks are allowed")
-            self.mask = mask
-        else:
-            if isinstance(node_ids, set):
-                self.node_set = node_ids
-                self.node_array = np.array(list(node_ids))
-                self.node_array.sort()
-            elif isinstance(node_ids, (np.ndarray, list, tuple)):
-                if not isinstance(node_ids, np.ndarray):
-                    node_ids = np.array(node_ids)
-                self.node_array = node_ids
-                self.node_set = set(node_ids)
-            else:
-                raise TypeError("node_ids must be a set or numpy array")
+    @classmethod
+    def from_mask(cls, mask, *, aprops=None):
+        """
+        The mask must be a boolean numpy array.
+        NodeIds are based on position within the mask.
+        """
+        cls._assert_instance(mask, np.ndarray)
+        cls._assert(mask.dtype == bool, "Only boolean masks are allowed")
+        node_ids = np.flatnonzero(mask)
+        return NumpyNodeSet(node_ids, aprops=aprops)
 
     def __len__(self):
-        if self.mask is not None:
-            node_count = self.mask.sum()
-        else:
-            node_count = len(self.node_array)
-        return node_count
+        return len(self.value)
 
     def copy(self):
-        if self.mask is not None:
-            copied_node_set = NumpyNodeSet(mask=self.mask.copy())
-        else:
-            copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
-        return copied_node_set
-
-    def nodes(self):
-        if self.mask is not None:
-            array = np.flatnonzero(self.mask)
-        else:
-            array = self.node_array
-        return array
+        aprops = NumpyNodeSet.Type.compute_abstract_properties(self, {})
+        return NumpyNodeSet(self.value.copy(), aprops=aprops)
 
     def __iter__(self):
-        return iter(self.nodes())
+        return iter(self.value)
 
     def __contains__(self, key):
-        if self.mask is not None:
-            return 0 <= key < len(self.mask) and self.mask[key]
+        index = np.searchsorted(self.value, key)
+        if hasattr(index, "__len__"):
+            return (self.value[index] == key).all()
         else:
-            return key in self.node_set
+            return self.value[index] == key
 
     class TypeMixin:
-        allowed_props = {"is_compact": [True, False]}
-
-        @classmethod
-        def _compute_concrete_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            return {"is_compact": obj.node_array is not None}
-
         @classmethod
         def assert_equal(
             cls,
@@ -172,22 +152,9 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             rel_tol=None,
             abs_tol=None,
         ):
-            assert len(obj1) == len(obj2), f"size mismatch: {len(obj1)} != {len(obj2)}"
-            if obj1.mask is not None and obj2.mask is not None:
-                assert (obj1.mask == obj2.mask).all(), f"node sets do not match"
-            elif obj1.mask is not None:
-                assert (
-                    np.flatnonzero(obj1.mask) == obj2.node_array
-                ).all(), f"node sets do not match"
-            elif obj2.mask is not None:
-                assert (
-                    obj1.node_array == np.flatnonzero(obj2.mask)
-                ).all(), f"node sets do not match"
-            else:
-                assert (
-                    obj1.node_array == obj2.node_array
-                ).all(), f"node sets do not match"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+            assert len(obj1) == len(obj2), f"size mismatch: {len(obj1)} != {len(obj2)}"
+            assert (obj1.value == obj2.value).all(), f"node sets do not match"
 
 
 class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
@@ -196,17 +163,13 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     a compact representation can be used.
     """
 
-    def __init__(self, data, *, mask=None, node_ids=None, aprops=None):
+    def __init__(self, data, nodes=None, *, aprops=None):
         """
         data: values for each node
-        mask: True for each node, False if node is missing
-        node_ids: array of node_ids which are not empty
-        
-        If providing mask, data must be as long as mask. Values which correspond to False in the mask are ignored.
-        If providing node_ids, data must be the same length as node_ids.
-        
-        Provide either mask or node_ids, not both.
-        If there are not missing nodes, mask and node_ids are not required.
+        nodes: array of node_ids corresponding ot elements in data
+
+        If there are no missing nodes, nodes are not required. It will be assumed that node ids
+        are sequential and the same size as `data`.
         """
         super().__init__(aprops=aprops)
         self._assert_instance(data, (np.ndarray, list, tuple))
@@ -214,117 +177,69 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             data = np.array(data)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
+        if nodes is None:
+            nodes = np.arange(len(data))
+        else:
+            self._assert_instance(nodes, (np.ndarray, list, tuple))
+            if not isinstance(nodes, np.ndarray):
+                nodes = np.array(nodes)
+                if nodes.shape != data.shape:
+                    raise TypeError(
+                        f"Nodes must be same shape and size as data: {nodes.shape} != {data.shape}"
+                    )
+                if not issubclass(nodes.dtype.type, np.integer):
+                    raise TypeError(f"Invalid dtype for NodeSet: {nodes.dtype}")
+            # Ensure sorted
+            if not np.all(np.diff(nodes) > 0):
+                sorter = np.argsort(nodes)
+                nodes = nodes[sorter]
+                data = data[sorter]
+            # Ensure no duplicates
+            unique = np.diff(nodes) > 0
+            if not unique.all():
+                raise TypeError(f"Duplicate node ids found: {set(nodes[1:][~unique])}")
+
         self.value = data
-        self.mask = None
-        self.id2pos = None
-        self.pos2id = None
+        self.nodes = nodes
 
-        # TODO: continue to accept mask or node_ids
-        #       coerce data into a consistent format:
-        #       sorted node_ids
-        #       values of the same size as node_ids
-        #       use np.searchsorted for fast lookup
-
-        # Check input data
-        if mask is not None:
-            if node_ids is not None:
-                raise ValueError("Cannot provide both mask and node_ids")
-            self._assert_instance(mask, np.ndarray)
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
-            self.mask = mask
-        elif node_ids is not None:
-            if isinstance(node_ids, dict):
-                id2pos = node_ids
-                pos2id = np.empty((len(node_ids),), dtype=int)
-                for node_id, pos in node_ids.items():
-                    pos2id[pos] = node_id
-            elif isinstance(node_ids, (np.ndarray, list, tuple)):
-                if not isinstance(node_ids, np.ndarray):
-                    node_ids = np.array(node_ids)
-                pos2id = node_ids
-                id2pos = {node_id: pos for pos, node_id in enumerate(node_ids)}
-            else:
-                raise ValueError(f"Invalid type for node_ids: {type(node_ids)}")
-            self._assert(
-                len(id2pos) == len(data), f"node_ids must be the same length as data"
-            )
-            # Ensure all node ids are monotonically increasing
-            if not np.all(np.diff(pos2id) > 0):
-                sorter = np.argsort(pos2id)
-                pos2id = pos2id[sorter]
-                id2pos = {node_id: pos for pos, node_id in enumerate(pos2id)}
-                self.value = data[sorter]
-            self.id2pos = id2pos
-            self.pos2id = pos2id
-
-    def _get_single_item(self, node_id):
-        if self.mask is not None:
-            if not self.mask[node_id]:
-                raise ValueError(f"node {node_id} is not in the NodeMap")
-        elif self.id2pos is not None:
-            if node_id not in self.id2pos:
-                raise ValueError(f"node {node_id} is not in the NodeMap")
-            node_id = self.id2pos[node_id]
-        return self.value[node_id]
-
-    def _get_multiple_items(self, node_ids: np.ndarray):
-        if self.mask is not None:
-            if (node_ids >= len(self.mask)).any():
-                out_of_bound_ids = list(node_ids[node_ids > len(self.mask)])
-                raise ValueError(f"{out_of_bound_ids} are out of bounds")
-            if not self.mask[node_ids].all():
-                mask_missing_ids = list(np.flatnonzero(~self.mask[node_ids]))
-                raise ValueError(f"nodes {mask_missing_ids} are not in the NodeMap")
-        elif self.id2pos is not None:
-            missing_ids = [
-                node_id for node_id in node_ids if node_id not in self.id2pos
-            ]
-            if missing_ids:
-                raise ValueError(f"nodes {missing_ids} are not in the NodeMap")
-            node_ids = np.vectorize(self.id2pos.__getitem__)(node_ids)
-        return self.value[node_ids]
-
-    def __getitem__(self, key):
-        return (
-            self._get_multiple_items(np.array(key))
-            if hasattr(key, "__len__")
-            else self._get_single_item(key)
-        )
+    @classmethod
+    def from_mask(cls, data, mask, *, aprops=None):
+        """
+        Values in data are kept where mask is True.
+        The mask must be a boolean numpy array.
+        NodeIds are based on position within the mask.
+        """
+        cls._assert_instance(mask, np.ndarray)
+        cls._assert(mask.dtype == bool, "Only boolean masks are allowed")
+        data = data[mask]
+        nodes = np.flatnonzero(mask)
+        return NumpyNodeMap(data, nodes, aprops=aprops)
 
     def __len__(self):
-        if self.mask is not None:
-            # Count number of True in the mask
-            return self.mask.sum()
-        # This covers the sequential and compact cases
         return len(self.value)
 
     def copy(self):
-        mask = None if self.mask is None else self.mask.copy()
-        node_ids = None if self.id2pos is None else self.id2pos.copy()
-        copied_node_map = NumpyNodeMap(self.value.copy(), mask=mask, node_ids=node_ids)
-        return copied_node_map
-
-    def nodes(self, copy=False):
-        if self.mask is not None:
-            node_array = np.flatnonzero(self.mask)
-        elif self.pos2id is not None:
-            node_array = self.pos2id
-            if copy:
-                node_array = node_array.copy()
-        else:
-            node_array = np.arange(len(self.value))
-        return node_array
+        aprops = NumpyNodeMap.Type.compute_abstract_properties(self, {})
+        return NumpyNodeMap(self.value.copy(), nodes=self.nodes.copy(), aprops=aprops)
 
     def __contains__(self, key):
-        if self.mask is not None:
-            return 0 <= key < len(self.mask) and self.mask[key]
+        index = np.searchsorted(self.nodes, key)
+        if hasattr(index, "__len__"):
+            return (self.nodes[index] == key).all()
         else:
-            return key in self.id2pos
+            return self.nodes[index] == key
+
+    def __getitem__(self, key):
+        index = np.searchsorted(self.nodes, key)
+        if hasattr(index, "__len__"):
+            if not (self.nodes[index] == key).all():
+                raise KeyError(f"nodes {key} are not all in the NodeMap")
+        else:
+            if self.nodes[index] != key:
+                raise KeyError(f"node {key} is not in the NodeMap")
+        return self.value[index]
 
     class TypeMixin:
-        allowed_props = {"is_compact": [True, False]}
-
         @classmethod
         def _compute_abstract_properties(
             cls, obj, props: Set[str], known_props: Dict[str, Any]
@@ -339,12 +254,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             return ret
 
         @classmethod
-        def _compute_concrete_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            return {"is_compact": obj.id2pos is not None}
-
-        @classmethod
         def assert_equal(
             cls,
             obj1,
@@ -357,38 +266,16 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             rel_tol=1e-9,
             abs_tol=0.0,
         ):
-            assert len(obj1) == len(obj2), f"{len(obj1)} != {len(obj2)}"
+            assert len(obj1) == len(
+                obj2
+            ), f"length mismatch: {len(obj1)} != {len(obj2)}"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
 
-            # Standardize obj1
-            if obj1.mask is not None:
-                vals1 = obj1.value[obj1.mask]
-                nodes1 = np.flatnonzero(obj1.mask)
-            elif obj1.id2pos is not None:
-                vals1 = obj1.value
-                nodes1 = obj1.pos2id
-            else:
-                vals1 = obj1.value
-                nodes1 = np.arange(len(vals1))
-            # Standardize obj2
-            if obj2.mask is not None:
-                vals2 = obj2.value[obj2.mask]
-                nodes2 = np.flatnonzero(obj2.mask)
-            elif obj2.id2pos is not None:
-                vals2 = obj2.value
-                nodes2 = obj2.pos2id
-            else:
-                vals2 = obj2.value
-                nodes2 = np.arange(len(vals2))
+            nodes1, vals1 = obj1.nodes, obj1.value
+            nodes2, vals2 = obj2.nodes, obj2.value
 
             # Compare
-            assert len(nodes1) == len(
-                nodes2
-            ), f"node ids not same length: {len(nodes1)} != {len(nodes2)}"
             assert (nodes1 == nodes2).all(), f"node id mismatch: {nodes1} != {nodes2}"
-            assert len(vals1) == len(
-                vals2
-            ), f"non-empty value length mismatch: {len(vals1)} != {len(vals2)}"
             if issubclass(vals1.dtype.type, np.floating):
                 assert np.isclose(vals1, vals2, rtol=rel_tol, atol=abs_tol).all()
             else:

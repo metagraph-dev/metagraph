@@ -63,6 +63,25 @@ def test_numpy():
         {},
         {},
     )
+    NumpyNodeMap.Type.assert_equal(
+        NumpyNodeMap(np.array([1, 3, 5, 7, 9]), [14, 2, 7, 8, 20]),
+        NumpyNodeMap(np.array([1, 3, 5, 7, 9]), [14, 2, 7, 8, 20]),
+        {},
+        {},
+        {},
+        {},
+    )
+    NumpyNodeMap.Type.assert_equal(
+        NumpyNodeMap(np.array([1, 3, 5, 7, 9]), [0, 2, 4, 6, 8]),
+        NumpyNodeMap.from_mask(
+            np.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10]),
+            np.array([True, False, True, False, True, False, True, False, True, False]),
+        ),
+        {},
+        {},
+        {},
+        {},
+    )
     with pytest.raises(AssertionError):
         NumpyNodeMap.Type.assert_equal(
             NumpyNodeMap(np.array([1, 3, 5, 7, 9])),
@@ -72,56 +91,15 @@ def test_numpy():
             {},
             {},
         )
-    # Missing value should not affect equality
-    NumpyNodeMap.Type.assert_equal(
-        NumpyNodeMap(
-            np.array([1, -1, -1, 4, 5, -1]),
-            mask=np.array([True, False, False, True, True, False]),
-        ),
-        NumpyNodeMap(
-            np.array([1, 0, 0, 4, 5, 0]),
-            mask=np.array([True, False, False, True, True, False]),
-        ),
-        {},
-        {},
-        {},
-        {},
-    )
-
-
-def test_numpy_compact():
-    NumpyNodeMap.Type.assert_equal(
-        NumpyNodeMap(np.array([1, 3, 5]), node_ids={0: 0, 240: 1, 968: 2}),
-        NumpyNodeMap(np.array([1, 3, 5]), node_ids=np.array([0, 240, 968])),
-        {},
-        {},
-        {},
-        {},
-    )
-    NumpyNodeMap.Type.assert_equal(
-        NumpyNodeMap(
-            np.array([1, 3, 5.5555555555555555555]), node_ids={0: 0, 1: 1, 2: 2}
-        ),
-        NumpyNodeMap(
-            np.array([1, 3 + 1e-9, 5.5555555555555555556]), node_ids={0: 0, 1: 1, 2: 2}
-        ),
-        {},
-        {},
-        {},
-        {},
-    )
     with pytest.raises(AssertionError):
         NumpyNodeMap.Type.assert_equal(
-            NumpyNodeMap(np.array([1, 3, 5]), node_ids={0: 0, 1: 1, 2: 2}),
-            NumpyNodeMap(np.array([1, 3, 5, 7]), node_ids={0: 0, 1: 1, 2: 2, 3: 3}),
+            NumpyNodeMap(np.array([1, 3, 5, 7, 9]), np.array([14, 2, 7, 8, 20])),
+            NumpyNodeMap(np.array([1, 3, 5, 7, 9]), np.array([2, 7, 8, 14, 20])),
             {},
             {},
             {},
             {},
         )
-    # Non-monotonic sorting
-    nnm = NumpyNodeMap(np.array([5, 1, 3]), node_ids=np.array([7, 0, 2]))
-    assert (nnm.value == [1, 3, 5]).all()
 
 
 def test_graphblas():

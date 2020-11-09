@@ -7,12 +7,12 @@ from ..python.types import PythonNodeMapType, PythonNodeSetType
 
 @translator
 def nodemap_to_nodeset(x: NumpyNodeMap, **props) -> NumpyNodeSet:
-    return NumpyNodeSet(x.nodes(copy=True))
+    return NumpyNodeSet(x.nodes.copy())
 
 
 @translator
 def nodeset_from_python(x: PythonNodeSetType, **props) -> NumpyNodeSet:
-    return NumpyNodeSet(np.array(sorted(x)))
+    return NumpyNodeSet(x)
 
 
 @translator
@@ -21,11 +21,11 @@ def nodemap_from_python(x: PythonNodeMapType, **props) -> NumpyNodeMap:
     dtype = aprops["dtype"]
     np_dtype = dtype if dtype != "str" else "object"
     data = np.empty((len(x),), dtype=np_dtype)
-    node_ids = np.empty((len(x),), dtype=int)
+    nodes = np.empty((len(x),), dtype=int)
     for i, (node_id, val) in enumerate(x.items()):
-        node_ids[i] = node_id
+        nodes[i] = node_id
         data[i] = val
-    return NumpyNodeMap(data, node_ids=node_ids)
+    return NumpyNodeMap(data, nodes=nodes, aprops=aprops)
 
 
 if has_scipy:
@@ -73,10 +73,11 @@ if has_grblas:
     @translator
     def nodeset_from_graphblas(x: GrblasNodeSet, **props) -> NumpyNodeSet:
         idx, _ = x.value.to_values()
-        return NumpyNodeSet(np.array(idx))
+        return NumpyNodeSet(idx)
 
     @translator
     def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> NumpyNodeMap:
         idx, vals = x.value.to_values()
+        # TODO: remove this line once `to_values()` returns ndarray
         vals = np.array(vals, dtype=dtype_grblas_to_mg[x.value.dtype.name])
-        return NumpyNodeMap(vals, node_ids=np.array(idx))
+        return NumpyNodeMap(vals, nodes=idx)

@@ -18,14 +18,14 @@ if has_scipy:
         _, node_labels = ss.csgraph.connected_components(
             graph.value, False, return_labels=True
         )
-        return NumpyNodeMap(node_labels, node_ids=graph.node_list)
+        return NumpyNodeMap(node_labels, nodes=graph.node_list)
 
     @concrete_algorithm("clustering.strongly_connected_components")
     def ss_strongly_connected_components(graph: ScipyGraph) -> NumpyNodeMap:
         _, node_labels = ss.csgraph.connected_components(
             graph.value, True, connection="strong", return_labels=True
         )
-        return NumpyNodeMap(node_labels, node_ids=graph.node_list)
+        return NumpyNodeMap(node_labels, nodes=graph.node_list)
 
     @concrete_algorithm("traversal.all_pairs_shortest_paths")
     def ss_all_pairs_shortest_paths(
@@ -151,7 +151,7 @@ if has_scipy:
                 agg_values[keep_mask], out_edges_aggregated_values
             )
 
-        return NumpyNodeMap(agg_values, node_ids=graph.node_list)
+        return NumpyNodeMap(agg_values, nodes=graph.node_list)
 
     @concrete_algorithm("util.graph.filter_edges")
     def ss_graph_filter_edges(

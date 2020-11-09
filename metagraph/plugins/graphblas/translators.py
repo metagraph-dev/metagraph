@@ -53,28 +53,16 @@ if has_grblas:
 
     @translator
     def nodeset_from_numpy(x: NumpyNodeSet, **props) -> GrblasNodeSet:
-        if x.mask is not None:
-            idx = np.flatnonzero(x.mask)
-        else:
-            idx = x.node_array
+        idx = x.value
         size = idx[-1] + 1
         vec = grblas.Vector.from_values(idx, [True] * len(idx), size=size, dtype=bool)
         return GrblasNodeSet(vec)
 
     @translator
     def nodemap_from_numpy(x: NumpyNodeMap, **props) -> GrblasNodeMap:
-        if x.mask is not None:
-            idx = np.flatnonzero(x.mask)
-            vals = x.value[idx]
-        elif x.id2pos is not None:
-            idx = x.pos2id
-            vals = x.value
-        else:
-            idx = np.arange(len(x.value))
-            vals = x.value
-        size = idx[-1] + 1
+        size = x.nodes[-1] + 1
         vec = grblas.Vector.from_values(
-            idx, vals, size=size, dtype=dtype_mg_to_grblas[x.value.dtype]
+            x.nodes, x.value, size=size, dtype=dtype_mg_to_grblas[x.value.dtype]
         )
         return GrblasNodeMap(vec)
 

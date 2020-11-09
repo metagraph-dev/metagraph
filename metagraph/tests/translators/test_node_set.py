@@ -23,7 +23,7 @@ def test_np_nodemap_2_np_nodeset(default_plugin_resolver):
 
 def test_np_nodeset_2_py_nodeset(default_plugin_resolver):
     dpr = default_plugin_resolver
-    x = NumpyNodeSet(np.array([1, 5, 9]))
+    x = NumpyNodeSet(np.array([9, 5, 1]))
     assert len(x) == 3
     intermediate = {5, 1, 9}
     y = dpr.translate(x, PythonNodeSetType)
@@ -32,8 +32,10 @@ def test_np_nodeset_2_py_nodeset(default_plugin_resolver):
 
 def test_py_nodeset_2_np_nodeset(default_plugin_resolver):
     dpr = default_plugin_resolver
-    x = {5, 1, 9}
+    x = {2, 1, 5}
     assert len(x) == 3
-    intermediate = NumpyNodeSet(np.array([1, 5, 9]))
+    intermediate = NumpyNodeSet.from_mask(
+        np.array([False, True, True, False, False, True])
+    )
     y = dpr.translate(x, NumpyNodeSet)
     dpr.assert_equal(y, intermediate)

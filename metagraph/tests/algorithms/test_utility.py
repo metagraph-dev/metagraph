@@ -25,7 +25,7 @@ def test_nodeset_from_vector(default_plugin_resolver):
     dpr = default_plugin_resolver
     np_node_vector = dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3]))
     MultiVerify(dpr).compute("util.nodeset.from_vector", np_node_vector).assert_equal(
-        dpr.wrappers.NodeSet.NumpyNodeSet(mask=np.array([0, 1, 1, 1], dtype=bool))
+        dpr.wrappers.NodeSet.NumpyNodeSet(np.array([1, 2, 3]))
     )
 
 
@@ -53,7 +53,7 @@ def test_nodemap_sort(default_plugin_resolver):
 def test_nodemap_select(default_plugin_resolver):
     dpr = default_plugin_resolver
     node_map = {1: 11, 2: 22, 3: 33, 4: 44}
-    node_set = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids={2, 3})
+    node_set = dpr.wrappers.NodeSet.NumpyNodeSet({2, 3})
     correct_answer = {2: 22, 3: 33}
     MultiVerify(dpr).compute("util.nodemap.select", node_map, node_set).assert_equal(
         correct_answer
@@ -402,9 +402,7 @@ def test_graph_build(default_plugin_resolver):
     3(30) --4--- 4(40)      9(99)
     """
     node_map_data = np.array([99, 10, 98, 30, 40, 50])
-    nodemap = dpr.wrappers.NodeMap.NumpyNodeMap(
-        node_map_data, node_ids=[9, 1, 2, 3, 4, 5]
-    )
+    nodemap = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data, nodes=[9, 1, 2, 3, 4, 5])
     expected_answer = dpr.wrappers.Graph.ScipyGraph(
         graph_ss_matrix, [1, 3, 4, 5, 9, 2], [10, 30, 40, 50, 99, 98]
     )
@@ -426,9 +424,7 @@ def test_graph_build(default_plugin_resolver):
     graph_ss_matrix.resize(6, 6)
     edgeset = dpr.wrappers.EdgeSet.ScipyEdgeSet(edgeset_ss_matrix, [1, 3, 4, 5])
     node_map_data = np.array([99, 10, 98, 30, 40, 50])
-    nodemap = dpr.wrappers.NodeMap.NumpyNodeMap(
-        node_map_data, node_ids=[9, 1, 2, 3, 4, 5]
-    )
+    nodemap = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data, nodes=[9, 1, 2, 3, 4, 5])
     expected_answer = dpr.wrappers.Graph.ScipyGraph(
         graph_ss_matrix, [1, 3, 4, 5, 2, 9], [10, 30, 40, 50, 98, 99]
     )
@@ -443,7 +439,7 @@ def test_graph_build(default_plugin_resolver):
     | /      |
     3 ------ 4      9
     """
-    nodeset = dpr.wrappers.NodeSet.NumpyNodeSet(node_ids=np.array([9, 1, 2, 3, 4, 5]))
+    nodeset = dpr.wrappers.NodeSet.NumpyNodeSet(np.array([9, 1, 2, 3, 4, 5]))
     expected_answer = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix, [1, 3, 4, 5, 9, 2])
     mv.compute("util.graph.build", edgeset, nodeset).assert_equal(expected_answer)
 
@@ -532,7 +528,7 @@ def test_node_embedding_apply(default_plugin_resolver):
     dpr = default_plugin_resolver
     matrix = dpr.wrappers.Matrix.NumpyMatrix(np.arange(6).reshape(2, 3))
     node_map = dpr.wrappers.NodeMap.NumpyNodeMap(
-        np.array([0, 1]), node_ids=np.array([9990, 9991])
+        np.array([0, 1]), nodes=np.array([9990, 9991])
     )
 
     MultiVerify(dpr).compute(

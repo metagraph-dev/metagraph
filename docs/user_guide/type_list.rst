@@ -113,23 +113,10 @@ is that the value is not missing. There is no guarantee of what the value actual
 → Numpy NodeSet
 ~~~~~~~~~~~~~~~
 
-Concrete Properties:
-
-- is_compact: [True, False]
-
 :ConcreteType: ``NumpyNodeSet.Type``
 :value_type: ``NumpyNodeSet``
 :data objects:
-    ``.node_array``: numpy array of all NodeIDs in sorted order
-
-    ``.node_set``: Python set of all NodeIDs
-
-    ``.mask``: boolean numpy array indicating presence of NodeID in set
-
-Either ``mask`` will be set *or* ``node_array`` and ``node_set`` will be set.
-The mask will be None when ``is_compact==True``.
-
-To get a numpy array of the nodes, use the ``.nodes()`` method.
+    ``.value``: numpy array of all NodeIDs in sorted order
 
 → Python NodeSet
 ~~~~~~~~~~~~~~~~
@@ -170,26 +157,13 @@ Standard Wrapper Methods:
 → Numpy NodeMap
 ~~~~~~~~~~~~~~~
 
-Concrete Properties:
-
-- is_compact: [True, False]
-
 :ConcreteType: ``NumpyNodeMap.Type``
 :value_type: ``NumpyNodeMap``
 :data objects:
     ``.value``: numpy array of values
 
-    ``.mask``: boolean numpy array indicating presence of NodeIDs in map
+    ``.nodes``: numpy array of all NodeIDs in sorted order
 
-    ``.id2pos``: Python dict mapping NodeID to position in ``value``
-
-    ``.pos2id``: numpy array of all NodeIDs in sorted order
-
-For the compact mode, ``mask`` will be None. ``value`` will be dense, corresponding
-to NodeIDs in ``pos2id``.
-
-For the non-compact mode, ``id2pos`` and ``pos2id`` will be None. ``value`` will be sparse
-with valid data corresponding to True entries in the ``mask``.
 
 → Python NodeMap
 ~~~~~~~~~~~~~~~~

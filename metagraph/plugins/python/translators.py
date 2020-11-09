@@ -12,36 +12,18 @@ def nodemap_to_nodeset(x: PythonNodeMapType, **props) -> PythonNodeSetType:
 
 @translator
 def nodeset_from_numpy(x: NumpyNodeSet, **props) -> PythonNodeSetType:
-    if x.mask is None:
-        return x.node_set
-    else:
-        return set(np.flatnonzero(x.mask))
+    return set(x.value)
 
 
 @translator
 def nodemap_from_numpy(x: NumpyNodeMap, **props) -> PythonNodeMapType:
     cast = dtype_casting[dtypes.dtypes_simplified[x.value.dtype]]
-    npdata = x.value
-    if x.mask is not None:
-        nplookup = np.flatnonzero(x.mask)
-        data = {idx: cast(npdata[idx]) for idx in nplookup}
-    elif x.id2pos is not None:
-        nplookup = x.id2pos
-        data = {label: cast(npdata[idx]) for label, idx in nplookup.items()}
-    else:
-        data = {label: cast(npdata_elem) for label, npdata_elem in enumerate(npdata)}
-    return data
+    return {nid: cast(val) for nid, val in zip(x.nodes, x.value)}
 
 
 @translator
 def nodeset_from_numpy_nodemap(x: NumpyNodeMap, **props) -> PythonNodeSetType:
-    if x.mask is not None:
-        nodes = set(np.flatnonzero(x.mask))
-    elif x.id2pos is not None:
-        nodes = set(x.id2pos)
-    else:
-        nodes = set(range(len(x.value)))
-    return nodes
+    return set(x.nodes)
 
 
 if has_grblas:
