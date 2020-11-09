@@ -23,7 +23,7 @@ def test_nodeset_choose_random(default_plugin_resolver):
 
 def test_nodeset_from_vector(default_plugin_resolver):
     dpr = default_plugin_resolver
-    np_node_vector = dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3]))
+    np_node_vector = np.array([1, 2, 3])
     MultiVerify(dpr).compute("util.nodeset.from_vector", np_node_vector).assert_equal(
         dpr.wrappers.NodeSet.NumpyNodeSet(np.array([1, 2, 3]))
     )
@@ -34,19 +34,19 @@ def test_nodemap_sort(default_plugin_resolver):
     py_node_map = {index: index * 100 for index in range(1, 8)}
     mv = MultiVerify(dpr)
     mv.compute("util.nodemap.sort", py_node_map).assert_equal(
-        dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4, 5, 6, 7]))
+        np.array([1, 2, 3, 4, 5, 6, 7])
     )
     mv.compute("util.nodemap.sort", py_node_map, True, 4).assert_equal(
-        dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4]))
+        np.array([1, 2, 3, 4])
     )
     mv.compute("util.nodemap.sort", py_node_map, True).assert_equal(
-        dpr.wrappers.Vector.NumpyVector(np.array([1, 2, 3, 4, 5, 6, 7]))
+        np.array([1, 2, 3, 4, 5, 6, 7])
     )
     mv.compute("util.nodemap.sort", py_node_map, False, 3).assert_equal(
-        dpr.wrappers.Vector.NumpyVector(np.array([7, 6, 5]))
+        np.array([7, 6, 5])
     )
     mv.compute("util.nodemap.sort", py_node_map, False).assert_equal(
-        dpr.wrappers.Vector.NumpyVector(np.array([7, 6, 5, 4, 3, 2, 1]))
+        np.array([7, 6, 5, 4, 3, 2, 1])
     )
 
 
@@ -444,65 +444,6 @@ def test_graph_build(default_plugin_resolver):
     mv.compute("util.graph.build", edgeset, nodeset).assert_equal(expected_answer)
 
 
-# TODO This test tests that the concrete types don't depend on node lists being sorted; enable when node list order-independence is implemented
-# def test_graph_build(default_plugin_resolver):
-#     dpr = default_plugin_resolver
-#     # Edge Map + Node Set
-#     """
-# 1 --1--- 5      2
-# |     _/ |
-# |   _9   |
-# 3  /     2
-# | /      |
-# 3 --4--- 4      0
-#     """
-#     graph_ss_matrix = ss.csr_matrix(
-#         np.array(
-#             [[0, 1, 3, 0],
-#              [1, 0, 9, 2],
-#              [3, 9, 0, 4],
-#              [0, 2, 4, 0]
-#             ], dtype=np.int64
-#         )
-#     )
-#     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1,5,3,4])
-#     nodes = dpr.wrappers.NodeSet.PythonNodeSet({0, 1, 2, 3, 4, 5})
-#     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equal(
-#         expected_answer
-#     )
-
-#     # Edge Map + Node Map
-#     r"""
-#     1(10) --1--- 5(50)      2
-#     |           /  |
-#     |    ___9__/   |
-#     3   /          2
-#     |  /           |
-#     3(30) --4--- 4(40)      0
-#     """
-#     graph_ss_matrix = ss.csr_matrix(
-#         np.array(
-#             [[0, 1, 3, 0],
-#              [1, 0, 9, 2],
-#              [3, 9, 0, 4],
-#              [0, 2, 4, 0]
-#             ], dtype=np.int64
-#         )
-#     )
-#     edges = dpr.wrappers.EdgeMap.ScipyEdgeMap(graph_ss_matrix, [1,5,3,4])
-#     mask = np.array([0,1,0,1,1,1], dtype=bool)
-#     node_map_data = np.empty(6)
-#     node_map_data[mask] = np.array([10, 30, 40, 50])
-#     nodes = dpr.wrappers.NodeMap.NumpyNodeMap(node_map_data, mask=mask)
-#     expected_answer = dpr.wrappers.Graph.ScipyGraph(edges, nodes)
-#     MultiVerify(dpr, "util.graph.build", edges, nodes).assert_equal(
-#         expected_answer
-#     )
-#     # TODO test edgeset + nodemap
-#     # TODO test edgeset + nodeset
-
-
 def test_edgemap_from_edgeset(default_plugin_resolver):
     dpr = default_plugin_resolver
     #    0 2 7
@@ -526,35 +467,23 @@ def test_edgemap_from_edgeset(default_plugin_resolver):
 
 def test_node_embedding_apply(default_plugin_resolver):
     dpr = default_plugin_resolver
-    matrix = dpr.wrappers.Matrix.NumpyMatrix(np.arange(6).reshape(2, 3))
+    matrix = np.arange(6).reshape(2, 3)
     node_map = dpr.wrappers.NodeMap.NumpyNodeMap(
         np.array([0, 1]), nodes=np.array([9990, 9991])
     )
 
     MultiVerify(dpr).compute(
-        "util.node_embedding.apply",
-        matrix,
-        node_map,
-        dpr.wrappers.Vector.NumpyVector(np.array([9990])),
-    ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[0, 1, 2]])))
+        "util.node_embedding.apply", matrix, node_map, np.array([9990])
+    ).assert_equal(np.array([[0, 1, 2]]))
     MultiVerify(dpr).compute(
-        "util.node_embedding.apply",
-        matrix,
-        node_map,
-        dpr.wrappers.Vector.NumpyVector(np.array([9991])),
-    ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[3, 4, 5]])))
+        "util.node_embedding.apply", matrix, node_map, np.array([9991])
+    ).assert_equal(np.array([[3, 4, 5]]))
     MultiVerify(dpr).compute(
-        "util.node_embedding.apply",
-        matrix,
-        node_map,
-        dpr.wrappers.Vector.NumpyVector(np.array([9990, 9991])),
+        "util.node_embedding.apply", matrix, node_map, np.array([9990, 9991])
     ).assert_equal(matrix)
     MultiVerify(dpr).compute(
-        "util.node_embedding.apply",
-        matrix,
-        node_map,
-        dpr.wrappers.Vector.NumpyVector(np.array([9991, 9990])),
-    ).assert_equal(dpr.wrappers.Matrix.NumpyMatrix(np.array([[3, 4, 5], [0, 1, 2]])))
+        "util.node_embedding.apply", matrix, node_map, np.array([9991, 9990])
+    ).assert_equal(np.array([[3, 4, 5], [0, 1, 2]]))
 
 
 def test_isomorphic(default_plugin_resolver):

@@ -24,17 +24,12 @@ DTYPE_CHOICES = ["float", "int", "bool"]
 
 class Vector(AbstractType):
     properties = {
-        # TODO: remove is_dense
-        "is_dense": [False, True],
         "dtype": DTYPE_CHOICES,
     }
 
 
 class Matrix(AbstractType):
     properties = {
-        # TODO: remove is_dense
-        "is_dense": [False, True],
-        "is_square": [False, True],
         "dtype": DTYPE_CHOICES,
     }
 

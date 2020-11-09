@@ -1,90 +1,49 @@
 from typing import Set, Dict, Any
 import numpy as np
-from metagraph import dtypes, Wrapper
+from metagraph import dtypes, Wrapper, ConcreteType
 from metagraph.types import Vector, Matrix, NodeSet, NodeMap
 from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
-class NumpyVector(Wrapper, abstract=Vector):
-    def __init__(self, data, mask=None, *, aprops=None):
-        super().__init__(aprops=aprops)
-        self._assert_instance(data, np.ndarray)
-        if len(data.shape) != 1:
-            raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
-        self.value = data
-        self.mask = mask
-        if mask is not None:
-            if mask.dtype != bool:
-                raise ValueError("mask must have boolean type")
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
+class NumpyVectorType(ConcreteType, abstract=Vector):
+    @classmethod
+    def is_typeclass_of(cls, obj):
+        """Is obj described by this type class?"""
+        return isinstance(obj, np.ndarray) and len(obj.shape) == 1
 
-    @property
-    def shape(self):
-        return self.value.shape
+    @classmethod
+    def _compute_abstract_properties(
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        ret = known_props.copy()
 
-    def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
-        vector = self.value
-        if copy or self.mask is not None:
-            vector = vector.copy()
-        if self.mask is not None:
-            vector[~self.mask] = fill_value
-        return vector
+        # fast properties
+        for prop in {"dtype"} - ret.keys():
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.dtype]
 
-    def __len__(self):
-        return len(self.value)
+        return ret
 
-    def copy(self):
-        return NumpyVector(
-            self.value.copy(), mask=None if self.mask is None else self.mask.copy()
-        )
-
-    class TypeMixin:
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
-
-            # fast properties
-            for prop in {"is_dense", "dtype"} - ret.keys():
-                if prop == "is_dense":
-                    ret[prop] = obj.mask is None
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
-
-            return ret
-
-        @classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=1e-9,
-            abs_tol=0.0,
-        ):
-            assert (
-                obj1.value.shape == obj2.value.shape
-            ), f"{obj1.value.shape} != {obj2.value.shape}"
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            # Remove missing values
-            d1 = obj1.value if obj1.mask is None else obj1.value[obj1.mask]
-            d2 = obj2.value if obj2.mask is None else obj2.value[obj2.mask]
-            assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
-            # Check for alignment of masks
-            if obj1.mask is not None:
-                mask_alignment = obj1.mask == obj2.mask
-                assert mask_alignment.all(), f"{mask_alignment}"
-            # Compare
-            if issubclass(d1.dtype.type, np.floating):
-                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-            else:
-                assert (d1 == d2).all()
+    @classmethod
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
+        assert obj1.shape == obj2.shape, f"shape mismatch {obj1.shape} != {obj2.shape}"
+        assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+        # Compare
+        if issubclass(obj1.dtype.type, np.floating):
+            assert np.isclose(obj1, obj2, rtol=rel_tol, atol=abs_tol).all()
+        else:
+            assert (obj1 == obj2).all()
 
 
 class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
@@ -282,97 +241,43 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                 assert (vals1 == vals2).all()
 
 
-class NumpyMatrix(Wrapper, abstract=Matrix):
-    def __init__(self, data, mask=None, *, aprops=None):
-        super().__init__(aprops=aprops)
-        if type(data) is np.matrix:
-            data = np.array(data, copy=False)
-        self._assert_instance(data, np.ndarray)
-        if len(data.shape) != 2:
-            raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
-        self.value = data
-        self.mask = mask
-        if mask is not None:
-            if mask.dtype != bool:
-                raise ValueError("mask must have boolean type")
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
+class NumpyMatrixType(ConcreteType, abstract=Matrix):
+    @classmethod
+    def is_typeclass_of(cls, obj):
+        """Is obj described by this type class?"""
+        return isinstance(obj, np.ndarray) and len(obj.shape) == 2
 
-    @property
-    def shape(self):
-        return self.value.shape
+    @classmethod
+    def _compute_abstract_properties(
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        ret = known_props.copy()
 
-    def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
-        matrix = self.value
-        if copy or self.mask is not None:
-            matrix = matrix.copy()
-        if self.mask is not None:
-            matrix[~self.mask] = fill_value
-        return matrix
+        # fast properties
+        for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.dtype]
 
-    def copy(self):
-        mask = None if self.mask is None else self.mask.copy()
-        return NumpyMatrix(self.value.copy(), mask=mask)
+        return ret
 
-    class TypeMixin:
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
-
-            # fast properties
-            for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
-                if prop == "is_dense":
-                    ret[prop] = obj.mask is None
-                if prop == "is_square":
-                    ret[prop] = obj.value.shape[0] == obj.value.shape[1]
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
-
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "is_symmetric":
-                    # TODO: make this dependent on the mask
-                    ret[prop] = (
-                        ret["is_square"] and (obj.value.T == obj.value).all().all()
-                    )
-
-            return ret
-
-        @classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=1e-9,
-            abs_tol=0.0,
-        ):
-            assert (
-                obj1.value.shape == obj2.value.shape
-            ), f"{obj1.value.shape} != {obj2.value.shape}"
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            # Remove missing values
-            d1 = obj1.value if obj1.mask is None else obj1.value[obj1.mask]
-            d2 = obj2.value if obj2.mask is None else obj2.value[obj2.mask]
-            assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
-            # Check for alignment of masks
-            if obj1.mask is not None:
-                mask_alignment = obj1.mask == obj2.mask
-                assert mask_alignment.all().all(), f"{mask_alignment}"
-                # Compare 1-D
-                if issubclass(d1.dtype.type, np.floating):
-                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-                else:
-                    assert (d1 == d2).all()
-            else:
-                # Compare 2-D
-                if issubclass(d1.dtype.type, np.floating):
-                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
-                else:
-                    assert (d1 == d2).all().all()
+    @classmethod
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
+        assert obj1.shape == obj2.shape, f"shape mismatch: {obj1.shape} != {obj2.shape}"
+        assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+        assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
+        # Compare
+        if issubclass(obj1.dtype.type, np.floating):
+            assert np.isclose(obj1, obj2, rtol=rel_tol, atol=abs_tol).all().all()
+        else:
+            assert (obj1 == obj2).all().all()

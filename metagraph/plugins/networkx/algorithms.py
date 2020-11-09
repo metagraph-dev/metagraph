@@ -10,7 +10,7 @@ if has_networkx:
     import numpy as np
     from .types import NetworkXGraph, NetworkXBipartiteGraph
     from ..python.types import PythonNodeMapType, PythonNodeSetType
-    from ..numpy.types import NumpyVector
+    from ..numpy.types import NumpyVectorType
 
     @concrete_algorithm("centrality.pagerank")
     def nx_pagerank(
@@ -197,11 +197,11 @@ if has_networkx:
     @concrete_algorithm("traversal.bfs_iter")
     def nx_breadth_first_search(
         graph: NetworkXGraph, source_node: NodeID, depth_limit: int
-    ) -> NumpyVector:
+    ) -> NumpyVectorType:
         bfs_ordered_node_array = np.array(
             nx.breadth_first_search.bfs_tree(graph.value, source_node)
         )
-        return NumpyVector(bfs_ordered_node_array)
+        return bfs_ordered_node_array
 
     @concrete_algorithm("bipartite.graph_projection")
     def nx_graph_projection(

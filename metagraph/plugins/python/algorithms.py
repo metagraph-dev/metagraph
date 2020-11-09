@@ -2,7 +2,7 @@ import random
 import operator
 from functools import reduce
 import numpy as np
-from ..numpy.types import NumpyVector
+from ..numpy.types import NumpyVectorType
 from metagraph import concrete_algorithm, NodeID
 from .types import PythonNodeSetType, PythonNodeMapType
 from typing import Tuple, Iterable, Any, Callable, Optional
@@ -16,14 +16,14 @@ def python_nodeset_choose_random(x: PythonNodeSetType, k: int) -> PythonNodeSetT
 @concrete_algorithm("util.nodemap.sort")
 def python_nodemap_sort(
     x: PythonNodeMapType, ascending: bool, limit: Optional[int]
-) -> NumpyVector:
+) -> NumpyVectorType:
     sorted_items = sorted(
         x.items(), key=operator.itemgetter(1), reverse=(not ascending)
     )
     if limit:
         sorted_items = sorted_items[:limit]
     sorted_keys = np.array(list(map(operator.itemgetter(0), sorted_items)))
-    return NumpyVector(sorted_keys)
+    return sorted_keys
 
 
 @concrete_algorithm("util.nodemap.select")

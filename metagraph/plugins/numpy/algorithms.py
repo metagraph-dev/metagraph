@@ -2,8 +2,8 @@ import numpy as np
 from functools import reduce
 from metagraph import concrete_algorithm, NodeID
 from .types import (
-    NumpyVector,
-    NumpyMatrix,
+    NumpyVectorType,
+    NumpyMatrixType,
     NumpyNodeMap,
     NumpyNodeSet,
 )
@@ -21,17 +21,14 @@ def np_nodeset_choose_random(x: NumpyNodeSet, k: int) -> NumpyNodeSet:
 
 
 @concrete_algorithm("util.nodeset.from_vector")
-def np_nodeset_from_vector(x: NumpyVector) -> NumpyNodeSet:
-    data = x.value
-    if x.mask is not None:
-        data = data[x.mask]
-    return NumpyNodeSet(data)
+def np_nodeset_from_vector(x: NumpyVectorType) -> NumpyNodeSet:
+    return NumpyNodeSet(x)
 
 
 @concrete_algorithm("util.nodemap.sort")
 def np_nodemap_sort(
     x: NumpyNodeMap, ascending: bool, limit: Optional[int]
-) -> NumpyVector:
+) -> NumpyVectorType:
     positions_of_sorted_values = np.argsort(x.value)
     nodeids_of_sorted_values = x.nodes[positions_of_sorted_values]
 
@@ -39,7 +36,7 @@ def np_nodemap_sort(
         nodeids_of_sorted_values = np.flip(nodeids_of_sorted_values)
     if limit:
         nodeids_of_sorted_values = nodeids_of_sorted_values[:limit]
-    return NumpyVector(nodeids_of_sorted_values)
+    return nodeids_of_sorted_values
 
 
 @concrete_algorithm("util.nodemap.select")
@@ -73,8 +70,7 @@ def np_nodemap_reduce(x: NumpyNodeMap, func: Callable[[Any, Any], Any]) -> Any:
 
 @concrete_algorithm("util.node_embedding.apply")
 def np_embedding_apply(
-    matrix: NumpyMatrix, node2row: NumpyNodeMap, nodes: NumpyVector
-) -> NumpyMatrix:
-    indices = node2row[nodes.value]
-    matrix = matrix.value[indices]
-    return NumpyMatrix(matrix)
+    matrix: NumpyMatrixType, node2row: NumpyNodeMap, nodes: NumpyVectorType
+) -> NumpyMatrixType:
+    indices = node2row[nodes]
+    return matrix[indices]

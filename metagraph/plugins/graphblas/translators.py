@@ -1,7 +1,7 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_grblas, has_scipy
-from ..numpy.types import NumpyVector, NumpyNodeMap, NumpyNodeSet
+from ..numpy.types import NumpyVectorType, NumpyNodeMap, NumpyNodeSet, NumpyMatrixType
 from ..python.types import PythonNodeSetType
 
 
@@ -34,13 +34,10 @@ if has_grblas:
         return GrblasEdgeSet(data, aprops=aprops)
 
     @translator
-    def vector_from_numpy(x: NumpyVector, **props) -> GrblasVectorType:
+    def vector_from_numpy(x: NumpyVectorType, **props) -> GrblasVectorType:
         idx = np.arange(len(x))
-        if x.mask is not None:
-            idx = idx[x.mask]
-        vals = x.value[idx]
         vec = grblas.Vector.from_values(
-            idx, vals, size=len(x), dtype=dtype_mg_to_grblas[x.value.dtype]
+            idx, x, size=len(x), dtype=dtype_mg_to_grblas[x.dtype]
         )
         return vec
 
@@ -66,9 +63,21 @@ if has_grblas:
         )
         return GrblasNodeMap(vec)
 
+    @translator
+    def matrix_from_numpy(x: NumpyMatrixType, **props) -> GrblasMatrixType:
+        nrows, ncols = x.shape
+        dtype = dtype_mg_to_grblas[x.dtype]
+        rows = (np.arange(nrows * ncols) % nrows).reshape((ncols, nrows)).T.flatten()
+        cols = np.arange(nrows * ncols) % ncols
+        data = x.flatten()
+        vec = grblas.Matrix.from_values(
+            rows, cols, data, nrows=nrows, ncols=ncols, dtype=dtype
+        )
+        return vec
+
 
 if has_grblas and has_scipy:
-    from ..scipy.types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph, ScipyMatrixType
+    from ..scipy.types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
     from .types import dtype_mg_to_grblas
 
     @translator
@@ -140,13 +149,3 @@ if has_grblas and has_scipy:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
         return GrblasGraph(matrix, nodes=nodes, aprops=aprops)
-
-    @translator
-    def matrix_from_scipy(x: ScipyMatrixType, **props) -> GrblasMatrixType:
-        x = x.tocoo()
-        nrows, ncols = x.shape
-        dtype = dtype_mg_to_grblas[x.dtype]
-        vec = grblas.Matrix.from_values(
-            x.row, x.col, x.data, nrows=nrows, ncols=ncols, dtype=dtype
-        )
-        return vec

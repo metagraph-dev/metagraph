@@ -9,59 +9,6 @@ import numpy as np
 if has_scipy:
     import scipy.sparse as ss
 
-    class ScipyMatrixType(ConcreteType, abstract=Matrix):
-        value_type = ss.spmatrix
-
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
-
-            # fast properties
-            for prop in {"is_dense", "dtype", "is_square"} - ret.keys():
-                if prop == "is_dense":
-                    nrows, ncols = obj.shape
-                    ret[prop] = obj.nnz == nrows * ncols
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[obj.dtype]
-                if prop == "is_square":
-                    nrows, ncols = obj.shape
-                    ret[prop] = nrows == ncols
-
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "is_symmetric":
-                    ret[prop] = ret["is_square"] and (obj.T != obj).nnz == 0
-
-            return ret
-
-        @classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=1e-9,
-            abs_tol=0.0,
-        ):
-            assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            if issubclass(obj1.dtype.type, np.floating):
-                d1 = obj1.tocsr()
-                d2 = obj2.tocsr()
-                # Check shape
-                assert (d1.indptr == d2.indptr).all(), f"{d1.indptr == d2.indptr}"
-                assert (d1.indices == d2.indices).all(), f"{d1.indices == d2.indices}"
-                assert np.isclose(d1.data, d2.data, rtol=rel_tol, atol=abs_tol).all()
-            else:
-                # Recommended way to check for equality
-                assert (obj1 != obj2).nnz == 0, f"{(obj1 != obj2).toarray()}"
-
     class ScipyEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         """
         scipy.sparse matrix is the minimal size to contain all edges.

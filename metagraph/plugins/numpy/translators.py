@@ -1,7 +1,7 @@
 import numpy as np
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_grblas
-from .types import NumpyMatrix, NumpyVector, NumpyNodeSet, NumpyNodeMap
+from .types import NumpyMatrixType, NumpyVectorType, NumpyNodeSet, NumpyNodeMap
 from ..python.types import PythonNodeMapType, PythonNodeSetType
 
 
@@ -28,47 +28,19 @@ def nodemap_from_python(x: PythonNodeMapType, **props) -> NumpyNodeMap:
     return NumpyNodeMap(data, nodes=nodes, aprops=aprops)
 
 
-if has_scipy:
-    from ..scipy.types import ScipyMatrixType
-
-    @translator
-    def matrix_from_scipy(x: ScipyMatrixType, **props) -> NumpyMatrix:
-        # This is trickier than simply calling .toarray() because
-        # scipy.sparse assumes empty means zero
-        # Mask is required To properly handle any non-empty zeros
-        aprops = ScipyMatrixType.compute_abstract_properties(x, {"is_dense"})
-        if aprops["is_dense"]:
-            return NumpyMatrix(x.toarray())
-        else:
-            existing = x.copy().astype(bool)  # don't modify original
-            data = x.toarray()
-            existing.data = np.ones_like(existing.data)
-            existing_mask = existing.toarray()
-            return NumpyMatrix(data, mask=existing_mask)
-
-
 if has_grblas:
     from ..graphblas.types import (
         GrblasVectorType,
         GrblasNodeSet,
         GrblasNodeMap,
+        GrblasMatrixType,
         dtype_grblas_to_mg,
     )
 
     @translator
-    def vector_from_graphblas(x: GrblasVectorType, **props) -> NumpyVector:
-        inds, vals = x.to_values()
-        data = np.empty((x.size,), dtype=dtype_grblas_to_mg[x.dtype.name])
-        if len(vals) == len(data):
-            for idx, val in zip(inds, vals):
-                data[idx] = val
-            return NumpyVector(data)
-        else:
-            existing_mask = np.zeros_like(data, dtype=bool)
-            for idx, val in zip(inds, vals):
-                data[idx] = val
-                existing_mask[idx] = True
-            return NumpyVector(data, mask=existing_mask)
+    def vector_from_graphblas(x: GrblasVectorType, **props) -> NumpyVectorType:
+        _, vals = x.to_values()
+        return np.array(vals)
 
     @translator
     def nodeset_from_graphblas(x: GrblasNodeSet, **props) -> NumpyNodeSet:
@@ -81,3 +53,12 @@ if has_grblas:
         # TODO: remove this line once `to_values()` returns ndarray
         vals = np.array(vals, dtype=dtype_grblas_to_mg[x.value.dtype.name])
         return NumpyNodeMap(vals, nodes=idx)
+
+    @translator
+    def matrix_from_grblas(x: GrblasMatrixType, **props) -> NumpyMatrixType:
+        _, _, vals = x.to_values()
+        # TODO: adjust this once `to_values()` returns ndarray
+        vals = np.array(vals, dtype=dtype_grblas_to_mg[x.dtype.name]).reshape(
+            (x.nrows, x.ncols)
+        )
+        return vals

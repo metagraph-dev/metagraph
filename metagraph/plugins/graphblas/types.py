@@ -41,9 +41,7 @@ if has_grblas:
             ret = known_props.copy()
 
             # fast properties
-            for prop in {"is_dense", "dtype"} - ret.keys():
-                if prop == "is_dense":
-                    ret[prop] = obj.nvals == obj.size
+            for prop in {"dtype"} - ret.keys():
                 if prop == "dtype":
                     ret[prop] = dtypes.dtypes_simplified[
                         dtype_grblas_to_mg[obj.dtype.name]
@@ -177,20 +175,11 @@ if has_grblas:
             ret = known_props.copy()
 
             # fast properties
-            for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
-                if prop == "is_dense":
-                    ret[prop] = obj.nvals == obj.nrows * obj.ncols
-                if prop == "is_square":
-                    ret[prop] = obj.nrows == obj.ncols
+            for prop in {"dtype"} - ret.keys():
                 if prop == "dtype":
                     ret[prop] = dtypes.dtypes_simplified[
                         dtype_grblas_to_mg[obj.dtype.name]
                     ]
-
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "is_symmetric":
-                    ret[prop] = obj == obj.T.new()
 
             return ret
 

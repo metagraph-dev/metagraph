@@ -319,9 +319,12 @@ class MultiVerify:
         expected_val = ensure_computed(expected_val)
         val = ensure_computed(val)
 
-        expected_type = self.resolver.class_to_concrete.get(
-            type(expected_val), type(expected_val)
-        )
+        try:
+            expected_type = self.resolver.typeclass_of(expected_val)
+        except TypeError:
+            # Assume this is a normal Python type
+            expected_type = type(expected_val)
+
         if issubclass(expected_type, ConcreteType):
             try:
                 if not expected_type.is_typeclass_of(val):

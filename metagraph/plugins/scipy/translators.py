@@ -1,12 +1,10 @@
 from metagraph import translator
 from metagraph.plugins import has_scipy, has_networkx, has_grblas, has_pandas
-from metagraph.plugins.numpy.types import NumpyNodeSet, NumpyNodeMap
 import numpy as np
 
 if has_scipy:
     import scipy.sparse as ss
-    from .types import ScipyEdgeMap, ScipyEdgeSet, ScipyMatrixType
-    from ..numpy.types import NumpyMatrix
+    from .types import ScipyEdgeMap, ScipyEdgeSet
 
     @translator
     def edgemap_to_edgeset(x: ScipyEdgeMap, **props) -> ScipyEdgeSet:
@@ -15,24 +13,6 @@ if has_scipy:
         # Force all values to be 1's to indicate no weights
         data.data = np.ones_like(data.data)
         return ScipyEdgeSet(data, x.node_list, aprops=aprops)
-
-    @translator
-    def matrix_from_numpy(x: NumpyMatrix, **props) -> ScipyMatrixType:
-        # scipy.sparse assumes zero is empty
-        # To work around this limitation, we use a mask
-        # and directly set `.data` after construction
-        if x.mask is None:
-            if (x.value == 0).any():
-                mask = x.value.copy()
-                mask[:, :] = 1
-                mat = ss.coo_matrix(mask)
-                mat.data = x.value.flatten()
-            else:
-                mat = ss.coo_matrix(x.value)
-        else:
-            mat = ss.coo_matrix(x.mask)
-            mat.data = x.value[x.mask]
-        return mat
 
 
 if has_scipy and has_networkx:
@@ -64,7 +44,6 @@ if has_scipy and has_networkx:
 
 if has_scipy and has_grblas:
     import scipy.sparse as ss
-    from .types import ScipyMatrixType
     from ..graphblas.types import (
         GrblasMatrixType,
         GrblasGraph,
@@ -73,12 +52,6 @@ if has_scipy and has_grblas:
         dtype_grblas_to_mg,
         find_active_nodes,
     )
-
-    @translator
-    def matrix_from_graphblas(x: GrblasMatrixType, **props) -> ScipyMatrixType:
-        rows, cols, vals = x.to_values()
-        mat = ss.coo_matrix((vals, (rows, cols)), x.shape)
-        return mat
 
     @translator
     def edgeset_from_graphblas(x: GrblasEdgeSet, **props) -> ScipyEdgeSet:

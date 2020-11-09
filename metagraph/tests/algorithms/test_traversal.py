@@ -67,7 +67,7 @@ def test_bfs_iter(default_plugin_resolver):
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
-    correct_answer = dpr.wrappers.Vector.NumpyVector(np.array([0, 3, 4, 5, 6, 2, 7]))
+    correct_answer = np.array([0, 3, 4, 5, 6, 2, 7])
     MultiVerify(dpr).compute("traversal.bfs_iter", graph, 0).assert_equal(
         correct_answer
     )

@@ -165,13 +165,13 @@ class MultiStepTranslator:
             return mst
 
         abstract = dst_type.abstract
-        if abstract not in resolver.translation_matrices:
-            resolver.translation_matrices[abstract] = TranslationMatrix(
+        if abstract not in resolver._translation_matrices:
+            resolver._translation_matrices[abstract] = TranslationMatrix(
                 resolver, abstract
             )
 
         # Lookup shortest path from stored results
-        trans_matrix = resolver.translation_matrices[abstract]
+        trans_matrix = resolver._translation_matrices[abstract]
         return trans_matrix.build_mst(resolver, src_type, dst_type)
 
 

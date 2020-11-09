@@ -11,7 +11,7 @@ if has_numba:
 
 if has_scipy:
     import scipy.sparse as ss
-    from ..numpy.types import NumpyNodeMap, NumpyNodeSet, NumpyVector
+    from ..numpy.types import NumpyNodeMap, NumpyNodeSet, NumpyVectorType
 
     @concrete_algorithm("clustering.connected_components")
     def ss_connected_components(graph: ScipyGraph) -> NumpyNodeMap:
@@ -81,7 +81,7 @@ if has_scipy:
     @concrete_algorithm("traversal.bfs_iter")
     def ss_breadth_first_search_iter(
         graph: ScipyGraph, source_node: NodeID, depth_limit: int
-    ) -> NumpyVector:
+    ) -> NumpyVectorType:
         is_directed = ScipyGraph.Type.compute_abstract_properties(
             graph, {"is_directed"}
         )["is_directed"]
@@ -89,7 +89,7 @@ if has_scipy:
             graph.value, source_node, directed=is_directed, return_predecessors=False,
         )
         bfs_ordered_nodes = graph.node_list[bfs_ordered_incides]
-        return NumpyVector(bfs_ordered_nodes)
+        return bfs_ordered_nodes
 
     @concrete_algorithm("flow.max_flow")
     def ss_max_flow(

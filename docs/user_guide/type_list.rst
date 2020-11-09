@@ -14,7 +14,6 @@ Vector
 
 Abstract Properties:
 
-- is_dense: [True, False]
 - dtype: ["float", "int", "bool"]
 
 → Grblas Vector
@@ -26,12 +25,8 @@ Abstract Properties:
 → Numpy Vector
 ~~~~~~~~~~~~~~
 
-:ConcreteType: ``NumpyVector.Type``
-:value_type: ``NumpyVector`` wrapper
-:data objects:
-    ``.value``: numpy array (1D) of values
-
-    ``.mask``: optional boolean numpy array indicating non-missing values
+:ConcreteType: ``NumpyVectorType``
+:value_type: numpy array (1-dimensional) of values
 
 
 Matrix
@@ -41,8 +36,6 @@ Matrix
 
 Abstract Properties:
 
-- is_dense: [True, False]
-- is_square: [True, False]
 - dtype: ["float", "int", "bool"]
 
 
@@ -55,18 +48,16 @@ Abstract Properties:
 → Numpy Matrix
 ~~~~~~~~~~~~~~
 
-:ConcreteType: ``NumpyMatrix.Type``
-:value_type: ``NumpyMatrix`` wrapper
-:data objects:
-    ``.value``: numpy array (2D) of values
-
-    ``.mask``: optional boolean numpy array indicating non-missing values
+:ConcreteType: ``NumpyMatrixType``
+:value_type: numpy array (2-dimensional) of values
 
 → Scipy Matrix
 ~~~~~~~~~~~~~~
 
 :ConcreteType: ``ScipyMatrixType``
 :value_type: ``scipy.sparse.spmatrix``
+
+Even though this is a ``scipy.sparse`` matrix, all values are present.
 
 
 DataFrame

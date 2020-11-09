@@ -152,7 +152,7 @@ class Resolver:
 
         # translation graph matrices
         # Single-sourch shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
-        self.translation_matrices: Dict[AbstractType, TranslationMatrix] = {}
+        self._translation_matrices: Dict[AbstractType, TranslationMatrix] = {}
 
         self.algos = Namespace()
         self.wrappers = Namespace()
@@ -283,7 +283,7 @@ class Resolver:
 
         if tree_is_resolver and (len(concrete_types) > 0 or len(translators) > 0):
             # Wipe out existing translation matrices (if any)
-            self.translation_matrices.clear()
+            self._translation_matrices.clear()
 
         for ct in concrete_types:
             name = ct.__qualname__
@@ -533,7 +533,7 @@ class Resolver:
             conc_type, mgtyping.UniformIterable
         ):
             if origin == List:
-                conc_type = mgtyping.List(conc_type.__args__[0])
+                conc_type = mgtyping.List[conc_type.__args__[0]]
             else:
                 conc_type = mgtyping.Combo(conc_type)
             changed = True
