@@ -3,7 +3,7 @@
 import types
 import inspect
 from functools import partial
-from typing import Callable, List, Dict, Set, Any
+from typing import Callable, List, Dict, Set, Union, Any
 from .typecache import TypeCache, TypeInfo
 
 
@@ -243,7 +243,9 @@ class ConcreteType:
         )
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: Set[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: Union[str, Set[str]]
+    ) -> Dict[str, Any]:
         """Return a dictionary with a subset of abstract properties for this object.
 
         At a minimum, only the requested properties will be computed, although
@@ -259,7 +261,7 @@ class ConcreteType:
         if len(props) == 0:
             return {}
 
-        # Be forgiving if a single string is passed in
+        # Upgrade single string to a 1-element set
         if isinstance(props, str):
             props = {props}
 
@@ -299,7 +301,9 @@ class ConcreteType:
         )
 
     @classmethod
-    def compute_concrete_properties(cls, obj, props: Set[str]) -> Dict[str, Any]:
+    def compute_concrete_properties(
+        cls, obj, props: Union[str, Set[str]]
+    ) -> Dict[str, Any]:
         """Return a dictionary with a subset of concrete properties for this object.
 
         At a minimum, only the requested properties will be computed, although
@@ -315,7 +319,7 @@ class ConcreteType:
         if len(props) == 0:
             return {}
 
-        # Be forgiving if a single string is passed in
+        # Upgrade single string to a 1-element set
         if isinstance(props, str):
             props = {props}
 

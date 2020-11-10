@@ -119,14 +119,10 @@ if has_pandas:
                         obj1.index
                     ), f"edge mismatch {obj1.index ^ obj2.index}"
                 else:  # undirected
-                    full1 = (
-                        obj1.index
-                        | g1.set_index([obj1.dst_label, obj1.src_label]).index
-                    )
-                    full2 = (
-                        obj2.index
-                        | g2.set_index([obj2.dst_label, obj2.src_label]).index
-                    )
+                    rev1 = g1.set_index([obj1.dst_label, obj1.src_label])
+                    rev2 = g2.set_index([obj2.dst_label, obj2.src_label])
+                    full1 = obj1.index | rev1.index
+                    full2 = obj2.index | rev2.index
                     assert len(full1 & full2) == len(
                         full1
                     ), f"edge mismatch {full1 ^ full2}"
@@ -257,14 +253,10 @@ if has_pandas:
                         obj1.index
                     ), f"edge mismatch {obj1.index ^ obj2.index}"
                 else:  # undirected
-                    full1 = (
-                        obj1.index
-                        | g1.set_index([obj1.dst_label, obj1.src_label]).index
-                    )
-                    full2 = (
-                        obj2.index
-                        | g2.set_index([obj2.dst_label, obj2.src_label]).index
-                    )
+                    rev1 = g1.set_index([obj1.dst_label, obj1.src_label])
+                    rev2 = g2.set_index([obj2.dst_label, obj2.src_label])
+                    full1 = obj1.index | rev1.index
+                    full2 = obj2.index | rev2.index
                     assert len(full1 & full2) == len(
                         full1
                     ), f"edge mismatch {full1 ^ full2}"
