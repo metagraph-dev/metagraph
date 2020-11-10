@@ -174,12 +174,32 @@ if has_scipy:
         matrix.data.fill(weight)
         return ScipyGraph(matrix, graph.node_list, graph.node_vals)
 
-    # @concrete_algorithm("util.graph.build")
-    # def ss_graph_build(
-    #     edges: Union[ScipyEdgeSet, ScipyEdgeMap],
-    #     nodes: Union[NumpyNodeSet, NumpyNodeMap, None],
-    # ) -> ScipyGraph:
-    #     raise NotImplementedError()
+    @concrete_algorithm("util.graph.build")
+    def ss_graph_build(
+        edges: Union[ScipyEdgeSet, ScipyEdgeMap],
+        nodes: Union[NumpyNodeSet, NumpyNodeMap, None],
+    ) -> ScipyGraph:
+        aprops = {
+            "edge_type": "map" if isinstance(edges, ScipyEdgeMap) else "set",
+            "node_type": "map" if isinstance(nodes, NumpyNodeMap) else "set",
+        }
+        m = edges.value.copy()
+        node_list = edges.node_list.copy()
+        node_vals = None
+        if nodes is not None:
+            all_nodes = nodes.nodes if aprops["node_type"] == "map" else nodes.value
+            isolates = np.setdiff1d(all_nodes, node_list)
+            if len(isolates) > 0:
+                new_size = m.shape[0] + len(isolates)
+                m.resize((new_size, new_size))
+                node_list = np.concatenate([node_list, isolates])
+            if aprops["node_type"] == "map":
+                node_vals = nodes.value.copy()
+                if len(isolates) > 0:
+                    # align ordering of node values
+                    sorter = np.argsort(node_list)
+                    node_vals[sorter] = nodes.value
+        return ScipyGraph(m, node_list, node_vals, aprops=aprops)
 
     @concrete_algorithm("util.edgemap.from_edgeset")
     def ss_edgemap_from_edgeset(

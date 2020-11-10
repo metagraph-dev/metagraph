@@ -2,6 +2,7 @@ from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_grblas
 from typing import Tuple, Iterable, Any, Union, Optional
 import random
+import numpy as np
 
 if has_grblas:
     import grblas as gb
@@ -67,12 +68,24 @@ if has_grblas:
                 break
         return GrblasNodeMap(r)
 
-    # @concrete_algorithm("util.graph.build")
-    # def grblas_graph_build(
-    #     edges: Union[GrblasEdgeSet, GrblasEdgeMap],
-    #     nodes: Union[GrblasNodeSet, GrblasNodeMap, None],
-    # ) -> GrblasGraph:
-    #     raise NotImplementedError()
+    @concrete_algorithm("util.graph.build")
+    def grblas_graph_build(
+        edges: Union[GrblasEdgeSet, GrblasEdgeMap],
+        nodes: Union[GrblasNodeSet, GrblasNodeMap, None],
+    ) -> GrblasGraph:
+        aprops = {
+            "edge_type": "map" if isinstance(edges, GrblasEdgeMap) else "set",
+            "node_type": "map" if isinstance(nodes, GrblasNodeMap) else "set",
+        }
+        m = edges.value
+        if nodes is not None:
+            nodes = nodes.value
+            size = nodes.size
+            if m.nrows < size:
+                resized = gb.Matrix.new(m.dtype, nrows=size, ncols=size)
+                resized[: m.nrows, : m.nrows] << m
+                m = resized
+        return GrblasGraph(m, nodes=nodes, aprops=aprops)
 
     @concrete_algorithm("subgraph.extract_subgraph")
     def grblas_extract_subgraph(
@@ -94,31 +107,45 @@ if has_grblas:
         GrblasGraph.Type.preset_abstract_properties(gg, **aprops)
         return gg
 
-    # @concrete_algorithm("subgraph.sample.node_sampling")
-    # def grblas_node_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
-    #     if graph.nodes is None:
-    #         all_nodes = range(graph.edges.value.nrows)
-    #     else:
-    #         all_nodes, _ = graph.nodes.value.to_values()
-    #     chosen_nodes = [n for n in all_nodes if random.random() < p]
-    #     chosen_nodes = gb.Vector.from_values(chosen_nodes, [1]*len(chosen_nodes))
-    #     return grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))
+    @concrete_algorithm("subgraph.sample.node_sampling")
+    def grblas_node_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
+        rand = random.random
+        all_nodes, _ = graph.nodes.to_values()
+        chosen_nodes = [n for n in all_nodes if rand() < p]
+        chosen_nodes = gb.Vector.from_values(chosen_nodes, [1] * len(chosen_nodes))
+        return grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))
 
-    # @concrete_algorithm("subgraph.sample.edge_sampling")
-    # def grblas_edge_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
-    #     pass
+    @concrete_algorithm("subgraph.sample.edge_sampling")
+    def grblas_edge_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
+        aprops = GrblasGraph.Type.compute_abstract_properties(graph, "node_type")
+        rand = random.random
+        rows, cols, vals = graph.value.to_values()
+        chosen_edges = np.array([i for i in range(len(vals)) if rand() < p])
+        # TODO: fix this once `to_values()` returns ndarray
+        rows = np.array(rows)[chosen_edges]
+        cols = np.array(cols)[chosen_edges]
+        vals = np.array(vals)[chosen_edges]
+        chosen_nodes = np.intersect1d(rows, cols)
+        m = gb.Matrix.from_values(rows, cols, vals)
+        if aprops["node_type"] == "map":
+            nidx, nvals = graph.nodes.to_values()
+            nidx = np.array(nidx)
+            nvals = np.array(nvals)[nidx.searchsorted(chosen_nodes)]
+            nodes = gb.Vector.from_values(chosen_nodes, nvals)
+        else:
+            nodes = gb.Vector.from_values(chosen_nodes, [1] * len(chosen_nodes))
+        return GrblasGraph(m, nodes)
 
-    # @concrete_algorithm("subgraph.sample.ties")
-    # def grblas_totally_induced_edge_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
-    #     pass
-
-    # @concrete_algorithm("subgraph.sample.random_walk")
-    # def grblas_random_walk_sampling(
-    #     graph: GrblasGraph,
-    #     num_steps: Optional[int],
-    #     num_nodes: Optional[int],
-    #     num_edges: Optional[int],
-    #     jump_probability: float,
-    #     start_node: Optional[NodeID],
-    # ) -> GrblasGraph:
-    #     pass
+    @concrete_algorithm("subgraph.sample.ties")
+    def grblas_totally_induced_edge_sampling(
+        graph: GrblasGraph, p: float
+    ) -> GrblasGraph:
+        rand = random.random
+        rows, cols, vals = graph.value.to_values()
+        chosen_edges = np.array([i for i in range(len(vals)) if rand() < p])
+        # TODO: fix this once `to_values()` returns ndarray
+        rows = np.array(rows)[chosen_edges]
+        cols = np.array(cols)[chosen_edges]
+        chosen_nodes = np.intersect1d(rows, cols)
+        chosen_nodes = gb.Vector.from_values(chosen_nodes, [1] * len(chosen_nodes))
+        return grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))
