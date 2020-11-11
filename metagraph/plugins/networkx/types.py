@@ -8,7 +8,8 @@ import math
 def _determine_dtype(all_values):
     all_types = {type(v) for v in all_values}
     if not all_types or (all_types - {float, int, bool}):
-        return "str"
+        # return "str"
+        raise TypeError(f"unable to determine dtype, all_types={all_types}")
     for type_ in (float, int, bool):
         if type_ in all_types:
             return str(type_.__name__)
@@ -20,9 +21,14 @@ if has_networkx:
 
     class NetworkXGraph(GraphWrapper, abstract=Graph):
         def __init__(
-            self, nx_graph, node_weight_label="weight", edge_weight_label="weight"
+            self,
+            nx_graph,
+            node_weight_label="weight",
+            edge_weight_label="weight",
+            *,
+            aprops=None,
         ):
-            super().__init__()
+            super().__init__(aprops=aprops)
             self.value = nx_graph
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label
@@ -160,6 +166,8 @@ if has_networkx:
             nodes,
             node_weight_label="weight",
             edge_weight_label="weight",
+            *,
+            aprops=None,
         ):
             """
             :param nx_graph:
@@ -167,7 +175,7 @@ if has_networkx:
             :param node_weight_label:
             :param edge_weight_label:
             """
-            super().__init__()
+            super().__init__(aprops=aprops)
             self.value = nx_graph
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label

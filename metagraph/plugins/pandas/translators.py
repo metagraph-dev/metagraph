@@ -6,12 +6,13 @@ if has_pandas:
 
     @translator
     def edgemap_to_edgeset(x: PandasEdgeMap, **props) -> PandasEdgeSet:
-        return PandasEdgeSet(x.value, x.src_label, x.dst_label)
+        return PandasEdgeSet(
+            x.value, x.src_label, x.dst_label, is_directed=x.is_directed
+        )
 
 
 if has_pandas and has_scipy:
     import pandas as pd
-    import scipy.sparse as ss
     from ..scipy.types import ScipyEdgeMap, ScipyEdgeSet
 
     @translator
@@ -25,7 +26,7 @@ if has_pandas and has_scipy:
         column_ids = map(get_node_from_pos, coo_matrix.col)
         rcw_triples = zip(row_ids, column_ids, coo_matrix.data)
         if not is_directed:
-            rcw_triples = filter(lambda triple: triple[0] < triple[1], rcw_triples)
+            rcw_triples = filter(lambda triple: triple[0] <= triple[1], rcw_triples)
         df = pd.DataFrame(rcw_triples, columns=["source", "target", "weight"])
         return PandasEdgeMap(df, is_directed=is_directed)
 
@@ -40,6 +41,6 @@ if has_pandas and has_scipy:
         column_ids = map(get_node_from_pos, coo_matrix.col)
         rc_pairs = zip(row_ids, column_ids)
         if not is_directed:
-            rc_pairs = filter(lambda pair: pair[0] < pair[1], rc_pairs)
+            rc_pairs = filter(lambda pair: pair[0] <= pair[1], rc_pairs)
         df = pd.DataFrame(rc_pairs, columns=["source", "target"])
         return PandasEdgeSet(df, is_directed=is_directed)

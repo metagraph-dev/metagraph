@@ -40,6 +40,7 @@ class TypeCache:
 
     def __init__(self):
         self._cache = {}
+        self._fingerprints = {}
 
     def __getitem__(self, obj):
         key = self._key(obj)
@@ -75,8 +76,54 @@ class TypeCache:
         try:
             return hash(obj)
         except TypeError:
-            return id(obj)
+            key = id(obj)
+            # Special handling for objects which cannot be a weakref
+            try:
+                weakref.ref(obj)
+            except TypeError:
+                if type(obj) is set:
+                    self._special_handling_set(obj, key)
+                elif type(obj) is dict:
+                    self._special_handling_dict(obj, key)
+                else:
+                    raise TypeError(
+                        f"Object of type {type(obj)} requires special handling which not been defined yet"
+                    )
+            return key
 
     def _expire_key(self, key):
         if key in self._cache:
             del self._cache[key]
+
+    def _special_handling_set(self, obj, ident):
+        # Nothing to do for sets until NodeSet gains an abstract property
+        pass
+
+    def _special_handling_dict(self, obj, ident):
+        # Use a fingerprint to detect if this is the same object
+        # - size of dict
+        # - few random keys and the type and id of their values
+        fingerprint_size = 3
+        if ident in self._fingerprints:
+            fingerprint = self._fingerprints[ident]
+            try:
+                assert len(obj) == fingerprint["size"]
+                for key in fingerprint["keys"]:
+                    assert id(obj[key]) == fingerprint[f"_id_{key}"]
+                    assert type(obj[key]) == fingerprint[f"_type_{key}"]
+            except AssertionError:
+                self._expire_key(ident)
+                del self._fingerprints[ident]
+
+        if ident not in self._fingerprints:
+            size = len(obj)
+            if size < fingerprint_size:
+                rand_keys = tuple(obj.keys())
+            else:
+                key_iter = iter(obj)
+                rand_keys = tuple(next(key_iter) for _ in range(fingerprint_size))
+            fingerprint = {"size": len(obj), "keys": rand_keys}
+            for key in rand_keys:
+                fingerprint[f"_id_{key}"] = id(obj[key])
+                fingerprint[f"_type_{key}"] = type(obj[key])
+            self._fingerprints[ident] = fingerprint

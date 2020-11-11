@@ -15,12 +15,13 @@ def test_all_pairs_shortest_paths(default_plugin_resolver):
     C --4--- D
     """
     dpr = default_plugin_resolver
+    node_list = [12, 13, 4, 19]
     graph_ss_matrix = ss.csr_matrix(
         np.array(
             [[0, 1, 3, 0], [1, 0, 9, 2], [3, 9, 0, 4], [0, 2, 4, 0]], dtype=np.int64
         )
     )
-    graph = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix)
+    graph = dpr.wrappers.Graph.ScipyGraph(graph_ss_matrix, node_list)
     parents_ss_matrix = ss.csr_matrix(
         np.array(
             [[0, 0, 0, 1], [1, 0, 0, 1], [2, 0, 0, 2], [1, 3, 3, 0]], dtype=np.int64
@@ -32,12 +33,8 @@ def test_all_pairs_shortest_paths(default_plugin_resolver):
         )
     )
     expected_answer = (
-        dpr.wrappers.Graph.ScipyGraph(
-            dpr.wrappers.EdgeMap.ScipyEdgeMap(parents_ss_matrix)
-        ),
-        dpr.wrappers.Graph.ScipyGraph(
-            dpr.wrappers.EdgeMap.ScipyEdgeMap(lengths_ss_matrix)
-        ),
+        dpr.wrappers.Graph.ScipyGraph(parents_ss_matrix, node_list),
+        dpr.wrappers.Graph.ScipyGraph(lengths_ss_matrix, node_list),
     )
     MultiVerify(dpr).compute("traversal.all_pairs_shortest_paths", graph).assert_equal(
         expected_answer
@@ -70,7 +67,7 @@ def test_bfs_iter(default_plugin_resolver):
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
-    correct_answer = dpr.wrappers.Vector.NumpyVector(np.array([0, 3, 4, 5, 6, 2, 7]))
+    correct_answer = np.array([0, 3, 4, 5, 6, 2, 7])
     MultiVerify(dpr).compute("traversal.bfs_iter", graph, 0).assert_equal(
         correct_answer
     )
@@ -105,10 +102,7 @@ def test_bellman_ford(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
-    expected_answer = (
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
-    )
+    expected_answer = (node_to_parent_mapping, node_to_length_mapping)
     MultiVerify(dpr).compute("traversal.bellman_ford", graph, 0).assert_equal(
         expected_answer
     )
@@ -143,10 +137,7 @@ def test_dijkstra(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     node_to_parent_mapping = {0: 0, 3: 0, 1: 3, 4: 3, 5: 4, 6: 5, 2: 6, 7: 2}
     node_to_length_mapping = {0: 0, 3: 1, 1: 8, 4: 9, 5: 18, 6: 28, 2: 39, 7: 45}
-    expected_answer = (
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_parent_mapping),
-        dpr.wrappers.NodeMap.PythonNodeMap(node_to_length_mapping),
-    )
+    expected_answer = (node_to_parent_mapping, node_to_length_mapping)
     MultiVerify(dpr).compute("traversal.dijkstra", graph, 0).assert_equal(
         expected_answer
     )

@@ -33,13 +33,12 @@ def test_node2vec(default_plugin_resolver):
         matrix, node_map = matrix_node_map_pair
         a_indices = node_map[a_nodes]
         b_indices = node_map[b_nodes]
-        np_matrix = matrix.as_dense(copy=False)
-        a_centroid = np_matrix[a_indices].mean(0)
-        b_centroid = np_matrix[b_indices].mean(0)
+        a_centroid = matrix[a_indices].mean(0)
+        b_centroid = matrix[b_indices].mean(0)
         for a_index in a_indices:
             for b_index in b_indices:
-                a_vector = np_matrix[a_index]
-                b_vector = np_matrix[b_index]
+                a_vector = matrix[a_index]
+                b_vector = matrix[b_index]
                 a_to_a_center = euclidean_dist(a_vector, a_centroid)
                 b_to_b_center = euclidean_dist(b_vector, b_centroid)
                 a_to_b = euclidean_dist(a_vector, b_vector)
@@ -85,9 +84,8 @@ def test_graph2vec(default_plugin_resolver):
     learning_rate = 5e-2
 
     def cmp_func(matrix):
-        np_matrix = matrix.as_dense(copy=False)
         gmm = GaussianMixture(3)
-        predicted_labels = gmm.fit_predict(np_matrix)
+        predicted_labels = gmm.fit_predict(matrix)
 
         complete_graph_labels = predicted_labels[0 : len(complete_graphs)]
         path_graph_labels = predicted_labels[
@@ -146,12 +144,11 @@ def test_graphwave(default_plugin_resolver):
 
     def cmp_func(matrix_node_map_pair):
         matrix, node_map = matrix_node_map_pair
-        np_matrix = matrix.as_dense(copy=False)
 
         class_to_vectors = {c: [] for c in classes}
         for node_id in node_map.pos2id:
             c = node_to_class[node_id]
-            class_to_vectors[c].append(np_matrix[node_id])
+            class_to_vectors[c].append(matrix[node_id])
 
         class_to_mean_vector = {
             c: np.stack(vectors).mean(axis=0) for c, vectors in class_to_vectors.items()
@@ -170,7 +167,7 @@ def test_graphwave(default_plugin_resolver):
         for c, max_dist in class_to_max_dist_from_mean.items():
             assert max_dist < 0.325
 
-    scales = dpr.wrappers.Vector.NumpyVector(np.array([5, 10]))
+    scales = np.array([5, 10])
     sample_point_count = 50
     sample_point_max = 100.0
     chebyshev_degree = 20
@@ -243,7 +240,7 @@ def test_hope_katz(default_plugin_resolver):
         b_indices = node_map[b_graph.nodes]
 
         gmm = GaussianMixture(2)
-        predicted_labels = gmm.fit_predict(matrix.value)
+        predicted_labels = gmm.fit_predict(matrix)
         a_labels = predicted_labels[a_indices]
         b_labels = predicted_labels[b_indices]
 
@@ -417,13 +414,12 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
 
     # Verify GraphSAGE results
     def cmp_func(matrix):
-        assert tuple(matrix.shape) == (51, layer_sizes.as_dense(copy=False)[-1])
-        np_matrix = matrix.as_dense(copy=False)
-        unseen_a_vectors = np_matrix[0:20]
-        unseen_b_vectors = np_matrix[20:50]
+        assert tuple(matrix.shape) == (51, layer_sizes[-1])
+        unseen_a_vectors = matrix[0:20]
+        unseen_b_vectors = matrix[20:50]
 
         _, neighbor_indices = (
-            NearestNeighbors(n_neighbors=20).fit(np_matrix).kneighbors(np_matrix)
+            NearestNeighbors(n_neighbors=20).fit(matrix).kneighbors(matrix)
         )
 
         for unseen_a_node_position in range(20):
@@ -488,7 +484,7 @@ def test_line(default_plugin_resolver):
         c_indices = node_map[c_nodes]
 
         gmm = GaussianMixture(3)
-        predicted_labels = gmm.fit_predict(matrix.value)
+        predicted_labels = gmm.fit_predict(matrix)
         a_labels = predicted_labels[a_indices]
         b_labels = predicted_labels[b_indices]
         c_labels = predicted_labels[c_indices]

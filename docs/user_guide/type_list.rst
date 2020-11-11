@@ -14,8 +14,7 @@ Vector
 
 Abstract Properties:
 
-- is_dense: [True, False]
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 
 → Grblas Vector
 ~~~~~~~~~~~~~~~
@@ -26,12 +25,8 @@ Abstract Properties:
 → Numpy Vector
 ~~~~~~~~~~~~~~
 
-:ConcreteType: ``NumpyVector.Type``
-:value_type: ``NumpyVector`` wrapper
-:data objects:
-    ``.value``: numpy array (1D) of values
-
-    ``.mask``: optional boolean numpy array indicating non-missing values
+:ConcreteType: ``NumpyVectorType``
+:value_type: numpy array (1-dimensional) of values
 
 
 Matrix
@@ -41,9 +36,7 @@ Matrix
 
 Abstract Properties:
 
-- is_dense: [True, False]
-- is_square: [True, False]
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 
 
 → Grblas Matrix
@@ -55,18 +48,16 @@ Abstract Properties:
 → Numpy Matrix
 ~~~~~~~~~~~~~~
 
-:ConcreteType: ``NumpyMatrix.Type``
-:value_type: ``NumpyMatrix`` wrapper
-:data objects:
-    ``.value``: numpy array (2D) of values
-
-    ``.mask``: optional boolean numpy array indicating non-missing values
+:ConcreteType: ``NumpyMatrixType``
+:value_type: numpy array (2-dimensional) of values
 
 → Scipy Matrix
 ~~~~~~~~~~~~~~
 
 :ConcreteType: ``ScipyMatrixType``
 :value_type: ``scipy.sparse.spmatrix``
+
+Even though this is a ``scipy.sparse`` matrix, all values are present.
 
 
 DataFrame
@@ -113,23 +104,10 @@ is that the value is not missing. There is no guarantee of what the value actual
 → Numpy NodeSet
 ~~~~~~~~~~~~~~~
 
-Concrete Properties:
-
-- is_compact: [True, False]
-
 :ConcreteType: ``NumpyNodeSet.Type``
 :value_type: ``NumpyNodeSet``
 :data objects:
-    ``.node_array``: numpy array of all NodeIDs in sorted order
-
-    ``.node_set``: Python set of all NodeIDs
-
-    ``.mask``: boolean numpy array indicating presence of NodeID in set
-
-Either ``mask`` will be set *or* ``node_array`` and ``node_set`` will be set.
-The mask will be None when ``is_compact==True``.
-
-To get a numpy array of the nodes, use the ``.nodes()`` method.
+    ``.value``: numpy array of all NodeIDs in sorted order
 
 → Python NodeSet
 ~~~~~~~~~~~~~~~~
@@ -147,7 +125,7 @@ A set of NodeIDs and associated values, one for each node.
 
 Abstract Properties:
 
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 
 Can be translated to:
 
@@ -170,26 +148,13 @@ Standard Wrapper Methods:
 → Numpy NodeMap
 ~~~~~~~~~~~~~~~
 
-Concrete Properties:
-
-- is_compact: [True, False]
-
 :ConcreteType: ``NumpyNodeMap.Type``
 :value_type: ``NumpyNodeMap``
 :data objects:
     ``.value``: numpy array of values
 
-    ``.mask``: boolean numpy array indicating presence of NodeIDs in map
+    ``.nodes``: numpy array of all NodeIDs in sorted order
 
-    ``.id2pos``: Python dict mapping NodeID to position in ``value``
-
-    ``.pos2id``: numpy array of all NodeIDs in sorted order
-
-For the compact mode, ``mask`` will be None. ``value`` will be dense, corresponding
-to NodeIDs in ``pos2id``.
-
-For the non-compact mode, ``id2pos`` and ``pos2id`` will be None. ``value`` will be sparse
-with valid data corresponding to True entries in the ``mask``.
 
 → Python NodeMap
 ~~~~~~~~~~~~~~~~
@@ -270,7 +235,7 @@ A set of edges connecting nodes. Each edge is associated with a value (i.e. weig
 Abstract Properties:
 
 - is_directed: [True, False]
-- dtype: ["str", "float", "int", "bool"]
+- dtype: ["float", "int", "bool"]
 - has_negative_weights: [True, False]
 
 Can be translated to:
@@ -342,16 +307,16 @@ Graph
 -----
 
 A combination of edges and nodes, each of which may hold values or not.
-Additionally, a Graph may have orphan nodes (containing no edges), which
+Additionally, a Graph may have isolate nodes (containing no edges), which
 an EdgeSet/Map cannot have.
 
 Abstract Properties:
 
 - is_directed: [True, False]
 - node_type: ["set", "map"]
-- node_dtype: ["str", "float", "int", "bool", None]
+- node_dtype: ["float", "int", "bool", None]
 - edge_type: ["set", "map"]
-- edge_dtype: ["str", "float", "int", "bool", None]
+- edge_dtype: ["float", "int", "bool", None]
 - edge_has_negative_weights: [True, False, None]
 
 Can be translated to:
@@ -365,12 +330,15 @@ Can be translated to:
 :ConcreteType: ``GrblasGraph.Type``
 :value_type: ``GrblasGraph``
 :data objects:
-    ``.edges``: ``GrblasEdgeSet`` or ``GrblasEdgeMap``
+    ``.value``: adjacency ``grblas.Matrix``
 
-    ``.nodes``: optional ``GrblasNodeSet`` or ``GrblasNodeMap``
+    ``.nodes``: optional ``grblas.Vector``
 
-If ``nodes`` is None, the nodes are assumed to be fully represented by the nodes in the
-EdgeSet or EdgeMap.
+The position index in the sparse matrix indicates the NodeId.
+
+If ``nodes`` is None, the nodes are assumed to be sequential for [0..nrows] of the matrix.
+``nodes`` indicate which nodes are present in the graph and may also indicate the value associated
+with each node.
 
 → NetworkX Graph
 ~~~~~~~~~~~~~~~~
@@ -398,12 +366,19 @@ If any edge has a weight, all edges must have a weight.
 :ConcreteType: ``ScipyGraph.Type``
 :value_type: ``ScipyGraph``
 :data objects:
-    ``.edges``: ``ScipyEdgeSet`` or ``ScipyEdgeMap``
+    ``.value``: adjacency ``scipy.sparse.spmatrix``
 
-    ``.nodes``: optional ``NumpyNodeSet`` or ``NumpyNodeMap``
+    ``.node_list``: optional ``np.ndarray``
 
-If ``nodes`` is None, the nodes are assumed to be fully represented by the nodes in the
-EdgeSet or EdgeMap.
+    ``.node_vals``: optional ``np.ndarray``
+
+The sparse matrix must be a square matrix sized to hold all nodes in the graph (including isolate nodes).
+
+If ``nodes`` is None, the nodes are assumed to be sequential for [0..nrows] of the matrix.
+If the nodes are not sequential, the ``node_list`` provides a mapping from matrix index to NodeId.
+
+If values are associated with each node, they will be contained in ``node_vals``. Otherwise it will
+be None.
 
 
 BipartiteGraph
@@ -418,10 +393,10 @@ Abstract Properties:
 - is_directed: [True, False]
 - node0_type: ["set", "map"]
 - node1_type: ["set", "map"]
-- node0_dtype: ["str", "float", "int", "bool", None]
-- node1_dtype: ["str", "float", "int", "bool", None]
+- node0_dtype: ["float", "int", "bool", None]
+- node1_dtype: ["float", "int", "bool", None]
 - edge_type: ["set", "map"]
-- edge_dtype: ["str", "float", "int", "bool", None]
+- edge_dtype: ["float", "int", "bool", None]
 - edge_has_negative_weights: [True, False, None]
 
 Can be translated to:
@@ -459,7 +434,7 @@ Conceptually, this can be thought of as a dense matrix with each row applying to
 
 Abstract Properties:
 
-- matrix_dtype: ["str", "float", "int", "bool"]
+- matrix_dtype: ["float", "int", "bool"]
 
 → NumpyNodeEmbedding
 ~~~~~~~~~~~~~~~~~~~~

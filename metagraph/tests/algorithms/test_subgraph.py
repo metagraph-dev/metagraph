@@ -23,10 +23,9 @@ def test_extract_subgraph(default_plugin_resolver):
     nx_extracted_graph = nx.Graph()
     nx_extracted_graph.add_weighted_edges_from([(2, 5, 5), (5, 6, 10), (6, 2, 11)])
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
-    desired_nodes_wrapped = dpr.wrappers.NodeSet.PythonNodeSet(desired_nodes)
     extracted_graph = dpr.wrappers.Graph.NetworkXGraph(nx_extracted_graph)
     MultiVerify(dpr).compute(
-        "subgraph.extract_subgraph", graph, desired_nodes_wrapped
+        "subgraph.extract_subgraph", graph, desired_nodes
     ).assert_equal(extracted_graph)
 
 
@@ -90,11 +89,10 @@ def test_maximial_independent_set(default_plugin_resolver):
     g = nx.generators.classic.barbell_graph(5, 6)
     graph = dpr.wrappers.Graph.NetworkXGraph(g)
 
-    def cmp_func(nodeset):
+    def cmp_func(ns):
         # Verify that every node in the graph is either:
         # 1. in the nodeset
         # 2. directly connected to the nodeset
-        ns = nodeset.value
         for node in g.nodes():
             if node in ns:
                 continue
@@ -109,7 +107,7 @@ def test_maximial_independent_set(default_plugin_resolver):
                 assert nbr not in ns, f"nodes {node} and {nbr} are connected"
 
     MultiVerify(dpr).compute("subgraph.maximal_independent_set", graph).normalize(
-        dpr.wrappers.NodeSet.PythonNodeSet
+        dpr.types.NodeSet.PythonNodeSetType
     ).custom_compare(cmp_func)
 
 

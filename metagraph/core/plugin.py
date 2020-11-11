@@ -3,7 +3,7 @@
 import types
 import inspect
 from functools import partial
-from typing import Callable, List, Dict, Set, Any
+from typing import Callable, List, Dict, Set, Union, Any
 from .typecache import TypeCache, TypeInfo
 
 
@@ -152,6 +152,23 @@ class ConcreteType:
         cls._typecache[value] = typeinfo
         return typeinfo
 
+    @classmethod
+    def preset_abstract_properties(cls, value, **props):
+        """
+        Before abstract properties are defined, they can be explicitly set using this method.
+        This avoids unnecessary work when a translator knows the abstract properties.
+        It can also be used to resolve ambiguous properties such as whether a symmetric matrix
+            is a directed edge set or not. Normally, this would be interpreted as being undirected.
+            In order to create a directed edge set with bidirectional edges, preset the property.
+        """
+        aprops = cls.get_typeinfo(value).known_abstract_props
+        for prop, val in props.items():
+            if prop in aprops:
+                raise ValueError(
+                    '"Cannot preset "{prop}"; already set in abstract properties'
+                )
+            aprops[prop] = val
+
     def is_satisfied_by(self, other_type):
         """Is other_type and its properties compatible with this type?
 
@@ -226,7 +243,9 @@ class ConcreteType:
         )
 
     @classmethod
-    def compute_abstract_properties(cls, obj, props: Set[str]) -> Dict[str, Any]:
+    def compute_abstract_properties(
+        cls, obj, props: Union[str, Set[str]]
+    ) -> Dict[str, Any]:
         """Return a dictionary with a subset of abstract properties for this object.
 
         At a minimum, only the requested properties will be computed, although
@@ -235,8 +254,16 @@ class ConcreteType:
 
         The properties are cached to speed up future calls for the same properties.
         """
+        assert cls.is_typeclass_of(
+            obj
+        ), f"Cannot compute abstract properties of {obj} using {cls}"
+
         if len(props) == 0:
             return {}
+
+        # Upgrade single string to a 1-element set
+        if isinstance(props, str):
+            props = {props}
 
         # Validate properties
         for propname in props:
@@ -267,14 +294,16 @@ class ConcreteType:
 
     @classmethod
     def _compute_concrete_properties(
-        cls, obj, props: List[str], known_props: Dict[str, Any]
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
     ) -> Dict[str, Any]:
         raise NotImplementedError(
             "Must override `_compute_concrete_properties` if type has concrete properties"
         )
 
     @classmethod
-    def compute_concrete_properties(cls, obj, props: List[str]) -> Dict[str, Any]:
+    def compute_concrete_properties(
+        cls, obj, props: Union[str, Set[str]]
+    ) -> Dict[str, Any]:
         """Return a dictionary with a subset of concrete properties for this object.
 
         At a minimum, only the requested properties will be computed, although
@@ -283,8 +312,16 @@ class ConcreteType:
 
         The properties are cached to speed up future calls for the same properties.
         """
+        assert cls.is_typeclass_of(
+            obj
+        ), f"Cannot compute concrete properties of {obj} using {cls}"
+
         if len(props) == 0:
             return {}
+
+        # Upgrade single string to a 1-element set
+        if isinstance(props, str):
+            props = {props}
 
         # Validate properties
         for propname in props:
@@ -424,8 +461,9 @@ class Wrapper(metaclass=MetaWrapper):
         # Point new Type class at this wrapper
         cls.Type.value_type = cls
 
-    def __init__(self):
-        pass
+    def __init__(self, *, aprops=None):
+        if aprops is not None:
+            self.Type.preset_abstract_properties(self, **aprops)
 
     @staticmethod
     def _assert_instance(obj, klass, err_msg=None):

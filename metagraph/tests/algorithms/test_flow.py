@@ -35,8 +35,8 @@ def test_max_flow(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
 
     expected_flow_value = 6
-    bottleneck_nodes = dpr.wrappers.NodeSet.PythonNodeSet({2, 4})
-    expected_nodemap = dpr.wrappers.NodeMap.PythonNodeMap({2: 6, 4: 6})
+    bottleneck_nodes = {2, 4}
+    expected_nodemap = {2: 6, 4: 6}
 
     mv = MultiVerify(dpr)
     results = mv.compute("flow.max_flow", graph, source_node, target_node)

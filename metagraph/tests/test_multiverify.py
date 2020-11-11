@@ -12,7 +12,7 @@ from .util import default_plugin_resolver
 import numpy as np
 from metagraph.plugins.graphblas.types import GrblasNodeMap
 from metagraph.plugins.numpy.types import NumpyNodeMap
-from metagraph.plugins.python.types import PythonNodeMap
+from metagraph.plugins.python.types import PythonNodeMapType
 
 
 def test_multiresult_consistent_length(default_plugin_resolver):
@@ -42,11 +42,11 @@ def test_multiresult_normalize(default_plugin_resolver):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
     nnm = dpr.wrappers.NodeMap.NumpyNodeMap(
-        np.array([1.1, 5.5]), node_ids=np.array([0, 2])
+        np.array([1.1, 5.5]), nodes=np.array([0, 2])
     )
-    pnm = dpr.wrappers.NodeMap.PythonNodeMap({0: 1.1, 2: 5.5})
+    pnm = {0: 1.1, 2: 5.5}
 
-    mr = MultiResult(mv, {"testing.nnm": (nnm, 1), "testing.pnm": (pnm, 2),})
+    mr = MultiResult(mv, {"testing.nnm": (nnm, 1), "testing.pnm": (pnm, 2)})
     assert not mr._normalized
     norm1 = mr.normalize((dpr.wrappers.NodeMap.GrblasNodeMap, float))
     assert norm1._normalized
@@ -60,7 +60,7 @@ def test_multiresult_normalize(default_plugin_resolver):
     # Passing None to normalize ignores that argument
     norm2 = mr.normalize((None, None))
     assert type(norm2._results["testing.nnm"][0]) is NumpyNodeMap
-    assert type(norm2._results["testing.pnm"][0]) is PythonNodeMap
+    assert type(norm2._results["testing.pnm"][0]) is dict  #  PythonNodeMapType
     assert type(norm2._results["testing.pnm"][1]) is int
 
     with pytest.raises(
@@ -91,17 +91,15 @@ def test_unnormalizable(default_plugin_resolver):
             "foo": {
                 "abstract_types": dpr.abstract_types,
                 "concrete_types": dpr.concrete_types,
-                "wrappers": {PythonNodeMap, NumpyNodeMap, GrblasNodeMap},
+                "wrappers": {PythonNodeMapType, NumpyNodeMap, GrblasNodeMap},
                 "translators": {
-                    dpr.translators[(PythonNodeMap.Type, NumpyNodeMap.Type)],
+                    dpr.translators[(PythonNodeMapType, NumpyNodeMap.Type)],
                 },
             }
         }
     )
     mv = MultiVerify(res_small)
-    mr = MultiResult(
-        mv, {"testing.foo": dpr.wrappers.NodeMap.PythonNodeMap({0: 1.1, 2: 4.5})}
-    )
+    mr = MultiResult(mv, {"testing.foo": {0: 1.1, 2: 4.5}})
 
     with pytest.raises(UnsatisfiableAlgorithmError, match="Unable to convert type"):
         mr.normalize(GrblasNodeMap)
@@ -146,7 +144,7 @@ def test_transform(default_plugin_resolver):
     with pytest.raises(TypeError, match="requires at least one MultiResult argument"):
         mv.transform("util.nodemap.select.core_numpy", 1, 2)
 
-    mr_unnormalized = MultiResult(mv, {"testing.foo": 1, "testing.bar": 2,})
+    mr_unnormalized = MultiResult(mv, {"testing.foo": 1, "testing.bar": 2})
 
     with pytest.raises(TypeError, match="must be normalized"):
         mv.transform(
@@ -164,15 +162,15 @@ def test_transform(default_plugin_resolver):
 def test_transform_combos(default_plugin_resolver):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
-    pnm = dpr.wrappers.NodeMap.PythonNodeMap({0: 1, 1: 2, 2: 3, 3: 4, 4: 5})
-    pns = dpr.wrappers.NodeSet.PythonNodeSet({0, 2, 4})
+    pnm = {0: 1, 1: 2, 2: 3, 3: 4, 4: 5}
+    pns = {0, 2, 4}
     nodemaps = MultiResult(
         mv,
-        {"testing.foo": pnm, "testing.bar": pnm, "testing.baz": pnm,},
+        {"testing.foo": pnm, "testing.bar": pnm, "testing.baz": pnm},
         normalized=True,
     )
     nodesets = MultiResult(
-        mv, {"testing.spam": pns, "testing.eggs": pns,}, normalized=True
+        mv, {"testing.spam": pns, "testing.eggs": pns}, normalized=True
     )
 
     result = mv.transform(dpr.algos.util.nodemap.select.core_python, nodemaps, nodesets)
@@ -190,13 +188,11 @@ def test_custom_compare(default_plugin_resolver):
     with pytest.raises(AssertionError):
         mv.custom_compare(mr, cmp_func=cmp_func)
 
-    mr2 = MultiResult(
-        mv, {"testing.bar": dpr.wrappers.NodeSet.PythonNodeSet({0, 2, 4, 7}),}
-    )
+    mr2 = MultiResult(mv, {"testing.bar": {0, 2, 4, 7}})
     mr2 = mr2.normalize(None)  # force computation for lazy objects
 
     def cmp_func2(result):
-        assert result.value == {0, 2, 4, 100}
+        assert result == {0, 2, 4, 100}
 
     with pytest.raises(AssertionError):
         mv.custom_compare(mr2, cmp_func2)
@@ -205,9 +201,9 @@ def test_custom_compare(default_plugin_resolver):
 def test_compare_values(default_plugin_resolver, capsys):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
-    pnm1 = dpr.wrappers.NodeMap.PythonNodeMap({0: 1.1, 2: 4.5})
-    pnm2 = dpr.wrappers.NodeMap.PythonNodeMap({0: 1.1, 2: 4.9})
-    pns = dpr.wrappers.NodeSet.PythonNodeSet({0, 2})
+    pnm1 = {0: 1.1, 2: 4.5}
+    pnm2 = {0: 1.1, 2: 4.9}
+    pns = {0, 2}
 
     with pytest.raises(TypeError, match="`val` must be"):
         mv.compare_values(pns, pnm1, "testing.compare.values")
@@ -216,8 +212,8 @@ def test_compare_values(default_plugin_resolver, capsys):
     with pytest.raises(AssertionError):
         mv.compare_values(pnm1, pnm2, "testing.compare.values")
     captured = capsys.readouterr()
-    assert "val.value" in captured.out
-    assert "expected_val.value" in captured.out
+    assert "val" in captured.out
+    assert "expected_val" in captured.out
 
     # Compare floats
     mv.compare_values(1.1, 1.1 + 1e-9, "testing.compare.values.floats", rel_tol=1e-6)

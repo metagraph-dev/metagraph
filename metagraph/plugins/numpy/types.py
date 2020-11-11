@@ -1,78 +1,103 @@
 from typing import Set, Dict, Any
 import numpy as np
-from metagraph import dtypes, Wrapper
+from metagraph import dtypes, Wrapper, ConcreteType
 from metagraph.types import Vector, Matrix, NodeSet, NodeMap
 from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
+class NumpyVectorType(ConcreteType, abstract=Vector):
+    @classmethod
+    def is_typeclass_of(cls, obj):
+        """Is obj described by this type class?"""
+        return isinstance(obj, np.ndarray) and len(obj.shape) == 1
+
+    @classmethod
+    def _compute_abstract_properties(
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        ret = known_props.copy()
+
+        # fast properties
+        for prop in {"dtype"} - ret.keys():
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.dtype]
+
+        return ret
+
+    @classmethod
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
+        assert obj1.shape == obj2.shape, f"shape mismatch {obj1.shape} != {obj2.shape}"
+        assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+        # Compare
+        if issubclass(obj1.dtype.type, np.floating):
+            assert np.isclose(obj1, obj2, rtol=rel_tol, atol=abs_tol).all()
+        else:
+            assert (obj1 == obj2).all()
+
+
 class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
-    def __init__(self, node_ids=None, *, mask=None):
-        super().__init__()
-        self.node_array = None
-        self.node_set = None
-        self.mask = None
-        self._assert(
-            (node_ids is None) ^ (mask is None),
-            "Either node_ids or mask must be present, but not both",
-        )
-        if mask is not None:
-            self._assert_instance(mask, np.ndarray)
-            self._assert(mask.dtype == bool, "Only boolean masks are allowed")
-            self.mask = mask
-        else:
-            if isinstance(node_ids, set):
-                self.node_set = node_ids
-                self.node_array = np.array(list(node_ids))
-                self.node_array.sort()
-            elif isinstance(node_ids, np.ndarray):
-                self.node_array = node_ids
-                self.node_set = set(node_ids)
-            else:
-                raise TypeError("node_ids must be a set or numpy array")
+    def __init__(self, nodes, *, aprops=None):
+        super().__init__(aprops=aprops)
+        self._assert_instance(nodes, (np.ndarray, list, tuple, set))
+        if not isinstance(nodes, np.ndarray):
+            if isinstance(nodes, set):
+                nodes = tuple(nodes)  # np.array doesn't accept sets
+            nodes = np.array(nodes)
+        if len(nodes.shape) != 1:
+            raise TypeError(f"Invalid number of dimensions: {len(nodes.shape)}")
+        if not issubclass(nodes.dtype.type, np.integer):
+            raise TypeError(f"Invalid dtype for NodeSet: {nodes.dtype}")
+        # Ensure sorted
+        nodes.sort()
+        # Ensure no duplicates
+        unique = np.diff(nodes) > 0
+        if not unique.all():
+            tmp = np.empty((unique.sum() + 1,), dtype=nodes.dtype)
+            tmp[0] = nodes[0]
+            tmp[1:] = nodes[1:][unique]
+            nodes = tmp
+        self.value = nodes
 
-    @property
-    def num_nodes(self):
-        if self.mask is not None:
-            node_count = self.mask.sum()
-        else:
-            node_count = len(self.node_array)
-        return node_count
-
-    def copy(self):
-        if self.mask is not None:
-            copied_node_set = NumpyNodeSet(mask=self.mask.copy())
-        else:
-            copied_node_set = NumpyNodeSet(node_ids=self.node_array.copy())
-        return copied_node_set
+    @classmethod
+    def from_mask(cls, mask, *, aprops=None):
+        """
+        The mask must be a boolean numpy array.
+        NodeIds are based on position within the mask.
+        """
+        cls._assert_instance(mask, np.ndarray)
+        cls._assert(mask.dtype == bool, "Only boolean masks are allowed")
+        node_ids = np.flatnonzero(mask)
+        return NumpyNodeSet(node_ids, aprops=aprops)
 
     def __len__(self):
-        return self.num_nodes
+        return len(self.value)
 
-    def nodes(self):
-        if self.mask is not None:
-            array = np.flatnonzero(self.mask)
-        else:
-            array = self.node_array
-        return array
+    def copy(self):
+        aprops = NumpyNodeSet.Type.compute_abstract_properties(self, {})
+        return NumpyNodeSet(self.value.copy(), aprops=aprops)
 
     def __iter__(self):
-        return iter(self.nodes())
+        return iter(self.value)
 
     def __contains__(self, key):
-        if self.mask is not None:
-            return 0 <= key < len(self.mask) and self.mask[key]
+        index = np.searchsorted(self.value, key)
+        if hasattr(index, "__len__"):
+            return (self.value[index] == key).all()
         else:
-            return key in self.node_set
+            return self.value[index] == key
 
     class TypeMixin:
-        allowed_props = {"is_compact": [True, False]}
-
-        @classmethod
-        def _compute_concrete_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            return {"is_compact": obj.node_array is not None}
-
         @classmethod
         def assert_equal(
             cls,
@@ -86,106 +111,9 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
             rel_tol=None,
             abs_tol=None,
         ):
-            assert (
-                obj1.num_nodes == obj2.num_nodes
-            ), f"size mismatch: {obj1.num_nodes} != {obj2.num_nodes}"
-            if obj1.mask is not None and obj2.mask is not None:
-                assert (obj1.mask == obj2.mask).all(), f"node sets do not match"
-            elif obj1.mask is not None:
-                assert (
-                    np.flatnonzero(obj1.mask) == obj2.node_array
-                ).all(), f"node sets do not match"
-            elif obj2.mask is not None:
-                assert (
-                    obj1.node_array == np.flatnonzero(obj2.mask)
-                ).all(), f"node sets do not match"
-            else:
-                assert (
-                    obj1.node_array == obj2.node_array
-                ).all(), f"node sets do not match"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-
-
-class NumpyVector(Wrapper, abstract=Vector):
-    def __init__(self, data, mask=None):
-        super().__init__()
-        self._assert_instance(data, np.ndarray)
-        if len(data.shape) != 1:
-            raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
-        self.value = data
-        self.mask = mask
-        if mask is not None:
-            if mask.dtype != bool:
-                raise ValueError("mask must have boolean type")
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
-
-    @property
-    def shape(self):
-        return self.value.shape
-
-    def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
-        vector = self.value
-        if copy or self.mask is not None:
-            vector = vector.copy()
-        if self.mask is not None:
-            vector[~self.mask] = fill_value
-        return vector
-
-    def __len__(self):
-        return len(self.value)
-
-    def copy(self):
-        return NumpyVector(
-            self.value.copy(), mask=None if self.mask is None else self.mask.copy()
-        )
-
-    class TypeMixin:
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
-
-            # fast properties
-            for prop in {"is_dense", "dtype"} - ret.keys():
-                if prop == "is_dense":
-                    ret[prop] = obj.mask is None
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
-
-            return ret
-
-        @classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=1e-9,
-            abs_tol=0.0,
-        ):
-            assert (
-                obj1.value.shape == obj2.value.shape
-            ), f"{obj1.value.shape} != {obj2.value.shape}"
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            # Remove missing values
-            d1 = obj1.value if obj1.mask is None else obj1.value[obj1.mask]
-            d2 = obj2.value if obj2.mask is None else obj2.value[obj2.mask]
-            assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
-            # Check for alignment of masks
-            if obj1.mask is not None:
-                mask_alignment = obj1.mask == obj2.mask
-                assert mask_alignment.all(), f"{mask_alignment}"
-            # Compare
-            if issubclass(d1.dtype.type, np.floating):
-                assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-            else:
-                assert (d1 == d2).all()
+            assert len(obj1) == len(obj2), f"size mismatch: {len(obj1)} != {len(obj2)}"
+            assert (obj1.value == obj2.value).all(), f"node sets do not match"
 
 
 class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
@@ -194,125 +122,83 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     a compact representation can be used.
     """
 
-    def __init__(self, data, *, mask=None, node_ids=None):
+    def __init__(self, data, nodes=None, *, aprops=None):
         """
         data: values for each node
-        mask: True for each node, False if node is missing
-        node_ids: array of node_ids which are not empty
-        
-        If providing mask, data must be as long as mask. Values which correspond to False in the mask are ignored.
-        If providing node_ids, data must be the same length as node_ids.
-        
-        Provide either mask or node_ids, not both.
-        If there are not missing nodes, mask and node_ids are not required.
+        nodes: array of node_ids corresponding ot elements in data
+
+        If there are no missing nodes, nodes are not required. It will be assumed that node ids
+        are sequential and the same size as `data`.
         """
-        super().__init__()
-        self._assert_instance(data, np.ndarray)
+        super().__init__(aprops=aprops)
+        self._assert_instance(data, (np.ndarray, list, tuple))
+        if not isinstance(data, np.ndarray):
+            data = np.array(data)
         if len(data.shape) != 1:
             raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
-        self.value = data
-        self.mask = None
-        self.id2pos = None
-        self.pos2id = None
+        if nodes is None:
+            nodes = np.arange(len(data))
+        else:
+            self._assert_instance(nodes, (np.ndarray, list, tuple))
+            if not isinstance(nodes, np.ndarray):
+                nodes = np.array(nodes)
+                if nodes.shape != data.shape:
+                    raise TypeError(
+                        f"Nodes must be same shape and size as data: {nodes.shape} != {data.shape}"
+                    )
+                if not issubclass(nodes.dtype.type, np.integer):
+                    raise TypeError(f"Invalid dtype for NodeSet: {nodes.dtype}")
+            # Ensure sorted
+            if not np.all(np.diff(nodes) > 0):
+                sorter = np.argsort(nodes)
+                nodes = nodes[sorter]
+                data = data[sorter]
+            # Ensure no duplicates
+            unique = np.diff(nodes) > 0
+            if not unique.all():
+                raise TypeError(f"Duplicate node ids found: {set(nodes[1:][~unique])}")
 
-        # Check input data
-        if mask is not None:
-            if node_ids is not None:
-                raise ValueError("Cannot provide both mask and node_ids")
-            self._assert_instance(mask, np.ndarray)
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
-            self.mask = mask
-        elif node_ids is not None:
-            if isinstance(node_ids, dict):
-                id2pos = node_ids
-                pos2id = np.empty((len(node_ids),), dtype=int)
-                for node_id, pos in node_ids.items():
-                    pos2id[pos] = node_id
-            elif isinstance(node_ids, np.ndarray):
-                pos2id = node_ids
-                id2pos = {node_id: pos for pos, node_id in enumerate(node_ids)}
-            else:
-                raise ValueError(f"Invalid type for node_ids: {type(node_ids)}")
-            self.id2pos = id2pos
-            self.pos2id = pos2id
-            # Ensure all node ids are monotonically increasing
-            self._assert(np.all(np.diff(pos2id) > 0), "Node IDs must be ordered")
-            self._assert(
-                len(id2pos) == len(data), f"node_ids must be the same length as data"
-            )
+        self.value = data
+        self.nodes = nodes
+
+    @classmethod
+    def from_mask(cls, data, mask, *, aprops=None):
+        """
+        Values in data are kept where mask is True.
+        The mask must be a boolean numpy array.
+        NodeIds are based on position within the mask.
+        """
+        cls._assert_instance(mask, np.ndarray)
+        cls._assert(mask.dtype == bool, "Only boolean masks are allowed")
+        data = data[mask]
+        nodes = np.flatnonzero(mask)
+        return NumpyNodeMap(data, nodes, aprops=aprops)
 
     def __len__(self):
-        return self.num_nodes
-
-    def _get_single_item(self, node_id):
-        if self.mask is not None:
-            if not self.mask[node_id]:
-                raise ValueError(f"node {node_id} is not in the NodeMap")
-        elif self.id2pos is not None:
-            if node_id not in self.id2pos:
-                raise ValueError(f"node {node_id} is not in the NodeMap")
-            node_id = self.id2pos[node_id]
-        return self.value[node_id]
-
-    def _get_multiple_items(self, node_ids: np.ndarray):
-        if self.mask is not None:
-            if (node_ids >= len(self.mask)).any():
-                out_of_bound_ids = list(node_ids[node_ids > len(self.mask)])
-                raise ValueError(f"{out_of_bound_ids} are out of bounds")
-            if not self.mask[node_ids].all():
-                mask_missing_ids = list(np.flatnonzero(~self.mask[node_ids]))
-                raise ValueError(f"nodes {mask_missing_ids} are not in the NodeMap")
-        elif self.id2pos is not None:
-            missing_ids = [
-                node_id for node_id in node_ids if node_id not in self.id2pos
-            ]
-            if missing_ids:
-                raise ValueError(f"nodes {missing_ids} are not in the NodeMap")
-            node_ids = np.vectorize(self.id2pos.__getitem__)(node_ids)
-        return self.value[node_ids]
-
-    def __getitem__(self, key):
-        return (
-            self._get_multiple_items(np.array(key))
-            if hasattr(key, "__len__")
-            else self._get_single_item(key)
-        )
-
-    @property
-    def num_nodes(self):
-        if self.mask is not None:
-            # Count number of True in the mask
-            return self.mask.sum()
-        # This covers the sequential and compact cases
         return len(self.value)
 
     def copy(self):
-        mask = None if self.mask is None else self.mask.copy()
-        node_ids = None if self.id2pos is None else self.id2pos.copy()
-        copied_node_map = NumpyNodeMap(self.value.copy(), mask=mask, node_ids=node_ids)
-        return copied_node_map
-
-    def nodes(self, copy=False):
-        if self.mask is not None:
-            node_array = np.flatnonzero(self.mask)
-        elif self.pos2id is not None:
-            node_array = self.pos2id
-            if copy:
-                node_array = node_array.copy()
-        else:
-            node_array = np.arange(len(self.value))
-        return node_array
+        aprops = NumpyNodeMap.Type.compute_abstract_properties(self, {})
+        return NumpyNodeMap(self.value.copy(), nodes=self.nodes.copy(), aprops=aprops)
 
     def __contains__(self, key):
-        if self.mask is not None:
-            return 0 <= key < len(self.mask) and self.mask[key]
+        index = np.searchsorted(self.nodes, key)
+        if hasattr(index, "__len__"):
+            return (self.nodes[index] == key).all()
         else:
-            return key in self.id2pos
+            return self.nodes[index] == key
+
+    def __getitem__(self, key):
+        index = np.searchsorted(self.nodes, key)
+        if hasattr(index, "__len__"):
+            if not (self.nodes[index] == key).all():
+                raise KeyError(f"nodes {key} are not all in the NodeMap")
+        else:
+            if self.nodes[index] != key:
+                raise KeyError(f"node {key} is not in the NodeMap")
+        return self.value[index]
 
     class TypeMixin:
-        allowed_props = {"is_compact": [True, False]}
-
         @classmethod
         def _compute_abstract_properties(
             cls, obj, props: Set[str], known_props: Dict[str, Any]
@@ -327,12 +213,6 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             return ret
 
         @classmethod
-        def _compute_concrete_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            return {"is_compact": obj.id2pos is not None}
-
-        @classmethod
         def assert_equal(
             cls,
             obj1,
@@ -345,137 +225,59 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
             rel_tol=1e-9,
             abs_tol=0.0,
         ):
-            assert (
-                obj1.num_nodes == obj2.num_nodes
-            ), f"{obj1.num_nodes} != {obj2.num_nodes}"
+            assert len(obj1) == len(
+                obj2
+            ), f"length mismatch: {len(obj1)} != {len(obj2)}"
             assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
 
-            # Standardize obj1
-            if obj1.mask is not None:
-                vals1 = obj1.value[obj1.mask]
-                nodes1 = np.flatnonzero(obj1.mask)
-            elif obj1.id2pos is not None:
-                vals1 = obj1.value
-                nodes1 = obj1.pos2id
-            else:
-                vals1 = obj1.value
-                nodes1 = np.arange(len(vals1))
-            # Standardize obj2
-            if obj2.mask is not None:
-                vals2 = obj2.value[obj2.mask]
-                nodes2 = np.flatnonzero(obj2.mask)
-            elif obj2.id2pos is not None:
-                vals2 = obj2.value
-                nodes2 = obj2.pos2id
-            else:
-                vals2 = obj2.value
-                nodes2 = np.arange(len(vals2))
+            nodes1, vals1 = obj1.nodes, obj1.value
+            nodes2, vals2 = obj2.nodes, obj2.value
 
             # Compare
-            assert len(nodes1) == len(
-                nodes2
-            ), f"node ids not same length: {len(nodes1)} != {len(nodes2)}"
             assert (nodes1 == nodes2).all(), f"node id mismatch: {nodes1} != {nodes2}"
-            assert len(vals1) == len(
-                vals2
-            ), f"non-empty value length mismatch: {len(vals1)} != {len(vals2)}"
             if issubclass(vals1.dtype.type, np.floating):
                 assert np.isclose(vals1, vals2, rtol=rel_tol, atol=abs_tol).all()
             else:
                 assert (vals1 == vals2).all()
 
 
-class NumpyMatrix(Wrapper, abstract=Matrix):
-    def __init__(self, data, mask=None):
-        super().__init__()
-        if type(data) is np.matrix:
-            data = np.array(data, copy=False)
-        self._assert_instance(data, np.ndarray)
-        if len(data.shape) != 2:
-            raise TypeError(f"Invalid number of dimensions: {len(data.shape)}")
-        self.value = data
-        self.mask = mask
-        if mask is not None:
-            if mask.dtype != bool:
-                raise ValueError("mask must have boolean type")
-            if mask.shape != data.shape:
-                raise ValueError("mask must be the same shape as data")
+class NumpyMatrixType(ConcreteType, abstract=Matrix):
+    @classmethod
+    def is_typeclass_of(cls, obj):
+        """Is obj described by this type class?"""
+        return isinstance(obj, np.ndarray) and len(obj.shape) == 2
 
-    @property
-    def shape(self):
-        return self.value.shape
+    @classmethod
+    def _compute_abstract_properties(
+        cls, obj, props: Set[str], known_props: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        ret = known_props.copy()
 
-    def as_dense(self, fill_value=0, copy=False) -> np.ndarray:
-        matrix = self.value
-        if copy or self.mask is not None:
-            matrix = matrix.copy()
-        if self.mask is not None:
-            matrix[~self.mask] = fill_value
-        return matrix
+        # fast properties
+        for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
+            if prop == "dtype":
+                ret[prop] = dtypes.dtypes_simplified[obj.dtype]
 
-    def copy(self):
-        mask = None if self.mask is None else self.mask.copy()
-        return NumpyMatrix(self.value.copy(), mask=mask)
+        return ret
 
-    class TypeMixin:
-        @classmethod
-        def _compute_abstract_properties(
-            cls, obj, props: Set[str], known_props: Dict[str, Any]
-        ) -> Dict[str, Any]:
-            ret = known_props.copy()
-
-            # fast properties
-            for prop in {"is_dense", "is_square", "dtype"} - ret.keys():
-                if prop == "is_dense":
-                    ret[prop] = obj.mask is None
-                if prop == "is_square":
-                    ret[prop] = obj.value.shape[0] == obj.value.shape[1]
-                if prop == "dtype":
-                    ret[prop] = dtypes.dtypes_simplified[obj.value.dtype]
-
-            # slow properties, only compute if asked
-            for prop in props - ret.keys():
-                if prop == "is_symmetric":
-                    # TODO: make this dependent on the mask
-                    ret[prop] = (
-                        ret["is_square"] and (obj.value.T == obj.value).all().all()
-                    )
-
-            return ret
-
-        @classmethod
-        def assert_equal(
-            cls,
-            obj1,
-            obj2,
-            aprops1,
-            aprops2,
-            cprops1,
-            cprops2,
-            *,
-            rel_tol=1e-9,
-            abs_tol=0.0,
-        ):
-            assert (
-                obj1.value.shape == obj2.value.shape
-            ), f"{obj1.value.shape} != {obj2.value.shape}"
-            assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
-            # Remove missing values
-            d1 = obj1.value if obj1.mask is None else obj1.value[obj1.mask]
-            d2 = obj2.value if obj2.mask is None else obj2.value[obj2.mask]
-            assert d1.shape == d2.shape, f"{d1.shape} != {d2.shape}"
-            # Check for alignment of masks
-            if obj1.mask is not None:
-                mask_alignment = obj1.mask == obj2.mask
-                assert mask_alignment.all().all(), f"{mask_alignment}"
-                # Compare 1-D
-                if issubclass(d1.dtype.type, np.floating):
-                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all()
-                else:
-                    assert (d1 == d2).all()
-            else:
-                # Compare 2-D
-                if issubclass(d1.dtype.type, np.floating):
-                    assert np.isclose(d1, d2, rtol=rel_tol, atol=abs_tol).all().all()
-                else:
-                    assert (d1 == d2).all().all()
+    @classmethod
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
+        assert obj1.shape == obj2.shape, f"shape mismatch: {obj1.shape} != {obj2.shape}"
+        assert aprops1 == aprops2, f"property mismatch: {aprops1} != {aprops2}"
+        assert obj1.shape == obj2.shape, f"{obj1.shape} != {obj2.shape}"
+        # Compare
+        if issubclass(obj1.dtype.type, np.floating):
+            assert np.isclose(obj1, obj2, rtol=rel_tol, atol=abs_tol).all().all()
+        else:
+            assert (obj1 == obj2).all().all()

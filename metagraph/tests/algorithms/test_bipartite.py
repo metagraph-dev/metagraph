@@ -31,7 +31,7 @@ def test_graph_projection(default_plugin_resolver):
         (7, 8),
     ]
     proj_graph = nx.Graph()
-    proj_graph.add_nodes_from([5, 6, 7, 8, 9])  # needed because 9 is an orphan node
+    proj_graph.add_nodes_from([5, 6, 7, 8, 9])  # needed because 9 is an isolate node
     proj_graph.add_edges_from(projected_edges)
     result = dpr.wrappers.Graph.NetworkXGraph(proj_graph)
     MultiVerify(dpr).compute("bipartite.graph_projection", bgraph, 1).assert_equal(

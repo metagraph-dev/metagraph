@@ -6,7 +6,7 @@ from metagraph.core.resolver import Resolver
 from metagraph.dask import DaskResolver
 from metagraph.core.dask.placeholder import Placeholder
 from metagraph.tests.util import default_plugin_resolver
-from metagraph.plugins.python.types import PythonNodeMap
+from metagraph.plugins.python.types import PythonNodeMapType
 from metagraph.plugins.numpy.types import NumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap
 from metagraph.plugins.networkx.types import NetworkXGraph
@@ -21,7 +21,7 @@ def test_translation_direct(default_plugin_resolver):
     dpr = default_plugin_resolver
     if not isinstance(dpr, DaskResolver):
         dpr = DaskResolver(dpr)
-    x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
+    x = {0: 12.5, 1: 33.4, 42: -1.2}
     final = GrblasNodeMap(
         grblas.Vector.from_values([0, 1, 42], [12.5, 33.4, -1.2], size=43),
     )
@@ -43,16 +43,16 @@ def test_translation_multistep(default_plugin_resolver):
             "foo": {
                 "abstract_types": dpr.abstract_types,
                 "concrete_types": dpr.concrete_types,
-                "wrappers": {PythonNodeMap, NumpyNodeMap, GrblasNodeMap},
+                "wrappers": {PythonNodeMapType, NumpyNodeMap, GrblasNodeMap},
                 "translators": {
-                    dpr.translators[(PythonNodeMap.Type, NumpyNodeMap.Type)],
+                    dpr.translators[(PythonNodeMapType, NumpyNodeMap.Type)],
                     dpr.translators[(NumpyNodeMap.Type, GrblasNodeMap.Type)],
                 },
             }
         }
     )
     ldpr = DaskResolver(res_small)
-    x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
+    x = {0: 12.5, 1: 33.4, 42: -1.2}
     final = GrblasNodeMap(
         grblas.Vector.from_values([0, 1, 42], [12.5, 33.4, -1.2], size=43),
     )
@@ -71,9 +71,14 @@ def test_algo_chain(default_plugin_resolver):
             "foo": {
                 "abstract_types": dpr.abstract_types,
                 "concrete_types": dpr.concrete_types,
-                "wrappers": {PythonNodeMap, NumpyNodeMap, GrblasNodeMap, NetworkXGraph},
+                "wrappers": {
+                    PythonNodeMapType,
+                    NumpyNodeMap,
+                    GrblasNodeMap,
+                    NetworkXGraph,
+                },
                 "translators": {
-                    dpr.translators[(PythonNodeMap.Type, NumpyNodeMap.Type)],
+                    dpr.translators[(PythonNodeMapType, NumpyNodeMap.Type)],
                     dpr.translators[(NumpyNodeMap.Type, GrblasNodeMap.Type)],
                     dpr.translators[(NetworkXGraph.Type, ScipyGraph.Type)],
                     dpr.translators[(ScipyGraph.Type, NetworkXGraph.Type)],
@@ -96,14 +101,14 @@ def test_algo_chain(default_plugin_resolver):
         repr(ldpr.wrappers.Graph.NetworkXGraph) == "DelayedWrapper<NetworkXGraphType>"
     )
     assert isinstance(graph, Placeholder)
-    sum_of_all_edges = PythonNodeMap({0: 10, 1: 1, 2: 7, 3: 9, 4: 15})
-    sum_of_filtered_edges = PythonNodeMap({0: 7, 1: 0, 2: 5, 3: 9, 4: 15})
+    sum_of_all_edges = {0: 10, 1: 1, 2: 7, 3: 9, 4: 15}
+    sum_of_filtered_edges = {0: 7, 1: 0, 2: 5, 3: 9, 4: 15}
     # Verify simple algorithm call works (no translations required)
     nm = ldpr.algos.util.graph.aggregate_edges(
         graph, lambda x, y: x + y, initial_value=0
     )
     assert isinstance(nm, Placeholder)
-    assert nm.concrete_type is PythonNodeMap.Type
+    assert nm.concrete_type is PythonNodeMapType
     assert len(nm._dsk.keys()) == 2  # init, aggregate
     ldpr.assert_equal(nm, sum_of_all_edges)
     # Build chained algo call with translators
@@ -115,7 +120,7 @@ def test_algo_chain(default_plugin_resolver):
         graph2, lambda x, y: x + y, initial_value=0
     )
     assert isinstance(nm2, Placeholder)
-    assert nm2.concrete_type is PythonNodeMap.Type
+    assert nm2.concrete_type is PythonNodeMapType
     assert len(nm2._dsk.keys()) == 5  # init, translate, filter, translate, aggregate
     ldpr.assert_equal(nm2, sum_of_filtered_edges)
 
@@ -124,7 +129,7 @@ def test_call_using_dispatcher(default_plugin_resolver):
     dpr = default_plugin_resolver
     if not isinstance(dpr, DaskResolver):
         dpr = DaskResolver(dpr)
-    pnm = dpr.wrappers.NodeMap.PythonNodeMap({0: 1, 1: 2})
+    pnm = {0: 1, 1: 2}
     result = dpr.algos.util.nodemap.reduce(pnm, lambda x, y: x + y)
     assert result.compute() == 3
 

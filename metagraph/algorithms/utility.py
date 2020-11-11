@@ -85,7 +85,7 @@ def graph_filter_edges(
 ) -> Graph:
     """
     func takes the edge weight and returns a bool
-    Edges are removed, but nodes are kept (this may result in orphan nodes).
+    Edges are removed, but nodes are kept (this may result in isolate nodes).
     """
     pass  # pragma: no cover
 

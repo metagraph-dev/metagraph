@@ -16,20 +16,20 @@ class NodeID:
 NodeID = NodeID()
 
 
-DTYPE_CHOICES = ["str", "float", "int", "bool"]
+DTYPE_CHOICES = ["float", "int", "bool"]
+# Note: "str" removed until further discussion can resolve how to propertly deal with strings
+#       Numpy dtype is challenging with "|S32" and "<U32" showing up rather than "object"
+#       Also, what to do about plugins which cannot handle string data types?
 
 
 class Vector(AbstractType):
     properties = {
-        "is_dense": [False, True],
         "dtype": DTYPE_CHOICES,
     }
 
 
 class Matrix(AbstractType):
     properties = {
-        "is_dense": [False, True],
-        "is_square": [False, True],
         "dtype": DTYPE_CHOICES,
     }
 
@@ -42,8 +42,8 @@ class DataFrame(AbstractType):
 # Nodes
 #################################
 class NodeSet(AbstractType):
-    @Wrapper.required_property
-    def num_nodes(self):
+    @Wrapper.required_method
+    def __len__(self):
         raise NotImplementedError()
 
     @Wrapper.required_method
@@ -66,8 +66,8 @@ class NodeMap(AbstractType):
     def __contains__(self, key):
         raise NotImplementedError()
 
-    @Wrapper.required_property
-    def num_nodes(self):
+    @Wrapper.required_method
+    def __len__(self):
         raise NotImplementedError()
 
 
@@ -86,7 +86,7 @@ class EdgeMap(AbstractType):
     properties = {
         "is_directed": [True, False],
         "dtype": DTYPE_CHOICES,
-        "has_negative_weights": [True, False],
+        "has_negative_weights": [True, False, None],
     }
     unambiguous_subcomponents = {EdgeSet}
 
