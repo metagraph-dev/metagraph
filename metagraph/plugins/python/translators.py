@@ -27,10 +27,12 @@ def nodeset_from_numpy_nodemap(x: NumpyNodeMap, **props) -> PythonNodeSetType:
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasNodeMap
+    from ..graphblas.types import GrblasNodeMap, dtype_grblas_to_mg
 
     @translator
     def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> PythonNodeMapType:
+        cast = dtype_casting[
+            dtypes.dtypes_simplified[dtype_grblas_to_mg[x.value.dtype.name]]
+        ]
         idx, vals = x.value.to_values()
-        data = dict(zip(idx, vals))
-        return data
+        return {nid: cast(val) for nid, val in zip(idx, vals)}

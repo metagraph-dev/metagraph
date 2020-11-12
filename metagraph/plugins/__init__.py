@@ -1,3 +1,5 @@
+import warnings
+
 ############################
 # Libraries used as plugins
 ############################
@@ -33,8 +35,12 @@ except ImportError:  # pragma: no cover
 try:
     import grblas as _grblas
 
+    if _grblas.__version__ < "v1.3.2":
+        warnings.warn(
+            f"grblas {_grblas.__version__} is installed, but >=v1.3.2 is required"
+        )
+        raise ImportError("grblas requires at least version 1.3.2")
     _grblas.init("suitesparse")
-    import grblas.dtypes  # remove once new version of grblas auto-imports this
 
     has_grblas = True
 except ImportError:  # pragma: no cover

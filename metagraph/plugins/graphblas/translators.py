@@ -45,14 +45,16 @@ if has_grblas:
     def nodeset_from_python(x: PythonNodeSetType, **props) -> GrblasNodeSet:
         nodes = list(sorted(x))
         size = nodes[-1] + 1
-        vec = grblas.Vector.from_values(nodes, [1] * len(nodes), size=size)
+        vals = np.ones_like(nodes)
+        vec = grblas.Vector.from_values(nodes, vals, size=size)
         return GrblasNodeSet(vec)
 
     @translator
     def nodeset_from_numpy(x: NumpyNodeSet, **props) -> GrblasNodeSet:
         idx = x.value
         size = idx[-1] + 1
-        vec = grblas.Vector.from_values(idx, [True] * len(idx), size=size, dtype=bool)
+        vals = np.ones_like(idx, dtype=bool)
+        vec = grblas.Vector.from_values(idx, vals, size=size, dtype=bool)
         return GrblasNodeSet(vec)
 
     @translator
@@ -126,8 +128,9 @@ if has_grblas and has_scipy:
                 x.node_list, x.node_vals, size=size, dtype=dtype
             )
         elif aprops["node_type"] == "set":
+            node_vals = np.ones_like(x.node_list, dtype=bool)
             nodes = grblas.Vector.from_values(
-                x.node_list, [True] * len(x.node_list), size=size, dtype=bool
+                x.node_list, node_vals, size=size, dtype=bool
             )
         else:
             raise TypeError(f"Cannot translate with node_type={aprops['node_type']}")
@@ -142,8 +145,9 @@ if has_grblas and has_scipy:
                 rows, cols, edges.data, nrows=size, ncols=size, dtype=dtype
             )
         elif aprops["edge_type"] == "set":
+            node_vals = np.ones_like(rows, dtype=bool)
             matrix = grblas.Matrix.from_values(
-                rows, cols, [True] * len(rows), nrows=size, ncols=size, dtype=bool
+                rows, cols, node_vals, nrows=size, ncols=size, dtype=bool
             )
         else:
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")

@@ -60,7 +60,7 @@ if has_scipy and has_grblas:
         gm = x.value[active_nodes, active_nodes].new()
         rows, cols, _ = gm.to_values()
         sm = ss.coo_matrix(
-            ([True] * len(rows), (rows, cols)), shape=gm.shape, dtype=bool
+            (np.ones_like(rows), (rows, cols)), shape=gm.shape, dtype=bool
         )
         return ScipyEdgeSet(sm, node_list=active_nodes, aprops=aprops)
 
@@ -84,10 +84,7 @@ if has_scipy and has_grblas:
         )
 
         node_list, node_vals = x.nodes.to_values()
-        node_list = np.array(node_list)
-        if aprops["node_type"] == "map":
-            node_vals = np.array(node_vals)
-        else:
+        if aprops["node_type"] == "set":
             node_vals = None
         size = len(node_list)
 

@@ -100,8 +100,8 @@ class RoundTripper:
                             )
                         # Verify equal to `obj`
                         self.mv.compare_values(
-                            obj,
                             unverified_obj,
+                            obj,
                             f"roundtrip translation from {ct_source} to {ct_target}",
                         )
                         # Remove exercised translators
@@ -172,8 +172,8 @@ class RoundTripper:
             waypoints = [prep_plan.src_type] + prep_plan.dst_types
             waypoints = waypoints[:-1] + [source, target] + return_plan.dst_types
             self.mv.compare_values(
-                obj,
                 unverified_obj,
+                obj,
                 f"circular trip from {'->'.join(wp.__name__ for wp in waypoints)}",
             )
             # Remove exercised translator
@@ -244,7 +244,7 @@ class RoundTripper:
                 waypoints = [prep_plan.src_type] + prep_plan.dst_types
                 waypoints = waypoints[:-1] + [source, target] + finish_plan.dst_types
                 self.mv.compare_values(
-                    end,
                     unverified_obj,
+                    end,
                     f"one-way trip from {'->'.join(wp.__name__ for wp in waypoints)}",
                 )

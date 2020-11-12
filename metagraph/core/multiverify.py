@@ -315,7 +315,7 @@ class MultiVerify:
             else:
                 self.compare_values(expected_val, result, algo_path, rel_tol, abs_tol)
 
-    def compare_values(self, expected_val, val, algo_path, rel_tol=1e-9, abs_tol=0.0):
+    def compare_values(self, val, expected_val, algo_path, rel_tol=1e-9, abs_tol=0.0):
         expected_val = ensure_computed(expected_val)
         val = ensure_computed(val)
 
@@ -332,7 +332,7 @@ class MultiVerify:
                 self.resolver.assert_equal(
                     val, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
                 )
-            except AssertionError:
+            except Exception:
                 print(f"assert_equal failed for {algo_path}")
                 print(f"val {val}")
                 if hasattr(val, "value"):
