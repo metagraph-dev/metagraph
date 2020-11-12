@@ -1,7 +1,7 @@
 name: Super-Linter
 
 # Run this workflow every time a new commit pushed to your repository
-on: push
+on: pull_request
 
 jobs:
   # Set the job key. The key is displayed as the job name
@@ -24,6 +24,6 @@ jobs:
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON_BLACK: true
-          VALIDATE_PYTHON_FLAKE8: true
-          LINTER_RULES_PATH: /
-          PYTHON_FLAKE8_CONFIG_FILE: setup.cfg
+#          VALIDATE_PYTHON_FLAKE8: true
+#          LINTER_RULES_PATH: /
+#          PYTHON_FLAKE8_CONFIG_FILE: setup.cfg
