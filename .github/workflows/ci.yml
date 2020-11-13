@@ -8,7 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        pyver: [3.7, 3.8]
+        pyver:
+          - 3.7
+#          - 3.8
 
     steps:
       - name: Checkout
@@ -25,35 +27,47 @@ jobs:
         uses: actions/setup-python@v2
         with:
           python-version: ${{ matrix.pyver }}
-      - name: Setup conda env
+      - name: Experiment with secrets
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda config --set always_yes yes --set changeps1 no
-          conda update -q conda
-          conda install -q conda-build
-          conda info -a
-          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
-          conda activate mg
-          pip install -e .
-      - name: Pytest
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
-          pytest
-          pytest --dask --cov-append
-      - name: Conda Build
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda info -a
-          conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
-      - name: Coveralls
+          echo 'Test Secret size'
+          python -c 'import os; print(len(os.environ.get("S1", "")))'
+          python -c 'import os; print(os.environ.get("S1", ""))'
+          echo 'Test Secret Fork size'
+          python -c 'import os; print(len(os.environ.get("S2", "")))'
+          python -c 'import os; print(os.environ.get("S1", ""))'
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
-          conda install -c conda-forge coveralls
-          coveralls
+          S1: ${{ secrets.TEST_SECRET }}
+          S2: ${{ secrets.TEST_SECRET_FORK }}
+#      - name: Setup conda env
+#        run: |
+#          source "$CONDA/etc/profile.d/conda.sh"
+#          conda config --set always_yes yes --set changeps1 no
+#          conda update -q conda
+#          conda install -q conda-build
+#          conda info -a
+#          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
+#          conda activate mg
+#          pip install -e .
+#      - name: Pytest
+#        run: |
+#          source "$CONDA/etc/profile.d/conda.sh"
+#          conda activate mg
+#          pytest
+#          pytest --dask --cov-append
+#      - name: Conda Build
+#        run: |
+#          source "$CONDA/etc/profile.d/conda.sh"
+#          conda info -a
+#          conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
+#      - name: Coveralls
+#        env:
+#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+#        run: |
+#          source "$CONDA/etc/profile.d/conda.sh"
+#          conda activate mg
+#          conda install -c conda-forge coveralls
+#          coveralls
+
 #      - name: Deploy to Anaconda.org
 #        run: |
 #          conda install -q anaconda-client
