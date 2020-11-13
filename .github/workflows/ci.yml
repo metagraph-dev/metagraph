@@ -1,0 +1,51 @@
+name: CI
+
+# Run this workflow every time PR is opened or a new commit pushed to the PR
+on: pull_request
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pyver: [3.7, 3.8]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Lint using Black
+        uses: github/super-linter@v3
+        env:
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_PYTHON_BLACK: true
+      - name: Setup Python ${{ matrix.pyver }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.pyver }}
+      - name: Setup conda env
+        run: |
+          conda config --set always_yes yes --set changeps1 no
+          conda update -q conda
+          conda install -q conda-build
+          conda info -a
+          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
+          conda activate mg
+          pip install -e .
+      - name: Pytest
+        run: |
+          pytest
+          pytest --dask --cov-append
+      - name: Conda Build
+        run: |
+          conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
+      - name: Coveralls
+        run: |
+          conda install -c conda-forge coveralls
+          coveralls
+#      - name: Deploy to Anaconda.org
+#        run: |
+#          conda install -q anaconda-client
+#          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
+#          'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then anaconda -t $ANACONDA_TOKEN upload -u metagraph -l dev --no-progress --force --no-register $OUTPUT; fi'
+
