@@ -1,7 +1,11 @@
-name: CI
+name: Deploy for Testing
 
 # Run this workflow every time PR is opened or a new commit pushed to the PR
-on: pull_request
+# However, the workflow is run using the base target code, not the forked code
+# This gives access to the secrets in the base repo which are normally hidden
+# due to a potential attack vector by a fork raising a PR
+# See https://github.blog/2020-08-03-github-actions-improvements-for-fork-and-pull-request-workflows/
+on: pull_request_target
 
 jobs:
   build:
@@ -16,13 +20,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
         with:
+          # Full checkout, not just a shallow one
           fetch-depth: 0
-      - name: Lint using Black
-        uses: github/super-linter@v3
-        env:
-          DEFAULT_BRANCH: master
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          VALIDATE_PYTHON_BLACK: true
+          # Fetch the code from the fork, as this is what we want to deploy
+          # https://github.community/t/running-code-from-forks-with-pull-request-target/126688/5
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
       - name: Setup Python ${{ matrix.pyver }}
         uses: actions/setup-python@v2
         with:
@@ -38,35 +41,6 @@ jobs:
         env:
           S1: ${{ secrets.TEST_SECRET }}
           S2: ${{ secrets.TEST_SECRET_FORK }}
-#      - name: Setup conda env
-#        run: |
-#          source "$CONDA/etc/profile.d/conda.sh"
-#          conda config --set always_yes yes --set changeps1 no
-#          conda update -q conda
-#          conda install -q conda-build
-#          conda info -a
-#          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
-#          conda activate mg
-#          pip install -e .
-#      - name: Pytest
-#        run: |
-#          source "$CONDA/etc/profile.d/conda.sh"
-#          conda activate mg
-#          pytest
-#          pytest --dask --cov-append
-#      - name: Conda Build
-#        run: |
-#          source "$CONDA/etc/profile.d/conda.sh"
-#          conda info -a
-#          conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
-#      - name: Coveralls
-#        env:
-#          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-#        run: |
-#          source "$CONDA/etc/profile.d/conda.sh"
-#          conda activate mg
-#          conda install -c conda-forge coveralls
-#          coveralls
 
 #      - name: Deploy to Anaconda.org
 #        run: |
