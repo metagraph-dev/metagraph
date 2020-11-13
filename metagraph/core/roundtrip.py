@@ -14,7 +14,8 @@ class RoundTripper:
 
     def _aprops(self, obj):
         obj = ensure_computed(obj)
-        return self.resolver.type_of(obj).get_typeinfo(obj).known_abstract_props
+        aprops = self.resolver.type_of(obj).get_typeinfo(obj).known_abstract_props
+        return aprops
 
     def verify_round_trip(self, obj):
         """
@@ -81,7 +82,7 @@ class RoundTripper:
                         ), f"Translator from {ct_source} to {ct_target} returned an object of type {ct_inflight}"
                         assert (
                             aprops_inflight == aprops_obj
-                        ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight}"
+                        ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight} (expected {aprops_obj})"
                         unverified_obj = translators_to_verify[backward](
                             ensure_computed(inflight_obj), resolver=self.resolver
                         )
@@ -158,7 +159,7 @@ class RoundTripper:
             ), f"Translation from {source} to {target} returned an object of type {ct_inflight}"
             assert (
                 aprops_inflight == aprops_obj
-            ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight}"
+            ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight} (expected {aprops_obj})"
             unverified_obj = return_plan(inflight_obj)
             ct_unverified = self.resolver.typeclass_of(unverified_obj)
             aprops_unverified = self._aprops(unverified_obj)
