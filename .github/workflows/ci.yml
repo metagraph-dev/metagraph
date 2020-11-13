@@ -47,6 +47,8 @@ jobs:
           conda info -a
           conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
       - name: Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
