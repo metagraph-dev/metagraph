@@ -25,6 +25,7 @@ jobs:
           python-version: ${{ matrix.pyver }}
       - name: Setup conda env
         run: |
+          source "$CONDA/etc/profile.d/conda.sh"
           conda config --set always_yes yes --set changeps1 no
           conda update -q conda
           conda install -q conda-build
