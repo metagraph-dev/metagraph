@@ -1,0 +1,59 @@
+name: Deploy for Testing
+
+# Run this workflow every time PR is opened or a new commit pushed to the PR
+# However, the workflow is run using the base target code, not the forked code
+# This gives access to the secrets in the base repo which are normally hidden
+# due to a potential attack vector by a fork raising a PR
+# See https://github.blog/2020-08-03-github-actions-improvements-for-fork-and-pull-request-workflows/
+on: pull_request_target
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        pyver:
+          - 3.7
+#          - 3.8
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          # Full checkout, not just a shallow one
+          fetch-depth: 0
+          # Fetch the code from the fork, as this is what we want to deploy
+          # https://github.community/t/running-code-from-forks-with-pull-request-target/126688/5
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+      ### Temporary validation to allow verifying that  the code being checked out is from the fork
+      - name: Lint using Black
+        uses: github/super-linter@v3
+        env:
+          DEFAULT_BRANCH: master
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VALIDATE_PYTHON_BLACK: true
+
+      - name: Setup Python ${{ matrix.pyver }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.pyver }}
+
+      - name: Experiment with secrets
+        run: |
+          echo 'Test Secret size'
+          python -c 'import os; print(len(os.environ.get("S1", "")))'
+          python -c 'import os; print(os.environ.get("S1", ""))'
+          echo 'Test Secret Fork size'
+          python -c 'import os; print(len(os.environ.get("S2", "")))'
+          python -c 'import os; print(os.environ.get("S1", ""))'
+        env:
+          S1: ${{ secrets.TEST_SECRET }}
+          S2: ${{ secrets.TEST_SECRET_FORK }}
+
+#      - name: Deploy to Anaconda.org
+#        run: |
+#          conda install -q anaconda-client
+#          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
+#          'if [ "$TRAVIS_PULL_REQUEST" = "false" ]; then anaconda -t $ANACONDA_TOKEN upload -u metagraph -l dev --no-progress --force --no-register $OUTPUT; fi'
+
