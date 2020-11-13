@@ -25,7 +25,6 @@ jobs:
           python-version: ${{ matrix.pyver }}
       - name: Setup conda env
         run: |
-          conda init
           source "$CONDA/etc/profile.d/conda.sh"
           conda config --set always_yes yes --set changeps1 no
           conda update -q conda
@@ -36,15 +35,18 @@ jobs:
           pip install -e .
       - name: Pytest
         run: |
+          source "$CONDA/etc/profile.d/conda.sh"
           conda info -a
           conda activate mg
           pytest
           pytest --dask --cov-append
       - name: Conda Build
         run: |
+          source "$CONDA/etc/profile.d/conda.sh"
           conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
       - name: Coveralls
         run: |
+          source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
           conda install -c conda-forge coveralls
           coveralls
