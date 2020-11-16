@@ -52,17 +52,7 @@ jobs:
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda info -a
-          conda install -q anaconda-client
-          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
-          echo "Path to built package:"
-          echo $OUTPUT
-          echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
-          ls -la $OUTPUT
-      - name: Verify env vars
-        run: |
-          echo "Value of CONDA_BUILD_OUTPUT in next step:"
-          echo $CONDA_BUILD_OUTPUT
-          echo ${{ env.CONDA_BUILD_OUTPUT }}
+          conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -71,6 +61,15 @@ jobs:
           conda activate mg
           conda install -c conda-forge coveralls
           coveralls
+      - name: Pre-Upload Artifact
+        run: |
+          conda install -q anaconda-client
+          # This doesn't rebuild, but simply computes the name of the file that was previously built
+          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
+          echo "Path to built package:"
+          echo $OUTPUT
+          echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
+          ls -la $OUTPUT
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
