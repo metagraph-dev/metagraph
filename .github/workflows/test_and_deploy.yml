@@ -57,6 +57,12 @@ jobs:
           echo "Path to built package:"
           echo $OUTPUT
           echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
+      - name: Verify env vars
+        run: |
+          echo "Value of CONDA_BUILD_OUTPUT in next step:"
+          echo $CONDA_BUILD_OUTPUT
+          echo ${{ env.CONDA_BUILD_OUTPUT }}
+          pytho -c 'import os; print(os.environ)'
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -69,7 +75,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: built_package
-          path: $CONDA_BUILD_OUTPUT
+          path: ${{ env.CONDA_BUILD_OUTPUT }}
           retention-days: 7
 
   dev_deploy:
