@@ -62,7 +62,6 @@ jobs:
           echo "Value of CONDA_BUILD_OUTPUT in next step:"
           echo $CONDA_BUILD_OUTPUT
           echo ${{ env.CONDA_BUILD_OUTPUT }}
-          pytho -c 'import os; print(os.environ)'
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
