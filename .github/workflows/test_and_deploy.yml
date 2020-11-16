@@ -5,8 +5,8 @@ on:
   pull_request:
   # Run this workflow every time a PR is merged to master
   push:
-#    branches:
-#      - master
+    branches:
+      - master
 
 jobs:
   build:
@@ -81,6 +81,6 @@ jobs:
           name: built_package
           path: ./artifact_storage
       - name: Deploy with dev label
-      run: |
-        UPLOAD=`ls ./artifact_storage | awk -F "-" '{print $1}'`
-        anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l dev --no-progress --force --no-register $UPLOAD
+        run: |
+          UPLOAD=`ls ./artifact_storage | awk -F "-" '{print $1}'`
+          anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l dev --no-progress --force --no-register $UPLOAD
