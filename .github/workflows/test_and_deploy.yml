@@ -1,12 +1,12 @@
-name: Test and Coverage
+name: Test and Deploy
 
 on:
   # Run this workflow every time a PR is opened or a new commit is pushed to the PR
   pull_request:
   # Run this workflow every time a PR is merged to master
   push:
-    branches:
-      - master
+#    branches:
+#      - master
 
 jobs:
   build:
