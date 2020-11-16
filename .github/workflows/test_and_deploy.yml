@@ -64,7 +64,6 @@ jobs:
           coveralls
       - name: Pre-Upload Artifact
         run: |
-          conda install -q anaconda-client
           # This doesn't rebuild, but simply computes the name of the file that was previously built
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
           echo "Path to built package:"
@@ -92,6 +91,9 @@ jobs:
           path: ./artifact_storage
       - name: Deploy with dev label
         run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mg
+          conda install -q anaconda-client
           ls -la ./artifact_storage
           UPLOAD=`ls ./artifact_storage | head -1`
           echo "Uploading $UPLOAD with label=dev"
