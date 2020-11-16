@@ -54,7 +54,9 @@ jobs:
           conda info -a
           conda install -q anaconda-client
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
-          echo "::set-env name=CONDA_BUILD_OUTPUT::$OUTPUT"
+          echo "Path to built package:"
+          echo $OUTPUT
+          echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
