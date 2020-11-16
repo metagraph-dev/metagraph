@@ -15,7 +15,7 @@ jobs:
       matrix:
         pyver:
           - 3.7
-          - 3.8
+#          - 3.8
 
     steps:
       - name: Checkout
@@ -57,6 +57,7 @@ jobs:
           echo "Path to built package:"
           echo $OUTPUT
           echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
+          ls -la $OUTPUT
       - name: Verify env vars
         run: |
           echo "Value of CONDA_BUILD_OUTPUT in next step:"
