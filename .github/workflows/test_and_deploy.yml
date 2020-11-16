@@ -71,7 +71,6 @@ jobs:
           echo $OUTPUT
           echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
           ls -la $OUTPUT
-          echo "github.ref=${{ github.ref }}"
         if: matrix.pyver == 3.8
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
@@ -95,5 +94,5 @@ jobs:
         run: |
           ls -la ./artifact_storage
           UPLOAD=`ls ./artifact_storage | head -1`
-          echo "Uploading $UPLOAD to label:test"
-          anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l test --no-progress --force --no-register $UPLOAD
+          echo "Uploading $UPLOAD with label=dev"
+          anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l dev --no-progress --force --no-register $UPLOAD
