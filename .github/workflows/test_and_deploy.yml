@@ -5,14 +5,15 @@ on:
   pull_request:
   # Run this workflow every time a PR is merged to master
   push:
-#    branches:
-#      - master
+    branches:
+      - master
 
 jobs:
   build:
     runs-on: ubuntu-latest
     strategy:
       matrix:
+        # NOTE: when changing these, remember to change the conditionals in the last few steps
         pyver:
           - 3.7
           - 3.8
@@ -52,9 +53,7 @@ jobs:
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda info -a
-          conda install -q anaconda-client
-          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
-          echo "::set-env name=CONDA_BUILD_OUTPUT::$OUTPUT"
+          conda build -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -63,12 +62,23 @@ jobs:
           conda activate mg
           conda install -c conda-forge coveralls
           coveralls
+      - name: Pre-Upload Artifact
+        run: |
+          conda install -q anaconda-client
+          # This doesn't rebuild, but simply computes the name of the file that was previously built
+          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ matrix.pyver }} continuous_integration/conda)
+          echo "Path to built package:"
+          echo $OUTPUT
+          echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
+          ls -la $OUTPUT
+        if: matrix.pyver == 3.8
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
           name: built_package
-          path: $CONDA_BUILD_OUTPUT
+          path: ${{ env.CONDA_BUILD_OUTPUT }}
           retention-days: 7
+        if: matrix.pyver == 3.8
 
   dev_deploy:
     runs-on: ubuntu-latest
@@ -81,6 +91,8 @@ jobs:
           name: built_package
           path: ./artifact_storage
       - name: Deploy with dev label
-      run: |
-        UPLOAD=`ls ./artifact_storage | awk -F "-" '{print $1}'`
-        anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l dev --no-progress --force --no-register $UPLOAD
+        run: |
+          ls -la ./artifact_storage
+          UPLOAD=`ls ./artifact_storage | head -1`
+          echo "Uploading $UPLOAD with label=dev"
+          anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l dev --no-progress --force --no-register $UPLOAD
