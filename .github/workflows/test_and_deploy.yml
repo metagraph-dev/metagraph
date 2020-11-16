@@ -93,7 +93,8 @@ jobs:
           path: ./artifact_storage
       - name: Deploy with dev label
         run: |
-          UPLOAD=`ls ./artifact_storage | awk -F "-" '{print $1}'`
+          ls -la ./artifact_storage
+          UPLOAD=`ls ./artifact_storage | head -1`
           echo $UPLOAD
           ls -la $UPLOAD
 #          anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l dev --no-progress --force --no-register $UPLOAD
