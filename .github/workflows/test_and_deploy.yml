@@ -92,7 +92,7 @@ jobs:
       - name: Deploy with dev label
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
+          conda config --set always_yes yes --set changeps1 no
           conda install -q anaconda-client
           ls -la ./artifact_storage
           UPLOAD=`ls ./artifact_storage | head -1`
