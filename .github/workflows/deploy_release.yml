@@ -6,7 +6,7 @@ on:
       - '*'
 
 jobs:
-  build:
+  deploy_pypi:
     runs-on: ubuntu-latest
 
     steps:
@@ -33,4 +33,4 @@ jobs:
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
-          password: ${{ secrets.pypi_password }}
+          password: ${{ secrets.PYPI_SECRET }}
