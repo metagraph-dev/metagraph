@@ -111,7 +111,7 @@ class TypeCache:
                 for key in fingerprint["keys"]:
                     assert id(obj[key]) == fingerprint[f"_id_{key}"]
                     assert type(obj[key]) == fingerprint[f"_type_{key}"]
-            except AssertionError:
+            except (AssertionError, KeyError):
                 self._expire_key(ident)
                 del self._fingerprints[ident]
 
