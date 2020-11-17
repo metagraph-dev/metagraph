@@ -1,0 +1,36 @@
+name: Deploy Release
+
+on:
+  push:
+    tags:
+      - '*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: 3.8
+      - name: Setup conda env
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda config --set always_yes yes --set changeps1 no
+          conda update -q conda
+          conda env create -f continuous_integration/environment-3.8.yml
+          conda activate mg
+          pip install -e .
+      - name: Build PyPI artifacts
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mg
+          $CONDA/bin/python setup.py sdist bdist_wheel
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.pypi_password }}
