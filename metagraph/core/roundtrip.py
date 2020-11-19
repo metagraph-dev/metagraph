@@ -83,7 +83,8 @@ class RoundTripper:
                         assert (
                             aprops_inflight == aprops_obj
                         ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight} (expected {aprops_obj})"
-                        unverified_obj = translators_to_verify[backward](
+                        translator = translators_to_verify[backward]
+                        unverified_obj = translator(
                             ensure_computed(inflight_obj), resolver=self.resolver
                         )
                         ct_unverified = self.resolver.typeclass_of(unverified_obj)
@@ -93,7 +94,7 @@ class RoundTripper:
                         ), f"Translator from {ct_target} to {ct_source} returned an object of type {ct_unverified}"
                         assert (
                             aprops_unverified == aprops_obj
-                        ), f"Translated object of type {ct_unverified} has wrong properties {aprops_unverified}"
+                        ), f"Translated object of type {ct_unverified} has wrong properties {aprops_unverified} (expected {aprops_obj})"
                         # Translate to ct_obj if needed (these are known good translators at this point)
                         if ct_unverified is not ct_obj:
                             unverified_obj = self.resolver.translate(
@@ -148,10 +149,9 @@ class RoundTripper:
             ), f"Translation from {ct_obj} to {source} returned an object of type {ct_prep}"
             assert (
                 aprops_prep == aprops_obj
-            ), f"Translated object of type {ct_prep} has wrong properties {aprops_prep}"
-            inflight_obj = translators_to_verify[(source, target)](
-                ensure_computed(prep_obj), resolver=self.resolver
-            )
+            ), f"Translated object of type {ct_prep} has wrong properties {aprops_prep} (expected {aprops_obj})"
+            translator = translators_to_verify[(source, target)]
+            inflight_obj = translator(ensure_computed(prep_obj), resolver=self.resolver)
             ct_inflight = self.resolver.typeclass_of(inflight_obj)
             aprops_inflight = self._aprops(inflight_obj)
             assert (
