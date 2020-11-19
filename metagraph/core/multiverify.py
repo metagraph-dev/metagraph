@@ -253,10 +253,11 @@ class MultiVerify:
                 translated_value = self.resolver.translate(value, dst_type)
             else:
                 translated_value = value
-        except TypeError:
+        except TypeError as type_error:
             raise UnsatisfiableAlgorithmError(
                 f"[{algo_path}] Unable to convert type {type(value)} "
-                f"into type {dst_type} for comparison"
+                f"into type {dst_type} for comparison for the following "
+                f"reason: {type_error}"
             )
         return ensure_computed(translated_value)
 

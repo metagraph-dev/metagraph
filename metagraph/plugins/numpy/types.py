@@ -125,7 +125,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     def __init__(self, data, nodes=None, *, aprops=None):
         """
         data: values for each node
-        nodes: array of node_ids corresponding ot elements in data
+        nodes: array of node_ids corresponding to elements in data
 
         If there are no missing nodes, nodes are not required. It will be assumed that node ids
         are sequential and the same size as `data`.
