@@ -70,7 +70,7 @@ def test_edgemap_roundtrip_directed_symmetric(default_plugin_resolver):
     )
 
 
-def test_edgemap_roundtrip_nonegweights(default_plugin_resolver):
+def test_edgemap_roundtrip_noneweights(default_plugin_resolver):
     rt = RoundTripper(default_plugin_resolver)
     df = pd.DataFrame(
         {

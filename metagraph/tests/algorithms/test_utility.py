@@ -33,21 +33,21 @@ def test_nodemap_sort(default_plugin_resolver):
     dpr = default_plugin_resolver
     py_node_map = {index: index * 100 for index in range(1, 8)}
     mv = MultiVerify(dpr)
-    mv.compute("util.nodemap.sort", py_node_map).assert_equal(
-        np.array([1, 2, 3, 4, 5, 6, 7])
-    )
-    mv.compute("util.nodemap.sort", py_node_map, True, 4).assert_equal(
-        np.array([1, 2, 3, 4])
-    )
-    mv.compute("util.nodemap.sort", py_node_map, True).assert_equal(
-        np.array([1, 2, 3, 4, 5, 6, 7])
-    )
-    mv.compute("util.nodemap.sort", py_node_map, False, 3).assert_equal(
-        np.array([7, 6, 5])
-    )
-    mv.compute("util.nodemap.sort", py_node_map, False).assert_equal(
-        np.array([7, 6, 5, 4, 3, 2, 1])
-    )
+    mv.compute("util.nodemap.sort", py_node_map).normalize(
+        dpr.types.Vector.NumpyVectorType
+    ).assert_equal(np.array([1, 2, 3, 4, 5, 6, 7]))
+    mv.compute("util.nodemap.sort", py_node_map, True, 4).normalize(
+        dpr.types.Vector.NumpyVectorType
+    ).assert_equal(np.array([1, 2, 3, 4]))
+    mv.compute("util.nodemap.sort", py_node_map, True).normalize(
+        dpr.types.Vector.NumpyVectorType
+    ).assert_equal(np.array([1, 2, 3, 4, 5, 6, 7]))
+    mv.compute("util.nodemap.sort", py_node_map, False, 3).normalize(
+        dpr.types.Vector.NumpyVectorType
+    ).assert_equal(np.array([7, 6, 5]))
+    mv.compute("util.nodemap.sort", py_node_map, False).normalize(
+        dpr.types.Vector.NumpyVectorType
+    ).assert_equal(np.array([7, 6, 5, 4, 3, 2, 1]))
 
 
 def test_nodemap_select(default_plugin_resolver):
