@@ -33,6 +33,25 @@ def triangle_count(graph: Graph(is_directed=False)) -> int:
     pass  # pragma: no cover
 
 
+# TODO: This is in the same category as triangle count, so the category is "cluster" to match, but why are both not "clustering" instead?
+@abstract_algorithm("cluster.global_clustering_coefficient")
+def global_clustering_coefficient(graph: Graph(is_directed=False)) -> float:
+    """
+    Return the global clustering coefficient.
+    
+    global_clustering_coefficient = num_closed_triplets / num_triplets
+
+    A triplet in a graph is a subgraph of 3 nodes where at least 2 edges are present.
+
+    An open triplet has exactly 2 edges.
+
+    A closed triplet has exactly 3 edges.
+    
+    The more details can be found at https://en.wikipedia.org/wiki/Clustering_coefficient#Global_clustering_coefficient
+    """
+    pass  # pragma: no cover
+
+
 @abstract_algorithm("clustering.coloring.greedy")
 def greedy_coloring(graph: Graph(is_directed=False)) -> Tuple[NodeMap, int]:
     """

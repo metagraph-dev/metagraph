@@ -47,6 +47,11 @@ if has_networkx:
         total_triangles = sum(triangles.values()) // 3
         return total_triangles
 
+    @concrete_algorithm("cluster.global_clustering_coefficient")
+    def nx_global_clustering_coefficient(graph: NetworkXGraph) -> float:
+        global_clustering_coefficient = nx.transitivity(graph.value)
+        return global_clustering_coefficient
+
     @concrete_algorithm("clustering.connected_components")
     def nx_connected_components(graph: NetworkXGraph) -> PythonNodeMapType:
         index_to_label = {}
@@ -194,14 +199,83 @@ if has_networkx:
         hubs, authority = nx.hits(graph.value, maxiter, tolerance, normalized=normalize)
         return hubs, authority
 
+    @concrete_algorithm("centrality.degree")
+    def nx_degree_centrality(
+        graph: NetworkXGraph, in_edges: bool, out_edges: bool,
+    ) -> PythonNodeMapType:
+        if not in_edges and not out_edges:
+            node2degree = {n: 0 for n in graph.value.nodes()}
+        elif not graph.value.is_directed():
+            node2degree = nx.degree_centrality(graph.value)
+        elif in_edges and out_edges:
+            ins = nx.in_degree_centrality(graph.value)
+            outs = nx.out_degree_centrality(graph.value)
+            node2degree = {n: ins[n] + o for n, o in outs.items()}
+        elif in_edges:
+            node2degree = nx.in_degree_centrality(graph.value)
+        elif out_edges:
+            node2degree = nx.out_degree_centrality(graph.value)
+        return node2degree
+
     @concrete_algorithm("traversal.bfs_iter")
-    def nx_breadth_first_search(
+    def nx_breadth_first_search_iter(
         graph: NetworkXGraph, source_node: NodeID, depth_limit: int
     ) -> NumpyVectorType:
+        if depth_limit == -1:
+            depth_limit = None
         bfs_ordered_node_array = np.array(
-            nx.breadth_first_search.bfs_tree(graph.value, source_node)
+            nx.breadth_first_search.bfs_tree(
+                graph.value, source_node, depth_limit=depth_limit
+            )
         )
         return bfs_ordered_node_array
+
+    @concrete_algorithm("traversal.bfs_tree")
+    def nx_breadth_first_search_tree(
+        graph: NetworkXGraph, source_node: NodeID, depth_limit: int
+    ) -> Tuple[PythonNodeMapType, PythonNodeMapType]:
+        if depth_limit == -1:
+            depth_limit = len(graph.value.nodes) - 1
+        node2successors = dict(
+            nx.bfs_successors(graph.value, source_node, depth_limit=depth_limit)
+        )
+        # Calcuate Depths
+        node2depth = {source_node: 0}
+        current_nodes = [source_node]
+        for depth in range(1, depth_limit + 1):
+            current_nodes = sum(
+                (
+                    node2successors[current_node]
+                    for current_node in current_nodes
+                    if current_node in node2successors
+                ),
+                [],
+            )
+            for current_node in current_nodes:
+                node2depth[current_node] = depth
+        # Calculate Parents
+        node2parent = {source_node: source_node}
+        for node, successors in node2successors.items():
+            for successor in successors:
+                node2parent[successor] = node
+        return node2depth, node2parent
+
+    @concrete_algorithm("traversal.dfs_iter")
+    def nx_depth_first_search_iter(
+        graph: NetworkXGraph, source_node: NodeID
+    ) -> NumpyVectorType:
+        dfs_ordered_node_array = np.array(
+            nx.depth_first_search.dfs_tree(graph.value, source_node)
+        )
+        return dfs_ordered_node_array
+
+    @concrete_algorithm("traversal.dfs_tree")
+    def nx_depth_first_search_tree(
+        graph: NetworkXGraph, source_node: NodeID
+    ) -> PythonNodeMapType:
+        node2parent = dict(nx.dfs_predecessors(graph.value, source_node))
+        node2parent[source_node] = source_node
+        return node2parent
 
     @concrete_algorithm("bipartite.graph_projection")
     def nx_graph_projection(
@@ -492,6 +566,25 @@ if has_networkx:
                 break
 
         return NetworkXGraph(out_g)
+
+    @concrete_algorithm("traversal.astar_search")
+    def nx_astar_search(
+        graph: NetworkXGraph,
+        source_node: NodeID,
+        target_node: NodeID,
+        heuristic_func: Callable[[NodeID], float],
+    ) -> NumpyVectorType:
+        # NetworkX takes a binary heuristic function, but always passes in the target node as the second parameter
+        heuristic_func_dwimmed = lambda src, _: heuristic_func(src)
+        path = nx.astar_path(
+            graph.value,
+            source_node,
+            target_node,
+            heuristic=heuristic_func_dwimmed,
+            weight=graph.edge_weight_label,
+        )
+        path = np.array(path, dtype=int)
+        return path
 
 
 if has_networkx and has_community:

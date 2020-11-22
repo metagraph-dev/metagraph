@@ -235,3 +235,97 @@ def test_hits_centrality(default_plugin_resolver):
     MultiVerify(dpr).compute(
         "centrality.hits", graph, maxiter=100, tolerance=1e-06
     ).assert_equal((hubs, authority), rel_tol=1e-3)
+
+
+def test_degree_centrality_directed(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    graph = build_standard_graph()
+
+    MultiVerify(dpr).compute("centrality.degree", graph, False, True).assert_equal(
+        {
+            0: 1 / 7,
+            1: 2 / 7,
+            2: 3 / 7,
+            3: 2 / 7,
+            4: 1 / 7,
+            5: 1 / 7,
+            6: 1 / 7,
+            7: 0 / 7,
+        },
+        rel_tol=1e-3,
+    )
+
+    MultiVerify(dpr).compute("centrality.degree", graph, True, False).assert_equal(
+        {
+            0: 1 / 7,
+            1: 1 / 7,
+            2: 1 / 7,
+            3: 1 / 7,
+            4: 3 / 7,
+            5: 2 / 7,
+            6: 1 / 7,
+            7: 1 / 7,
+        },
+        rel_tol=1e-3,
+    )
+
+    MultiVerify(dpr).compute("centrality.degree", graph, True, True).assert_equal(
+        {
+            0: 2 / 7,
+            1: 3 / 7,
+            2: 4 / 7,
+            3: 3 / 7,
+            4: 4 / 7,
+            5: 3 / 7,
+            6: 2 / 7,
+            7: 1 / 7,
+        },
+        rel_tol=1e-3,
+    )
+
+    MultiVerify(dpr).compute("centrality.degree", graph, False, False).assert_equal(
+        {0: 0, 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0,}
+    )
+
+
+def test_degree_centrality_undirected(default_plugin_resolver):
+    r"""
+              +-+
+     -------  |1|
+     |        +-+
+     |
+     |         |
+     |         |
+
+    +-+       +-+       +-+
+    |0|  ---  |2|  ---  |3|
+    +-+       +-+       +-+
+    """
+    dpr = default_plugin_resolver
+    networkx_graph_data = [(0, 1), (0, 2), (1, 2), (3, 2)]
+    networkx_graph = nx.Graph()
+    networkx_graph.add_edges_from(networkx_graph_data)
+    graph = dpr.wrappers.Graph.NetworkXGraph(networkx_graph)
+
+    expected_result = {
+        0: 2 / 3,
+        1: 2 / 3,
+        2: 3 / 3,
+        3: 1 / 3,
+    }
+
+    MultiVerify(dpr).compute("centrality.degree", graph, False, True).assert_equal(
+        expected_result, rel_tol=1e-3
+    )
+
+    MultiVerify(dpr).compute("centrality.degree", graph, True, False).assert_equal(
+        expected_result, rel_tol=1e-3
+    )
+
+    MultiVerify(dpr).compute("centrality.degree", graph, True, True).assert_equal(
+        expected_result, rel_tol=1e-3
+    )
+
+    MultiVerify(dpr).compute("centrality.degree", graph, False, False).assert_equal(
+        {0: 0, 1: 0, 2: 0, 3: 0,}
+    )

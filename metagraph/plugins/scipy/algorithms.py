@@ -82,14 +82,105 @@ if has_scipy:
     def ss_breadth_first_search_iter(
         graph: ScipyGraph, source_node: NodeID, depth_limit: int
     ) -> NumpyVectorType:
+        if depth_limit != -1:  # TODO support depth_limit
+            raise NotImplementedError("scipy.sparse does not support depth_limit")
         is_directed = ScipyGraph.Type.compute_abstract_properties(
             graph, {"is_directed"}
         )["is_directed"]
+        node_list: np.ndarray = graph.node_list
+        source_node_position = np.flatnonzero(node_list == source_node).item()
         bfs_ordered_incides = ss.csgraph.breadth_first_order(
-            graph.value, source_node, directed=is_directed, return_predecessors=False,
+            graph.value,
+            source_node_position,
+            directed=is_directed,
+            return_predecessors=False,
         )
         bfs_ordered_nodes = graph.node_list[bfs_ordered_incides]
         return bfs_ordered_nodes
+
+    @concrete_algorithm("traversal.bfs_tree")
+    def ss_breadth_first_search_tree(
+        graph: ScipyGraph, source_node: NodeID, depth_limit: int
+    ) -> Tuple[NumpyNodeMap, NumpyNodeMap]:
+        """Specifying a depth_limit does not limit the work as an exhaustive search is performed first and results are fitlered after."""
+        is_directed = ScipyGraph.Type.compute_abstract_properties(
+            graph, {"is_directed"}
+        )["is_directed"]
+        node_list: np.ndarray = graph.node_list
+        depth_limit = len(node_list) - 1 if depth_limit == -1 else depth_limit
+        source_node_position = np.flatnonzero(node_list == source_node).item()
+        bfs_tree_csr = ss.csgraph.breadth_first_tree(  # depth_limit is not used here!
+            graph.value, source_node_position, directed=is_directed
+        ).astype(bool)
+        # Calcuate Depths
+        depths = np.full(len(node_list), depth_limit + 1, dtype=int)
+        depths[source_node_position] = 0
+        current_node_positions = np.array([source_node_position], dtype=int)
+        for depth in range(1, depth_limit + 1):
+            selector = np.zeros(len(node_list), dtype=bool)
+            selector[current_node_positions] = True
+            current_node_positions = selector @ bfs_tree_csr
+            if not current_node_positions.any():
+                break
+            depths[current_node_positions] = depth
+        # Calculate Parents
+        parents = np.empty(len(node_list), dtype=int)
+        bfs_tree_coo = bfs_tree_csr.tocoo()
+        parents[source_node_position] = source_node
+        parents[bfs_tree_coo.col] = bfs_tree_coo.row
+        # Ensure depth_limit
+        valid_nodes = graph.node_list
+        valid_depths_selector = depths <= depth_limit
+        depths = depths[valid_depths_selector]
+        parents = parents[valid_depths_selector]
+        valid_nodes = valid_nodes[valid_depths_selector]
+        depths_nodes = valid_nodes.copy()
+        parents_nodes = valid_nodes.copy()
+        node2depth = NumpyNodeMap(depths, depths_nodes)
+        node2parent = NumpyNodeMap(parents, parents_nodes)
+        return node2depth, node2parent
+
+    @concrete_algorithm("traversal.dfs_iter")
+    def ss_depth_first_search_iter(
+        graph: ScipyGraph, source_node: NodeID
+    ) -> NumpyVectorType:
+        is_directed = ScipyGraph.Type.compute_abstract_properties(
+            graph, {"is_directed"}
+        )["is_directed"]
+        node_list: np.ndarray = graph.node_list
+        source_node_position = np.flatnonzero(node_list == source_node).item()
+        dfs_ordered_incides = ss.csgraph.depth_first_order(
+            graph.value,
+            source_node_position,
+            directed=is_directed,
+            return_predecessors=False,
+        )
+        dfs_ordered_nodes = graph.node_list[dfs_ordered_incides]
+        return dfs_ordered_nodes
+
+    @concrete_algorithm("traversal.dfs_tree")
+    def ss_depth_first_search_tree(
+        graph: ScipyGraph, source_node: NodeID
+    ) -> NumpyNodeMap:
+        is_directed = ScipyGraph.Type.compute_abstract_properties(
+            graph, {"is_directed"}
+        )["is_directed"]
+        node_list: np.ndarray = graph.node_list
+        source_node_position = np.flatnonzero(node_list == source_node).item()
+        _, predecessor_positions = ss.csgraph.depth_first_order(
+            graph.value,
+            source_node_position,
+            directed=is_directed,
+            return_predecessors=True,
+        )
+        predecessor_positions[source_node_position] = source_node_position
+        reachable_nodes_mask = predecessor_positions != -9999
+        node_positions = np.flatnonzero(reachable_nodes_mask)
+        node_ids = node_list[node_positions]
+        predecessor_positions = predecessor_positions[reachable_nodes_mask]
+        parents = node_list[predecessor_positions]
+        node2parent = NumpyNodeMap(parents, node_ids)
+        return node2parent
 
     @concrete_algorithm("flow.max_flow")
     def ss_max_flow(
