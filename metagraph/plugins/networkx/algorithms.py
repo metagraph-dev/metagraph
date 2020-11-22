@@ -243,14 +243,12 @@ if has_networkx:
         node2depth = {source_node: 0}
         current_nodes = [source_node]
         for depth in range(1, depth_limit + 1):
-            current_nodes = sum(
-                (
-                    node2successors[current_node]
-                    for current_node in current_nodes
-                    if current_node in node2successors
-                ),
-                [],
+            current_node_lists = (
+                node2successors[current_node]
+                for current_node in current_nodes
+                if current_node in node2successors
             )
+            current_nodes = sum(current_node_lists, [])
             for current_node in current_nodes:
                 node2depth[current_node] = depth
         # Calculate Parents
