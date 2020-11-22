@@ -316,7 +316,7 @@ These algorithms are small utility functions which perform common operations nee
     Aggregates the edge weights around a node, returning a single value per node.
 
     If ``in_edges`` and ``out_edges`` are False, each node will contain the initial value.
-    For undirected graphs, setting ``in_edges`` or ``out_edges`` or both to truewill give identical results (edges will only be counted once per node).
+    For undirected graphs, setting ``in_edges`` or ``out_edges`` or both to true will give identical results (edges will only be counted once per node).
     For directed graphs, ``in_edges`` and ``out_edges`` affect the result. Setting both will still only give a single value per node, combining all outbound and inbound edge weights.
 
 .. py:function:: util.graph.filter_edges(graph: Graph(edge_type="map"), func: Callable[[Any], bool]) -> Graph
