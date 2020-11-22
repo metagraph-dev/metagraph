@@ -103,6 +103,7 @@ if has_scipy:
         graph: ScipyGraph, source_node: NodeID, depth_limit: int
     ) -> Tuple[NumpyNodeMap, NumpyNodeMap]:
         """Specifying a depth_limit does not limit the work as an exhaustive search is performed first and results are fitlered after."""
+
         is_directed = ScipyGraph.Type.compute_abstract_properties(
             graph, {"is_directed"}
         )["is_directed"]
@@ -112,6 +113,7 @@ if has_scipy:
         bfs_tree_csr = ss.csgraph.breadth_first_tree(  # depth_limit is not used here!
             graph.value, source_node_position, directed=is_directed
         ).astype(bool)
+
         # Calcuate Depths
         depths = np.full(len(node_list), depth_limit + 1, dtype=int)
         depths[source_node_position] = 0
@@ -123,11 +125,13 @@ if has_scipy:
             if not current_node_positions.any():
                 break
             depths[current_node_positions] = depth
+
         # Calculate Parents
         parents = np.empty(len(node_list), dtype=int)
         bfs_tree_coo = bfs_tree_csr.tocoo()
         parents[source_node_position] = source_node
         parents[bfs_tree_coo.col] = bfs_tree_coo.row
+
         # Ensure depth_limit
         valid_nodes = graph.node_list
         valid_depths_selector = depths <= depth_limit
@@ -136,8 +140,10 @@ if has_scipy:
         valid_nodes = valid_nodes[valid_depths_selector]
         depths_nodes = valid_nodes.copy()
         parents_nodes = valid_nodes.copy()
+
         node2depth = NumpyNodeMap(depths, depths_nodes)
         node2parent = NumpyNodeMap(parents, parents_nodes)
+
         return node2depth, node2parent
 
     @concrete_algorithm("traversal.dfs_iter")
