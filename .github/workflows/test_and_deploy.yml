@@ -70,8 +70,9 @@ jobs:
           conda update -q conda
           conda install -q conda-build
           conda info -a
-          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
+          conda create -n mg python=${{ matrix.pyver }}
           conda activate mg
+          conda install pytest pytest-cov coverage
           # Install built_package
           BUILT_PKG=`ls ./artifact_storage | head -1`
           conda install --file ./artifact_storage/$BUILT_PKG
