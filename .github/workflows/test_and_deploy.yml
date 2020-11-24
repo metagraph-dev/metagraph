@@ -75,7 +75,7 @@ jobs:
           conda install pytest pytest-cov coverage
           # Install built_package
           BUILT_PKG=`ls ./artifact_storage | head -1`
-          conda install --file ./artifact_storage/$BUILT_PKG
+          conda install ./artifact_storage/$BUILT_PKG
       - name: Pytest
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
