@@ -80,6 +80,9 @@ jobs:
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
+          conda list
+          pwd
+          which pytest
           pytest --pyargs metagraph.tests
           pytest --pyargs metagraph.tests --dask --cov-append
       - name: Coveralls
