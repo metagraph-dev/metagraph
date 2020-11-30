@@ -25,13 +25,37 @@ jobs:
           DEFAULT_BRANCH: master
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON_BLACK: true
-      - name: Conda Build
+      - name: Setup Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ env.MAIN_PYVER }}
+      - name: Setup conda env
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda config --set always_yes yes --set changeps1 no
           conda update -q conda
-          conda install -q conda-build
           conda info -a
+          conda install -q conda-build
+          conda env create -f continuous_integration/environment-${{ env.MAIN_PYVER }}.yml
+          conda activate mg
+          pip install -e .
+      - name: Pytest
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mg
+          pytest metagraph
+          pytest metagraph --dask --cov-append
+      - name: Coveralls
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mg
+          conda install -c conda-forge coveralls
+          coveralls
+      - name: Conda Build
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
           conda build -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda
           # This doesn't rebuild, but simply computes the name of the file that was previously built
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda)
@@ -54,8 +78,6 @@ jobs:
           - 3.7
           - 3.8
     steps:
-      - name: Checkout (for coveralls)
-        uses: actions/checkout@v2
       - name: Download build artifact
         uses: actions/download-artifact@v2
         with:
@@ -70,28 +92,21 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda config --set always_yes yes --set changeps1 no
           conda update -q conda
-          conda install -q conda-build
-          conda info -a
-          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
+          conda create -n mg python=${{ matrix.pyver }}
           conda activate mg
           # Install built_package
           BUILT_PKG=`ls ./artifact_storage | head -1`
           conda install ./artifact_storage/$BUILT_PKG
+          # Install dependencies listed in built package
+          # (This is a workaround because conda does not install dependencies for local file installs)
+          conda update -c defaults -c conda-forge metagraph
+          conda list
       - name: Pytest
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
-          conda list
           python -m metagraph.tests
-          python -m metagraph.tests --dask --cov-append
-      - name: Coveralls
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
-          conda install -c conda-forge coveralls
-          coveralls
+          python -m metagraph.tests --dask
 
   dev_deploy:
     runs-on: ubuntu-latest
