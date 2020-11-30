@@ -54,6 +54,8 @@ jobs:
           - 3.7
           - 3.8
     steps:
+      - name: Checkout (for coveralls)
+        uses: actions/checkout@v2
       - name: Download build artifact
         uses: actions/download-artifact@v2
         with:
@@ -70,11 +72,8 @@ jobs:
           conda update -q conda
           conda install -q conda-build
           conda info -a
-          conda create -n mg python=${{ matrix.pyver }}
+          conda env create -f continuous_integration/environment-${{ matrix.pyver }}.yml
           conda activate mg
-          conda install pytest pytest-cov coverage
-          conda install importlib_metadata numpy networkx pandas scipy dask
-          conda install -c conda-forge python-louvain donfig grblas
           # Install built_package
           BUILT_PKG=`ls ./artifact_storage | head -1`
           conda install ./artifact_storage/$BUILT_PKG
@@ -83,14 +82,8 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
           conda list
-          # TODO: install all the dependencies (not happening now because it's a local install)
-          #       see if that fixes the "ERROR: module or package not found: metagraph.tests (missing __init__.py?)"
-          pwd
-          which pytest
           python -m metagraph.tests
           python -m metagraph.tests --dask --cov-append
-      - name: Checkout (for coveralls)
-        uses: actions/checkout@v2
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
