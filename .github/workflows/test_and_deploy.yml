@@ -89,6 +89,8 @@ jobs:
           which pytest
           python -m metagraph.tests
           python -m metagraph.tests --dask --cov-append
+      - name: Checkout (for coveralls)
+        uses: actions/checkout@v2
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
