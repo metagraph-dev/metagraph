@@ -87,8 +87,8 @@ jobs:
           #       see if that fixes the "ERROR: module or package not found: metagraph.tests (missing __init__.py?)"
           pwd
           which pytest
-          pytest -m metagraph.tests
-          pytest -m metagraph.tests --dask --cov-append
+          python -m metagraph.tests
+          python -m metagraph.tests --dask --cov-append
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
