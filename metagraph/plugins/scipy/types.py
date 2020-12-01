@@ -225,8 +225,8 @@ if has_scipy:
                     f"node vals size ({len(node_vals)}) and data matrix size ({nrows}) don't match",
                 )
             self.value = matrix
-            self.node_list = node_list
-            self.node_vals = node_vals
+            self.node_list: np.ndarray = node_list
+            self.node_vals: np.ndarray = node_vals
 
         def copy(self):
             node_vals = None if self.node_vals is None else self.node_vals.copy()

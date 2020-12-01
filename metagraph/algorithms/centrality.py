@@ -60,3 +60,11 @@ def hits_centrality(
 ) -> Tuple[NodeMap, NodeMap]:
     """Return (hubs, authority)"""
     pass  # pragma: no cover
+
+
+@abstract_algorithm("centrality.degree")
+def degree_centrality(
+    graph: Graph, in_edges: bool = False, out_edges: bool = True,
+) -> NodeMap:
+    """The degree centrality of a node is node_degree / (total_num_nodes-1) ."""
+    pass  # pragma: no cover

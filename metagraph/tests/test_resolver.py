@@ -831,9 +831,9 @@ def test_plugin_specific_concrete_algorithms():
     simple_graph = nx.Graph()
     simple_graph.add_edges_from(simple_graph_data)
     graph = r.wrappers.Graph.NetworkXGraph(simple_graph)
-    assert r.algos.cluster.triangle_count(graph) == 5
-    assert r.plugins.core_networkx.algos.cluster.triangle_count(graph) == 5
-    assert r.algos.cluster.triangle_count.core_networkx(graph) == 5
+    assert r.algos.clustering.triangle_count(graph) == 5
+    assert r.plugins.core_networkx.algos.clustering.triangle_count(graph) == 5
+    assert r.algos.clustering.triangle_count.core_networkx(graph) == 5
 
 
 def test_duplicate_plugin():

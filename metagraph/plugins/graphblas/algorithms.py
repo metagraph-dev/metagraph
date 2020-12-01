@@ -15,7 +15,7 @@ if has_grblas:
         GrblasVectorType,
     )
 
-    @concrete_algorithm("cluster.triangle_count")
+    @concrete_algorithm("clustering.triangle_count")
     def grblas_triangle_count(graph: GrblasGraph) -> int:
         # Burkhardt method: num_triangles = sum(sum(A @ A) * A) / 6
         # We do it in two steps: a matrix multiplication then a reduction

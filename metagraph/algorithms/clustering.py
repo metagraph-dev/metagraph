@@ -26,10 +26,27 @@ def louvain_community_step(
     pass  # pragma: no cover
 
 
-# TODO: why is this "cluster" instead of "clustering"?
-@abstract_algorithm("cluster.triangle_count")
+@abstract_algorithm("clustering.triangle_count")
 def triangle_count(graph: Graph(is_directed=False)) -> int:
     """Counts the number of unique triangles in an undirected graph"""
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("clustering.global_clustering_coefficient")
+def global_clustering_coefficient(graph: Graph(is_directed=False)) -> float:
+    """
+    Return the global clustering coefficient.
+    
+    global_clustering_coefficient = num_closed_triplets / num_triplets
+
+    A triplet in a graph is a subgraph of 3 nodes where at least 2 edges are present.
+
+    An open triplet has exactly 2 edges.
+
+    A closed triplet has exactly 3 edges.
+    
+    The more details can be found at https://en.wikipedia.org/wiki/Clustering_coefficient#Global_clustering_coefficient
+    """
     pass  # pragma: no cover
 
 
