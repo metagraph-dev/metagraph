@@ -26,15 +26,13 @@ def louvain_community_step(
     pass  # pragma: no cover
 
 
-# TODO: why is this "cluster" instead of "clustering"?
-@abstract_algorithm("cluster.triangle_count")
+@abstract_algorithm("clustering.triangle_count")
 def triangle_count(graph: Graph(is_directed=False)) -> int:
     """Counts the number of unique triangles in an undirected graph"""
     pass  # pragma: no cover
 
 
-# TODO: This is in the same category as triangle count, so the category is "cluster" to match, but why are both not "clustering" instead?
-@abstract_algorithm("cluster.global_clustering_coefficient")
+@abstract_algorithm("clustering.global_clustering_coefficient")
 def global_clustering_coefficient(graph: Graph(is_directed=False)) -> float:
     """
     Return the global clustering coefficient.

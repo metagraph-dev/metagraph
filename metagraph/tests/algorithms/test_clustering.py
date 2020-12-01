@@ -113,7 +113,7 @@ def test_triangle_count(default_plugin_resolver):
     # Convert to wrapper
     graph = dpr.wrappers.Graph.NetworkXGraph(simple_graph)
 
-    MultiVerify(dpr).compute("cluster.triangle_count", graph).assert_equal(5)
+    MultiVerify(dpr).compute("clustering.triangle_count", graph).assert_equal(5)
 
 
 def test_global_clustering_coefficient(default_plugin_resolver):
@@ -139,7 +139,7 @@ def test_global_clustering_coefficient(default_plugin_resolver):
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
     MultiVerify(dpr).compute(
-        "cluster.global_clustering_coefficient", graph
+        "clustering.global_clustering_coefficient", graph
     ).assert_equal(3.0 / 11.0)
 
 

@@ -39,7 +39,7 @@ if has_networkx:
         )
         return katz_centrality_scores
 
-    @concrete_algorithm("cluster.triangle_count")
+    @concrete_algorithm("clustering.triangle_count")
     def nx_triangle_count(graph: NetworkXGraph) -> int:
         triangles = nx.triangles(graph.value)
         # Sum up triangles from each node
@@ -47,7 +47,7 @@ if has_networkx:
         total_triangles = sum(triangles.values()) // 3
         return total_triangles
 
-    @concrete_algorithm("cluster.global_clustering_coefficient")
+    @concrete_algorithm("clustering.global_clustering_coefficient")
     def nx_global_clustering_coefficient(graph: NetworkXGraph) -> float:
         global_clustering_coefficient = nx.transitivity(graph.value)
         return global_clustering_coefficient

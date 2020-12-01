@@ -61,7 +61,7 @@ if has_scipy:
         )
         return ScipyGraph(undirected_span_tree, graph.node_list, graph.node_vals)
 
-    @concrete_algorithm("cluster.triangle_count")
+    @concrete_algorithm("clustering.triangle_count")
     def ss_triangle_count(graph: ScipyGraph) -> int:
         """
         Uses the triangle counting method described in
