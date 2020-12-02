@@ -5,7 +5,6 @@ dependencies:
   - coverage
   - pytest
   - pytest-cov
-  - black
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata

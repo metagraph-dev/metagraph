@@ -3,10 +3,10 @@ name: Test and Deploy
 on:
   # Run this workflow every time a PR is opened or a new commit is pushed to the PR
   pull_request:
-  # Run this workflow every time a PR is merged to master
+  # Run this workflow every time a PR is merged to main
   push:
     branches:
-      - master
+      - main
 
 env:
   MAIN_PYVER: 3.8
@@ -22,7 +22,7 @@ jobs:
       - name: Lint using Black
         uses: github/super-linter@v3
         env:
-          DEFAULT_BRANCH: master
+          DEFAULT_BRANCH: main
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VALIDATE_PYTHON_BLACK: true
       - name: Setup Python
@@ -111,7 +111,7 @@ jobs:
   dev_deploy:
     runs-on: ubuntu-latest
     needs: test_pyver
-    if: github.ref == 'refs/heads/master'
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v2
