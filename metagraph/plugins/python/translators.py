@@ -1,8 +1,7 @@
-from metagraph import translator, dtypes
+from metagraph import translator
 from metagraph.plugins import has_grblas
-from .types import PythonNodeMapType, PythonNodeSetType, dtype_casting
+from .types import PythonNodeMapType, PythonNodeSetType
 from ..numpy.types import NumpyNodeMap, NumpyNodeSet
-import numpy as np
 
 
 @translator
@@ -12,27 +11,23 @@ def nodemap_to_nodeset(x: PythonNodeMapType, **props) -> PythonNodeSetType:
 
 @translator
 def nodeset_from_numpy(x: NumpyNodeSet, **props) -> PythonNodeSetType:
-    return set(x.value)
+    return set(x.value.tolist())
 
 
 @translator
 def nodemap_from_numpy(x: NumpyNodeMap, **props) -> PythonNodeMapType:
-    cast = dtype_casting[dtypes.dtypes_simplified[x.value.dtype]]
-    return {nid: cast(val) for nid, val in zip(x.nodes, x.value)}
+    return dict(zip(x.nodes.tolist(), x.value.tolist()))
 
 
 @translator
 def nodeset_from_numpy_nodemap(x: NumpyNodeMap, **props) -> PythonNodeSetType:
-    return set(x.nodes)
+    return set(x.nodes.tolist())
 
 
 if has_grblas:
-    from ..graphblas.types import GrblasNodeMap, dtype_grblas_to_mg
+    from ..graphblas.types import GrblasNodeMap
 
     @translator
     def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> PythonNodeMapType:
-        cast = dtype_casting[
-            dtypes.dtypes_simplified[dtype_grblas_to_mg[x.value.dtype.name]]
-        ]
         idx, vals = x.value.to_values()
-        return {nid: cast(val) for nid, val in zip(idx, vals)}
+        return dict(zip(idx.tolist(), vals.tolist()))
