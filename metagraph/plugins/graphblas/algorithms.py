@@ -1,7 +1,6 @@
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_grblas
 from typing import Tuple, Iterable, Any, Union, Optional
-import random
 import numpy as np
 
 if has_grblas:
@@ -20,7 +19,6 @@ if has_grblas:
         # Burkhardt method: num_triangles = sum(sum(A @ A) * A) / 6
         # We do it in two steps: a matrix multiplication then a reduction
         node_list, _ = graph.nodes.to_values()
-        node_list = list(node_list)
         A = graph.value[node_list, node_list].new()
         val = A.mxm(
             A.T,  # Transpose here assumes symmetric matrix stored by row (the default for SuiteSparse:GraphBLAS)
@@ -96,7 +94,6 @@ if has_grblas:
         )
         g = graph.value
         chosen_nodes, _ = nodes.value.to_values()
-        chosen_nodes = list(chosen_nodes)
         g2 = gb.Matrix.new(g.dtype, g.nrows, g.ncols)
         g2[chosen_nodes, chosen_nodes] << g[chosen_nodes, chosen_nodes].new()
 
@@ -109,22 +106,20 @@ if has_grblas:
 
     @concrete_algorithm("subgraph.sample.node_sampling")
     def grblas_node_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
-        rand = random.random
         all_nodes, _ = graph.nodes.to_values()
-        chosen_nodes = [n for n in all_nodes if rand() < p]
-        chosen_nodes = gb.Vector.from_values(chosen_nodes, [1] * len(chosen_nodes))
+        chosen_indices = np.random.random(len(all_nodes)) < p
+        chosen_nodes = all_nodes[chosen_indices]
+        chosen_nodes = gb.Vector.from_values(chosen_nodes, np.ones_like(chosen_nodes))
         return grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))
 
     @concrete_algorithm("subgraph.sample.edge_sampling")
     def grblas_edge_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
         aprops = GrblasGraph.Type.compute_abstract_properties(graph, "node_type")
-        rand = random.random
         rows, cols, vals = graph.value.to_values()
-        chosen_edges = np.array([i for i in range(len(vals)) if rand() < p])
-        # TODO: fix this once `to_values()` returns ndarray
-        rows = np.array(rows)[chosen_edges]
-        cols = np.array(cols)[chosen_edges]
-        vals = np.array(vals)[chosen_edges]
+        chosen_indices = np.random.random(len(rows)) < p
+        rows = rows[chosen_indices]
+        cols = cols[chosen_indices]
+        vals = vals[chosen_indices]
         chosen_nodes = np.intersect1d(rows, cols)
         m = gb.Matrix.from_values(rows, cols, vals)
         if aprops["node_type"] == "map":
@@ -133,19 +128,17 @@ if has_grblas:
             nvals = np.array(nvals)[nidx.searchsorted(chosen_nodes)]
             nodes = gb.Vector.from_values(chosen_nodes, nvals)
         else:
-            nodes = gb.Vector.from_values(chosen_nodes, [1] * len(chosen_nodes))
+            nodes = gb.Vector.from_values(chosen_nodes, np.ones_like(chosen_nodes))
         return GrblasGraph(m, nodes)
 
     @concrete_algorithm("subgraph.sample.ties")
     def grblas_totally_induced_edge_sampling(
         graph: GrblasGraph, p: float
     ) -> GrblasGraph:
-        rand = random.random
         rows, cols, vals = graph.value.to_values()
-        chosen_edges = np.array([i for i in range(len(vals)) if rand() < p])
-        # TODO: fix this once `to_values()` returns ndarray
-        rows = np.array(rows)[chosen_edges]
-        cols = np.array(cols)[chosen_edges]
+        chosen_indices = np.random.random(len(rows)) < p
+        rows = rows[chosen_indices]
+        cols = cols[chosen_indices]
         chosen_nodes = np.intersect1d(rows, cols)
-        chosen_nodes = gb.Vector.from_values(chosen_nodes, [1] * len(chosen_nodes))
+        chosen_nodes = gb.Vector.from_values(chosen_nodes, np.ones_like(chosen_nodes))
         return grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))

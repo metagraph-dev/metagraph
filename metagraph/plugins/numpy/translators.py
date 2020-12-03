@@ -40,7 +40,7 @@ if has_grblas:
     @translator
     def vector_from_graphblas(x: GrblasVectorType, **props) -> NumpyVectorType:
         _, vals = x.to_values()
-        return np.array(vals)
+        return vals
 
     @translator
     def nodeset_from_graphblas(x: GrblasNodeSet, **props) -> NumpyNodeSet:
@@ -50,15 +50,10 @@ if has_grblas:
     @translator
     def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> NumpyNodeMap:
         idx, vals = x.value.to_values()
-        # TODO: remove this line once `to_values()` returns ndarray
-        vals = np.array(vals, dtype=dtype_grblas_to_mg[x.value.dtype.name])
         return NumpyNodeMap(vals, nodes=idx)
 
     @translator
     def matrix_from_grblas(x: GrblasMatrixType, **props) -> NumpyMatrixType:
         _, _, vals = x.to_values()
-        # TODO: adjust this once `to_values()` returns ndarray
-        vals = np.array(vals, dtype=dtype_grblas_to_mg[x.dtype.name]).reshape(
-            (x.nrows, x.ncols)
-        )
+        vals = vals.reshape((x.nrows, x.ncols))
         return vals

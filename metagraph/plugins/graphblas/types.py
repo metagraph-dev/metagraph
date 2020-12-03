@@ -213,8 +213,7 @@ if has_grblas:
         h = m.reduce_columns(grblas.monoid.any).new()
         v << v.ewise_add(h, grblas.monoid.any)
         idx, _ = v.to_values()
-        # TODO: revisit this once grblas returns numpy arrays directly
-        return list(idx)
+        return idx
 
     class GrblasEdgeSet(EdgeSetWrapper, abstract=EdgeSet):
         """
