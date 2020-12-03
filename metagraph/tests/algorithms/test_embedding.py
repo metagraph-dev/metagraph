@@ -146,7 +146,7 @@ def test_graphwave(default_plugin_resolver):
         matrix, node_map = matrix_node_map_pair
 
         class_to_vectors = {c: [] for c in classes}
-        for node_id in node_map.pos2id:
+        for node_id in node_map.nodes:
             c = node_to_class[node_id]
             class_to_vectors[c].append(matrix[node_id])
 
@@ -345,22 +345,22 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
     embedding_size = 50
     node_feature_nodes = dpr.wrappers.NodeMap.NumpyNodeMap(
         np.arange(33),
-        node_ids=np.concatenate(
+        nodes=np.concatenate(
             [np.arange(30), np.array([9999_09_10, 9999_19_20, 9999_29_00])]
         ),
     )
+
     node_feature_np_matrix = np.zeros([33, embedding_size])
     node_feature_np_matrix[a_nodes, 0] = 1
     node_feature_np_matrix[b_nodes, 1] = 1
     node_feature_np_matrix[c_nodes, 2] = 1
     node_feature_np_matrix[30:] = np.ones(embedding_size)
-    node_feature_matrix = dpr.wrappers.Matrix.NumpyMatrix(node_feature_np_matrix)
 
     # Run GraphSAGE
     walk_length = 5
     walks_per_node = 1
-    layer_sizes = dpr.wrappers.Vector.NumpyVector(np.array([40, 30]))
-    samples_per_layer = dpr.wrappers.Vector.NumpyVector(np.array([10, 5]))
+    layer_sizes = np.array([40, 30])
+    samples_per_layer = np.array([10, 5])
     epochs = 35
     learning_rate = 5e-3
     batch_size = 2
@@ -370,7 +370,7 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
     embedding = mv.compute(
         "embedding.train.graph_sage.mean",
         graph,
-        node_feature_matrix,
+        node_feature_np_matrix,
         node_feature_nodes,
         walk_length,
         walks_per_node,
@@ -392,21 +392,17 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
     unseen_node_feature_np_matrix = np.zeros([51, embedding_size])
     unseen_node_feature_np_matrix[0:20, 0] = 1
     unseen_node_feature_np_matrix[20:50, 1] = 1
-    unseen_node_feature_matrix = dpr.wrappers.Matrix.NumpyMatrix(
-        unseen_node_feature_np_matrix
-    )
+
     unseen_node_feature_nodes = dpr.wrappers.NodeMap.NumpyNodeMap(
         np.arange(51),
-        node_ids=np.concatenate(
-            [unseen_a_nodes, unseen_b_nodes, np.array([8888_00_20])]
-        ),
+        nodes=np.concatenate([unseen_a_nodes, unseen_b_nodes, np.array([8888_00_20])]),
     )
     unseen_graph = dpr.wrappers.Graph.NetworkXGraph(unseen_nx_graph)
     matrix = mv.transform(
         dpr.plugins.metagraph_stellargraph.algos.util.graph_sage_node_embedding.apply,
         embedding,
         unseen_graph,
-        unseen_node_feature_matrix,
+        unseen_node_feature_np_matrix,
         unseen_node_feature_nodes,
         batch_size=batch_size,
         worker_count=1,

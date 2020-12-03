@@ -44,7 +44,12 @@ Graphs often have natural structure which can be discovered, allowing them to be
 
 .. py:function:: cluster.triangle_count(graph: Graph(is_directed=False)) -> int
 
-    This algorithms returns the total number of triangles in the graph.
+    This algorithm returns the total number of triangles in the graph.
+
+    
+.. py:function:: cluster.global_clustering_coefficient(graph: Graph(is_directed=False)) -> float
+
+    This algorithm returns the global clustering coefficient. The global clustering coefficient is the number of closed triplets over the total number of triplets in a graph. A triplet in a graph is a subgraph of 3 nodes where at least 2 edges are present. An open triplet has exactly 2 edges. A closed triplet has exactly 3 edges. A deeped explanation can be found `here <https://en.wikipedia.org/wiki/Clustering_coefficient#Global_clustering_coefficient>`_.
 
 
 .. py:function:: clustering.coloring.greedy(graph: Graph(is_directed=False)) -> Tuple[NodeMap, int]
@@ -79,18 +84,32 @@ Traversing through the nodes of a graph is extremely common and important in the
     :rtype: (parents, distance)
 
 
-.. py:function:: traversal.bfs_iter(graph: Graph, source_node: NodeID, depth_limit: int = 1) -> Vector
+.. py:function:: traversal.bfs_iter(graph: Graph, source_node: NodeID, depth_limit: int = -1) -> Vector
 
     Breadth-first search algorithm.
 
-    :rtype: Node IDs in search order
+    :rtype: Node IDs in breadth-first search order
 
 
-.. py:function:: traversal.bfs_tree(graph: Graph, source_node: NodeID, depth_limit: int = 1) -> Tuple[NodeMap, NodeMap]
+.. py:function:: traversal.bfs_tree(graph: Graph, source_node: NodeID, depth_limit: int = -1) -> Tuple[NodeMap, NodeMap]
 
-    Breadth-first search algorithm.
+    Breadth-first search algorithm. The return result ``parents`` will have the parent of ``source_node`` be ``source_node``.
 
     :rtype: (depth, parents)
+
+
+.. py:function:: traversal.dfs_iter(graph: Graph, source_node: NodeID) -> Vector
+
+    Depth-first search algorithm.
+
+    :rtype: Node IDs in depth-first search order
+
+
+.. py:function:: traversal.dfs_tree(graph: Graph, source_node: NodeID) -> NodeMap
+
+    Depth-first search algorithm. The return result ``parents`` will have the parent of ``source_node`` be ``source_node``.
+
+    :rtype: parents
 
 
 .. py:function:: traversal.dijkstra(graph: Graph(edge_type="map", edge_dtype={"int", "float"}, edge_has_negative_weights=False), source_node: NodeID) -> Tuple[NodeMap, NodeMap]
@@ -106,6 +125,12 @@ Traversing through the nodes of a graph is extremely common and important in the
     Minimum spanning tree (or forest in the case of multiple connected components in the graph).
 
     :rtype: Graph containing only the relevant edges from the original graph
+
+.. py:function:: traversal.astar_search(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID, target_node: NodeID, heuristic_func: Callable[[NodeID], float]) -> Vector
+
+    Finds the (possibly non-unique) shortest path via the `A* algorithm <https://en.wikipedia.org/wiki/A*_search_algorithm>`_. ``heuristic_func`` is a unary function that takes a node id and returns an estimated distance to ``target_node``. 
+
+    :rtype: Vector of node ids specifying the path from ``source_node`` to ``target_node``
 
 
 Centrality
@@ -145,6 +170,14 @@ Many algorithms assign a ranking or value to each vertex/node in the graph based
     Hyperlink-Induced Topic Search (HITS) centrality ranks nodes based on incoming and outgoing edges.
 
     :rtype: (hubs, authority)
+
+.. py:function:: centrality.degree(graph: Graph, in_edges: bool = False, out_edges: bool = True) -> NodeMap
+
+    Calculates the degree centrality for each node. The degree centrality for a node is its degree over the number of nodes minus 1.
+
+    If ``in_edges`` and ``out_edges`` are both false, the degree centrality for all nodes is 0.
+    If the graph is undirected, setting ``in_edges`` or ``out_edges`` or both to true will give identical results (edges will only be counted once per node).
+    If the graph is directed, ``in_edges`` and ``out_edges`` dictate which edges are considered for each node. 
 
 
 Subgraph
@@ -283,7 +316,7 @@ These algorithms are small utility functions which perform common operations nee
     Aggregates the edge weights around a node, returning a single value per node.
 
     If ``in_edges`` and ``out_edges`` are False, each node will contain the initial value.
-    For undirected graphs, setting ``in_edges`` or ``out_edges`` or both will give identical results. Edges will only be counted once per node.
+    For undirected graphs, setting ``in_edges`` or ``out_edges`` or both to true will give identical results (edges will only be counted once per node).
     For directed graphs, ``in_edges`` and ``out_edges`` affect the result. Setting both will still only give a single value per node, combining all outbound and inbound edge weights.
 
 .. py:function:: util.graph.filter_edges(graph: Graph(edge_type="map"), func: Callable[[Any], bool]) -> Graph
