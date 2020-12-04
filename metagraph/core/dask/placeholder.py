@@ -10,6 +10,23 @@ def single_key(seq):
     return seq[0]
 
 
+def _taskify(arg, dsk):
+    if is_dask_collection(arg):
+        arg, graph = finalize(arg)
+        dsk.update(graph)
+    else:
+        arg = quote(arg)
+    return arg
+
+
+def taskify(arg, dsk):
+    if isinstance(arg, (tuple, list, set)):
+        typ = type(arg)
+        return typ(_taskify(a, dsk) for a in arg)
+    else:
+        return _taskify(arg, dsk)
+
+
 def rebuild(dsk, cls, key):
     return cls(key, dsk)
 
@@ -66,20 +83,12 @@ class Placeholder(DaskMethodsMixin):
         dsk = {}
         new_args = []
         for arg in args:
-            if is_dask_collection(arg):
-                arg, graph = finalize(arg)
-                dsk.update(graph)
-            else:
-                arg = quote(arg)
+            arg = taskify(arg, dsk)
             new_args.append(arg)
         if kwargs:
             new_kwargs_flat = []
             for kw, val in kwargs.items():
-                if is_dask_collection(val):
-                    val, graph = finalize(val)
-                    dsk.update(graph)
-                else:
-                    val = quote(val)
+                val = taskify(val, dsk)
                 new_kwargs_flat.append([kw, val])
             # Add this func to the task graph
             dsk[key] = (ph_apply, func, new_args, (dict, new_kwargs_flat))
