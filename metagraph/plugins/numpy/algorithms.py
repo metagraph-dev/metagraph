@@ -68,7 +68,7 @@ def np_nodemap_reduce(x: NumpyNodeMap, func: Callable[[Any, Any], Any]) -> Any:
     return func.reduce(x.value)
 
 
-@concrete_algorithm("util.node_embedding.apply")
+@concrete_algorithm("embedding.apply.nodes")
 def np_embedding_apply(
     matrix: NumpyMatrixType, node2row: NumpyNodeMap, nodes: NumpyVectorType
 ) -> NumpyMatrixType:

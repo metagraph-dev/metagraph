@@ -120,18 +120,3 @@ def graph_collapse_by_label(
 @abstract_algorithm("util.graph.isomorphic")
 def graph_isomorphic(g1: Graph, g2: Graph) -> bool:
     pass  # pragma: no cover
-
-
-@abstract_algorithm("util.node_embedding.apply")
-def node_embedding_apply(matrix: Matrix, node2row: NodeMap, nodes: Vector) -> Matrix:
-    pass  # pragma: no cover
-
-
-@abstract_algorithm("util.graph_sage_node_embedding.apply")
-def graph_sage_node_embedding_apply(
-    embedding: GraphSageNodeEmbedding,
-    graph: Graph,
-    node_features: Matrix,
-    node2row: NodeMap,
-) -> Matrix:
-    pass  # pragma: no cover
