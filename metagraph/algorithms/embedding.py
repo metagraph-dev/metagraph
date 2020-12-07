@@ -4,6 +4,21 @@ from metagraph.types import Graph, Matrix, Vector, NodeMap, GraphSageNodeEmbeddi
 from typing import Tuple
 
 
+@abstract_algorithm("embedding.apply.nodes")
+def node_embedding_apply(matrix: Matrix, node2row: NodeMap, nodes: Vector) -> Matrix:
+    pass  # pragma: no cover
+
+
+@abstract_algorithm("util.apply.graph_sage")
+def graph_sage_node_embedding_apply(
+    embedding: GraphSageNodeEmbedding,
+    graph: Graph,
+    node_features: Matrix,
+    node2row: NodeMap,
+) -> Matrix:
+    pass  # pragma: no cover
+
+
 @abstract_algorithm("embedding.train.node2vec")
 def node2vec_train(
     graph: Graph,

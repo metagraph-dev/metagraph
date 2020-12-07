@@ -465,27 +465,6 @@ def test_edgemap_from_edgeset(default_plugin_resolver):
     )
 
 
-def test_node_embedding_apply(default_plugin_resolver):
-    dpr = default_plugin_resolver
-    matrix = np.arange(6).reshape(2, 3)
-    node_map = dpr.wrappers.NodeMap.NumpyNodeMap(
-        np.array([0, 1]), nodes=np.array([9990, 9991])
-    )
-
-    MultiVerify(dpr).compute(
-        "util.node_embedding.apply", matrix, node_map, np.array([9990])
-    ).assert_equal(np.array([[0, 1, 2]]))
-    MultiVerify(dpr).compute(
-        "util.node_embedding.apply", matrix, node_map, np.array([9991])
-    ).assert_equal(np.array([[3, 4, 5]]))
-    MultiVerify(dpr).compute(
-        "util.node_embedding.apply", matrix, node_map, np.array([9990, 9991])
-    ).assert_equal(matrix)
-    MultiVerify(dpr).compute(
-        "util.node_embedding.apply", matrix, node_map, np.array([9991, 9990])
-    ).assert_equal(np.array([[3, 4, 5], [0, 1, 2]]))
-
-
 def test_isomorphic(default_plugin_resolver):
     dpr = default_plugin_resolver
     #   0 1 2 3 4            0 1 2 3 4

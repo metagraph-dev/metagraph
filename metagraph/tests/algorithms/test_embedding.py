@@ -522,3 +522,24 @@ def test_line(default_plugin_resolver):
     ).custom_compare(
         cmp_func
     )
+
+
+def test_apply_node_embedding(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    matrix = np.arange(6).reshape(2, 3)
+    node_map = dpr.wrappers.NodeMap.NumpyNodeMap(
+        np.array([0, 1]), nodes=np.array([9990, 9991])
+    )
+
+    MultiVerify(dpr).compute(
+        "embedding.apply.nodes", matrix, node_map, np.array([9990])
+    ).assert_equal(np.array([[0, 1, 2]]))
+    MultiVerify(dpr).compute(
+        "embedding.apply.nodes", matrix, node_map, np.array([9991])
+    ).assert_equal(np.array([[3, 4, 5]]))
+    MultiVerify(dpr).compute(
+        "embedding.apply.nodes", matrix, node_map, np.array([9990, 9991])
+    ).assert_equal(matrix)
+    MultiVerify(dpr).compute(
+        "embedding.apply.nodes", matrix, node_map, np.array([9991, 9990])
+    ).assert_equal(np.array([[3, 4, 5], [0, 1, 2]]))

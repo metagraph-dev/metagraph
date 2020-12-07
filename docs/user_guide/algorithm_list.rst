@@ -354,19 +354,19 @@ These algorithms are small utility functions which perform common operations nee
 
     Indicates whether ``g1`` and ``g2`` are isomorphic.
 
-.. py:function:: util.node_embedding.apply(matrix: Matrix, node2row: NodeMap, nodes: Vector) -> Matrix
-
-    Returns a dense matrix given an embedding, node-to-row mapping, and a vector of NodeIDs.
-
-.. py:function:: util.graph_sage_node_embedding.apply(embedding: GraphSageNodeEmbedding, graph: Graph, node_features: Matrix, node2row: NodeMap) -> Matrix
-
-    Returns a dense matrix from a GraphSage embedding.
-
 
 Embedding
 ---------
 
 Embeddings convert graph nodes or whole graphs into a dense vector representations.
+
+.. py:function:: embedding.apply.nodes(matrix: Matrix, node2row: NodeMap, nodes: Vector) -> Matrix
+
+    Returns a dense matrix given an embedding, node-to-row mapping, and a vector of NodeIDs.
+
+.. py:function:: embedding.apply.graph_sage(embedding: GraphSageNodeEmbedding, graph: Graph, node_features: Matrix, node2row: NodeMap) -> Matrix
+
+    Returns a dense matrix from a GraphSage embedding.
 
 .. py:function:: embedding.train.node2vec(graph: Graph, p: float, q: float, walks_per_node: int, walk_length: int, embedding_size: int, epochs: int, learning_rate: float) -> Tuple[Matrix, NodeMap]
 
