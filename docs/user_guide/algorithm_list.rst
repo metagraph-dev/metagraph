@@ -42,14 +42,17 @@ Graphs often have natural structure which can be discovered, allowing them to be
       - the modularity score
 
 
-.. py:function:: cluster.triangle_count(graph: Graph(is_directed=False)) -> int
+.. py:function:: clustering.triangle_count(graph: Graph(is_directed=False)) -> int
 
     This algorithm returns the total number of triangles in the graph.
 
     
-.. py:function:: cluster.global_clustering_coefficient(graph: Graph(is_directed=False)) -> float
+.. py:function:: clustering.global_clustering_coefficient(graph: Graph(is_directed=False)) -> float
 
-    This algorithm returns the global clustering coefficient. The global clustering coefficient is the number of closed triplets over the total number of triplets in a graph. A triplet in a graph is a subgraph of 3 nodes where at least 2 edges are present. An open triplet has exactly 2 edges. A closed triplet has exactly 3 edges. A deeped explanation can be found `here <https://en.wikipedia.org/wiki/Clustering_coefficient#Global_clustering_coefficient>`_.
+    This algorithm returns the global clustering coefficient. The global clustering coefficient is the number of closed
+    triplets over the total number of triplets in a graph. A triplet in a graph is a subgraph of 3 nodes where at least
+    2 edges are present. An open triplet has exactly 2 edges. A closed triplet has exactly 3 edges. A deeped explanation
+    can be found `here <https://en.wikipedia.org/wiki/Clustering_coefficient#Global_clustering_coefficient>`_.
 
 
 .. py:function:: clustering.coloring.greedy(graph: Graph(is_directed=False)) -> Tuple[NodeMap, int]
@@ -128,7 +131,8 @@ Traversing through the nodes of a graph is extremely common and important in the
 
 .. py:function:: traversal.astar_search(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), source_node: NodeID, target_node: NodeID, heuristic_func: Callable[[NodeID], float]) -> Vector
 
-    Finds the (possibly non-unique) shortest path via the `A* algorithm <https://en.wikipedia.org/wiki/A*_search_algorithm>`_. ``heuristic_func`` is a unary function that takes a node id and returns an estimated distance to ``target_node``. 
+    Finds the (possibly non-unique) shortest path via the `A* algorithm <https://en.wikipedia.org/wiki/A*_search_algorithm>`_.
+    ``heuristic_func`` is a unary function that takes a node id and returns an estimated distance to ``target_node``.
 
     :rtype: Vector of node ids specifying the path from ``source_node`` to ``target_node``
 
@@ -136,7 +140,8 @@ Traversing through the nodes of a graph is extremely common and important in the
 Centrality
 ----------
 
-Many algorithms assign a ranking or value to each vertex/node in the graph based on different properties. This is usually done to find the most important nodes for that metric.
+Many algorithms assign a ranking or value to each vertex/node in the graph based on different properties. This is
+usually done to find the most important nodes for that metric.
 
 
 .. py:function:: centrality.betweenness(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), nodes: Optional[NodeSet] = None, normalize: bool = False) -> NodeMap
@@ -148,7 +153,8 @@ Many algorithms assign a ranking or value to each vertex/node in the graph based
 
 .. py:function:: centrality.katz(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), attenuation_factor: float = 0.01, immediate_neighbor_weight: float = 1.0, maxiter: int = 50, tolerance: float = 1e-05) -> NodeMap
 
-    This algorithm calculates centrality based on total number of walks (as opposed to only considering shortest paths) passing through a node.
+    This algorithm calculates centrality based on total number of walks (as opposed to only considering shortest paths)
+    passing through a node.
 
 
 .. py:function:: centrality.pagerank(graph: Graph(edge_type="map", edge_dtype={"int", "float"}), damping: float = 0.85, maxiter: int = 50, tolerance: float = 1e-05) -> NodeMap
@@ -176,14 +182,16 @@ Many algorithms assign a ranking or value to each vertex/node in the graph based
     Calculates the degree centrality for each node. The degree centrality for a node is its degree over the number of nodes minus 1.
 
     If ``in_edges`` and ``out_edges`` are both false, the degree centrality for all nodes is 0.
-    If the graph is undirected, setting ``in_edges`` or ``out_edges`` or both to true will give identical results (edges will only be counted once per node).
+    If the graph is undirected, setting ``in_edges`` or ``out_edges`` or both to true will give identical results
+    (edges will only be counted once per node).
     If the graph is directed, ``in_edges`` and ``out_edges`` dictate which edges are considered for each node. 
 
 
 Subgraph
 --------
 
-Graphs are often too large to handle, so a portion of the graph is extracted. Often this subgraph must satisfy certain properties or have properties similar to the original graph for the subsequent analysis to give good results.
+Graphs are often too large to handle, so a portion of the graph is extracted. Often this subgraph must satisfy certain
+properties or have properties similar to the original graph for the subsequent analysis to give good results.
 
 
 .. py:function:: subgraph.extract_subgraph(graph: Graph, nodes: NodeSet) -> Graph
@@ -242,7 +250,8 @@ Graphs are often too large to handle, so a portion of the graph is extracted. Of
 Bipartite
 ---------
 
-Bipartite Graphs contain two unique sets of nodes. Edges can exist between nodes from different groups, but not between nodes of the same group.
+Bipartite Graphs contain two unique sets of nodes. Edges can exist between nodes from different groups, but not between
+nodes of the same group.
 
 .. py:function:: bipartite.graph_projection(bgraph: BipartiteGraph, nodes_retained: int = 0) -> Graph
 
@@ -316,8 +325,10 @@ These algorithms are small utility functions which perform common operations nee
     Aggregates the edge weights around a node, returning a single value per node.
 
     If ``in_edges`` and ``out_edges`` are False, each node will contain the initial value.
-    For undirected graphs, setting ``in_edges`` or ``out_edges`` or both to true will give identical results (edges will only be counted once per node).
-    For directed graphs, ``in_edges`` and ``out_edges`` affect the result. Setting both will still only give a single value per node, combining all outbound and inbound edge weights.
+    For undirected graphs, setting ``in_edges`` or ``out_edges`` or both to true will give identical results
+    (edges will only be counted once per node).
+    For directed graphs, ``in_edges`` and ``out_edges`` affect the result. Setting both will still only give a single
+    value per node, combining all outbound and inbound edge weights.
 
 .. py:function:: util.graph.filter_edges(graph: Graph(edge_type="map"), func: Callable[[Any], bool]) -> Graph
 
@@ -343,9 +354,13 @@ These algorithms are small utility functions which perform common operations nee
 
     Indicates whether ``g1`` and ``g2`` are isomorphic.
 
-.. py:function:: util.node_embedding.apply(embedding: NodeEmbedding, nodes: Vector) -> Matrix
+.. py:function:: util.node_embedding.apply(matrix: Matrix, node2row: NodeMap, nodes: Vector) -> Matrix
 
-    Returns a dense matrix given an embedding and a vector of NodeIDs.
+    Returns a dense matrix given an embedding, node-to-row mapping, and a vector of NodeIDs.
+
+.. py:function:: util.graph_sage_node_embedding.apply(embedding: GraphSageNodeEmbedding, graph: Graph, node_features: Matrix, node2row: NodeMap) -> Matrix
+
+    Returns a dense matrix from a GraphSage embedding.
 
 
 Embedding
@@ -353,6 +368,26 @@ Embedding
 
 Embeddings convert graph nodes or whole graphs into a dense vector representations.
 
-.. py:function:: embedding.train.node2vec(graph: Graph, p: float, q: float, walks_per_node: int, walk_length: int, embedding_size: int, epochs: int, learning_rate: float) -> NodeEmbedding
+.. py:function:: embedding.train.node2vec(graph: Graph, p: float, q: float, walks_per_node: int, walk_length: int, embedding_size: int, epochs: int, learning_rate: float) -> Tuple[Matrix, NodeMap]
 
     Computes the `node2vec <https://snap.stanford.edu/node2vec/>`__ embedding.
+
+.. py:function:: embedding.train.graph2vec(graphs: mg.List[Graph(edge_type="set", is_directed=False)], subgraph_degree: int, embedding_size: int, epochs: int, learning_rate: float) -> Matrix
+
+    Computes the `graph2vec <https://arxiv.org/abs/1707.05005>`__ embedding.
+
+.. py:function:: embedding.train.graphwave(graph: Graph(edge_type="set", is_directed=False), scales: Vector, sample_point_count: int, sample_point_max: float, chebyshev_degree: int) -> Tuple[Matrix, NodeMap]
+
+    Computes the `graphwave <http://snap.stanford.edu/graphwave/>`__ embedding.
+
+.. py:function:: embedding.train.hope.katz(graph: Graph(edge_type="map", is_directed=True), embedding_size: int, beta: float) -> Tuple[Matrix, NodeMap]
+
+    Computes the `High-Order Proximity preserved Embedding <https://www.kdd.org/kdd2016/papers/files/rfp0184-ouA.pdf>`__ (HOPE).
+
+.. py:function:: embedding.train.graph_sage.mean(graph: Graph(edge_type="map", is_directed=True), node_features: Matrix, node2row: NodeMap, walk_length: int, walks_per_node: int, layer_sizes: Vector, samples_per_layer: Vector, epochs: int, learning_rate: float, batch_size: int) -> GraphSageNodeEmbedding
+
+    Computes the `GraphSAGE <http://snap.stanford.edu/graphsage/>`__ embedding.
+
+.. py:function:: embedding.train.line(graph: Graph, walks_per_node: int, negative_sample_count: int, embedding_size: int, epochs: int, learning_rate: float, batch_size: int) -> Tuple[Matrix, NodeMap]
+
+    Computes the `Large-scale Information Network Embedding <https://arxiv.org/abs/1503.03578>`__ (LINE).
