@@ -9,7 +9,7 @@ def node_embedding_apply(matrix: Matrix, node2row: NodeMap, nodes: Vector) -> Ma
     pass  # pragma: no cover
 
 
-@abstract_algorithm("util.apply.graph_sage")
+@abstract_algorithm("embedding.apply.graph_sage")
 def graph_sage_node_embedding_apply(
     embedding: GraphSageNodeEmbedding,
     graph: Graph,
