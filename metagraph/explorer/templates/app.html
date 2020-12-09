@@ -8,280 +8,285 @@
 
   (({port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, pluginData, abstractTypes}) => {
 
-      if (typeof require === 'undefined') {
-          setTimeout(this, 200, port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, pluginData, abstractTypes);
-          return;
-      }
+    if (typeof require === 'undefined') {
+        setTimeout(this, 200, port, divId, shadowInnerHTML, abstractTypeToConcreteTypes, pluginData, abstractTypes);
+        return;
+    }
 
-      /*******************/
-      /* Misc. Utilities */
-      /*******************/
-      
-      const sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
-      const mean = inputArray => sum(inputArray) / inputArray.length;
-      
-      const removeAllChildNodes = (parent) => {
-	  while (parent.firstChild) {
-              parent.removeChild(parent.firstChild);
-	  }
-      }
+    /*******************/
+    /* Misc. Utilities */
+    /*******************/
 
-      const callAfterDOMUpdated = (func) => {
-	  // Calls function after the DOM is updated to prevent non-deterministic results when grabbing element attributes, e.g. height, during transitions and animations
-	  const intermediateFunc = () => window.requestAnimationFrame(func);
-	  window.requestAnimationFrame(intermediateFunc);
-      };
+    const sum = inputArray => inputArray.reduce((a, b) => a + b, 0);
+    const mean = inputArray => sum(inputArray) / inputArray.length;
 
-      const absoluteXYOffset = (element) => {
-	  const rect = element.getBoundingClientRect();
-	  const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-	  const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-	  return [rect.left + scrollLeft, rect.top + scrollTop]
-      }
-      
-      const objectSize = (object) => Object.keys(object).filter(key => object.hasOwnProperty(key)).length;
-      
-      /******************************/
-      /* Shadow DOM Initializations */
-      /******************************/
-      
-      const div = document.getElementById(divId);
-      const shadow = div.attachShadow({mode: 'open'});
-      shadow.innerHTML = shadowInnerHTML;
-      shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
-      const closeWebsocketOnError = () => {
-	  removeAllChildNodes(shadow);
-	  shadow.innerHTML = `Websocket connection to ws://127.0.0.1:${port}/ failed.`;
-      };
-      shadow.websocket.onerror = closeWebsocketOnError;
-      const sendShadowWebsocketRequest = (object) => {
-	  if (shadow.websocket.readyState === WebSocket.CLOSED) {
-	      closeWebsocketOnError();
-	  } else {
-	      shadow.websocket.send(JSON.stringify(object));
-	  }
-      };
+    const removeAllChildNodes = (parent) => {
+        while (parent.firstChild) {
+            parent.removeChild(parent.firstChild);
+        }
+    }
 
-      window.onbeforeunload = () => {
-	  sendShadowWebsocketRequest({function: 'close'});
-      };
-      
-      let highlightTranslationGraphPath = (data) => {};
-      
-      // Listen for websocket messages
-      shadow.websocket.onmessage = function (event) {
-	  data = JSON.parse(event.data);
-	  switch (data.function) {
-	  case 'list_types':
-	      updateTypeExplorer(data);
-              break;
-	  case 'list_translators':
-              updateTranslationGraph(data);
-              break;
-	  case 'list_algorithms':
-	      updateAlgorithmExplorer(data);
-	      updateAlgorithTypeSolver(data);
-              break;
-	  case 'list_algorithm_params':
-	      updateAlgorithTypeSolverCurrentAlgorithmParameters(data);
-	  case 'solve_translator':
-	      if (data.input_kwargs.overall_abstract === abstractTypeDropdown.value) {
-		  highlightTranslationGraphPath(data);
-	      }
-	      break;
-	  case 'solve_algorithm':
-	      updateAlgorithTypeSolverPlans(data);
-	      break;
-	  default:
-              console.error('unsupported event', data);
-	  }
-      };
-      
-      const buildTreeWidget = (root, data, innerHTMLGenerator) => {
-	  /* innerHTMLGenerator is a function that takes (key, value) => 'some-string' */
-	  for (let name in data) {
-              if (data.hasOwnProperty(name)) {
-		  const props = data[name];
-		  const hasChildren = 'children' in props;
-		  if (hasChildren) {
-                      const label = document.createElement('p');
-		      label.classList.add('mg-explorer-tree-widget-label');
-                      label.innerHTML = innerHTMLGenerator(name, props);
-                      root.appendChild(label);
-                      const container = document.createElement('div');
-                      container.className = 'mg-explorer-tree-widget-subcontainer';
-		      root.append(container);
-		      label.onclick = (event) => {
-			  label.classList.toggle('active');
-			  container.classList.toggle('active');
-			  const allContainers = container.closest('.mg-explorer-tree-widget-container').querySelectorAll('.mg-explorer-tree-widget-subcontainer');
-			  allContainers.forEach(currentContainer => {
-			      const currentMaxHeightString = currentContainer.style.maxHeight;
-			      const currentMaxHeight = parseFloat('0'+currentMaxHeightString);
-			      if (currentContainer.classList.contains('active')) {
-				  currentContainer.style.maxHeight = currentMaxHeight + container.scrollHeight + 'px';
-			      } else if (currentContainer === container) {
-				  currentContainer.removeAttribute('style'); // TODO we need to update the active parent heights to decrease as appropriate
-			      }
-			  });
-		      };
-		      const childrenData = props['children'];
-                      buildTreeWidget(container, childrenData, innerHTMLGenerator);
-		  } else {
-                      const leaf = document.createElement('p');
-		      leaf.classList.add('mg-explorer-tree-widget-leaf');
-                      leaf.innerHTML = innerHTMLGenerator(name, props);
-                      root.appendChild(leaf);
-		  }
-              }
-	  }
-      };
-      
-      /**********************************/
-      /* Explorer Tab Selection Buttons */
-      /**********************************/
-      
-      const metagraphActivateExplorerTab = (clickedElement, explorerTabId) => {
-	  for (const navigationBarLi of shadow.querySelectorAll(`#mg-explorer-navigation-bar li`)) {
-              navigationBarLi.classList.remove('active');
-	  }
-	  clickedElement.closest('li').classList.add('active');
-	  for (const explorerTab of shadow.querySelectorAll('.mg-explorer-tab')) {
-              explorerTab.classList.remove('active');
-	  }
-	  const currentExplorerTab = shadow.querySelector(`#${explorerTabId}`);
-	  currentExplorerTab.classList.add('active');
-      };
-      
-      shadow.querySelector('#mg-translation-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-translation-explorer');
-      shadow.querySelector('#mg-type-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-type-explorer');
-      shadow.querySelector('#mg-algorithm-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-algorithm-explorer');
-      shadow.querySelector('#mg-algorithm-type-solver-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-algorithm-type-solver-explorer');
-      shadow.querySelector('#mg-plugin-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-plugin-explorer');
-      
-      const metagraphCloseExplorer = () => {
-	  sendShadowWebsocketRequest({function: 'close'});
-	  shadow.websocket.close();
-	  removeAllChildNodes(shadow);
-      }
-      
-      shadow.querySelector('#mg-explorer-close-button').onclick = metagraphCloseExplorer;
-      
-      /*************************************/
-      /* Translation Graph Initializations */
-      /*************************************/
-      
-      require.config({paths: {d3: 'https://d3js.org/d3.v5.min'}});
-      
-      const concreteTypeToAbstractType = Object.keys(abstractTypeToConcreteTypes).reduce((accumulator, abstractType) => {
-	  Object.keys(abstractTypeToConcreteTypes[abstractType].children).forEach(concreteType => {
-	      accumulator[concreteType] = abstractType;
-	  });
-	  return accumulator;
-      }, {})
+    const callAfterDOMUpdated = (func) => {
+        // Calls function after the DOM is updated to prevent non-deterministic results when grabbing element attributes, e.g. height, during transitions and animations
+        const intermediateFunc = () => window.requestAnimationFrame(func);
+        window.requestAnimationFrame(intermediateFunc);
+    };
 
-      const abstractTypeDropdown = shadow.querySelector('#mg-translation-graph-abstract-type-dropdown');
-      abstractTypes.forEach(abstractType => {
-          const optionElement = document.createElement('option');
-          optionElement.setAttribute('value', abstractType);
-          optionElement.innerHTML = abstractType;
-	  abstractTypeDropdown.append(optionElement);
-      });
+    const absoluteXYOffset = (element) => {
+        const rect = element.getBoundingClientRect();
+        const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
+        const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+        return [rect.left + scrollLeft, rect.top + scrollTop]
+    }
 
-      let simulation = {stop: () => {}}
-      const loadTranslationGraph = (translationGraphData) => {
-	  
-	  require(['d3'], (d3) => {
+    const objectSize = (object) => Object.keys(object).filter(key => object.hasOwnProperty(key)).length;
 
-	      // D3 Extensions
-	      d3.selection.prototype.moveToFront = function() {
-		  return this.each(function() {
-		      if (this.parentNode !== null) {
-			  this.parentNode.appendChild(this);
-		      }
-		  });
-	      };
-	      
-              // DOM Initializations
-              const plotContainer = shadow.querySelector('div#mg-translation-graph-svg-container');
-              const svg = d3.select(plotContainer.querySelector('svg#mg-translation-graph-svg'));
-	      svg.selectAll('g').remove();
-              svg
-		  .attr('width', `${plotContainer.clientWidth}px`)
-		  .attr('height', `${plotContainer.clientHeight}px`);
-              const svgWidth = parseFloat(svg.style('width'));
-              const svgHeight = parseFloat(svg.style('height'));
-              const zoomGroup = svg.append('g').attr('class', `zoom-group-${plotContainer.id}`);
-              const edgeGroup = zoomGroup.append('g').attr('class', `edge-group`);
-              const nodeGroup = zoomGroup.append('g').attr('class', `node-group`);
-	      const tooltipDiv = d3.select(plotContainer.querySelector('div#mg-translation-graph-tooltip'));
+    /******************************/
+    /* Shadow DOM Initializations */
+    /******************************/
 
-	      // Dropdown Initializations
-	      const primaryConcreteTypes = Object.keys(translationGraphData.result.primary_types);
-	      const secondaryConcreteTypes = Object.keys(translationGraphData.result.secondary_types);
-	      const allConcreteTypes = primaryConcreteTypes.concat(secondaryConcreteTypes);
-	      const startConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-start-concrete-type-dropdown');
-	      removeAllChildNodes(startConcreteTypeDropdown);
-	      const endConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-end-concrete-type-dropdown');
-	      removeAllChildNodes(endConcreteTypeDropdown);
-	      allConcreteTypes.forEach(concreteType => {
-		  const startOptionElement = document.createElement('option');
-		  startOptionElement.setAttribute('value', concreteType);
-		  startOptionElement.innerHTML = concreteType;
-		  startConcreteTypeDropdown.append(startOptionElement);
-		  const endOptionElement = document.createElement('option');
-		  endOptionElement.setAttribute('value', concreteType);
-		  endOptionElement.innerHTML = concreteType;
-		  endConcreteTypeDropdown.append(endOptionElement);
-	      });
-	      
-              // Force Directed Graph Initializations
-	      const nodeTextHorizontalOffset = 25;
-	      const nodeTextBoundingBoxPadding = 5;
-              const alphaDecay = 0.05;
-              const velocityDecay = 0.9;
-              const paddingBetweenNodes = 100;
-              const initialLinkAlpha = 0.005;
-              const linkAlphaDecay = 0.005;
-              let linkAlpha = initialLinkAlpha;
-	      simulation.stop();
-              simulation = d3.forceSimulation()
-		    .alphaDecay(alphaDecay)
-		    .velocityDecay(velocityDecay);
-              const drag = d3.drag();
-              
-              // Edge Visualization
-              const edgeData = [];
-	      for (edgeString in translationGraphData.result.primary_translators) {
-		  const [src, dst] = edgeString.split(' -> ');
-		  const datum = Object.assign({src, dst, translatorOrder: 'primary'}, translationGraphData.result.primary_translators[edgeString]);
-		  edgeData.push(datum);
-	      };
-	      for (edgeString in translationGraphData.result.secondary_translators) {
-		  const [src, dst] = edgeString.split(' -> ');
-		  const datum = Object.assign({src, dst, translatorOrder: 'secondary'}, translationGraphData.result.secondary_translators[edgeString]);
-		  edgeData.push(datum);
-	      };
-	      const edgeByNodes = {};
-	      allConcreteTypes.forEach(concreteType => {
-		  edgeByNodes[concreteType] = {};
-	      });
-	      edgeData.forEach(edge => {
-		  const {src, dst} = edge;
-		  edgeByNodes[src][dst] = edge;
-	      });
-	      const edgeConcreteTypesToLineId = (srcConcreteType, dstConcreteType) => {
-		  return `${srcConcreteType}-${dstConcreteType}-line`; 
-	      };
-	      const hideToolTip = datum => {
-		  tooltipDiv
-		      .style('opacity', 0);
-	      };
-	      const showEdgeToolTip = function(datum) {
-		  const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
-		  tooltipDiv
-		      .style('opacity', .9)
-		      .html(`<div id="mg-translation-graph-tooltip-content">
+    const div = document.getElementById(divId);
+    const shadow = div.attachShadow({mode: 'open'});
+    shadow.innerHTML = shadowInnerHTML;
+    shadow.websocket = new WebSocket(`ws://127.0.0.1:${port}/`);
+    const closeWebsocketOnError = () => {
+        removeAllChildNodes(shadow);
+        shadow.innerHTML = `Websocket connection to ws://127.0.0.1:${port}/ failed.`;
+    };
+    shadow.websocket.onerror = closeWebsocketOnError;
+    const sendShadowWebsocketRequest = (object) => {
+        if (shadow.websocket.readyState === WebSocket.CLOSED) {
+            closeWebsocketOnError();
+        } else {
+            shadow.websocket.send(JSON.stringify(object));
+        }
+    };
+
+    window.onbeforeunload = () => {
+        sendShadowWebsocketRequest({function: 'close'});
+    };
+
+    let highlightTranslationGraphPath = (data) => {};
+
+    // Listen for websocket messages
+    shadow.websocket.onmessage = function (event) {
+        data = JSON.parse(event.data);
+        switch (data.function) {
+        case 'list_types':
+            updateTypeExplorer(data);
+            break;
+        case 'list_translators':
+            updateTranslationGraph(data);
+            break;
+        case 'list_algorithms':
+            updateAlgorithmExplorer(data);
+            updateAlgorithTypeSolver(data);
+            break;
+        case 'list_algorithm_params':
+            updateAlgorithTypeSolverCurrentAlgorithmParameters(data);
+        case 'solve_translator':
+            if (data.input_kwargs.overall_abstract === abstractTypeDropdown.value) {
+                highlightTranslationGraphPath(data);
+            }
+            break;
+        case 'solve_algorithm':
+            updateAlgorithTypeSolverPlans(data);
+            break;
+        default:
+            console.error('unsupported event', data);
+        }
+    };
+
+    const buildTreeWidget = (root, data, innerHTMLGenerator) => {
+        /* innerHTMLGenerator is a function that takes (key, value) => 'some-string' */
+        for (let name in data) {
+            if (data.hasOwnProperty(name)) {
+                const props = data[name];
+                const hasChildren = 'children' in props;
+                if (hasChildren) {
+                    const label = document.createElement('p');
+                    label.classList.add('mg-explorer-tree-widget-label');
+                    label.innerHTML = innerHTMLGenerator(name, props);
+                    root.appendChild(label);
+                    const container = document.createElement('div');
+                    container.className = 'mg-explorer-tree-widget-subcontainer';
+                    root.append(container);
+                    label.onclick = (event) => {
+                        label.classList.toggle('active');
+                        container.classList.toggle('active');
+                        const allContainers = container.closest('.mg-explorer-tree-widget-container').querySelectorAll('.mg-explorer-tree-widget-subcontainer');
+                        allContainers.forEach(currentContainer => {
+                            const currentMaxHeightString = currentContainer.style.maxHeight;
+                            const currentMaxHeight = parseFloat('0'+currentMaxHeightString);
+                            if (currentContainer.classList.contains('active')) {
+                                currentContainer.style.maxHeight = currentMaxHeight + container.scrollHeight + 'px';
+                            } else if (currentContainer === container) {
+                                currentContainer.removeAttribute('style'); // TODO we need to update the active parent heights to decrease as appropriate
+                            }
+                        });
+                    };
+                    const childrenData = props['children'];
+                    buildTreeWidget(container, childrenData, innerHTMLGenerator);
+                } else {
+                    const leaf = document.createElement('p');
+                    leaf.classList.add('mg-explorer-tree-widget-leaf');
+                    leaf.innerHTML = innerHTMLGenerator(name, props);
+                    root.appendChild(leaf);
+                }
+            }
+        }
+    };
+
+    /**********************************/
+    /* Explorer Tab Selection Buttons */
+    /**********************************/
+
+    const metagraphActivateExplorerTab = (clickedElement, explorerTabId) => {
+        for (const navigationBarLi of shadow.querySelectorAll(`#mg-explorer-navigation-bar li`)) {
+            navigationBarLi.classList.remove('active');
+        }
+        clickedElement.closest('li').classList.add('active');
+        for (const explorerTab of shadow.querySelectorAll('.mg-explorer-tab')) {
+            explorerTab.classList.remove('active');
+        }
+        const currentExplorerTab = shadow.querySelector(`#${explorerTabId}`);
+        currentExplorerTab.classList.add('active');
+    };
+
+    shadow.querySelector('#mg-translation-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-translation-explorer');
+    shadow.querySelector('#mg-type-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-type-explorer');
+    shadow.querySelector('#mg-algorithm-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-algorithm-explorer');
+    shadow.querySelector('#mg-algorithm-type-solver-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-algorithm-type-solver-explorer');
+    shadow.querySelector('#mg-plugin-explorer-selector').onclick = (event) => metagraphActivateExplorerTab(event.target, 'mg-plugin-explorer');
+
+    const metagraphCloseExplorer = () => {
+        sendShadowWebsocketRequest({function: 'close'});
+        shadow.websocket.close();
+        removeAllChildNodes(shadow);
+    }
+
+    shadow.querySelector('#mg-explorer-close-button').onclick = metagraphCloseExplorer;
+
+    /*************************************/
+    /* Translation Graph Initializations */
+    /*************************************/
+
+    require.config({paths: {d3: 'https://d3js.org/d3.v5.min'}});
+
+    const concreteTypeToAbstractType = Object.keys(abstractTypeToConcreteTypes).reduce((accumulator, abstractType) => {
+        Object.keys(abstractTypeToConcreteTypes[abstractType].children).forEach(concreteType => {
+            accumulator[concreteType] = abstractType;
+        });
+        return accumulator;
+    }, {})
+
+    const abstractTypeDropdown = shadow.querySelector('#mg-translation-graph-abstract-type-dropdown');
+    abstractTypes.forEach(abstractType => {
+        const optionElement = document.createElement('option');
+        optionElement.setAttribute('value', abstractType);
+        optionElement.innerHTML = abstractType;
+        abstractTypeDropdown.append(optionElement);
+    });
+    // Default to NodeMap as the initial selection
+    const graphOption = shadow.querySelector('#mg-translation-graph-abstract-type-dropdown [value="NodeMap"]');
+    if (graphOption) {
+        graphOption.selected = true;
+    }
+
+    let simulation = {stop: () => {}}
+    const loadTranslationGraph = (translationGraphData) => {
+
+        require(['d3'], (d3) => {
+
+            // D3 Extensions
+            d3.selection.prototype.moveToFront = function() {
+                return this.each(function() {
+                    if (this.parentNode !== null) {
+                        this.parentNode.appendChild(this);
+                    }
+                });
+            };
+
+            // DOM Initializations
+            const plotContainer = shadow.querySelector('div#mg-translation-graph-svg-container');
+            const svg = d3.select(plotContainer.querySelector('svg#mg-translation-graph-svg'));
+            svg.selectAll('g').remove();
+            svg
+                .attr('width', `${plotContainer.clientWidth}px`)
+                .attr('height', `${plotContainer.clientHeight}px`);
+            const svgWidth = parseFloat(svg.style('width'));
+            const svgHeight = parseFloat(svg.style('height'));
+            const zoomGroup = svg.append('g').attr('class', `zoom-group-${plotContainer.id}`);
+            const edgeGroup = zoomGroup.append('g').attr('class', `edge-group`);
+            const nodeGroup = zoomGroup.append('g').attr('class', `node-group`);
+            const tooltipDiv = d3.select(plotContainer.querySelector('div#mg-translation-graph-tooltip'));
+
+            // Dropdown Initializations
+            const primaryConcreteTypes = Object.keys(translationGraphData.result.primary_types);
+            const secondaryConcreteTypes = Object.keys(translationGraphData.result.secondary_types);
+            const allConcreteTypes = primaryConcreteTypes.concat(secondaryConcreteTypes);
+            const startConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-start-concrete-type-dropdown');
+            removeAllChildNodes(startConcreteTypeDropdown);
+            const endConcreteTypeDropdown = shadow.querySelector('#mg-translation-graph-end-concrete-type-dropdown');
+            removeAllChildNodes(endConcreteTypeDropdown);
+            allConcreteTypes.forEach(concreteType => {
+                const startOptionElement = document.createElement('option');
+                startOptionElement.setAttribute('value', concreteType);
+                startOptionElement.innerHTML = concreteType;
+                startConcreteTypeDropdown.append(startOptionElement);
+                const endOptionElement = document.createElement('option');
+                endOptionElement.setAttribute('value', concreteType);
+                endOptionElement.innerHTML = concreteType;
+                endConcreteTypeDropdown.append(endOptionElement);
+            });
+
+            // Force Directed Graph Initializations
+            const nodeTextHorizontalOffset = 25;
+            const nodeTextBoundingBoxPadding = 5;
+            const alphaDecay = 0.05;
+            const velocityDecay = 0.9;
+            const paddingBetweenNodes = 100;
+            const initialLinkAlpha = 0.005;
+            const linkAlphaDecay = 0.005;
+            let linkAlpha = initialLinkAlpha;
+            simulation.stop();
+            simulation = d3.forceSimulation()
+                  .alphaDecay(alphaDecay)
+                  .velocityDecay(velocityDecay);
+            const drag = d3.drag();
+
+            // Edge Visualization
+            const edgeData = [];
+            for (edgeString in translationGraphData.result.primary_translators) {
+                const [src, dst] = edgeString.split(' -> ');
+                const datum = Object.assign({src, dst, translatorOrder: 'primary'}, translationGraphData.result.primary_translators[edgeString]);
+                edgeData.push(datum);
+            }
+            for (edgeString in translationGraphData.result.secondary_translators) {
+                const [src, dst] = edgeString.split(' -> ');
+                const datum = Object.assign({src, dst, translatorOrder: 'secondary'}, translationGraphData.result.secondary_translators[edgeString]);
+                edgeData.push(datum);
+            }
+            const edgeByNodes = {};
+            allConcreteTypes.forEach(concreteType => {
+                edgeByNodes[concreteType] = {};
+            });
+            edgeData.forEach(edge => {
+                const {src, dst} = edge;
+                edgeByNodes[src][dst] = edge;
+            });
+            const edgeConcreteTypesToLineId = (srcConcreteType, dstConcreteType) => {
+                return `${srcConcreteType}-${dstConcreteType}-line`;
+            };
+            const hideToolTip = datum => {
+                tooltipDiv
+                    .style('opacity', 0);
+            };
+            const showEdgeToolTip = function(datum) {
+                const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
+                tooltipDiv
+                    .style('opacity', .9)
+                    .html(`<div id="mg-translation-graph-tooltip-content">
 <p>Translator Function Name: ${datum.name}</p>
 <p>Source Type: ${datum.src}</p>
 <p>Destination Type: ${datum.dst}</p>
@@ -289,530 +294,530 @@
 <p>Plugin: ${datum.plugin}</p>
 <p>Module: ${datum.module}</p>
 </div>`)
-		      .style('left', x + 10 + 'px')
-		      .style('top', y + 10 + 'px');
-	      }
-              const edgeEnterSelection = edgeGroup
-		    .selectAll('path')
-		    .data(edgeData)
-		    .enter()
-		    .append('path')
-		    .attr('class', 'mg-translation-graph-edge')
-		    .attr('id', datum => edgeConcreteTypesToLineId(datum.src, datum.dst))
-		    .on('mouseover', showEdgeToolTip)
-		    .on('mouseout', hideToolTip)
-		    .classed('mg-translation-graph-primary-edge', datum => datum.translatorOrder === 'primary')
-		    .classed('mg-translation-graph-secondary-edge', datum => datum.translatorOrder === 'secondary')
-		    .attr('marker-end','url(#mg-translation-graph-edge-arrowhead)');
+                    .style('left', x + 10 + 'px')
+                    .style('top', y + 10 + 'px');
+            }
+            const edgeEnterSelection = edgeGroup
+                  .selectAll('path')
+                  .data(edgeData)
+                  .enter()
+                  .append('path')
+                  .attr('class', 'mg-translation-graph-edge')
+                  .attr('id', datum => edgeConcreteTypesToLineId(datum.src, datum.dst))
+                  .on('mouseover', showEdgeToolTip)
+                  .on('mouseout', hideToolTip)
+                  .classed('mg-translation-graph-primary-edge', datum => datum.translatorOrder === 'primary')
+                  .classed('mg-translation-graph-secondary-edge', datum => datum.translatorOrder === 'secondary')
+                  .attr('marker-end','url(#mg-translation-graph-edge-arrowhead)');
 
-              // Node Visualization
-	      const nodeIdToProperties = {};
-	      primaryConcreteTypes.forEach(concreteType => {
-		  nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'primary'};
-	      });
-	      secondaryConcreteTypes.forEach(concreteType => {
-		  nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'secondary'};
-	      });
-	      const concreteTypeNameToCircleId = concreteTypeName => `${concreteTypeName}-circle`
-              const nodeData = Object.values(nodeIdToProperties);
-	      const nodeDataJoin = nodeGroup
-		    .selectAll('circle')
-		    .data(nodeData);
-	      const showNodeToolTip = function(datum) {
-		  const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
-		  tooltipDiv
-		      .style('opacity', .9)
-		      .html(`<div id="mg-translation-graph-tooltip-content">
+            // Node Visualization
+            const nodeIdToProperties = {};
+            primaryConcreteTypes.forEach(concreteType => {
+                nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'primary'};
+            });
+            secondaryConcreteTypes.forEach(concreteType => {
+                nodeIdToProperties[concreteType] = {id: concreteType, concreteTypeOrder: 'secondary'};
+            });
+            const concreteTypeNameToCircleId = concreteTypeName => `${concreteTypeName}-circle`
+            const nodeData = Object.values(nodeIdToProperties);
+            const nodeDataJoin = nodeGroup
+                  .selectAll('circle')
+                  .data(nodeData);
+            const showNodeToolTip = function(datum) {
+                const [x, y] = absoluteXYOffset(shadow.querySelector(`#${d3.select(this).node().id}`));
+                tooltipDiv
+                    .style('opacity', .9)
+                    .html(`<div id="mg-translation-graph-tooltip-content">
 <p>Name: ${datum.id}</p>
 <p>Order: ${datum.concreteTypeOrder}</p>
 </div>`)
-		      .style('left', x + 10 + 'px')
-		      .style('top', y + 10 + 'px');
-	      };
-              const nodeEnterSelection = nodeDataJoin
-		    .enter()
-		    .append('circle')
-		    .attr('id', datum => concreteTypeNameToCircleId(datum.id))
-		    .on('mouseover', showNodeToolTip)
-		    .on('mouseout', hideToolTip)
-		    .attr('class', 'mg-translation-graph-node')
-		    .call(drag);
-              const nodeForwardNeighbors = Object.keys(nodeIdToProperties).reduce((accumulator, nodeId) => {
-		  accumulator[nodeId] = [];
-		  return accumulator;
-              }, {});
-              edgeData.forEach((edge) => {
-		  nodeForwardNeighbors[edge.src].push(edge.dst);
-	      });
-	      const concreteTypeNameToTextElementId = concreteType => `${concreteType}-text-element`;
-              const nodeTextEnterSelection = nodeDataJoin
-		    .enter()
-		    .append('text')
-		    .attr('dx', nodeTextHorizontalOffset)
-		    .attr('id', datum => concreteTypeNameToTextElementId(datum.id))
-		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-primary' : 'mg-translation-graph-node-text-secondary')
-		    .on('mouseover', showNodeToolTip)
-		    .on('mouseout', hideToolTip)
-                    .html(datum => datum.id);
-	      const concreteTypeNameToTextElementBoundingBoxId = concreteType => `${concreteType}-text-element-bounding-box`;
-              const nodeTextBoundingBoxEnterSelection = nodeDataJoin
-		    .enter()
-		    .append('rect')
-		    .attr('id', datum => concreteTypeNameToTextElementBoundingBoxId(datum.id))
-		    .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-bounding-box-primary' : 'mg-translation-graph-node-text-bounding-box-secondary')
-		    .classed('mg-translation-graph-node-text-bounding-box', true)
-		    .on('mouseover', showNodeToolTip)
-		    .on('mouseout', hideToolTip)
-                    .html(datum => datum.id);
+                    .style('left', x + 10 + 'px')
+                    .style('top', y + 10 + 'px');
+            };
+            const nodeEnterSelection = nodeDataJoin
+                  .enter()
+                  .append('circle')
+                  .attr('id', datum => concreteTypeNameToCircleId(datum.id))
+                  .on('mouseover', showNodeToolTip)
+                  .on('mouseout', hideToolTip)
+                  .attr('class', 'mg-translation-graph-node')
+                  .call(drag);
+            const nodeForwardNeighbors = Object.keys(nodeIdToProperties).reduce((accumulator, nodeId) => {
+                accumulator[nodeId] = [];
+                return accumulator;
+            }, {});
+            edgeData.forEach((edge) => {
+                nodeForwardNeighbors[edge.src].push(edge.dst);
+            });
+            const concreteTypeNameToTextElementId = concreteType => `${concreteType}-text-element`;
+            const nodeTextEnterSelection = nodeDataJoin
+                  .enter()
+                  .append('text')
+                  .attr('dx', nodeTextHorizontalOffset)
+                  .attr('id', datum => concreteTypeNameToTextElementId(datum.id))
+                  .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-primary' : 'mg-translation-graph-node-text-secondary')
+                  .on('mouseover', showNodeToolTip)
+                  .on('mouseout', hideToolTip)
+                  .html(datum => datum.id);
+            const concreteTypeNameToTextElementBoundingBoxId = concreteType => `${concreteType}-text-element-bounding-box`;
+            const nodeTextBoundingBoxEnterSelection = nodeDataJoin
+                  .enter()
+                  .append('rect')
+                  .attr('id', datum => concreteTypeNameToTextElementBoundingBoxId(datum.id))
+                  .attr('class', datum => datum.concreteTypeOrder === 'primary' ? 'mg-translation-graph-node-text-bounding-box-primary' : 'mg-translation-graph-node-text-bounding-box-secondary')
+                  .classed('mg-translation-graph-node-text-bounding-box', true)
+                  .on('mouseover', showNodeToolTip)
+                  .on('mouseout', hideToolTip)
+                  .html(datum => datum.id);
 
-	      // Dropdown Functionality
-	      const highlightConcreteTypeWithClass = (concreteTypeName, className) => {
-		  nodeGroup.selectAll('.mg-translation-graph-node').classed(className, false);
-		  const concreteTypeToHighlightSelector = `#${concreteTypeNameToCircleId(concreteTypeName)}`;
-		  nodeGroup.select(concreteTypeToHighlightSelector).classed(className, true);
-	      };
-	      const requestTranslationPath = () => {
-		  const startConcreteType = startConcreteTypeDropdown.value;
-		  const startAbstractType = concreteTypeToAbstractType[startConcreteType];
-		  const endConcreteType = endConcreteTypeDropdown.value;
-		  const endAbstractType = concreteTypeToAbstractType[endConcreteType];;
-		  kwargs = {
-		      src_abstract: startAbstractType,
-		      src_concrete: startConcreteType,
-		      dst_abstract: endAbstractType,
-		      dst_concrete: endConcreteType,
-		      overall_abstract: abstractTypeDropdown.value,
-		  }
-		  highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
-		  highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
-		  sendShadowWebsocketRequest({function: 'solve_translator', kwargs: kwargs});
-	      };
-	      startConcreteTypeDropdown.onchange = (event) => {
-		  requestTranslationPath();
-	      };
-	      endConcreteTypeDropdown.onchange = (event) => {
-		  requestTranslationPath();
-	      };
-	      highlightTranslationGraphPath = (translationSolverData) => {
-		  const result = translationSolverData.result;
-		  const path = result.solution
-		  edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
-		  const displayTextDiv = shadow.querySelector('div#mg-translation-graph-path-display-text');
-		  switch (result.result_type) {
-		  case 'unsatisfiable':
-		      displayTextDiv.innerHTML = '<p>Translation unsatisfiable.</p>'
-		      break;
-		  case 'null':
-		      displayTextDiv.innerHTML = '<p>No translation needed.</p>'
-		      break;
-		  default:
-		      for(let i=0; i < path.length - 1; i++) {
-			  const srcConcreteType = path[i];
-			  const dstConcreteType = path[i+1];
-			  const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
-			  edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
-		      }
-		      removeAllChildNodes(displayTextDiv);
-		      path.forEach((concreteType, i) => {
-			  const divElement = document.createElement('div');
-			  divElement.classList.add('mg-translation-graph-path-display-text-path-node');
-			  if (i === 0) {
-			      divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-start-node');
-			  } else if (i === path.length-1) {
-			      divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-end-node');
-			  }
-			  divElement.innerHTML = concreteType;
-			  displayTextDiv.append(divElement);
-			  if (i !== path.length-1) {
-			      const arrowDiv = document.createElement('div');
-			      arrowDiv.innerHTML = '&darr;';
-			      displayTextDiv.append(arrowDiv)
-			  }
-		      })
-		      break;
-		  }
-	      };
-	      const filterByPluginDropdown = shadow.querySelector('#mg-translation-graph-filter-by-plugin-dropdown');
-	      removeAllChildNodes(filterByPluginDropdown);
-	      const pluginNames = Array.from(new Set(edgeData.map(edge => edge.plugin))).sort();
-	      ['All Plugins'].concat(pluginNames).forEach(pluginName => {
-	       	  const optionElement = document.createElement('option');
-	       	  optionElement.setAttribute('value', pluginName);
-	       	  optionElement.innerHTML = pluginName;
-	       	  filterByPluginDropdown.append(optionElement);
-	      });
-	      const filterByPluginName = (pluginName) => {
-		  edgeGroup
-		      .selectAll('.mg-translation-graph-edge')
-		      .classed('mg-translation-graph-hidden-edge', datum => pluginName !== 'All Plugins' && datum.plugin !== pluginName);
-	      };
-	      filterByPluginDropdown.onchange = (event) => {
-		  const pluginName = event.target.value;
-		  filterByPluginName(pluginName);
-	      }
-	      const hideTranslationPaths = () => {
-		  shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.remove('active');
-		  shadow.querySelector('#mg-translation-graph-translation-path-solver-menu').classList.remove('active');
-		  shadow.querySelector('#mg-translation-graph-path-solver-cell').classList.remove('active');
-		  edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
-		  nodeGroup.selectAll('.mg-translation-graph-node')
-		      .classed('mg-translation-graph-start-node', false)
-		      .classed('mg-translation-graph-end-node', false);
-	      };
-	      const showTranslationPaths = () => {
-		  shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.add('active');
-	       	  shadow.querySelector('#mg-translation-graph-translation-path-solver-menu').classList.add('active');
-	       	  shadow.querySelector('#mg-translation-graph-path-solver-cell').classList.add('active');
-		  requestTranslationPath(); // TODO slow since sends another request with no path change
-	      };
-	      const deactivateFilterByPluginFilters = () => {
-		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.remove('active');
-		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-menu').classList.remove('active');
-		  filterByPluginName('All Plugins');
-	      };
-	      const activateFilterByPluginFilters = () => {
-		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.add('active');
-		  shadow.querySelector('#mg-translation-graph-filter-by-plugin-menu').classList.add('active');
-		  filterByPluginName(filterByPluginDropdown.value);
-	      };
-	      const filterByPluginToggler = shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button');
-	      filterByPluginToggler.onclick = (event) => {
-	       	  hideTranslationPaths();
-		  if (shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.contains('active')) {
-		      deactivateFilterByPluginFilters();
-		  } else {
-		      activateFilterByPluginFilters();
-		  }
-	       };
-	      const translationnPathSolverToggler = shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button');
-	      translationnPathSolverToggler.onclick = (event) => {
-	       	  deactivateFilterByPluginFilters();
-		  if (shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.contains('active')) {
-		      hideTranslationPaths();
-		  } else {
-	       	      showTranslationPaths();
-		  }
-	      };
-	      
-              // Force Directed Graph Visualization
-              const linkForce = () => {
-		  linkAlpha = linkAlpha * (1-linkAlphaDecay);
-		  nodeData.forEach(datum => {
-                      const forwardNeighborIds = nodeForwardNeighbors[datum.id];
-                      const neighborIds = (forwardNeighborIds.length > 0) ? forwardNeighborIds : Object.keys(nodeIdToProperties);
-                      if (neighborIds.length > 0) {
-			  const neighborMeanX = mean(neighborIds.map(neighborId => nodeIdToProperties[neighborId].x));
-			  const neighborMeanY = mean(neighborIds.map(neighborId => nodeIdToProperties[neighborId].y));
-			  const newX = datum.x * (1-linkAlpha) + linkAlpha * neighborMeanX;
-			  const newY = datum.y * (1-linkAlpha) + linkAlpha * neighborMeanY;
-			  datum.x = newX;
-			  datum.y = newY;
-                      }
-		  });
-              };
-	      const render = () => {
-	          nodeEnterSelection
-		      .attr('cx', datum => datum.x)
-		      .attr('cy', datum => datum.y);
-	          edgeEnterSelection
-		      .attr('d', datum => {
-			  const offset = 30;
-			  const source = nodeIdToProperties[datum.src];
-			  const destination = nodeIdToProperties[datum.dst];
-			  const midpointX = mean([source.x, destination.x]);
-			  const midpointY = mean([source.y, destination.y]);
-			  const dx = (destination.x - source.x);
-			  const dy = (destination.y - source.y);
-			  const normalization = Math.sqrt((dx * dx) + (dy * dy));
-			  const offSetX = midpointX + offset*(dy/normalization);
-			  const offSetY = midpointY - offset*(dx/normalization);
-			  return `M ${source.x}, ${source.y} S ${offSetX}, ${offSetY} ${destination.x}, ${destination.y}`;
-		      });
-		  nodeTextEnterSelection
-		      .attr('x', datum => datum.x)
-		      .attr('y', datum => datum.y);
-		  nodeTextBoundingBoxEnterSelection
-		      .attr('x', datum => {
-			  const textElementId = concreteTypeNameToTextElementId(datum.id);
-			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			  const x = textElementBBox.x - nodeTextBoundingBoxPadding;
-			  return x;
-		      })
-		      .attr('y', datum => {
-			  const textElementId = concreteTypeNameToTextElementId(datum.id);
-			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			  const y = textElementBBox.y - nodeTextBoundingBoxPadding;
-			  return y;
-		      })
-                      .attr('width', datum => {
-			  const textElementId = concreteTypeNameToTextElementId(datum.id);
-			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			  return textElementBBox.width + 2 * nodeTextBoundingBoxPadding;
-		      })
-                      .attr('height', datum => {
-			  const textElementId = concreteTypeNameToTextElementId(datum.id);
-			  const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
-			  return textElementBBox.height + 2 * nodeTextBoundingBoxPadding;
-		      });
-		  nodeTextEnterSelection.moveToFront();
-	      };
-              simulation
-		  .force('center', d3.forceCenter(svgWidth / 2, svgHeight / 2))
-		  .force('collide', d3.forceCollide(paddingBetweenNodes).strength(0.25).iterations(200))
-		  .force('links', linkForce)
-		  .nodes(nodeData).on('tick', render)
-		  .alphaMin(0.001)
-		  .restart();
-	      
-              // Zooming
-              const zoom = d3.zoom().on('zoom', () => {
-		  zoomGroup
-                      .attr('transform', d3.event.transform);
-              });
-              svg.call(zoom);
+            // Dropdown Functionality
+            const highlightConcreteTypeWithClass = (concreteTypeName, className) => {
+                nodeGroup.selectAll('.mg-translation-graph-node').classed(className, false);
+                const concreteTypeToHighlightSelector = `#${concreteTypeNameToCircleId(concreteTypeName)}`;
+                nodeGroup.select(concreteTypeToHighlightSelector).classed(className, true);
+            };
+            const requestTranslationPath = () => {
+                const startConcreteType = startConcreteTypeDropdown.value;
+                const startAbstractType = concreteTypeToAbstractType[startConcreteType];
+                const endConcreteType = endConcreteTypeDropdown.value;
+                const endAbstractType = concreteTypeToAbstractType[endConcreteType];;
+                kwargs = {
+                    src_abstract: startAbstractType,
+                    src_concrete: startConcreteType,
+                    dst_abstract: endAbstractType,
+                    dst_concrete: endConcreteType,
+                    overall_abstract: abstractTypeDropdown.value,
+                }
+                highlightConcreteTypeWithClass(startConcreteTypeDropdown.value, 'mg-translation-graph-start-node');
+                highlightConcreteTypeWithClass(endConcreteTypeDropdown.value, 'mg-translation-graph-end-node');
+                sendShadowWebsocketRequest({function: 'solve_translator', kwargs: kwargs});
+            };
+            startConcreteTypeDropdown.onchange = (event) => {
+                requestTranslationPath();
+            };
+            endConcreteTypeDropdown.onchange = (event) => {
+                requestTranslationPath();
+            };
+            highlightTranslationGraphPath = (translationSolverData) => {
+                const result = translationSolverData.result;
+                const path = result.solution
+                edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
+                const displayTextDiv = shadow.querySelector('div#mg-translation-graph-path-display-text');
+                switch (result.result_type) {
+                case 'unsatisfiable':
+                    displayTextDiv.innerHTML = '<p>Translation unsatisfiable.</p>'
+                    break;
+                case 'null':
+                    displayTextDiv.innerHTML = '<p>No translation needed.</p>'
+                    break;
+                default:
+                    for(let i=0; i < path.length - 1; i++) {
+                        const srcConcreteType = path[i];
+                        const dstConcreteType = path[i+1];
+                        const edgeToHighlightSelector = `#${edgeConcreteTypesToLineId(srcConcreteType, dstConcreteType)}`;
+                        edgeGroup.select(edgeToHighlightSelector).classed('mg-translation-graph-highlighted-edge', true);
+                    }
+                    removeAllChildNodes(displayTextDiv);
+                    path.forEach((concreteType, i) => {
+                        const divElement = document.createElement('div');
+                        divElement.classList.add('mg-translation-graph-path-display-text-path-node');
+                        if (i === 0) {
+                            divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-start-node');
+                        } else if (i === path.length-1) {
+                            divElement.setAttribute('id', 'mg-translation-graph-path-display-text-path-end-node');
+                        }
+                        divElement.innerHTML = concreteType;
+                        displayTextDiv.append(divElement);
+                        if (i !== path.length-1) {
+                            const arrowDiv = document.createElement('div');
+                            arrowDiv.innerHTML = '&darr;';
+                            displayTextDiv.append(arrowDiv)
+                        }
+                    })
+                    break;
+                }
+            };
+            const filterByPluginDropdown = shadow.querySelector('#mg-translation-graph-filter-by-plugin-dropdown');
+            removeAllChildNodes(filterByPluginDropdown);
+            const pluginNames = Array.from(new Set(edgeData.map(edge => edge.plugin))).sort();
+            ['All Plugins'].concat(pluginNames).forEach(pluginName => {
+                       const optionElement = document.createElement('option');
+                       optionElement.setAttribute('value', pluginName);
+                       optionElement.innerHTML = pluginName;
+                       filterByPluginDropdown.append(optionElement);
+            });
+            const filterByPluginName = (pluginName) => {
+                edgeGroup
+                    .selectAll('.mg-translation-graph-edge')
+                    .classed('mg-translation-graph-hidden-edge', datum => pluginName !== 'All Plugins' && datum.plugin !== pluginName);
+            };
+            filterByPluginDropdown.onchange = (event) => {
+                const pluginName = event.target.value;
+                filterByPluginName(pluginName);
+            }
+            const hideTranslationPaths = () => {
+                shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.remove('active');
+                shadow.querySelector('#mg-translation-graph-translation-path-solver-menu').classList.remove('active');
+                shadow.querySelector('#mg-translation-graph-path-solver-cell').classList.remove('active');
+                edgeGroup.selectAll('.mg-translation-graph-highlighted-edge').classed('mg-translation-graph-highlighted-edge', false);
+                nodeGroup.selectAll('.mg-translation-graph-node')
+                    .classed('mg-translation-graph-start-node', false)
+                    .classed('mg-translation-graph-end-node', false);
+            };
+            const showTranslationPaths = () => {
+                shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.add('active');
+                       shadow.querySelector('#mg-translation-graph-translation-path-solver-menu').classList.add('active');
+                       shadow.querySelector('#mg-translation-graph-path-solver-cell').classList.add('active');
+                requestTranslationPath(); // TODO slow since sends another request with no path change
+            };
+            const deactivateFilterByPluginFilters = () => {
+                shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.remove('active');
+                shadow.querySelector('#mg-translation-graph-filter-by-plugin-menu').classList.remove('active');
+                filterByPluginName('All Plugins');
+            };
+            const activateFilterByPluginFilters = () => {
+                shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.add('active');
+                shadow.querySelector('#mg-translation-graph-filter-by-plugin-menu').classList.add('active');
+                filterByPluginName(filterByPluginDropdown.value);
+            };
+            const filterByPluginToggler = shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button');
+            filterByPluginToggler.onclick = (event) => {
+                       hideTranslationPaths();
+                if (shadow.querySelector('#mg-translation-graph-filter-by-plugin-toggle-button').classList.contains('active')) {
+                    deactivateFilterByPluginFilters();
+                } else {
+                    activateFilterByPluginFilters();
+                }
+             };
+            const translationnPathSolverToggler = shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button');
+            translationnPathSolverToggler.onclick = (event) => {
+                       deactivateFilterByPluginFilters();
+                if (shadow.querySelector('#mg-translation-graph-translation-path-solver-toggle-button').classList.contains('active')) {
+                    hideTranslationPaths();
+                } else {
+                           showTranslationPaths();
+                }
+            };
 
-	      // Drag & Drop
-	      drag.on('drag', datum => {
-		  linkAlpha = initialLinkAlpha;
-		  datum.x += d3.event.dx;
-		  datum.y += d3.event.dy;
-		  simulation
-		      .alpha(0.1)
-		      .restart();
-		  render();
-              });
-	  });
-	  
-      };
-      const updateTranslationGraph = (translationGraphData) => {
-	  callAfterDOMUpdated(() => loadTranslationGraph(translationGraphData));
-      }
-      const requestTranslationGraphAbstractTypeUpdate = () => sendShadowWebsocketRequest({function: 'list_translators', kwargs: {source_type: abstractTypeDropdown.value}});
-      abstractTypeDropdown.onchange = requestTranslationGraphAbstractTypeUpdate;
+            // Force Directed Graph Visualization
+            const linkForce = () => {
+                linkAlpha = linkAlpha * (1-linkAlphaDecay);
+                nodeData.forEach(datum => {
+                    const forwardNeighborIds = nodeForwardNeighbors[datum.id];
+                    const neighborIds = (forwardNeighborIds.length > 0) ? forwardNeighborIds : Object.keys(nodeIdToProperties);
+                    if (neighborIds.length > 0) {
+                        const neighborMeanX = mean(neighborIds.map(neighborId => nodeIdToProperties[neighborId].x));
+                        const neighborMeanY = mean(neighborIds.map(neighborId => nodeIdToProperties[neighborId].y));
+                        const newX = datum.x * (1-linkAlpha) + linkAlpha * neighborMeanX;
+                        const newY = datum.y * (1-linkAlpha) + linkAlpha * neighborMeanY;
+                        datum.x = newX;
+                        datum.y = newY;
+                    }
+                });
+            };
+            const render = () => {
+                nodeEnterSelection
+                    .attr('cx', datum => datum.x)
+                    .attr('cy', datum => datum.y);
+                edgeEnterSelection
+                    .attr('d', datum => {
+                        const offset = 30;
+                        const source = nodeIdToProperties[datum.src];
+                        const destination = nodeIdToProperties[datum.dst];
+                        const midpointX = mean([source.x, destination.x]);
+                        const midpointY = mean([source.y, destination.y]);
+                        const dx = (destination.x - source.x);
+                        const dy = (destination.y - source.y);
+                        const normalization = Math.sqrt((dx * dx) + (dy * dy));
+                        const offSetX = midpointX + offset*(dy/normalization);
+                        const offSetY = midpointY - offset*(dx/normalization);
+                        return `M ${source.x}, ${source.y} S ${offSetX}, ${offSetY} ${destination.x}, ${destination.y}`;
+                    });
+                nodeTextEnterSelection
+                    .attr('x', datum => datum.x)
+                    .attr('y', datum => datum.y);
+                nodeTextBoundingBoxEnterSelection
+                    .attr('x', datum => {
+                        const textElementId = concreteTypeNameToTextElementId(datum.id);
+                        const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+                        const x = textElementBBox.x - nodeTextBoundingBoxPadding;
+                        return x;
+                    })
+                    .attr('y', datum => {
+                        const textElementId = concreteTypeNameToTextElementId(datum.id);
+                        const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+                        const y = textElementBBox.y - nodeTextBoundingBoxPadding;
+                        return y;
+                    })
+                    .attr('width', datum => {
+                        const textElementId = concreteTypeNameToTextElementId(datum.id);
+                        const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+                        return textElementBBox.width + 2 * nodeTextBoundingBoxPadding;
+                    })
+                    .attr('height', datum => {
+                        const textElementId = concreteTypeNameToTextElementId(datum.id);
+                        const textElementBBox = svg.select(`#${textElementId}`).node().getBBox();
+                        return textElementBBox.height + 2 * nodeTextBoundingBoxPadding;
+                    });
+                nodeTextEnterSelection.moveToFront();
+            };
+            simulation
+                .force('center', d3.forceCenter(svgWidth / 2, svgHeight / 2))
+                .force('collide', d3.forceCollide(paddingBetweenNodes).strength(0.25).iterations(200))
+                .force('links', linkForce)
+                .nodes(nodeData).on('tick', render)
+                .alphaMin(0.001)
+                .restart();
 
-      /*****************/
-      /* Type Explorer */
-      /*****************/
-      
-      const updateTypeExplorer = (typeData) => {
-	  const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
-	  removeAllChildNodes(typeExplorerContentDiv);
-	  typeExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-	  const innerHTMLGenerator = (name, props) => (props.type === 'value_type') ? `Value Type: ${name}` : name;
-	  buildTreeWidget(typeExplorerContentDiv, typeData.result, innerHTMLGenerator);
-      }
-      const requestTypeExplorerUpdate = () => sendShadowWebsocketRequest({function: 'list_types', kwargs: {}});
-      
-      /**********************/
-      /* Algorithm Explorer */
-      /**********************/
-      
-      const updateAlgorithmExplorer = (algorithmData) => {
-	  const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
-	  removeAllChildNodes(algorithmExplorerContentDiv);
-	  algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-	  buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result, (name, props) => {
-	      let innerHTML;
-	      switch (props.type) {
-	      case 'concrete_algorithm':
-		  innerHTML = `<span style="font-weight: bold">[${props.plugin}]</span>: <span style="font-size: 0.8rem">${props.name}<span>`;
-		  break;
-	      default:
-		  innerHTML = name;
-		  break;
-	      }
-	      return innerHTML;
-	  });
-      };
-      
-      /*************************/
-      /* Algorithm Type Solver */
-      /*************************/
-      
-      const updateAlgorithTypeSolverPlans = (planData) => {
-	  const plansDiv = shadow.querySelector('#mg-algorithm-type-solver-plans');
-	  plansDiv.classList.add('mg-explorer-tree-widget-container');
-	  removeAllChildNodes(plansDiv);
-	  if (objectSize(planData.result) == 0) {
-	      const parargaphElement = document.createElement('p');
-	      parargaphElement.innerHTML = 'Algorithm Unsatisfiable';
-	      parargaphElement.classList.add('mg-algorithm-type-solver-unsatisfiable-algorithm-label');
-	      plansDiv.append(parargaphElement);
-	  } else {
-	      buildTreeWidget(plansDiv, planData.result,  (name, props) => {
-		  let innerHTML;
-		  switch (props.type) {
-		  case 'parameter':
-		      innerHTML = `${name}: ${props.annotation}`;
-		      break;
-		  case 'translation_path':
-		      innerHTML = '<span style="font-style: italic;">Translation Path: </span>';
-		      if (props.translation_path_length === 0) {
-			  innerHTML += 'No translation needed.';
-		      }
-		      break;
-		  case 'translation_path_element':
-		      innerHTML = `<span>&nbsp;&rarr;&nbsp;${name}</span>`;
-		      break;
-		  case 'plan':
-		      innerHTML = `Plan #${props.plan_index}`;
-		      break;
-		  default:
-		      innerHTML = name;
-		      break;
-		  }
-		  return innerHTML;
-	      });
-	      plansDiv.querySelectorAll('#mg-algorithm-type-solver-plans > .mg-explorer-tree-widget-label').forEach(label => {
-		  const originalOnClick = label.onclick;
-		  label.onclick = (event) => {
-		      const contentContainer = label.nextSibling; // TODO nextSibling not ideal ; use pointers / attributes instead ?
-		      contentContainer.querySelectorAll('.mg-explorer-tree-widget-label').forEach(sublabel => {
-			  if (!sublabel.classList.contains('active')) {
-			      requestAnimationFrame(() => sublabel.onclick()); // TODO should we move this requestAnimationFrame down to the onclicks ?
- 			  }
-		      });
-		      originalOnClick();
-		  };
-	      });
-	  }
-      };
-      
-      const updateAlgorithTypeSolverCurrentAlgorithmParameters = (algorithmParameterDataResponse) => {
-	  const abstractAlgorithmPathDropdown = shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-path-dropdown');
-	  if (abstractAlgorithmPathDropdown.value === algorithmParameterDataResponse.input_kwargs.abstract_pathname) {
-	      const abstractAlgorithmContentDiv = shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-content');
-	      removeAllChildNodes(abstractAlgorithmContentDiv);
-	      const algorithmParameterData = algorithmParameterDataResponse.result;
-	      const parameterData = algorithmParameterData.parameters;
-	      const allParametersContainer = document.createElement('div');
-	      allParametersContainer.setAttribute('id', 'mg-algorithm-type-solver-all-parameters-container');
-	      abstractAlgorithmContentDiv.append(allParametersContainer);
-	      Object.entries(parameterData).forEach(([parameterName, parameterProps]) => {
-		  const parameterContainerDiv = document.createElement('div');
-		  parameterContainerDiv.classList.add('mg-algorithm-type-solver-single-parameter-container');
-		  allParametersContainer.append(parameterContainerDiv);
-		  
-		  const parameterNameElement = document.createElement('span');
-		  parameterNameElement.classList.add('mg-algorithm-type-solver-parameter-name');
-		  parameterNameElement.setAttribute('parameterName', parameterName);
-		  parameterNameElement.innerHTML = parameterName + ':&nbsp;';
-		  parameterContainerDiv.append(parameterNameElement);
-		  
-		  const parameterAbstractTypeElement = document.createElement('span');
-		  parameterAbstractTypeElement.classList.add('mg-algorithm-type-solver-parameter-abstract-type');
-		  parameterAbstractTypeElement.setAttribute('abstractType', parameterProps.type);
-		  parameterAbstractTypeElement.innerHTML = parameterProps.type + '&nbsp;';
-		  parameterContainerDiv.append(parameterAbstractTypeElement); 
+            // Zooming
+            const zoom = d3.zoom().on('zoom', () => {
+                zoomGroup
+                    .attr('transform', d3.event.transform);
+            });
+            svg.call(zoom);
 
-		  const parameterConcreteTypeChoicesDropdown = document.createElement('select');
-		  parameterConcreteTypeChoicesDropdown.classList.add('mg-algorithm-type-solver-parameter-concrete-type-dropdown');
-		  parameterContainerDiv.append(parameterConcreteTypeChoicesDropdown);
-		  parameterProps.choices.forEach(concreteTypeName => {
-	       	      const optionElement = document.createElement('option');
-	       	      optionElement.setAttribute('value', concreteTypeName);
-	       	      optionElement.innerHTML = concreteTypeName;
-	       	      parameterConcreteTypeChoicesDropdown.append(optionElement);
-		  });
-	      });
-	      const concreteTypeDropdowns = shadow.querySelectorAll('.mg-algorithm-type-solver-parameter-concrete-type-dropdown');
-	      const currentSignatureTextElement = document.createElement('h4');
-	      currentSignatureTextElement.setAttribute('id', 'mg-algorithm-type-solver-signature');
-	      shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-content').append(currentSignatureTextElement);
-	      const updateCurrentSignatureTextElement = () => {
-		  currentSignatureTextElement.innerHTML = abstractAlgorithmPathDropdown.value+'(';
-		  concreteTypeDropdowns.forEach((dropdown, i) => {
-		      currentSignatureTextElement.innerHTML += dropdown.value;
-		      if (i !== concreteTypeDropdowns.length-1) {
-			  currentSignatureTextElement.innerHTML += ', ';
-		      }
-		  });
-		  currentSignatureTextElement.innerHTML += ')';
-	      };
-	      
-	      concreteTypeDropdowns.forEach(dropdown => {
-		  dropdown.onchange = (event) => {
-		      const paramsDescription = {};
-		      const parameterContainers = allParametersContainer.querySelectorAll('.mg-algorithm-type-solver-single-parameter-container');
-		      parameterContainers.forEach(parameterContainer => {
-			  const parameterName = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-name').getAttribute('parameterName');
-			  const abstractTypeString = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-abstract-type').getAttribute('abstractType');
-			  const concreteTypeString = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').value;
-			  paramsDescription[parameterName] = {abstract_type: abstractTypeString, concrete_type: concreteTypeString}
-		      });
-		      sendShadowWebsocketRequest({function: 'solve_algorithm', kwargs: {
-			  abstract_pathname: abstractAlgorithmPathDropdown.value,
-			  params_description: paramsDescription,
-		      }});
-		      updateCurrentSignatureTextElement();
-		  }
-	      });
-	      shadow.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').onchange();
-	  }
-      }
+            // Drag & Drop
+            drag.on('drag', datum => {
+                linkAlpha = initialLinkAlpha;
+                datum.x += d3.event.dx;
+                datum.y += d3.event.dy;
+                simulation
+                    .alpha(0.1)
+                    .restart();
+                render();
+            });
+        });
 
-      const aggregateAbstractAlgorithmPathNames = (data) => {
-	  let result = [];
-	  for (let key in data) {
-	      if (data.hasOwnProperty(key)) {
-		  const value = data[key]
-		  if (data[key].hasOwnProperty('full_path')) {
-		      result.push(data[key].full_path);
-		  } else if (data[key].hasOwnProperty('children')) {
-		      const recursiveResults = aggregateAbstractAlgorithmPathNames(data[key].children);
-		      result = result.concat(recursiveResults);
-		  }
-	      }
-	  }
-	  return result;
-      }
-      
-      const updateAlgorithTypeSolver = (algorithmData) => {
-	  const algorithmTypeSolvlerContentDiv = shadow.querySelector('#mg-algorithm-type-solver-content');
-	  removeAllChildNodes(algorithmTypeSolvlerContentDiv);
-	  
-	  const abstractAlgorithmPathDropdown = document.createElement('select');
-	  abstractAlgorithmPathDropdown.setAttribute('id', 'mg-algorithm-type-solver-abstract-algorithm-path-dropdown');
-	  algorithmTypeSolvlerContentDiv.append(abstractAlgorithmPathDropdown)
-	  
-	  const abstractAlgorithmContentDiv = document.createElement('div');
-	  abstractAlgorithmContentDiv.setAttribute('id', 'mg-algorithm-type-solver-abstract-algorithm-content');
-	  algorithmTypeSolvlerContentDiv.append(abstractAlgorithmContentDiv)
-	  
-	  const abstractAlgorithmPathNames = aggregateAbstractAlgorithmPathNames(algorithmData.result)
-	  abstractAlgorithmPathNames.forEach(pathName => {
-              const optionElement = document.createElement('option');
-              optionElement.setAttribute('value', pathName);
-              optionElement.innerHTML = pathName;
-	      abstractAlgorithmPathDropdown.append(optionElement);
-	  });
-	  abstractAlgorithmPathDropdown.onchange = (event) => sendShadowWebsocketRequest({function: 'list_algorithm_params', kwargs: {abstract_pathname: abstractAlgorithmPathDropdown.value}});
-	  abstractAlgorithmPathDropdown.onchange();
-	  
-	  const plansDiv = document.createElement('div');
-	  plansDiv.setAttribute('id', 'mg-algorithm-type-solver-plans');
-	  algorithmTypeSolvlerContentDiv.append(plansDiv);
-      };
-      
-      /*******************/
-      /* Plugin Explorer */
-      /*******************/
+    };
+    const updateTranslationGraph = (translationGraphData) => {
+        callAfterDOMUpdated(() => loadTranslationGraph(translationGraphData));
+    }
+    const requestTranslationGraphAbstractTypeUpdate = () => sendShadowWebsocketRequest({function: 'list_translators', kwargs: {source_type: abstractTypeDropdown.value}});
+    abstractTypeDropdown.onchange = requestTranslationGraphAbstractTypeUpdate;
 
-      const pluginExplorerContentDiv = shadow.querySelector('#mg-plugin-explorer-content');
-      removeAllChildNodes(pluginExplorerContentDiv);
-      pluginExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
-      buildTreeWidget(pluginExplorerContentDiv, pluginData, (name, props) => {
-	  return (props.hasOwnProperty('children') && Object.keys(props.children).length === 0) ? `<span style="color: #bbb">${name}</span>` : name;
-      });
+    /*****************/
+    /* Type Explorer */
+    /*****************/
 
-      const requestAlgorithmListUpdate = () => sendShadowWebsocketRequest({function: 'list_algorithms', kwargs: {}});
-      shadow.websocket.onopen = () => {
-	  requestTranslationGraphAbstractTypeUpdate();
-	  requestTypeExplorerUpdate();
-	  requestAlgorithmListUpdate();
-	  // TODO for the explorer tabs whose data we expect to not change, should we leave them here? Or eagerly determine it and pass it via RESOLVER_DATA? It should all be in the same place.
-      }
-      
+    const updateTypeExplorer = (typeData) => {
+        const typeExplorerContentDiv = shadow.querySelector('#mg-type-explorer-content');
+        removeAllChildNodes(typeExplorerContentDiv);
+        typeExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
+        const innerHTMLGenerator = (name, props) => (props.type === 'value_type') ? `Value Type: ${name}` : name;
+        buildTreeWidget(typeExplorerContentDiv, typeData.result, innerHTMLGenerator);
+    }
+    const requestTypeExplorerUpdate = () => sendShadowWebsocketRequest({function: 'list_types', kwargs: {}});
+
+    /**********************/
+    /* Algorithm Explorer */
+    /**********************/
+
+    const updateAlgorithmExplorer = (algorithmData) => {
+        const algorithmExplorerContentDiv = shadow.querySelector('#mg-algorithm-explorer-content');
+        removeAllChildNodes(algorithmExplorerContentDiv);
+        algorithmExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
+        buildTreeWidget(algorithmExplorerContentDiv, algorithmData.result, (name, props) => {
+            let innerHTML;
+            switch (props.type) {
+            case 'concrete_algorithm':
+                innerHTML = `<span style="font-weight: bold">[${props.plugin}]</span>: <span style="font-size: 0.8rem">${props.name}<span>`;
+                break;
+            default:
+                innerHTML = name;
+                break;
+            }
+            return innerHTML;
+        });
+    };
+
+    /*************************/
+    /* Algorithm Type Solver */
+    /*************************/
+
+    const updateAlgorithTypeSolverPlans = (planData) => {
+        const plansDiv = shadow.querySelector('#mg-algorithm-type-solver-plans');
+        plansDiv.classList.add('mg-explorer-tree-widget-container');
+        removeAllChildNodes(plansDiv);
+        if (objectSize(planData.result) == 0) {
+            const parargaphElement = document.createElement('p');
+            parargaphElement.innerHTML = 'Algorithm Unsatisfiable';
+            parargaphElement.classList.add('mg-algorithm-type-solver-unsatisfiable-algorithm-label');
+            plansDiv.append(parargaphElement);
+        } else {
+            buildTreeWidget(plansDiv, planData.result,  (name, props) => {
+                let innerHTML;
+                switch (props.type) {
+                case 'parameter':
+                    innerHTML = `${name}: ${props.annotation}`;
+                    break;
+                case 'translation_path':
+                    innerHTML = '<span style="font-style: italic;">Translation Path: </span>';
+                    if (props.translation_path_length === 0) {
+                        innerHTML += 'No translation needed.';
+                    }
+                    break;
+                case 'translation_path_element':
+                    innerHTML = `<span>&nbsp;&rarr;&nbsp;${name}</span>`;
+                    break;
+                case 'plan':
+                    innerHTML = `Plan #${props.plan_index}`;
+                    break;
+                default:
+                    innerHTML = name;
+                    break;
+                }
+                return innerHTML;
+            });
+            plansDiv.querySelectorAll('#mg-algorithm-type-solver-plans > .mg-explorer-tree-widget-label').forEach(label => {
+                const originalOnClick = label.onclick;
+                label.onclick = (event) => {
+                    const contentContainer = label.nextSibling; // TODO nextSibling not ideal ; use pointers / attributes instead ?
+                    contentContainer.querySelectorAll('.mg-explorer-tree-widget-label').forEach(sublabel => {
+                        if (!sublabel.classList.contains('active')) {
+                            requestAnimationFrame(() => sublabel.onclick()); // TODO should we move this requestAnimationFrame down to the onclicks ?
+                         }
+                    });
+                    originalOnClick();
+                };
+            });
+        }
+    };
+
+    const updateAlgorithTypeSolverCurrentAlgorithmParameters = (algorithmParameterDataResponse) => {
+        const abstractAlgorithmPathDropdown = shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-path-dropdown');
+        if (abstractAlgorithmPathDropdown.value === algorithmParameterDataResponse.input_kwargs.abstract_pathname) {
+            const abstractAlgorithmContentDiv = shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-content');
+            removeAllChildNodes(abstractAlgorithmContentDiv);
+            const algorithmParameterData = algorithmParameterDataResponse.result;
+            const parameterData = algorithmParameterData.parameters;
+            const allParametersContainer = document.createElement('div');
+            allParametersContainer.setAttribute('id', 'mg-algorithm-type-solver-all-parameters-container');
+            abstractAlgorithmContentDiv.append(allParametersContainer);
+            Object.entries(parameterData).forEach(([parameterName, parameterProps]) => {
+                const parameterContainerDiv = document.createElement('div');
+                parameterContainerDiv.classList.add('mg-algorithm-type-solver-single-parameter-container');
+                allParametersContainer.append(parameterContainerDiv);
+
+                const parameterNameElement = document.createElement('span');
+                parameterNameElement.classList.add('mg-algorithm-type-solver-parameter-name');
+                parameterNameElement.setAttribute('parameterName', parameterName);
+                parameterNameElement.innerHTML = parameterName + ':&nbsp;';
+                parameterContainerDiv.append(parameterNameElement);
+
+                const parameterAbstractTypeElement = document.createElement('span');
+                parameterAbstractTypeElement.classList.add('mg-algorithm-type-solver-parameter-abstract-type');
+                parameterAbstractTypeElement.setAttribute('abstractType', parameterProps.type);
+                parameterAbstractTypeElement.innerHTML = parameterProps.type + '&nbsp;';
+                parameterContainerDiv.append(parameterAbstractTypeElement);
+
+                const parameterConcreteTypeChoicesDropdown = document.createElement('select');
+                parameterConcreteTypeChoicesDropdown.classList.add('mg-algorithm-type-solver-parameter-concrete-type-dropdown');
+                parameterContainerDiv.append(parameterConcreteTypeChoicesDropdown);
+                parameterProps.choices.forEach(concreteTypeName => {
+                           const optionElement = document.createElement('option');
+                           optionElement.setAttribute('value', concreteTypeName);
+                           optionElement.innerHTML = concreteTypeName;
+                           parameterConcreteTypeChoicesDropdown.append(optionElement);
+                });
+            });
+            const concreteTypeDropdowns = shadow.querySelectorAll('.mg-algorithm-type-solver-parameter-concrete-type-dropdown');
+            const currentSignatureTextElement = document.createElement('h4');
+            currentSignatureTextElement.setAttribute('id', 'mg-algorithm-type-solver-signature');
+            shadow.querySelector('#mg-algorithm-type-solver-abstract-algorithm-content').append(currentSignatureTextElement);
+            const updateCurrentSignatureTextElement = () => {
+                currentSignatureTextElement.innerHTML = abstractAlgorithmPathDropdown.value+'(';
+                concreteTypeDropdowns.forEach((dropdown, i) => {
+                    currentSignatureTextElement.innerHTML += dropdown.value;
+                    if (i !== concreteTypeDropdowns.length-1) {
+                        currentSignatureTextElement.innerHTML += ', ';
+                    }
+                });
+                currentSignatureTextElement.innerHTML += ')';
+            };
+
+            concreteTypeDropdowns.forEach(dropdown => {
+                dropdown.onchange = (event) => {
+                    const paramsDescription = {};
+                    const parameterContainers = allParametersContainer.querySelectorAll('.mg-algorithm-type-solver-single-parameter-container');
+                    parameterContainers.forEach(parameterContainer => {
+                        const parameterName = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-name').getAttribute('parameterName');
+                        const abstractTypeString = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-abstract-type').getAttribute('abstractType');
+                        const concreteTypeString = parameterContainer.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').value;
+                        paramsDescription[parameterName] = {abstract_type: abstractTypeString, concrete_type: concreteTypeString}
+                    });
+                    sendShadowWebsocketRequest({function: 'solve_algorithm', kwargs: {
+                        abstract_pathname: abstractAlgorithmPathDropdown.value,
+                        params_description: paramsDescription,
+                    }});
+                    updateCurrentSignatureTextElement();
+                }
+            });
+            shadow.querySelector('.mg-algorithm-type-solver-parameter-concrete-type-dropdown').onchange();
+        }
+    }
+
+    const aggregateAbstractAlgorithmPathNames = (data) => {
+        let result = [];
+        for (let key in data) {
+            if (data.hasOwnProperty(key)) {
+                const value = data[key]
+                if (data[key].hasOwnProperty('full_path')) {
+                    result.push(data[key].full_path);
+                } else if (data[key].hasOwnProperty('children')) {
+                    const recursiveResults = aggregateAbstractAlgorithmPathNames(data[key].children);
+                    result = result.concat(recursiveResults);
+                }
+            }
+        }
+        return result;
+    }
+
+    const updateAlgorithTypeSolver = (algorithmData) => {
+        const algorithmTypeSolvlerContentDiv = shadow.querySelector('#mg-algorithm-type-solver-content');
+        removeAllChildNodes(algorithmTypeSolvlerContentDiv);
+
+        const abstractAlgorithmPathDropdown = document.createElement('select');
+        abstractAlgorithmPathDropdown.setAttribute('id', 'mg-algorithm-type-solver-abstract-algorithm-path-dropdown');
+        algorithmTypeSolvlerContentDiv.append(abstractAlgorithmPathDropdown)
+
+        const abstractAlgorithmContentDiv = document.createElement('div');
+        abstractAlgorithmContentDiv.setAttribute('id', 'mg-algorithm-type-solver-abstract-algorithm-content');
+        algorithmTypeSolvlerContentDiv.append(abstractAlgorithmContentDiv)
+
+        const abstractAlgorithmPathNames = aggregateAbstractAlgorithmPathNames(algorithmData.result)
+        abstractAlgorithmPathNames.forEach(pathName => {
+            const optionElement = document.createElement('option');
+            optionElement.setAttribute('value', pathName);
+            optionElement.innerHTML = pathName;
+            abstractAlgorithmPathDropdown.append(optionElement);
+        });
+        abstractAlgorithmPathDropdown.onchange = (event) => sendShadowWebsocketRequest({function: 'list_algorithm_params', kwargs: {abstract_pathname: abstractAlgorithmPathDropdown.value}});
+        abstractAlgorithmPathDropdown.onchange();
+
+        const plansDiv = document.createElement('div');
+        plansDiv.setAttribute('id', 'mg-algorithm-type-solver-plans');
+        algorithmTypeSolvlerContentDiv.append(plansDiv);
+    };
+
+    /*******************/
+    /* Plugin Explorer */
+    /*******************/
+
+    const pluginExplorerContentDiv = shadow.querySelector('#mg-plugin-explorer-content');
+    removeAllChildNodes(pluginExplorerContentDiv);
+    pluginExplorerContentDiv.classList.add('mg-explorer-tree-widget-container');
+    buildTreeWidget(pluginExplorerContentDiv, pluginData, (name, props) => {
+        return (props.hasOwnProperty('children') && Object.keys(props.children).length === 0) ? `<span style="color: #bbb">${name}</span>` : name;
+    });
+
+    const requestAlgorithmListUpdate = () => sendShadowWebsocketRequest({function: 'list_algorithms', kwargs: {}});
+    shadow.websocket.onopen = () => {
+        requestTranslationGraphAbstractTypeUpdate();
+        requestTypeExplorerUpdate();
+        requestAlgorithmListUpdate();
+        // TODO for the explorer tabs whose data we expect to not change, should we leave them here? Or eagerly determine it and pass it via RESOLVER_DATA? It should all be in the same place.
+    }
+
   })({RESOLVER_DATA})
-  
+
 </script>
