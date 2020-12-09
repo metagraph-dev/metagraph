@@ -399,7 +399,7 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
     )
     unseen_graph = dpr.wrappers.Graph.NetworkXGraph(unseen_nx_graph)
     matrix = mv.transform(
-        dpr.plugins.metagraph_stellargraph.algos.util.graph_sage_node_embedding.apply,
+        dpr.plugins.metagraph_stellargraph.algos.embedding.apply.graph_sage,
         embedding,
         unseen_graph,
         unseen_node_feature_np_matrix,
