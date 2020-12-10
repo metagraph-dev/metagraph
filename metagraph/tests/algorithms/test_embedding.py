@@ -3,6 +3,7 @@ import pytest
 import networkx as nx
 import numpy as np
 import math
+from collections import defaultdict
 
 from . import MultiVerify
 
@@ -485,13 +486,14 @@ def test_line(default_plugin_resolver):
         b_labels = predicted_labels[b_indices]
         c_labels = predicted_labels[c_indices]
 
-        assert len(np.unique(a_labels)) == 1
-        assert len(np.unique(b_labels)) == 1
-        assert len(np.unique(c_labels)) == 1
+        a_label = int(np.median(a_labels))
+        b_label = int(np.median(b_labels))
+        c_label = int(np.median(c_labels))
 
-        a_label = a_labels[0]
-        b_label = b_labels[0]
-        c_label = c_labels[0]
+        assert np.sum(a_labels == a_label) / len(a_labels) > 0.95
+        assert np.sum(b_labels == b_label) / len(b_labels) > 0.95
+        assert np.sum(c_labels == c_label) / len(c_labels) > 0.95
+
         a_variances = np.sum(gmm.covariances_[a_label] * np.eye(embedding_size), axis=0)
         b_variances = np.sum(gmm.covariances_[b_label] * np.eye(embedding_size), axis=0)
         c_variances = np.sum(gmm.covariances_[c_label] * np.eye(embedding_size), axis=0)

@@ -21,13 +21,15 @@ if has_pandas and has_scipy:
             "is_directed"
         ]
         coo_matrix = x.value.tocoo()
-        get_node_from_pos = lambda index: x.node_list[index]
-        row_ids = map(get_node_from_pos, coo_matrix.row)
-        column_ids = map(get_node_from_pos, coo_matrix.col)
-        rcw_triples = zip(row_ids, column_ids, coo_matrix.data)
+        row_ids = x.node_list[coo_matrix.row]
+        column_ids = x.node_list[coo_matrix.col]
+        weights = coo_matrix.data
         if not is_directed:
-            rcw_triples = filter(lambda triple: triple[0] <= triple[1], rcw_triples)
-        df = pd.DataFrame(rcw_triples, columns=["source", "target", "weight"])
+            mask = row_ids <= column_ids
+            row_ids = row_ids[mask]
+            column_ids = column_ids[mask]
+            weights = weights[mask]
+        df = pd.DataFrame({"source": row_ids, "target": column_ids, "weight": weights})
         return PandasEdgeMap(df, is_directed=is_directed)
 
     @translator
@@ -36,11 +38,11 @@ if has_pandas and has_scipy:
             "is_directed"
         ]
         coo_matrix = x.value.tocoo()
-        get_node_from_pos = lambda index: x.node_list[index]
-        row_ids = map(get_node_from_pos, coo_matrix.row)
-        column_ids = map(get_node_from_pos, coo_matrix.col)
-        rc_pairs = zip(row_ids, column_ids)
+        row_ids = x.node_list[coo_matrix.row]
+        column_ids = x.node_list[coo_matrix.col]
         if not is_directed:
-            rc_pairs = filter(lambda pair: pair[0] <= pair[1], rc_pairs)
-        df = pd.DataFrame(rc_pairs, columns=["source", "target"])
+            mask = row_ids <= column_ids
+            row_ids = row_ids[mask]
+            column_ids = column_ids[mask]
+        df = pd.DataFrame({"source": row_ids, "target": column_ids})
         return PandasEdgeSet(df, is_directed=is_directed)
