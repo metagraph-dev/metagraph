@@ -135,10 +135,15 @@ if has_grblas:
     def grblas_totally_induced_edge_sampling(
         graph: GrblasGraph, p: float
     ) -> GrblasGraph:
+        aprops = GrblasGraph.Type.compute_abstract_properties(graph, "is_directed")
+        if not aprops["is_directed"]:
+            # For undirected graphs, cut the probability in half to avoid overcounting edges
+            p /= 2
         rows, cols, vals = graph.value.to_values()
         chosen_indices = np.random.random(len(rows)) < p
         rows = rows[chosen_indices]
         cols = cols[chosen_indices]
-        chosen_nodes = np.intersect1d(rows, cols)
+        chosen_nodes = np.union1d(rows, cols)
         chosen_nodes = gb.Vector.from_values(chosen_nodes, np.ones_like(chosen_nodes))
-        return grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))
+        gg = grblas_extract_subgraph(graph, GrblasNodeSet(chosen_nodes))
+        return gg
