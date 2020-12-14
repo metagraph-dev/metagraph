@@ -51,14 +51,6 @@ Abstract Properties:
 :ConcreteType: ``NumpyMatrixType``
 :value_type: numpy array (2-dimensional) of values
 
-→ Scipy Matrix
-~~~~~~~~~~~~~~
-
-:ConcreteType: ``ScipyMatrixType``
-:value_type: ``scipy.sparse.spmatrix``
-
-Even though this is a ``scipy.sparse`` matrix, all values are present.
-
 
 DataFrame
 ---------
@@ -87,7 +79,7 @@ Abstract Properties:
 
 Standard Wrapper Methods:
 
-- ``num_nodes() -> int``
+- ``__len__() -> int``
 - ``__contains__(NodeID) -> bool``
 
 → Grblas NodeSet
@@ -112,10 +104,8 @@ is that the value is not missing. There is no guarantee of what the value actual
 → Python NodeSet
 ~~~~~~~~~~~~~~~~
 
-:ConcreteType: ``PythonNodeSet.Type``
-:value_type: ``PythonNodeSet``
-:data objects:
-    ``.value``: Python set of NodeIds
+:ConcreteType: ``PythonNodeSetType``
+:value_type: ``set``
 
 
 NodeMap
@@ -133,7 +123,7 @@ Can be translated to:
 
 Standard Wrapper Methods:
 
-- ``num_nodes() -> int``
+- ``__len__() -> int``
 - ``__contains__(NodeID) -> bool``
 - ``__getitem__(NodeID) -> Any``
 
@@ -159,10 +149,8 @@ Standard Wrapper Methods:
 → Python NodeMap
 ~~~~~~~~~~~~~~~~
 
-:ConcreteType: ``PythonNodeMap.Type``
-:value_type: ``PythonNodeMap``
-:data objects:
-    ``.value``: a Python dict mapping NodeID to value
+:ConcreteType: ``PythonNodeMapType``
+:value_type: ``dict``
 
 
 EdgeSet
@@ -181,8 +169,6 @@ Abstract Properties:
 :value_type: ``GrblasEdgeSet``
 :data objects:
     ``.value``: grblas.Matrix representing an adjacency matrix
-
-    ``.transposed``: bool
 
 The indices of the matrix indicate the NodeIDs of the edges.
 
@@ -218,8 +204,6 @@ If ``is_directed`` is False, edges are not duplicated in both directions to save
 
     ``.node_list``: numpy array of NodeIDs corresponding to indices in the matrix
 
-    ``.transposed``: bool
-
 The indices of the matrix do not represent NodeIDs. Instead, they represent positions within
 ``node_list`` which holds the actual NodeIDs. If only ``n`` nodes exist in the edge set,
 the matrix will be ``n x n``.
@@ -249,8 +233,6 @@ Can be translated to:
 :value_type: ``GrblasEdgeMap``
 :data objects:
     ``.value``: grblas.Matrix
-
-    ``.transposed``: bool
 
 The indices of the matrix indicate the NodeIDs of the edges.
 
@@ -285,8 +267,6 @@ If ``is_directed`` is False, edges are not duplicated in both directions to save
     ``.value``: scipy.sparse matrix representing an adjacency matrix
 
     ``.node_list``: numpy array of NodeIDs corresponding to indices in the matrix
-
-    ``.transposed``: bool
 
 The indices of the matrix do not represent NodeIDs. Instead, they represent positions within
 ``node_list`` which holds the actual NodeIDs. If only ``n`` nodes exist in the edge set,
@@ -424,27 +404,3 @@ If any node has a weight, all nodes must have a weight. This includes nodes from
 both node sets 0 and 1.
 
 If any edge has a weight, all edges must have a weight.
-
-
-NodeEmbedding
--------------
-
-Holds an embedding for each node, extracted from a graph.
-Conceptually, this can be thought of as a dense matrix with each row applying to a single NodeID.
-
-Abstract Properties:
-
-- matrix_dtype: ["float", "int", "bool"]
-
-→ NumpyNodeEmbedding
-~~~~~~~~~~~~~~~~~~~~
-
-:ConcreteType: ``NumpyNodeEmbedding.Type``
-:value_type: ``NumpyNodeEmbedding``
-:data objects:
-    ``.matrix``: ``NumpyMatrix``
-
-    ``.nodes``: optional ``NumpyNodeMap``
-
-If ``nodes`` is None, the nodes are assumed to be fully sequential, corresponding to the height
-of the matrix.

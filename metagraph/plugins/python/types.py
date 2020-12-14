@@ -32,8 +32,6 @@ class PythonNodeSetType(ConcreteType, abstract=NodeSet):
 class PythonNodeMapType(ConcreteType, abstract=NodeMap):
     value_type = dict
 
-    saved = {}
-
     @classmethod
     def _compute_abstract_properties(
         cls, obj, props: Set[str], known_props: Dict[str, Any]

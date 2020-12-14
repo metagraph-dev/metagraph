@@ -28,8 +28,8 @@ For example, both of these statements are correct and will yield identical resul
 
 .. code-block:: python
 
-    r.translate(x, r.types.EdgeMap.NetworkXEdgeMapType)
-    r.translate(x, r.wrappers.EdgeMap.NetworkXEdgeMap)
+    r.translate(x, r.types.Graph.NetworkXGraphType)
+    r.translate(x, r.wrappers.Graph.NetworkXGraph)
 
 
 The path that is taken to get from the input object to the desired output may take several
@@ -77,7 +77,7 @@ minimizes the number of translations.
 
 .. code-block:: python
 
-    >>> r.algos.cluster.triangle_count(g)
+    >>> r.algos.clustering.triangle_count(g)
     5
 
 This code compares the type of ``g`` against the concrete algorithms registered for ``triangle_count``.
@@ -112,7 +112,7 @@ For example, the NetworkX version of triangle_count is registered in the ``core_
 
 .. code-block:: python
 
-    >>> r.algos.cluster.triangle_count.core_networkx(g)
+    >>> r.algos.clustering.triangle_count.core_networkx(g)
     5
 
 This will never translate the input and will instead raise an error if ``g`` is not an instance of
@@ -123,7 +123,7 @@ An equivalent spelling when calling exact algorithms is:
 
 .. code-block:: python
 
-    >>> r.plugins.core_networkx.algos.cluster.triangle_count(g)
+    >>> r.plugins.core_networkx.algos.clustering.triangle_count(g)
     5
 
 
@@ -136,16 +136,16 @@ chosen.
 
 .. code-block:: python
 
-    >>> r.plan.algos.cluster.triangle_count(g)
+    >>> r.plan.algos.clustering.triangle_count(g)
     nx_triangle_count
-    (graph: metagraph.plugins.networkx.types.NetworkXEdgeSet) -> int
+    (graph: metagraph.plugins.networkx.types.NetworkXGraph) -> int
     =====================
     Argument Translations
     ---------------------
     ** graph **  [Multi-step Translation]
-    (start)  PandasEdgeMapType
-               -> NetworkXEdgeMapType
-     (end)       -> NetworkXEdgeSetType
+    (start)  GrblasGraphType
+               -> ScipyGraphType
+     (end)       -> NetworkXGraphType
     ---------------------
 
 To see the full list of available concrete algorithms, use the ``signatures`` attribute
@@ -153,12 +153,12 @@ on the algorithm. This will show both the abstract signature as well as all know
 
 .. code-block:: python
 
-    >>> r.algos.cluster.triangle_count.signatures
+    >>> r.algos.clustering.triangle_count.signatures
     Signature:
-        (graph: EdgeSet({'is_directed': False})) -> int
+        (graph: Graph({'is_directed': False})) -> int
     Implementations:
-        {'graph': <class 'metagraph.plugins.scipy.types.ScipyEdgeSet'>, 'return': <class 'int'>}
-        {'graph': <class 'metagraph.plugins.networkx.types.NetworkXEdgeSet'>, 'return': <class 'int'>}
+        {'graph': <class 'metagraph.plugins.scipy.types.ScipyGraph'>, 'return': <class 'int'>}
+        {'graph': <class 'metagraph.plugins.networkx.types.NetworkXGraph'>, 'return': <class 'int'>}
 
 
 Default Resolver

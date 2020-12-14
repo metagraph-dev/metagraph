@@ -40,7 +40,7 @@ Let's assume that our plugin is implemented as a module named ``my_module.py``:
         def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> PythonNodeMap:
             idx, vals = x.value.to_values()
             data = dict(zip(idx, vals))
-            return PythonNodeMap(data)
+            return data
 
 For the sake of simplicity, our plugin implemented by ``my_module.py`` only contains one translator
 (named ``nodemap_from_graphblas``) that translates a Graphblas node map to a Python node map.
