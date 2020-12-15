@@ -3,6 +3,7 @@ import math
 import itertools
 from metagraph import ConcreteType
 from metagraph.core.resolver import Resolver, Dispatcher, ExactDispatcher
+from metagraph.core.dask.resolver import DaskResolver
 from dask import is_dask_collection
 import warnings
 
@@ -137,9 +138,11 @@ class MultiVerify:
                 raise TypeError(
                     f'Invalid argument "{name}"; may not be a MultiResult. Use `.transform` instead.'
                 )
-        args, kwargs = self.resolver._check_algorithm_signature(
-            abst_algo.name, *args, **kwargs
-        )
+        # Unless we're in dask mode, verify the abstract properties
+        if not isinstance(self.resolver, DaskResolver):
+            args, kwargs = self.resolver._check_algorithm_signature(
+                abst_algo.name, *args, **kwargs
+            )
 
         all_concrete_algos = set(self.resolver.concrete_algorithms[algo])
         if not all_concrete_algos:

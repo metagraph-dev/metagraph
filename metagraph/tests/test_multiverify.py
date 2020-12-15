@@ -3,6 +3,7 @@ import pytest
 grblas = pytest.importorskip("grblas")
 
 from metagraph.core.resolver import Resolver
+from metagraph.core.dask.resolver import DaskResolver
 from metagraph.core.multiverify import (
     MultiVerify,
     MultiResult,
@@ -125,8 +126,12 @@ def test_compute(default_plugin_resolver):
     ):
         mv.compute("util.nodemap.select", None, mr)
 
-    with pytest.raises(TypeError, match="must be of type"):
-        mv.compute("util.nodemap.select", 1, 2)
+    if isinstance(dpr, DaskResolver):
+        with pytest.raises(UnsatisfiableAlgorithmError, match="No plan found for"):
+            mv.compute("util.nodemap.select", 1, 2)
+    else:
+        with pytest.raises(TypeError, match="must be of type"):
+            mv.compute("util.nodemap.select", 1, 2)
 
 
 def test_transform(default_plugin_resolver):
