@@ -125,7 +125,7 @@ def test_compute(default_plugin_resolver):
     ):
         mv.compute("util.nodemap.select", None, mr)
 
-    with pytest.raises(UnsatisfiableAlgorithmError, match="No plan found"):
+    with pytest.raises(TypeError, match="must be of type"):
         mv.compute("util.nodemap.select", 1, 2)
 
 

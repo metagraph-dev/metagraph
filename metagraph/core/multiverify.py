@@ -137,6 +137,9 @@ class MultiVerify:
                 raise TypeError(
                     f'Invalid argument "{name}"; may not be a MultiResult. Use `.transform` instead.'
                 )
+        args, kwargs = self.resolver._check_algorithm_signature(
+            abst_algo.name, *args, **kwargs
+        )
 
         all_concrete_algos = set(self.resolver.concrete_algorithms[algo])
         if not all_concrete_algos:

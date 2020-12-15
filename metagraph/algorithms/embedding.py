@@ -65,7 +65,7 @@ def hope_katz_train(
 
 @abstract_algorithm("embedding.train.graph_sage.mean")
 def graph_sage_mean_train(
-    graph: Graph(edge_type="map", is_directed=True),
+    graph: Graph(edge_type="map"),
     node_features: Matrix,
     node2row: NodeMap,
     walk_length: int,
