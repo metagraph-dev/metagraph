@@ -56,7 +56,7 @@ Here is basic Metagraph code to translate between types:
 
         x = res.wrappers.NodeMap.NumpyNodeMap(np.array([5, 4, 3, 2, 1]))
         y = res.translate(x, res.types.NodeMap.PythonNodeMapType)
-        y.value
+        y
 
     {0: 5, 1: 4, 2: 3, 3: 2, 4: 1}
 
@@ -81,7 +81,7 @@ but it hasn't been computed yet. To do that, call ``.compute()`` on the object.
 \
     .. code-block:: python
 
-        y.compute().value
+        y.compute()
 
     {0: 5, 1: 4, 2: 3, 3: 2, 4: 1}
 
@@ -127,7 +127,7 @@ This is an example of chained operations showing how Placeholders function:
         print(type(y))
         z = dres.algos.util.nodemap.apply(y, lambda n: n * n)
         print(type(z))
-        z.compute().value
+        z.compute()
 
     | <class 'types.PythonNodeMapTypePlaceholder'>
     | <class 'types.PythonNodeMapTypePlaceholder'>

@@ -117,17 +117,17 @@ def test_katz_centrality(default_plugin_resolver):
     """
     dpr = default_plugin_resolver
     networkx_graph_data = [
-        (0, 1),
-        (0, 2),
-        (2, 0),
-        (1, 2),
-        (1, 5),
-        (3, 2),
-        (3, 4),
-        (5, 4),
+        (0, 1, 1),
+        (0, 2, 1),
+        (2, 0, 1),
+        (1, 2, 1),
+        (1, 5, 1),
+        (3, 2, 1),
+        (3, 4, 1),
+        (5, 4, 1),
     ]
     networkx_graph = nx.DiGraph()
-    networkx_graph.add_edges_from(networkx_graph_data)
+    networkx_graph.add_weighted_edges_from(networkx_graph_data)
     expected_val = {
         0: 0.4069549895218489,
         1: 0.40687482321632046,
@@ -156,9 +156,9 @@ def test_pagerank_centrality(default_plugin_resolver):
     +-+  -->  +-+       +-+
     """
     dpr = default_plugin_resolver
-    networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
+    networkx_graph_data = [(0, 1, 1), (0, 2, 1), (2, 0, 1), (1, 2, 1), (3, 2, 1)]
     networkx_graph = nx.DiGraph()
-    networkx_graph.add_edges_from(networkx_graph_data)
+    networkx_graph.add_weighted_edges_from(networkx_graph_data)
     expected_val = {
         0: 0.37252685132844066,
         1: 0.19582391181458728,

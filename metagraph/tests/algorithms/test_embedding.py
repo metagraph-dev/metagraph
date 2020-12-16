@@ -229,7 +229,7 @@ def test_hope_katz(default_plugin_resolver):
     nx_graph.add_edge(b_end_node + number_of_bridging_nodes, center_node_id)
 
     # Verify Results
-
+    nx.set_edge_attributes(nx_graph, 1, "weight")
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
     embedding_size = 24
     beta = 0.1
@@ -339,6 +339,7 @@ The test verifies for the testing graph that the 20 nearest neighbors in the emb
     nx_graph.add_edge(9999_29_00, 29)
     nx_graph.add_edge(9999_29_00, 0)
 
+    nx.set_edge_attributes(nx_graph, 1, "weight")
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
     mv = MultiVerify(dpr)

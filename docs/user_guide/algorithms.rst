@@ -23,7 +23,7 @@ Abstract algorithm definitions look like this.
 .. code-block:: python
 
     @abstract_algorithm("clustering.strongly_connected_components")
-    def strongly_connected_components(graph: EdgeSet(is_directed=True)) -> NodeMap:
+    def strongly_connected_components(graph: Graph(is_directed=True)) -> NodeMap:
         pass
 
 The ``abstract_algorithm`` decorator is required. The full path of the algorithm is passed to
@@ -56,12 +56,12 @@ Concrete algorithm definitions look like this.
 .. code-block:: python
 
     @concrete_algorithm("clustering.strongly_connected_components")
-    def nx_strongly_connected_components(graph: NetworkXEdgeSet) -> PythonNodeMap:
+    def nx_strongly_connected_components(graph: NetworkXGraph) -> PythonNodeMapType:
         index_to_label = dict()
         for i, nodes in enumerate(nx.strongly_connected_components(graph.value)):
             for node in nodes:
                 index_to_label[node] = i
-        return PythonNodeMap(index_to_label)
+        return index_to_label
 
 The ``concrete_algorithm`` decorator is required. The full path of the algorithm must match
 the abstract algorithm's path exactly. This is the piece that links the concrete version to
@@ -99,11 +99,11 @@ in the signature.
         # resolver is now available
 
 
-Union and Optional types
-------------------------
+Union, List, and Optional types
+-------------------------------
 
 Typically, an algorithm parameter has a single type -- either a Metagraph defined type like
-``NodeMap`` or a Python type list ``int``.
+``NodeMap`` or a Python type like ``int``.
 
 There are cases, however, where a single type is not sufficient. ``graph_build`` is a good example
 as shown below:
@@ -123,9 +123,9 @@ types, but can additionally be unspecified (i.e. optional).
 To indicate these, we use the standard Python ``typing`` objects ``Union`` and ``Optional``. However,
 these are limited to class objects only. In Metagraph, we often need to specialize our types --
 ``EdgeSet(is_directed=True)`` rather than just ``EdgeSet``. For the specialized case, the regular
-Python ``typing.Union`` would fail. To work around this limitation, Metagraph has ``mg.Union`` and
+Python ``typing.Union`` would fail. To work around this limitation, Metagraph has ``mg.Union``, ``mg.List``, and
 ``mg.Optional`` which behave identically to the ``typing`` counterparts, but accept classes and instances.
-It is recommended to always use the Metagraph versions of ``Union`` and ``Optional`` when
+It is recommended to always use the Metagraph versions of ``Union``, ``List``, and ``Optional`` when
 defining algorithms in Metagraph.
 
 Interaction between Union and unambiguous_subcomponents
@@ -155,7 +155,7 @@ of the algorithm. To indicate other versions, include the version in the decorat
 .. code-block:: python
 
     @abstract_algorithm("clustering.strongly_connected_components", version=2)
-    def strongly_connected_components(graph: EdgeSet(is_directed=True)) -> NodeMap:
+    def strongly_connected_components(graph: Graph(is_directed=True)) -> NodeMap:
         pass
 
 The algorithm version must be an integer (i.e. no semantic versioning) and should increment one

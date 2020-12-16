@@ -58,7 +58,11 @@ def hits_centrality(
     tolerance: float = 1e-05,
     normalize: bool = True,
 ) -> Tuple[NodeMap, NodeMap]:
-    """Return (hubs, authority)"""
+    """
+    Hyperlink-Induced Topic Search (HITS) algorithm
+
+    Returns (hubs, authority)
+    """
     pass  # pragma: no cover
 
 

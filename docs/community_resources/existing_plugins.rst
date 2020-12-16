@@ -18,3 +18,6 @@ Plugins we know about
 
   - `metagraph-cuda <https://github.com/metagraph-dev/metagraph-cuda>`__
   - `metagraph-igraph <https://github.com/metagraph-dev/metagraph-igraph>`__
+  - `metagraph-karateclub <https://github.com/metagraph-dev/metagraph-karateclub>`__
+  - `metagraph-stellargraph <https://github.com/metagraph-dev/metagraph-stellargraph>`__
+  - `metagraph-cogdl <https://github.com/metagraph-dev/metagraph-cogdl>`__

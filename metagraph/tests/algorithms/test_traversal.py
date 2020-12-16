@@ -459,6 +459,7 @@ def test_astar(default_plugin_resolver):
         neighbors = filter(lambda neighbor: neighbor in nodes, neighbors)
         for neighbor in neighbors:
             nx_graph.add_edge(node2id(node), node2id(neighbor))
+    nx.set_edge_attributes(nx_graph, 1, "weight")
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
 
     def distance_func(src_id):

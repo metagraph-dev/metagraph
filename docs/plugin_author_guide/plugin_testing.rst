@@ -45,22 +45,21 @@ Here's an example:
 .. code-block:: python
 
     import metagraph as mg
-    from metagraph.plugins.python.types import PythonNodeMap
+    from metagraph.plugins.python.types import PythonNodeMapType
     from metagraph.plugins.numpy.types import NumpyNodeMap
 
-    def test_python_2_compactnumpy():
+    def test_python_2_numpy():
         r = mg.resolver
-        x = PythonNodeMap({0: 12.5, 1: 33.4, 42: -1.2})
-        assert x.num_nodes == 3
+        x = {0: 12.5, 1: 33.4, 42: -1.2}
 
         # Convert python -> numpy
-        intermediate = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), node_ids=np.array([0, 1, 42]))
+        intermediate = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), nodes=np.array([0, 1, 42]))
 
         y = r.translate(x, NumpyNodeMap)
         r.assert_equal(y, intermediate)
 
         # Convert python <- numpy
-        x2 = r.translate(y, PythonNodeMap)
+        x2 = r.translate(y, PythonNodeMapType)
         r.assert_equal(x, x2)
 
 Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ node map and back again.
@@ -169,13 +168,12 @@ Here's an example:
     networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
     networkx_graph = nx.DiGraph()
     networkx_graph.add_edges_from(networkx_graph_data)
-    data = {
+    expected_val = {
         0: 0.37252685132844066,
         1: 0.19582391181458728,
         2: 0.3941492368569718,
         3: 0.037500000000000006,
     }
-    expected_val = r.wrappers.NodeMap.PythonNodeMap(data)
     graph = r.wrappers.Graph.NetworkXGraph(networkx_graph)
 
     MultiVerify(r).compute(
@@ -227,18 +225,18 @@ Here's an example of how ``custom_compare`` might be used to verify reasonable c
 
     def cmp_func(x):
         x_graph, modularity_score = x
-        assert x_graph.num_nodes == 8, x_graph.num_nodes
+        assert len(x_graph) == 8, len(x_graph)
         assert modularity_score > 0.45
 
     results = MultiVerify(r).compute("clustering.louvain_community", graph)
-    results.normalize(r.types.NodeMap.PythonNodeMap).custom_compare(cmp_func)
+    results.normalize(r.types.NodeMap.PythonNodeMapType).custom_compare(cmp_func)
 
 ``custom_compare`` takes a comparison function (in this example ``cmp_func``). The comparison function is passed the output
 of each concrete algorithm and verifies expected behavior.
 
 To ensure that the comparison function only has to deal with a single type, ``normalize`` is typically called prior
 to calling ``custom_compare``. In this case, the normalization is not strictly necessary as all ``NodeMap`` objects
-have a ``.num_nodes`` property.
+have a ``__len__`` property.
 
 In this example, ``cmp_func`` simply takes the modularity score and verifies that it is above a selected threshold.
 
@@ -287,8 +285,8 @@ Here is an example for max flow:
 
     # These are the elements of the result which *are* deterministic
     expected_flow_value = 6
-    bottleneck_nodes = dpr.wrappers.NodeSet.PythonNodeSet({2, 4})
-    expected_nodemap = dpr.wrappers.NodeMap.PythonNodeMap({2: 6, 4: 6})
+    bottleneck_nodes = {2, 4}
+    expected_nodemap = {2: 6, 4: 6}
 
     mv = MultiVerify(dpr)
     results = mv.compute("flow.max_flow", graph, source_node=0, target_node=7)

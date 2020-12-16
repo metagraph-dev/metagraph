@@ -242,7 +242,8 @@ Here's an example translator:
     def nodemap_from_graphblas(x: GrblasNodeMap, **props) -> PythonNodeMap:
         idx, vals = x.value.to_values()
         data = dict(zip(idx, vals))
-        return PythonNodeMap(data)
+        # Python dict is the correct value_type for PythonNodeMap, so no need to wrap it
+        return data
 
 The implementation of translators should be as complicated as required to adequately convert from any version of
 one type into another type. In many cases, however, the logic can be very simple, as is the case in this example.
