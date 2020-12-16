@@ -168,7 +168,7 @@ class RoundTripper:
             ), f"Translation from {target} to {ct_obj} returned an object of type {ct_unverified}"
             assert (
                 aprops_unverified == aprops_obj
-            ), f"Translated object of type {ct_unverified} has wrong properties {aprops_unverified}"
+            ), f"Translated object of type {ct_unverified} has wrong properties {aprops_unverified} (expected {aprops_obj})"
             # Verify equal to `obj`
             waypoints = [prep_plan.src_type] + prep_plan.dst_types
             waypoints = waypoints[:-1] + [source, target] + return_plan.dst_types
