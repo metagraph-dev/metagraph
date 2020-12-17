@@ -130,7 +130,7 @@ if has_scipy and has_pandas:
         matrix = ss.coo_matrix(
             (weights, (source_positions, target_positions)),
             shape=(num_nodes, num_nodes),
-        ).tocsr()
+        )
         return ScipyEdgeMap(matrix, node_list, aprops={"is_directed": is_directed})
 
     @translator
@@ -152,5 +152,5 @@ if has_scipy and has_pandas:
         matrix = ss.coo_matrix(
             (np.ones(len(source_positions)), (source_positions, target_positions)),
             shape=(num_nodes, num_nodes),
-        ).tocsr()
+        )
         return ScipyEdgeSet(matrix, node_list, aprops={"is_directed": is_directed})

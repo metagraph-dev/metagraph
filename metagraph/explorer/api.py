@@ -471,4 +471,4 @@ def solve_algorithm(
                             },
                         }
                         break
-        return solutions
+    return solutions
