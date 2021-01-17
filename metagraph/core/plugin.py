@@ -632,3 +632,39 @@ def concrete_algorithm(
 
     _concrete_decorator.version = version
     return _concrete_decorator
+
+
+class Compiler:
+    """A compiler plugin can fuse a task subgraph into a single operation.
+
+    Generally compilation is done with a JIT compiler, but that is not required.
+    Compilers will only be asked to compile task graphs which contain concrete
+    implementations which are tagged as compilable with this compiler.
+    """
+
+    def __init__(self, name: str):
+        """Create a compiler with given name.
+
+        The name will be used as a key to match with the compilable concrete
+        implementations.
+        """
+        self.name = name
+
+    def initialize_runtime(self):
+        """Initialize any resources or devices required before this compiler
+        target can be used.
+
+        This will be called once before ``compile()`` is called.
+        """
+        pass
+
+    def teardown_runtime(self):
+        """Shutdown and free any runtime resources reserved by this compiler.
+
+        Not guaranteed to be called before process exit, and should be safe to
+        call multiple times.
+        """
+        pass
+
+    def compile(self, subgraph: Dict, inputs: List[str]):
+        raise NotImplementedError("all compiler plugins must implement compile()")

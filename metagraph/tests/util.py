@@ -200,6 +200,34 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
     return d
 
 
+class FailCompiler(plugin.Compiler):
+    """This compiler always fails to compile every subgraph.
+
+    The result will be no changes to the DAG.
+
+    Includes some useful attributes for testing:
+
+      initialize_runtime_calls: int - number of initialize_runtime() calls
+      teardown_runtime_calls: int - number of teardown_runtime() calls
+      compile_calls: List[Dict[str, Any]] - List of arguments to compile() calls
+    """
+
+    def __init__(self, name="fail"):
+        self.initialize_runtime_calls = 0
+        self.teardown_runtime_calls = 0
+        self.compile_calls = []
+        super().__init__(name=name)
+
+    def initialize_runtime(self):
+        self.initialize_runtime_calls += 1
+
+    def teardown_runtime(self):
+        self.teardown_runtime_calls += 1
+
+    def compile(**kwargs):
+        self.compile_calls.append(kwargs)
+
+
 # Handy for manual testing
 def make_example_resolver():
     res = Resolver()
@@ -224,6 +252,7 @@ def make_example_resolver():
                     simple_echo,
                     simple_odict_rev,
                 },
+                "compilers": {FailCompiler(),},
             }
         }
     )

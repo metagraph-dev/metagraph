@@ -25,6 +25,7 @@ from .plugin import (
     Translator,
     AbstractAlgorithm,
     ConcreteAlgorithm,
+    Compiler,
 )
 from .planning import MultiStepTranslator, AlgorithmPlan, TranslationMatrix
 from .entrypoints import load_plugins
@@ -137,6 +138,7 @@ class Resolver:
         self.abstract_types: Set[AbstractType] = set()
         self.concrete_types: Set[ConcreteType] = set()
         self.translators: Dict[Tuple[ConcreteType, ConcreteType], Translator] = {}
+        self.compilers: Dict[str, Compiler] = {}
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
@@ -191,6 +193,7 @@ class Resolver:
             "translators",
             "abstract_algorithms",
             "concrete_algorithms",
+            "compilers",
         )
         items_by_plugin = {"all": defaultdict(set)}
         for plugin_name, plugin in plugins_by_name.items():
@@ -240,6 +243,7 @@ class Resolver:
         translators: Set[Translator] = set(),
         abstract_algorithms: Set[AbstractAlgorithm] = set(),
         concrete_algorithms: Set[ConcreteAlgorithm] = set(),
+        compilers: Set[Compiler] = set(),
         plugin_name: Optional[str] = None,
     ):
         tree_is_resolver = self is tree
@@ -434,6 +438,16 @@ class Resolver:
                             f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
                             + message
                         )
+
+        if tree_is_resolver:
+            for compiler in compilers:
+                if compiler.name in tree.compilers:
+                    existing_compiler = tree.compilers[compiler.name]
+                    raise ValueError(
+                        f"Cannot register compiler named '{compiler.name}' from {compiler.__class__}\n"
+                        f" when {existing_compiler.__class__} has already been registered with the same name."
+                    )
+                tree.compilers[compiler.name] = compiler
 
     def _check_abstract_type(self, abst_algo, obj, msg):
         if obj is Any or obj is NodeID:

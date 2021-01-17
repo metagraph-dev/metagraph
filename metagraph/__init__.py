@@ -11,6 +11,7 @@ from .core.plugin import (
     translator,
     abstract_algorithm,
     concrete_algorithm,
+    Compiler,
 )
 from .core import dtypes
 from .core.plugin_registry import PluginRegistry

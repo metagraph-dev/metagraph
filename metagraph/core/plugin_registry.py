@@ -6,6 +6,7 @@ from .plugin import (
     Translator,
     AbstractAlgorithm,
     ConcreteAlgorithm,
+    Compiler,
 )
 from collections import defaultdict
 from functools import reduce
@@ -24,7 +25,7 @@ class PluginRegistry:
     # /plugins.py
     registry = metagraph.plugin_registry.PluginRegistry()
     def find_plugins():
-        from . import graphblas, 
+        from . import graphblas,
         registry.register_from_modules(metagraph.types, metagraph.algorithms)
         registry.register_from_modules(graphblas, name="core_graphblas")
         ...
@@ -113,6 +114,8 @@ class PluginRegistry:
                 _add_obj(name, "abstract_algorithms", obj)
             elif isinstance(obj, ConcreteAlgorithm):
                 _add_obj(name, "concrete_algorithms", obj)
+            elif isinstance(obj, Compiler):
+                _add_obj(name, "compilers", obj)
             else:
                 raise PluginRegistryError(
                     f"Invalid object for plugin registry: {type(obj)}"
@@ -157,7 +160,7 @@ class PluginRegistry:
                     ):
                         self.register(val, name)
                 elif isinstance(
-                    val, (Translator, ConcreteAlgorithm, AbstractAlgorithm)
+                    val, (Translator, ConcreteAlgorithm, AbstractAlgorithm, Compiler)
                 ):
                     # if val.__wrapped__.__module__.startswith(base_name):  # maybe?
                     self.register(val, name)
