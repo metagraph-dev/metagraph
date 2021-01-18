@@ -3,7 +3,7 @@
 import types
 import inspect
 from functools import partial
-from typing import Callable, List, Dict, Set, Union, Any
+from typing import Callable, List, Dict, Set, Union, Any, Optional
 from .typecache import TypeCache, TypeInfo
 
 
@@ -595,11 +595,13 @@ class ConcreteAlgorithm:
         *,
         version: int = 0,
         include_resolver: bool = False,
+        compiler: Optional[str] = None,
     ):
         self.func = func
         self.abstract_name = abstract_name
         self.version = version
         self._include_resolver = include_resolver
+        self._compiler = compiler
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
@@ -607,6 +609,11 @@ class ConcreteAlgorithm:
         self.__signature__ = normalize_signature(self.__original_signature__)
 
     def __call__(self, *args, resolver=None, **kwargs):
+        if self._compiler is not None:
+            raise RuntimeError(
+                f"Cannot call {self.__name__} directly.  This algorithm must be compiled by the resolver."
+            )
+
         if self._include_resolver:
             if resolver is None:
                 raise ValueError(
@@ -620,7 +627,11 @@ class ConcreteAlgorithm:
 
 
 def concrete_algorithm(
-    abstract_name: str, *, version: int = 0, include_resolver: bool = False
+    abstract_name: str,
+    *,
+    version: int = 0,
+    include_resolver: bool = False,
+    compiler: Optional[str] = None,
 ):
     def _concrete_decorator(func: Callable):
         return ConcreteAlgorithm(
@@ -628,6 +639,7 @@ def concrete_algorithm(
             abstract_name=abstract_name,
             version=version,
             include_resolver=include_resolver,
+            compiler=compiler,
         )
 
     _concrete_decorator.version = version

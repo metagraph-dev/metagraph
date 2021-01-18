@@ -1,5 +1,5 @@
 import pytest
-from metagraph.core.plugin import Compiler
+from metagraph import Compiler, abstract_algorithm, concrete_algorithm, PluginRegistry
 from metagraph.tests.util import example_resolver, FailCompiler
 
 
@@ -28,3 +28,24 @@ def test_compiler_registry(example_resolver):
 
     with pytest.raises(ValueError, match="named 'fail'") as e:
         res.register({"redundant_plugin": {"compilers": {FailCompiler()}}})
+
+
+def test_register_algorithm(example_resolver):
+    res = example_resolver
+
+    @abstract_algorithm("testing.add_two")
+    def add_two(x: int) -> int:  # pragma: no cover
+        pass
+
+    @concrete_algorithm("testing.add_two", compiler="fail")
+    def add_two_c(x: int) -> int:  # pragma: no cover
+        return x + 2
+
+    with pytest.raises(RuntimeError, match="Cannot call"):
+        add_two_c(4)
+
+    registry = PluginRegistry("test_register_algorithm")
+    registry.register(add_two)
+    registry.register(add_two_c)
+
+    example_resolver.register(registry.plugins)
