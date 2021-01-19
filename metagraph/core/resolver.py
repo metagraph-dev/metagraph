@@ -26,6 +26,7 @@ from .plugin import (
     AbstractAlgorithm,
     ConcreteAlgorithm,
     Compiler,
+    CompileError,
 )
 from .planning import MultiStepTranslator, AlgorithmPlan, TranslationMatrix
 from .entrypoints import load_plugins
@@ -979,6 +980,22 @@ class Resolver:
             )
         else:
             return plan(*args, **kwargs)
+
+    def compile_algorithm(
+        self, concrete_algo: ConcreteAlgorithm, literals: Dict[str, Any] = None
+    ) -> Callable:
+        compiler_name = concrete_algo._compiler
+        if compiler_name is None:
+            raise CompileError(
+                f"Concrete algorithm '{concrete_algo.__name__}' is not compilable"
+            )
+
+        compiler = self.compilers.get(compiler_name, None)
+        if compiler is None:
+            raise CompileError(f"Required compiler '{compiler_name}' not found")
+
+        func = compiler.compile_algorithm(concrete_algo, literals=literals)
+        return func
 
 
 class Dispatcher:

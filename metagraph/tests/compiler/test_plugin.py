@@ -1,5 +1,6 @@
 import pytest
 from metagraph import Compiler, abstract_algorithm, concrete_algorithm, PluginRegistry
+from metagraph.core.plugin import CompileError
 from metagraph.tests.util import example_resolver, FailCompiler
 
 
@@ -16,7 +17,10 @@ def test_implementation_errors():
     c.teardown_runtime()
 
     with pytest.raises(NotImplementedError) as e:
-        c.compile(subgraph={}, inputs=[])
+        c.compile_algorithm(algo=None)
+
+    with pytest.raises(NotImplementedError) as e:
+        c.compile_subgraph(subgraph={}, inputs=[], output=None)
 
 
 def test_compiler_registry(example_resolver):
@@ -41,7 +45,7 @@ def test_register_algorithm(example_resolver):
     def add_two_c(x: int) -> int:  # pragma: no cover
         return x + 2
 
-    with pytest.raises(RuntimeError, match="Cannot call"):
+    with pytest.raises(CompileError, match="Cannot call"):
         add_two_c(4)
 
     registry = PluginRegistry("test_register_algorithm")

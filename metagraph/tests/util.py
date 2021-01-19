@@ -200,22 +200,22 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
     return d
 
 
-class FailCompiler(plugin.Compiler):
-    """This compiler always fails to compile every subgraph.
+class TracingCompiler(plugin.Compiler):
+    """This compiler traces every call.  Use as subclass for test compilers.
 
-    The result will be no changes to the DAG.
-
-    Includes some useful attributes for testing:
+    Attributes:
 
       initialize_runtime_calls: int - number of initialize_runtime() calls
       teardown_runtime_calls: int - number of teardown_runtime() calls
-      compile_calls: List[Dict[str, Any]] - List of arguments to compile() calls
+      compile_algorithm_calls: List[Dict[str, Any]] - List of arguments to compile_algorithm() calls
+      compile_subgraph_calls: List[Dict[str, Any]] - List of arguments to compile_subgraph() calls
     """
 
-    def __init__(self, name="fail"):
+    def __init__(self, name):
         self.initialize_runtime_calls = 0
         self.teardown_runtime_calls = 0
-        self.compile_calls = []
+        self.compile_algorithm_calls = []
+        self.compile_subgraph_calls = []
         super().__init__(name=name)
 
     def initialize_runtime(self):
@@ -224,8 +224,45 @@ class FailCompiler(plugin.Compiler):
     def teardown_runtime(self):
         self.teardown_runtime_calls += 1
 
-    def compile(**kwargs):
-        self.compile_calls.append(kwargs)
+    def compile_algorithm(self, *args, **kwargs):
+        self.compile_algorithm_calls.append((args, kwargs))
+
+    def compile_subgraph(self, *args, **kwargs):
+        self.compile_subgraph_calls.append((args, kwargs))
+
+
+class FailCompiler(TracingCompiler):
+    """This compiler always fails to compile every subgraph and function.
+    """
+
+    def __init__(self, name="fail"):
+        super().__init__(name=name)
+
+    def compile_algorithm(self, *args, **kwargs):
+        super().compile_algorithm(**kwargs)
+        raise CompileError("'fail' compiler always fails")
+
+    def compile_subgraph(self, *args, **kwargs):
+        super().compile_subgraph(**kwargs)
+        raise CompileError("'fail' compiler always fails")
+
+
+class IdentityCompiler(TracingCompiler):
+    """This compiler returns functions unchanged.
+    """
+
+    def __init__(self, name="identity"):
+        super().__init__(name=name)
+
+    def compile_algorithm(self, algo, literals):
+        super().compile_algorithm(algo, literals)
+        return algo.func
+
+    def compile_subgraph(self, *args, **kwargs):
+        super().compile_subgraph(*args, **kwargs)
+        raise CompileError(
+            "'identity' compiler has not implemented compile_subgraph yet"
+        )
 
 
 # Handy for manual testing
@@ -252,7 +289,7 @@ def make_example_resolver():
                     simple_echo,
                     simple_odict_rev,
                 },
-                "compilers": {FailCompiler(),},
+                "compilers": {FailCompiler(), IdentityCompiler()},
             }
         }
     )

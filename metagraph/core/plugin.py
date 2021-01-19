@@ -602,6 +602,7 @@ class ConcreteAlgorithm:
         self.version = version
         self._include_resolver = include_resolver
         self._compiler = compiler
+        self._compiled_func = None
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
@@ -610,9 +611,19 @@ class ConcreteAlgorithm:
 
     def __call__(self, *args, resolver=None, **kwargs):
         if self._compiler is not None:
-            raise RuntimeError(
-                f"Cannot call {self.__name__} directly.  This algorithm must be compiled by the resolver."
-            )
+            if self._compiled_func is not None:
+                func = self._compiled_func
+            elif resolver is not None:
+                func = resolver.compile_algorithm(
+                    self, literals={}
+                )  # TODO: pass literals here
+                self._compiled_func = func
+            else:
+                raise CompileError(
+                    f"Cannot call {self.__name__} without a 'resolver' argument to generate compiled function."
+                )
+        else:
+            func = self.func
 
         if self._include_resolver:
             if resolver is None:
@@ -621,9 +632,9 @@ class ConcreteAlgorithm:
                 )
             if hasattr(resolver, "_resolver"):  # DaskResolver
                 resolver = resolver._resolver
-            return self.func(*args, resolver=resolver, **kwargs)
+            return func(*args, resolver=resolver, **kwargs)
         else:
-            return self.func(*args, **kwargs)
+            return func(*args, **kwargs)
 
 
 def concrete_algorithm(
@@ -644,6 +655,12 @@ def concrete_algorithm(
 
     _concrete_decorator.version = version
     return _concrete_decorator
+
+
+class CompileError(Exception):
+    """An error when compiling a concrete algorithm."""
+
+    pass
 
 
 class Compiler:
@@ -678,5 +695,24 @@ class Compiler:
         """
         pass
 
-    def compile(self, subgraph: Dict, inputs: List[str]):
-        raise NotImplementedError("all compiler plugins must implement compile()")
+    def compile_algorithm(
+        self, algo: ConcreteAlgorithm, literals: Dict[str, Any] = None
+    ) -> Callable:
+        """Compile concrete algorithm to a callable that matches its function signature.
+        
+        If any literal values (Python ints, strings, etc) should be frozen at compile time,
+        they are passed in the literals dict.
+        """
+        raise NotImplementedError(
+            "all compiler plugins must implement compile_algorithm()"
+        )
+
+    def compile_subgraph(
+        self, subgraph: Dict, inputs: List[str], output: str
+    ) -> Callable:
+        """Compile a subgraph of compilable functions into a single callable with
+        inputs in the order listed, returning output value.
+        """
+        raise NotImplementedError(
+            "all compiler plugins must implement compile_subgraph()"
+        )
