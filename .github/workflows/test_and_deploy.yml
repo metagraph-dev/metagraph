@@ -43,9 +43,13 @@ jobs:
           pytest metagraph
           pytest metagraph --dask --cov-append
       - name: Coveralls
-        uses: AndreMiras/coveralls-python-action@develop
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          source "$CONDA/etc/profile.d/conda.sh"
+          conda activate mg
+          conda install -c conda-forge coveralls
+          coveralls --service=github
       - name: Conda Build
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
