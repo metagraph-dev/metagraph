@@ -170,6 +170,11 @@ def test_pagerank_centrality(default_plugin_resolver):
         dpr.algos.centrality.pagerank, graph, tolerance=1e-7
     ).assert_equal(expected_val, rel_tol=1e-5)
 
+    # Test that hitting maxiter doesn't raise error
+    MultiVerify(dpr).compute(
+        dpr.algos.centrality.pagerank, graph, tolerance=1e-9, maxiter=2
+    )
+
 
 def test_closeness_centrality(default_plugin_resolver):
     dpr = default_plugin_resolver
