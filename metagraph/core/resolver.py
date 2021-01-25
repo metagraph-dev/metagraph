@@ -242,9 +242,20 @@ class Resolver:
         concrete_algorithms: Set[ConcreteAlgorithm] = set(),
         plugin_name: Optional[str] = None,
     ):
+        """
+        This method is intended to register attributes for a tree, which is either a resolver or a plugin in a resolver.
+        """
+
+        # tree_is_resolver is used to avoid raising exceptions when attributes (e.g. abstract algorithms, concrete types,
+        # translators, etc.) are redundantly registered. Exceptions should only be raised when they're redundantly registered
+        # on the resolver. We'll necessarily have to redundantly register certain attributes when we're registering them on
+        # a plugin since they'll already have been registered in the resolver.
         tree_is_resolver = self is tree
         tree_is_plugin = plugin_name is not None
-        if not (tree_is_resolver or tree_is_plugin):
+
+        if not (tree_is_resolver ^ tree_is_plugin):
+            # the tree must either be a resolver or plugin (but not both)
+            # if it's a plugin, then this method assumes plugin_name is provided (i.e. is not None).
             raise ValueError("{tree} not known to be the resolver or a plugin.")
 
         for at in abstract_types:
@@ -436,6 +447,11 @@ class Resolver:
                         )
 
     def _check_abstract_type(self, abst_algo, obj, msg):
+        """
+        This is a helper for _normalize_abstract_algorithm_signature.
+        If we have an abstract algorithm declaration like "abstract_algo_name(graph: Graph(is_directed=False))", 
+        this method does the actual "instantiation" of a type declaration like "Graph(is_directed=False)" into an actual type.
+        """
         if obj is Any or obj is NodeID:
             return obj, False
 
@@ -478,6 +494,13 @@ class Resolver:
 
     def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
         """
+        This method "normalizes" the parameter types in the abstract algorithm signature.
+        "Normalizes" means:
+            * A parameter and its type is typically declared like "abstract_algo_name(graph: Graph(is_directed=False))"
+            * This method "executes" or instantiates the type declaration "Graph(is_directed=False)" to create an actual type.
+        This method also does the same with the concrete and abstract return types.
+        This method handles "combination" types as well.
+        
         Convert all AbstractType to a no-arg instance
         Leave all Python types alone
         Guard against instances of anything other than AbstractType
@@ -516,6 +539,9 @@ class Resolver:
         return abst_algo
 
     def _normalize_concrete_type(self, conc_type, abst_type: AbstractType):
+        """
+        Coerces typing.Union, typing.Optional, etc. to mg.Union, mg.Optional, etc.
+        """
         changed = False
         origin = getattr(conc_type, "__origin__", None)
 
@@ -556,6 +582,15 @@ class Resolver:
         self, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
     ):
         """
+        This method checks that the concrete and abstract signatures match, e.g. 
+            * no missing params
+            * concrete types of the concrete parameters match the abstract types of the abstract parameter types
+            * checks that no default parameters are provided in the concrete algorithm (besides backend-specific parameters)
+            * recursively checks for matches in "combination" types, e.g. list types, tuple types, optional types, etc.
+                * NB: this only recursively goes one step down, e.g. Tuple[Tuple[Tuple[int]]] is intentionally not supported.
+        This method also does the same with the concrete and abstract return types.
+        This method is used when registering concrete algorithms into a resolver.
+        
         Convert all ConcreteType to a no-arg instance
         Leave all Python types alone
         Guard against instances of anything other than ConcreteType
@@ -706,6 +741,10 @@ class Resolver:
             concrete.__signature__ = conc_sig
 
     def _check_concrete_algorithm_return_signature(self, concrete, conc_ret, abst_ret):
+        """
+        This method checks that the non-"combination" abstract and concrete types match. 
+        "Combination" types are tuple types, optional types, lislt types, etc.
+        """
         if isinstance(conc_ret, ConcreteType):
             if not issubclass(conc_ret.abstract, abst_ret.__class__):
                 raise TypeError(
@@ -870,6 +909,10 @@ class Resolver:
     def _check_algorithm_signature(
         self, algo_name: str, *args, allow_extras=False, **kwargs
     ):
+        """
+        Binds the variables from args and kwargs to those of the concrete algorithm.
+        "Combination" types, e.g. mg.Optional, mg. Union, etc., are handled here
+        """
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
 
