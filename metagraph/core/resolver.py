@@ -666,6 +666,25 @@ class Resolver:
                         )
             params_modified.append(conc_param)
 
+        self._normalize_concrete_algorithm_return_type(
+            abstract, concrete, params_modified, any_changed
+        )
+
+    def _normalize_concrete_algorithm_return_type(
+        self,
+        abstract: AbstractAlgorithm,
+        concrete: ConcreteAlgorithm,
+        params_modified: List,
+        any_changed: bool,
+    ):
+        """
+        This is a helper for _normalize_concrete_algorithm_signature.
+        It normalizes solely the return type. 
+        See _normalize_concrete_algorithm_signature for more details about what "normalizes" means.
+        """
+        abst_sig = abstract.__signature__
+        conc_sig = concrete.__signature__
+
         abst_ret = abst_sig.return_annotation
         conc_ret, changed = self._normalize_concrete_type(
             conc_type=conc_sig.return_annotation, abst_type=abst_ret
@@ -694,11 +713,14 @@ class Resolver:
             self._check_concrete_algorithm_return_signature(
                 concrete, conc_ret, abst_ret
             )
+
         if any_changed:
             conc_sig = conc_sig.replace(
                 parameters=params_modified, return_annotation=conc_ret
             )
             concrete.__signature__ = conc_sig
+
+        return
 
     def _normalize_concrete_type(self, conc_type, abst_type: AbstractType):
         """
