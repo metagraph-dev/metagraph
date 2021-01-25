@@ -243,13 +243,15 @@ class Resolver:
         plugin_name: Optional[str] = None,
     ):
         """
-        This method is intended to register attributes for a tree, which is either a resolver or a plugin in a resolver.
+        This method is intended to register attributes for a tree, which is either a resolver or a 
+        plugin in a resolver.
         """
 
-        # tree_is_resolver is used to avoid raising exceptions when attributes (e.g. abstract algorithms, concrete types,
-        # translators, etc.) are redundantly registered. Exceptions should only be raised when they're redundantly registered
-        # on the resolver. We'll necessarily have to redundantly register certain attributes when we're registering them on
-        # a plugin since they'll already have been registered in the resolver.
+        # tree_is_resolver is used to avoid raising exceptions when attributes (e.g. abstract algorithms,
+        # concrete types, translators, etc.) are redundantly registered. Exceptions should only be
+        # raised when they're redundantly registered on the resolver. We'll necessarily have to
+        # redundantly register certain attributes when we're registering them on a plugin since
+        # they'll already have been registered in the resolver.
         tree_is_resolver = self is tree
         tree_is_plugin = plugin_name is not None
 
@@ -282,6 +284,30 @@ class Resolver:
         concrete_types = set(
             concrete_types
         )  # copy; don't mutate original since we extend this set
+
+        self._register_wrappers_in_tree(tree, concrete_types, wrappers)
+
+        if tree_is_resolver and (len(concrete_types) > 0 or len(translators) > 0):
+            # Wipe out existing translation matrices (if any)
+            self._translation_matrices.clear()
+
+        self._register_concrete_types_in_tree(tree, concrete_types)
+        self._register_translators_in_tree(tree, translators)
+        self._register_abstract_algorithms_in_tree(tree, abstract_algorithms)
+        self._register_concrete_algorithms_in_tree(
+            tree, concrete_algorithms, plugin_name
+        )
+
+    def _register_wrappers_in_tree(
+        self,
+        tree: Union["Resolver", Namespace],
+        concrete_types: Set[ConcreteType],
+        wrappers: Set[Wrapper],
+    ):
+        """
+        Helper for _register_plugin_attributes_in_tree to solely register wrappers.
+        This method destrtuctively modifies concrete_types by adding elements to it.
+        """
         for wr in wrappers:
             # Wrappers without .Type had `register=False` and should not be registered
             if not hasattr(wr, "Type"):
@@ -292,9 +318,15 @@ class Resolver:
             path = f"{wr.Type.abstract.__name__}.{wr.__name__}"
             tree.wrappers._register(path, wr)
 
-        if tree_is_resolver and (len(concrete_types) > 0 or len(translators) > 0):
-            # Wipe out existing translation matrices (if any)
-            self._translation_matrices.clear()
+        return
+
+    def _register_concrete_types_in_tree(
+        self, tree: Union["Resolver", Namespace], concrete_types: Set[ConcreteType],
+    ):
+        """
+        Helper for _register_plugin_attributes_in_tree to solely register concrete types.
+        """
+        tree_is_resolver = self is tree
 
         for ct in concrete_types:
             name = ct.__qualname__
@@ -317,7 +349,14 @@ class Resolver:
             # Make types available via resolver.types.<abstract name>.<concrete name>
             path = f"{ct.abstract.__name__}.{ct.__name__}"
             tree.types._register(path, ct)
+        return
 
+    def _register_translators_in_tree(
+        self, tree: Union["Resolver", Namespace], translators: Set[Translator],
+    ):
+        """
+        Helper for _register_plugin_attributes_in_tree to solely register translators.
+        """
         for tr in translators:
             signature = inspect.signature(tr.func)
             src_type = next(iter(signature.parameters.values())).annotation
@@ -341,6 +380,17 @@ class Resolver:
                         f"Translator {tr.func.__name__} must convert between concrete types of same abstract type ({src_type.abstract} != {dst_type.abstract})"
                     )
             tree.translators[(src_type, dst_type)] = tr
+        return
+
+    def _register_abstract_algorithms_in_tree(
+        self,
+        tree: Union["Resolver", Namespace],
+        abstract_algorithms: Set[AbstractAlgorithm],
+    ):
+        """
+        Helper for _register_plugin_attributes_in_tree to solely register abstract algorithms.
+        """
+        tree_is_resolver = self is tree
 
         for aa in abstract_algorithms:
             aa = self._normalize_abstract_algorithm_signature(aa)
@@ -361,8 +411,22 @@ class Resolver:
                 tree.abstract_algorithm_versions[aa.name][aa.version] = aa
                 if aa.version > tree.abstract_algorithms[aa.name].version:
                     tree.abstract_algorithms[aa.name] = aa
+        return
+
+    def _register_concrete_algorithms_in_tree(
+        self,
+        tree: Union["Resolver", Namespace],
+        concrete_algorithms: Set[ConcreteAlgorithm],
+        plugin_name: Optional[str],
+    ):
+        """
+        Helper for _register_plugin_attributes_in_tree to solely register concrete algorithms.
+        """
+        tree_is_resolver = self is tree
+        tree_is_plugin = plugin_name is not None
 
         latest_concrete_versions = defaultdict(int)
+
         for ca in concrete_algorithms:
             if tree_is_resolver:
                 abstract = self.abstract_algorithms.get(ca.abstract_name)
@@ -425,6 +489,7 @@ class Resolver:
                 setattr(dispatcher, plugin_name, ExactDispatcher(self, plugin_name, ca))
             tree.concrete_algorithms[ca.abstract_name].add(ca)
 
+        # Check for concrete algorithms implementing outdated abstract algorithms
         action = config["core.algorithms.outdated_concrete_version"]
         if action is not None and action != "ignore":
             for name, version in latest_concrete_versions.items():
@@ -445,6 +510,7 @@ class Resolver:
                             f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
                             + message
                         )
+        return
 
     def _normalize_abstract_algorithm_signature(self, abst_algo: AbstractAlgorithm):
         """
