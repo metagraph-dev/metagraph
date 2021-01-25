@@ -461,7 +461,6 @@ class Resolver:
         """
         abs_sig = abst_algo.__signature__
         params = abs_sig.parameters
-        ret = abs_sig.return_annotation
         params_modified = []
         any_changed = False
         for pname, p in params.items():
@@ -472,6 +471,24 @@ class Resolver:
                 p = p.replace(annotation=pmod)
                 any_changed = True
             params_modified.append(p)
+
+        self._normalize_abstract_algorithm_return_type(
+            abst_algo, params_modified, any_changed
+        )
+
+        return abst_algo
+
+    def _normalize_abstract_algorithm_return_type(
+        self, abst_algo: AbstractAlgorithm, params_modified: List, any_changed: bool,
+    ):
+        """
+        This is a helper for _normalize_abstract_algorithm_signature.
+        It normalizes solely the return type. 
+        See _normalize_abstract_algorithm_signature for more details about what "normalizes" means.
+        """
+        abs_sig = abst_algo.__signature__
+        ret = abs_sig.return_annotation
+
         # Normalize return type, which might be a tuple
         if getattr(ret, "__origin__", None) == tuple:
             ret_modified = []
@@ -489,8 +506,7 @@ class Resolver:
         if any_changed:
             abs_sig = abs_sig.replace(parameters=params_modified, return_annotation=ret)
             abst_algo.__signature__ = abs_sig
-
-        return abst_algo
+        return
 
     def _check_abstract_type(self, abst_algo, obj, msg):
         """
