@@ -506,6 +506,7 @@ class Resolver:
         if any_changed:
             abs_sig = abs_sig.replace(parameters=params_modified, return_annotation=ret)
             abst_algo.__signature__ = abs_sig
+
         return
 
     def _check_abstract_type(self, abst_algo, obj, msg):
@@ -635,56 +636,70 @@ class Resolver:
                         f'[{concrete.func.__qualname__}] argument "{conc_param.name}" does not match name of parameter in abstract function signature'
                     )
 
-                if isinstance(conc_type, mgtyping.UniformIterable):
-                    is_concrete = isinstance(conc_type.element_type, ConcreteType)
-                    valid_concrete = is_concrete and issubclass(
-                        conc_type.element_type.abstract,
-                        abst_type.element_type.__class__,
-                    )
-                    valid_non_concrete = (
-                        not is_concrete
-                        and conc_type.element_type == abst_type.element_type
-                    )
-                    if not valid_concrete and not valid_non_concrete:
-                        raise TypeError(f"{conc_type} does not match {abst_type}")
-                elif isinstance(conc_type, mgtyping.Combo):
-                    if abst_type.optional != conc_type.optional:
-                        raise TypeError(
-                            f"{conc_type} does not match optional flag in {abst_type}"
-                        )
-                    unmatched_types = []
-                    # Verify that each item in conc_type matches at least one item in abst_type
-                    for ct in conc_type.types:
-                        is_concrete = isinstance(ct, ConcreteType)
-                        for at in abst_type.types:
-                            if is_concrete and issubclass(ct.abstract, at.__class__):
-                                break
-                            elif not is_concrete and ct == at:
-                                break
-                        else:
-                            unmatched_types.append(ct)
-                    if unmatched_types:
-                        raise TypeError(f"{unmatched_types} not found in {abst_type}")
-                elif isinstance(conc_type, ConcreteType):
-                    if not issubclass(conc_type.abstract, abst_type.__class__):
-                        raise TypeError(
-                            f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
-                        )
-                    if conc_type.abstract_instance is not None:
-                        raise TypeError(
-                            f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
-                        )
-                else:
-                    # regular Python types need to match exactly
-                    if abst_type != conc_type:
-                        raise TypeError(
-                            f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
-                        )
+                self._normalize_concrete_algorithm_parameter(
+                    concrete, conc_param, abst_type, conc_type
+                )
+
             params_modified.append(conc_param)
 
         self._normalize_concrete_algorithm_return_type(
             abstract, concrete, params_modified, any_changed
         )
+
+    def _normalize_concrete_algorithm_parameter(
+        self,
+        concrete: ConcreteAlgorithm,
+        conc_param: inspect.Parameter,
+        abst_type,
+        conc_type,
+    ):
+        """
+        This is a helper for _normalize_concrete_algorithm_signature.
+        This method verifies that an individual pair of abstract and concrete types match.
+        """
+        if isinstance(conc_type, mgtyping.UniformIterable):
+            is_concrete = isinstance(conc_type.element_type, ConcreteType)
+            valid_concrete = is_concrete and issubclass(
+                conc_type.element_type.abstract, abst_type.element_type.__class__,
+            )
+            valid_non_concrete = (
+                not is_concrete and conc_type.element_type == abst_type.element_type
+            )
+            if not valid_concrete and not valid_non_concrete:
+                raise TypeError(f"{conc_type} does not match {abst_type}")
+        elif isinstance(conc_type, mgtyping.Combo):
+            if abst_type.optional != conc_type.optional:
+                raise TypeError(
+                    f"{conc_type} does not match optional flag in {abst_type}"
+                )
+            unmatched_types = []
+            # Verify that each item in conc_type matches at least one item in abst_type
+            for ct in conc_type.types:
+                is_concrete = isinstance(ct, ConcreteType)
+                for at in abst_type.types:
+                    if is_concrete and issubclass(ct.abstract, at.__class__):
+                        break
+                    elif not is_concrete and ct == at:
+                        break
+                else:
+                    unmatched_types.append(ct)
+            if unmatched_types:
+                raise TypeError(f"{unmatched_types} not found in {abst_type}")
+        elif isinstance(conc_type, ConcreteType):
+            if not issubclass(conc_type.abstract, abst_type.__class__):
+                raise TypeError(
+                    f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
+                )
+            if conc_type.abstract_instance is not None:
+                raise TypeError(
+                    f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
+                )
+        else:
+            # regular Python types need to match exactly
+            if abst_type != conc_type:
+                raise TypeError(
+                    f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                )
 
     def _normalize_concrete_algorithm_return_type(
         self,
