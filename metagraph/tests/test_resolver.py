@@ -625,22 +625,22 @@ def test_find_algorithm(example_resolver):
     assert example_resolver.find_algorithm("testing.match_python_type", set()) is None
 
 
-def test_call_algorithm(example_resolver):
+def test_run_algorithm(example_resolver):
     from .util import StrNum
 
     with pytest.raises(ValueError, match='No abstract algorithm "does_not_exist"'):
-        example_resolver.call_algorithm("does_not_exist", 1, thing=2)
+        example_resolver.run("does_not_exist", 1, thing=2)
 
-    assert example_resolver.call_algorithm("power", 2, 3) == 8
-    assert example_resolver.call_algorithm("power", p=2, x=3) == 9
+    assert example_resolver.run("power", 2, 3) == 8
+    assert example_resolver.run("power", p=2, x=3) == 9
     with pytest.raises(
         TypeError,
         match="p must be of type MyNumericAbstractType, not MyAbstractType::StrType",
     ):
-        example_resolver.call_algorithm("power", 1, "4")
-    assert example_resolver.call_algorithm("power", 2, p=3) == 8
-    assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
-    assert example_resolver.call_algorithm("echo_str", 14) == "14 <echo>"
+        example_resolver.run("power", 1, "4")
+    assert example_resolver.run("power", 2, p=3) == 8
+    assert example_resolver.run("power", 2, StrNum("3")) == 8
+    assert example_resolver.run("echo_str", 14) == "14 <echo>"
 
     od1 = OrderedDict([("a", 1), ("b", 2), ("c", 3)])
     od2 = OrderedDict([("c", 3), ("b", 2), ("a", 1)])
@@ -650,7 +650,7 @@ def test_call_algorithm(example_resolver):
         example_resolver.algos.odict_rev(14)
 
 
-def test_call_algorithm_with_resolver(example_resolver):
+def test_run_algorithm_with_resolver(example_resolver):
     @abstract_algorithm("testing.inc_resolver")
     def abstract_test_resolver(x: int) -> int:  # pragma: no cover
         pass
@@ -665,7 +665,7 @@ def test_call_algorithm_with_resolver(example_resolver):
     registry.register(test_resolver)
     example_resolver.register(registry.plugins)
 
-    assert example_resolver.call_algorithm("testing.inc_resolver", 4) == 12
+    assert example_resolver.run("testing.inc_resolver", 4) == 12
 
 
 def test_call_using_dispatcher(example_resolver):
@@ -692,13 +692,13 @@ def test_call_using_exact_dispatcher(example_resolver):
     )
 
 
-def test_call_algorithm_plan(example_resolver, capsys):
+def test_run_algorithm_plan(example_resolver, capsys):
     capsys.readouterr()
-    plan = example_resolver.plan.call_algorithm("power", 2, 3)
+    plan = example_resolver.plan.run("power", 2, 3)
     text = repr(plan)
     assert "int_power" in text
     assert "Argument Translations" in text
-    example_resolver.plan.call_algorithm("power", 2, "4")
+    example_resolver.plan.run("power", 2, "4")
     captured = capsys.readouterr()
     assert (
         'No concrete algorithm for "power" can be satisfied for the given inputs'
@@ -706,16 +706,16 @@ def test_call_algorithm_plan(example_resolver, capsys):
     )
 
 
-def test_call_algorithm_logging(example_resolver, capsys):
+def test_run_algorithm_logging(example_resolver, capsys):
     from .util import StrNum
 
     with config.set({"core.logging.plans": True}):
-        assert example_resolver.call_algorithm("power", 2, 3) == 8
+        assert example_resolver.run("power", 2, 3) == 8
     captured = capsys.readouterr()
     assert "int_power" in captured.out
 
     with config.set({"core.logging.translations": True}):
-        assert example_resolver.call_algorithm("power", 2, StrNum("3")) == 8
+        assert example_resolver.run("power", 2, StrNum("3")) == 8
     captured = capsys.readouterr()
     assert "StrNumType -> IntType" in captured.out
 
@@ -725,7 +725,7 @@ def test_disable_automatic_translation(example_resolver, capsys):
 
     with config.set({"core.dispatch.allow_translation": False}):
         with pytest.raises(TypeError) as e:
-            example_resolver.call_algorithm("power", 2, StrNum("3"))
+            example_resolver.run("power", 2, StrNum("3"))
 
 
 def test_algos_attribute(example_resolver):
@@ -757,6 +757,24 @@ def test_concrete_algorithm_with_properties(example_resolver):
 
     with pytest.raises(TypeError, match="does not meet requirements"):
         example_resolver.algos.ln(StrNum("0"))
+
+
+def test_default_resolver(example_resolver):
+    from .util import StrNum, IntType
+
+    val = StrNum("14")
+    # Test context manager mode for a resolver
+    with example_resolver:
+        # Test translating
+        assert val.translate(IntType) == 14
+        assert val.translate("IntType") == 14
+        assert val.translate(int) == 14
+        assert val.translate(0) == 14
+
+        # Test algorithm running
+        assert val.run("power", StrNum("2")) == StrNum("196")
+        # Use more robust test due to unknown algorithm resolution choice
+        example_resolver.assert_equal(val.run("power", 2), 196)
 
 
 def test_plugin_specific_concrete_algorithms():
