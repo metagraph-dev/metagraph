@@ -242,7 +242,7 @@ class DaskResolver:
         #   when the plan is called.
         return trans_plan(value, **props)
 
-    def call_algorithm(self, algo_name: str, *args, **kwargs):
+    def run(self, algo_name: str, *args, **kwargs):
         valid_algos = self.find_algorithm_solutions(algo_name, *args, **kwargs)
         if not valid_algos:
             raise TypeError(

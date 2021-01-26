@@ -99,7 +99,7 @@ class PlanNamespace:
         )
         return translator
 
-    def call_algorithm(self, algo_name: str, *args, **kwargs):
+    def run(self, algo_name: str, *args, **kwargs):
         valid_algos = self._resolver.find_algorithm_solutions(
             algo_name, *args, **kwargs
         )
@@ -131,6 +131,13 @@ class Resolver:
 
     Provides utilities to resolve the types of objects, select translators,
     and dispatch to concrete algorithms based on type matching.
+
+    Can be used as a context manager to set the default resolver (when using custom resolvers).
+    For example:
+       cust_resolver = Resolver()
+       # .. register things with cust_resolver
+       with cust_resolver:
+           my_graph.run('centrality.pagerank')
     """
 
     def __init__(self):
@@ -151,7 +158,7 @@ class Resolver:
         self.class_to_concrete: Dict[type, ConcreteType] = {}
 
         # translation graph matrices
-        # Single-sourch shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
+        # Single-source shortest path matrix and predecessor matrix from scipy.sparse.csgraph.dijkstra
         self._translation_matrices: Dict[AbstractType, TranslationMatrix] = {}
 
         self.algos = Namespace()
@@ -161,6 +168,15 @@ class Resolver:
         self.plugins = Namespace()
 
         self.plan = PlanNamespace(self)
+
+    def __enter__(self):
+        if not hasattr(self, "_resolver_stack"):
+            self._resolver_stack = []
+        self._resolver_stack.append(Wrapper._default_resolver)
+        Wrapper._default_resolver = self
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        Wrapper._default_resolver = self._resolver_stack.pop()
 
     def explore(self, embedded=None):
         from ..explorer import service
@@ -765,9 +781,77 @@ class Resolver:
             abs_tol=abs_tol,
         )
 
-    def translate(self, value, dst_type, **props):
+    def _find_translatable_concrete_type_by_name(
+        self, name: str, starting_type: AbstractType
+    ):
+        """
+        Given a starting_type, attempts to find a ConcreteType matching name
+        Resolution order:
+        1. ConcreteTypes for starting_type
+        2. Wrappers for starting_type
+        3. ConcreteTypes for all unambiguous_subcomponents of starting_type
+        4. Wrappers for all unambiguous_subcomponents of starting_type
+        As soon as a match is found, it is returned. This method will not
+        check for possible duplicate names.
+
+        Raises AttributeError if name is not found
+        """
+        if not isinstance(name, str):
+            raise TypeError(f"name must be str, not {type(name)}")
+
+        # Check direct concrete types
+        cat = getattr(self.types, starting_type.__name__)
+        for ct in dir(cat):
+            if ct == name:
+                return getattr(cat, ct)
+        # Check direct wrappers
+        wcat = getattr(self.wrappers, starting_type.__name__)
+        for wr in dir(wcat):
+            if wr == name:
+                return getattr(wcat, wr).Type
+        # Check secondary concrete types
+        for subtype in starting_type.unambiguous_subcomponents:
+            cat = getattr(self.types, subtype.__name__)
+            for ct in dir(cat):
+                if ct == name:
+                    return getattr(cat, ct)
+        # Check secondary wrappers
+        for subtype in starting_type.unambiguous_subcomponents:
+            wcat = getattr(self.wrappers, subtype.__name__)
+            for wr in dir(wcat):
+                if wr == name:
+                    return getattr(wcat, wr).Type
+        # Not found, raise
+        raise AttributeError(
+            f'No translatable type found for "{name}" within {starting_type}'
+        )
+
+    def translate(self, value, dst_type: Union[str, ConcreteType, Wrapper], **props):
         """Convert a value to a new concrete type using translators"""
         src_type = self.typeclass_of(value)
+
+        # Normalize dst_type, which could be:
+        #  - Wrapper, instance of Wrapper, or string of Wrapper class name
+        #  - ConcreteType or string of ConcreteType class name
+        #  - ConcreteType's value_type or instance of ConcreteType's value_type
+        if not isinstance(dst_type, type):
+            if isinstance(dst_type, str):
+                dst_type = self._find_translatable_concrete_type_by_name(
+                    dst_type, src_type.abstract
+                )
+            elif isinstance(dst_type, Wrapper):
+                dst_type = dst_type.Type
+            else:
+                dst_type = type(dst_type)
+
+        assert isinstance(dst_type, type)
+        if issubclass(dst_type, Wrapper):
+            dst_type = dst_type.Type
+        elif not issubclass(dst_type, ConcreteType):
+            dst_type = self.class_to_concrete.get(dst_type, dst_type)
+            if not issubclass(dst_type, ConcreteType):
+                raise TypeError(f"Unexpected dst_type: {type(dst_type)}")
+
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator.unsatisfiable:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
@@ -931,7 +1015,7 @@ class Resolver:
         else:
             return bound_args.args, bound_args.kwargs
 
-    def call_algorithm(self, algo_name: str, *args, **kwargs):
+    def run(self, algo_name: str, *args, **kwargs):
         args, kwargs = self._check_algorithm_signature(algo_name, *args, **kwargs)
 
         if config.get("core.dispatch.allow_translation"):
@@ -983,7 +1067,7 @@ class Dispatcher:
         self.__wrapped__ = abstract_algo
 
     def __call__(self, *args, **kwargs):
-        return self._resolver.call_algorithm(self._algo_name, *args, **kwargs)
+        return self._resolver.run(self._algo_name, *args, **kwargs)
 
     @property
     def signatures(self):

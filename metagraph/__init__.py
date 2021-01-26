@@ -47,15 +47,18 @@ def __getattr__(name):
     """Lazy load the global resolver to avoid circular dependencies with plugins."""
 
     if name in _SPECIAL_ATTRS:
-        from .core.resolver import Resolver
+        from .core import resolver
 
-        res = Resolver()
+        res = resolver.Resolver()
         res.load_plugins_from_environment()
         globals()["resolver"] = res
         globals()["algos"] = res.algos
         globals()["translate"] = res.translate
         globals()["type_of"] = res.type_of
         globals()["typeclass_of"] = res.typeclass_of
+
+        # Set default resolver
+        Wrapper._default_resolver = res
 
         return globals()[name]
     else:
