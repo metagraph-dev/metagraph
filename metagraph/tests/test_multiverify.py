@@ -18,16 +18,16 @@ from metagraph.plugins.python.types import PythonNodeMapType
 
 def test_multiresult_consistent_length(default_plugin_resolver):
     mv = MultiVerify(default_plugin_resolver)
-    mr = MultiResult(mv, {"foo.bar": (1, 2, "c"), "foo.bar2": (3, 4, "f"),},)
+    mr = MultiResult(mv, {"foo.bar": (1, 2, "c"), "foo.bar2": (3, 4, "f")})
 
     with pytest.raises(ValueError, match="length mismatch"):
         MultiResult(
-            mv, {"foo.bar": (1, 2, 3), "foo.bar2": (1, 2, 3, 4),},
+            mv, {"foo.bar": (1, 2, 3), "foo.bar2": (1, 2, 3, 4)},
         )
 
     with pytest.raises(ValueError, match="length mismatch"):
         MultiResult(
-            mv, {"foo.tuple": (1,), "foo.scalar": 1,},
+            mv, {"foo.tuple": (1,), "foo.scalar": 1},
         )
 
 
@@ -113,7 +113,7 @@ def test_unnormalizable(default_plugin_resolver):
 def test_compute(default_plugin_resolver):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
-    mr = MultiResult(mv, {"testing.foo": 1, "testing.bar": 2,},)
+    mr = MultiResult(mv, {"testing.foo": 1, "testing.bar": 2})
 
     with pytest.raises(
         TypeError, match='"algo" must be of type `str` or `Dispatcher`, not'

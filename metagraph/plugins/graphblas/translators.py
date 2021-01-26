@@ -120,7 +120,7 @@ if has_grblas and has_scipy:
             x, {"node_type", "edge_type", "node_dtype", "edge_dtype", "is_directed"}
         )
 
-        size = int(x.node_list.max() + 1)
+        size = int(x.node_list.max()) + 1
 
         if aprops["node_type"] == "map":
             dtype = dtype_mg_to_grblas[x.node_vals.dtype]
