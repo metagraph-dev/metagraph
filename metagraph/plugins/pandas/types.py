@@ -64,7 +64,7 @@ if has_pandas:
                     .set_index([dst_label, src_label])
                     .index
                 )
-                dups = self.index & rev_index
+                dups = self.index.intersection(rev_index)
                 if len(dups) > 0:
                     raise ValueError(
                         f"is_directed=False, but duplicate edges found: {dups}"
@@ -115,17 +115,17 @@ if has_pandas:
                 g2 = obj2.value
                 assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
                 if aprops1["is_directed"]:
-                    assert len(obj1.index & obj2.index) == len(
+                    assert len(obj1.index.intersection(obj2.index)) == len(
                         obj1.index
-                    ), f"edge mismatch {obj1.index ^ obj2.index}"
+                    ), f"edge mismatch {obj1.index.symmetric_difference(obj2.index)}"
                 else:  # undirected
                     rev1 = g1.set_index([obj1.dst_label, obj1.src_label])
                     rev2 = g2.set_index([obj2.dst_label, obj2.src_label])
-                    full1 = obj1.index | rev1.index
-                    full2 = obj2.index | rev2.index
-                    assert len(full1 & full2) == len(
+                    full1 = obj1.index.union(rev1.index)
+                    full2 = obj2.index.union(rev2.index)
+                    assert len(full1.intersection(full2)) == len(
                         full1
-                    ), f"edge mismatch {full1 ^ full2}"
+                    ), f"edge mismatch {full1.symmetric_difference(full2)}"
 
     class PandasEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         """
@@ -175,7 +175,7 @@ if has_pandas:
                     .set_index([dst_label, src_label])
                     .index
                 )
-                dups = self.index & rev_index
+                dups = self.index.intersection(rev_index)
                 if len(dups) > 0:
                     raise ValueError(
                         f"is_directed=False, but duplicate edges found: {dups}"
@@ -249,17 +249,17 @@ if has_pandas:
                 assert len(g1) == len(g2), f"{len(g1)} != {len(g2)}"
 
                 if aprops1["is_directed"]:
-                    assert len(obj1.index & obj2.index) == len(
+                    assert len(obj1.index.intersection(obj2.index)) == len(
                         obj1.index
-                    ), f"edge mismatch {obj1.index ^ obj2.index}"
+                    ), f"edge mismatch {obj1.index.symmetric_difference(obj2.index)}"
                 else:  # undirected
                     rev1 = g1.set_index([obj1.dst_label, obj1.src_label])
                     rev2 = g2.set_index([obj2.dst_label, obj2.src_label])
-                    full1 = obj1.index | rev1.index
-                    full2 = obj2.index | rev2.index
-                    assert len(full1 & full2) == len(
+                    full1 = obj1.index.union(rev1.index)
+                    full2 = obj2.index.union(rev2.index)
+                    assert len(full1.intersection(full2)) == len(
                         full1
-                    ), f"edge mismatch {full1 ^ full2}"
+                    ), f"edge mismatch {full1.symmetric_difference(full2)}"
 
                 # Ensure dataframes are indexed the same
                 if not (obj1.index == obj2.index).all():

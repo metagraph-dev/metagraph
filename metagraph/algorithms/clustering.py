@@ -36,7 +36,7 @@ def triangle_count(graph: Graph(is_directed=False)) -> int:
 def global_clustering_coefficient(graph: Graph(is_directed=False)) -> float:
     """
     Return the global clustering coefficient.
-    
+
     global_clustering_coefficient = num_closed_triplets / num_triplets
 
     A triplet in a graph is a subgraph of 3 nodes where at least 2 edges are present.
@@ -44,7 +44,7 @@ def global_clustering_coefficient(graph: Graph(is_directed=False)) -> float:
     An open triplet has exactly 2 edges.
 
     A closed triplet has exactly 3 edges.
-    
+
     The more details can be found at https://en.wikipedia.org/wiki/Clustering_coefficient#Global_clustering_coefficient
     """
     pass  # pragma: no cover
