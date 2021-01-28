@@ -944,7 +944,7 @@ def test_invalid_plugin_names():
 
     with pytest.raises(ValueError, match="is not a valid plugin name"):
         registry.register_from_modules(
-            mg.types, mg.algorithms, name=invalid_plugin_name
+            mg.plugins.core.types, mg.plugins.core.algorithms, name=invalid_plugin_name
         )
 
     with pytest.raises(ValueError, match="is not a valid plugin name"):

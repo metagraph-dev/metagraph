@@ -15,9 +15,7 @@ from .core.plugin import (
 from .core import dtypes
 from .core.plugin_registry import PluginRegistry
 from .core.node_labels import NodeLabels
-from .core.typing import Union, Optional, List
-from .types import NodeID
-from . import types, algorithms
+from .core.typing import Union, Optional, List, NodeID
 
 ### Initiaize configuration and defaults
 
@@ -40,7 +38,15 @@ del defaults_fn
 
 ### Lazy loading of special attributes that require loading plugins
 
-_SPECIAL_ATTRS = ["resolver", "algo", "translate", "type_of", "typeclass_of"]
+_SPECIAL_ATTRS = [
+    "resolver",
+    "types",
+    "wrappers",
+    "algos",
+    "translate",
+    "type_of",
+    "typeclass_of",
+]
 
 
 def __getattr__(name):
@@ -52,6 +58,8 @@ def __getattr__(name):
         res = resolver.Resolver()
         res.load_plugins_from_environment()
         globals()["resolver"] = res
+        globals()["types"] = res.types
+        globals()["wrappers"] = res.wrappers
         globals()["algos"] = res.algos
         globals()["translate"] = res.translate
         globals()["type_of"] = res.type_of

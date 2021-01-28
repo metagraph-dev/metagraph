@@ -1,6 +1,6 @@
 import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import (
+from ..types import (
     NodeSet,
     NodeMap,
     Vector,

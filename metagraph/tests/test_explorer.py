@@ -7,9 +7,9 @@ from metagraph.tests.util import default_plugin_resolver
 def test_normalize_abstract_type(default_plugin_resolver):
     dpr = default_plugin_resolver
     result = api.normalize_abstract_type(dpr, "Graph")
-    assert result == ("Graph", mg.types.Graph)
-    result2 = api.normalize_abstract_type(dpr, mg.types.NodeMap)
-    assert result2 == ("NodeMap", mg.types.NodeMap)
+    assert result == ("Graph", mg.plugins.core.types.Graph)
+    result2 = api.normalize_abstract_type(dpr, mg.plugins.core.types.NodeMap)
+    assert result2 == ("NodeMap", mg.plugins.core.types.NodeMap)
 
 
 def test_normalize_concrete_type(default_plugin_resolver):
@@ -17,7 +17,7 @@ def test_normalize_concrete_type(default_plugin_resolver):
     result = api.normalize_concrete_type(dpr, "Graph", "NetworkXGraphType")
     assert result == ("NetworkXGraphType", mg.plugins.networkx.types.NetworkXGraph.Type)
     result2 = api.normalize_concrete_type(
-        dpr, mg.types.NodeMap, mg.plugins.python.types.PythonNodeMapType
+        dpr, mg.plugins.core.types.NodeMap, mg.plugins.python.types.PythonNodeMapType
     )
     assert result2 == ("PythonNodeMapType", mg.plugins.python.types.PythonNodeMapType)
 

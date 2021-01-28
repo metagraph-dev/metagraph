@@ -1,5 +1,5 @@
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, NodeMap
+from ..types import Graph, NodeMap
 from typing import Tuple, Callable, Any
 
 

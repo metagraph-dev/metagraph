@@ -1,6 +1,6 @@
 import pytest
 
-from metagraph import types
+from metagraph.plugins.core import types
 
 
 def test_nodeset_not_implemented():

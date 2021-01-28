@@ -30,7 +30,7 @@ from .planning import MultiStepTranslator, AlgorithmPlan, TranslationMatrix
 from .entrypoints import load_plugins
 from . import typing as mgtyping
 from .. import config
-from ..types import NodeID
+from .typing import NodeID
 import numpy as np
 
 
