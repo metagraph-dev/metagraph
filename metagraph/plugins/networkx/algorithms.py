@@ -16,10 +16,48 @@ if has_networkx:
     def nx_pagerank(
         graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float
     ) -> PythonNodeMapType:
-        pagerank = nx.pagerank(
-            graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
-        )
-        return pagerank
+        G = graph.value
+        # Copy and modify the networkx code to allow `maxiter` to be a best effort rather than a failure scenario
+        if len(G) == 0:
+            return {}
+
+        if not G.is_directed():
+            D = G.to_directed()
+        else:
+            D = G
+
+        # Create a copy in (right) stochastic form
+        W = nx.stochastic_graph(D, weight=None)
+        N = W.number_of_nodes()
+
+        # Choose fixed starting vector if not given
+        x = dict.fromkeys(W, 1.0 / N)
+
+        # Assign uniform personalization vector if not given
+        p = dict.fromkeys(W, 1.0 / N)
+
+        # Use personalization vector if dangling vector not specified
+        dangling_weights = p
+        dangling_nodes = [n for n in W if W.out_degree(n, weight=None) == 0.0]
+
+        # power iteration: make up to max_iter iterations
+        for _ in range(maxiter):
+            xlast = x
+            x = dict.fromkeys(xlast.keys(), 0)
+            danglesum = damping * sum(xlast[n] for n in dangling_nodes)
+            for n in x:
+                # this matrix multiply looks odd because it is
+                # doing a left multiply x^T=xlast^T*W
+                for nbr in W[n]:
+                    x[nbr] += damping * xlast[n] * W[n][nbr][None]
+                x[n] += danglesum * dangling_weights.get(n, 0) + (
+                    1.0 - damping
+                ) * p.get(n, 0)
+            # check convergence, l1 norm
+            err = sum([abs(x[n] - xlast[n]) for n in x])
+            if err < N * tolerance:
+                break
+        return x
 
     @concrete_algorithm("centrality.katz")
     def nx_katz_centrality(
@@ -333,17 +371,19 @@ if has_networkx:
     def nx_graph_degree(
         graph: NetworkXGraph, in_edges: bool, out_edges: bool
     ) -> PythonNodeMapType:
+        g = graph.value
+        if not in_edges and not out_edges:
+            return {n: 0 for n in g.nodes()}
+        if not g.is_directed():
+            return dict(g.degree())
         if in_edges and out_edges:
-            ins = graph.value.in_degree()
-            outs = graph.value.out_degree()
-            d = {n: ins[n] + o for n, o in outs}
-        elif in_edges:
-            d = dict(graph.value.in_degree())
-        elif out_edges:
-            d = dict(graph.value.out_degree())
-        else:
-            d = {n: 0 for n in graph.value.nodes()}
-        return d
+            ins = g.in_degree()
+            outs = g.out_degree()
+            return {n: ins[n] + o for n, o in outs}
+        if in_edges:
+            return dict(g.in_degree())
+        if out_edges:
+            return dict(g.out_degree())
 
     @concrete_algorithm("util.graph.aggregate_edges")
     def nx_graph_aggregate_edges(

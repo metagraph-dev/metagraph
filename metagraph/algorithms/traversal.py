@@ -81,7 +81,7 @@ def astar_search(
 ) -> Vector:
     """
     heuristic_func is a unary function returning the distance between a given node and the target node.
-    
+
     The return value is a vector of node ids representing the non-unique path found by the A* algorithm.
     """
     pass  # pragma: no cover

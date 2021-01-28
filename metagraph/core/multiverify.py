@@ -320,7 +320,7 @@ class MultiVerify:
                         expected_val_elem, ret_val_elem, algo_path, rel_tol, abs_tol
                     )
             else:
-                self.compare_values(expected_val, result, algo_path, rel_tol, abs_tol)
+                self.compare_values(result, expected_val, algo_path, rel_tol, abs_tol)
 
     def compare_values(self, val, expected_val, algo_path, rel_tol=1e-9, abs_tol=0.0):
         expected_val = ensure_computed(expected_val)
