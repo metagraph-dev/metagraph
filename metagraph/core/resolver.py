@@ -306,7 +306,7 @@ class Resolver:
     ):
         """
         Helper for _register_plugin_attributes_in_tree to solely register wrappers.
-        This method destrtuctively modifies concrete_types by adding elements to it.
+        This method modifies concrete_types by adding elements to it.
         """
         for wr in wrappers:
             # Wrappers without .Type had `register=False` and should not be registered
