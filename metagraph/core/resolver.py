@@ -828,6 +828,7 @@ class ResolverRegistrar:
         abs_sig = abst_algo.__signature__
         params = abs_sig.parameters
         params_modified = []
+        ret = abs_sig.return_annotation
         any_changed = False
         for pname, p in params.items():
             pmod, changed = ResolverRegistrar._check_abstract_type(
@@ -837,25 +838,6 @@ class ResolverRegistrar:
                 p = p.replace(annotation=pmod)
                 any_changed = True
             params_modified.append(p)
-
-        ResolverRegistrar._normalize_abstract_algorithm_return_type(
-            abst_algo, params_modified, any_changed
-        )
-
-        return
-
-    @staticmethod
-    def _normalize_abstract_algorithm_return_type(
-        abst_algo: AbstractAlgorithm, params_modified: List, any_changed: bool,
-    ) -> None:
-        """
-        This method modifies abst_algo.
-        This is a helper for _normalize_abstract_algorithm_signature.
-        It normalizes solely the return type.
-        See _normalize_abstract_algorithm_signature for more details about what "normalizes" means.
-        """
-        abs_sig = abst_algo.__signature__
-        ret = abs_sig.return_annotation
 
         # Normalize return type, which might be a tuple
         if getattr(ret, "__origin__", None) == tuple:
@@ -1016,9 +998,45 @@ class ResolverRegistrar:
 
             params_modified.append(conc_param)
 
-        ResolverRegistrar._normalize_concrete_algorithm_return_type(
-            resolver, abstract, concrete, params_modified, any_changed
+        abst_ret = abst_sig.return_annotation
+        conc_ret, changed = ResolverRegistrar._normalize_concrete_type(
+            resolver, conc_sig.return_annotation, abst_ret
         )
+        any_changed |= changed
+        # Normalize return type, which might be a tuple
+        if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
+            if len(abst_ret.__args__) != len(conc_ret.__args__):
+                raise TypeError(
+                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                )
+            ret_modified = []
+            for conc_ret_sub_type, abst_ret_sub_type in zip(
+                conc_ret.__args__, abst_ret.__args__
+            ):
+                (
+                    conc_ret_sub_type_normalized,
+                    changed,
+                ) = ResolverRegistrar._normalize_concrete_type(
+                    resolver, conc_ret_sub_type, abst_ret_sub_type
+                )
+                any_changed |= changed
+                ResolverRegistrar._check_concrete_algorithm_return_signature(
+                    concrete, conc_ret_sub_type_normalized, abst_ret_sub_type
+                )
+                ret_modified.append(conc_ret_sub_type_normalized)
+            conc_ret.__args__ = tuple(ret_modified)
+        else:
+            ResolverRegistrar._check_concrete_algorithm_return_signature(
+                concrete, conc_ret, abst_ret
+            )
+
+        if any_changed:
+            conc_sig = conc_sig.replace(
+                parameters=params_modified, return_annotation=conc_ret
+            )
+            concrete.__signature__ = conc_sig
+
+        return
 
     @staticmethod
     def _normalize_concrete_algorithm_parameter(
@@ -1074,62 +1092,6 @@ class ResolverRegistrar:
                 raise TypeError(
                     f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
                 )
-
-    @staticmethod
-    def _normalize_concrete_algorithm_return_type(
-        resolver: Resolver,
-        abstract: AbstractAlgorithm,
-        concrete: ConcreteAlgorithm,
-        params_modified: List,
-        any_changed: bool,
-    ) -> None:
-        """
-        This is a helper for _normalize_concrete_algorithm_signature.
-        It normalizes solely the return type. 
-        See _normalize_concrete_algorithm_signature for more details about what "normalizes" means.
-        """
-        abst_sig = abstract.__signature__
-        conc_sig = concrete.__signature__
-
-        abst_ret = abst_sig.return_annotation
-        conc_ret, changed = ResolverRegistrar._normalize_concrete_type(
-            resolver, conc_sig.return_annotation, abst_ret
-        )
-        any_changed |= changed
-        # Normalize return type, which might be a tuple
-        if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
-            if len(abst_ret.__args__) != len(conc_ret.__args__):
-                raise TypeError(
-                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
-                )
-            ret_modified = []
-            for conc_ret_sub_type, abst_ret_sub_type in zip(
-                conc_ret.__args__, abst_ret.__args__
-            ):
-                (
-                    conc_ret_sub_type_normalized,
-                    changed,
-                ) = ResolverRegistrar._normalize_concrete_type(
-                    resolver, conc_ret_sub_type, abst_ret_sub_type
-                )
-                any_changed |= changed
-                ResolverRegistrar._check_concrete_algorithm_return_signature(
-                    concrete, conc_ret_sub_type_normalized, abst_ret_sub_type
-                )
-                ret_modified.append(conc_ret_sub_type_normalized)
-            conc_ret.__args__ = tuple(ret_modified)
-        else:
-            ResolverRegistrar._check_concrete_algorithm_return_signature(
-                concrete, conc_ret, abst_ret
-            )
-
-        if any_changed:
-            conc_sig = conc_sig.replace(
-                parameters=params_modified, return_annotation=conc_ret
-            )
-            concrete.__signature__ = conc_sig
-
-        return
 
     @staticmethod
     def _normalize_concrete_type(
