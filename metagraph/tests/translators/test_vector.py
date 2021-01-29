@@ -2,10 +2,9 @@ import pytest
 
 grblas = pytest.importorskip("grblas")
 
+import metagraph as mg
 from metagraph.tests.util import default_plugin_resolver
 from . import RoundTripper
-from metagraph.plugins.numpy.types import NumpyVectorType
-from metagraph.plugins.graphblas.types import GrblasVectorType
 import numpy as np
 
 
@@ -25,8 +24,8 @@ def test_numpy_2_graphblas(default_plugin_resolver):
     intermediate = grblas.Vector.from_values(
         [0, 1, 2, 3, 4, 5, 6, 7], [0.0, 1.1, 0.0, 0.0, 4.4, 5.5, 6.6, 0.0], size=8
     )
-    y = dpr.translate(x, GrblasVectorType)
+    y = dpr.translate(x, grblas.Vector)
     dpr.assert_equal(y, intermediate)
     # Convert numpy <- grblas vector
-    x2 = dpr.translate(y, NumpyVectorType)
+    x2 = dpr.translate(y, mg.types.Vector.NumpyVectorType)
     dpr.assert_equal(x, x2)

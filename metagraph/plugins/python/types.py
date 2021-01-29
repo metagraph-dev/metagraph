@@ -1,6 +1,6 @@
 from typing import Set, Dict, Any
 import math
-from metagraph.types import NodeSet, NodeMap
+from ..core.types import NodeSet, NodeMap
 from metagraph import ConcreteType
 
 

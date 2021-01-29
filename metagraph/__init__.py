@@ -15,9 +15,7 @@ from .core.plugin import (
 from .core import dtypes
 from .core.plugin_registry import PluginRegistry
 from .core.node_labels import NodeLabels
-from .core.typing import Union, Optional, List
-from .types import NodeID
-from . import types, algorithms
+from .core.typing import Union, Optional, List, NodeID
 
 ### Initiaize configuration and defaults
 
@@ -40,22 +38,27 @@ del defaults_fn
 
 ### Lazy loading of special attributes that require loading plugins
 
-_SPECIAL_ATTRS = ["resolver", "algo", "translate", "type_of", "typeclass_of"]
+_SPECIAL_ATTRS = [
+    "resolver",
+    "types",
+    "wrappers",
+    "algos",
+    "translate",
+    "run",
+    "type_of",
+    "typeclass_of",
+]
 
 
 def __getattr__(name):
     """Lazy load the global resolver to avoid circular dependencies with plugins."""
 
     if name in _SPECIAL_ATTRS:
-        from .core.resolver import Resolver
+        from .core import resolver
 
-        res = Resolver()
+        res = resolver.Resolver()
         res.load_plugins_from_environment()
-        globals()["resolver"] = res
-        globals()["algos"] = res.algos
-        globals()["translate"] = res.translate
-        globals()["type_of"] = res.type_of
-        globals()["typeclass_of"] = res.typeclass_of
+        _set_default_resolver(res)
 
         return globals()[name]
     else:
@@ -67,3 +70,13 @@ def __dir__():
     if "resolver" not in attrs:
         attrs += _SPECIAL_ATTRS
     return attrs
+
+
+def _set_default_resolver(res):
+    # Update mg.resolver to res
+    # Point all special attrs to the versions from res
+    for attr in _SPECIAL_ATTRS:
+        if attr == "resolver":
+            globals()[attr] = res
+        else:
+            globals()[attr] = getattr(res, attr)

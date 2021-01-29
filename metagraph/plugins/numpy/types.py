@@ -1,8 +1,8 @@
 from typing import Set, Dict, Any
 import numpy as np
 from metagraph import dtypes, Wrapper, ConcreteType
-from metagraph.types import Vector, Matrix, NodeSet, NodeMap
-from metagraph.wrappers import NodeSetWrapper, NodeMapWrapper
+from ..core.types import Vector, Matrix, NodeSet, NodeMap
+from ..core.wrappers import NodeSetWrapper, NodeMapWrapper
 
 
 class NumpyVectorType(ConcreteType, abstract=Vector):
