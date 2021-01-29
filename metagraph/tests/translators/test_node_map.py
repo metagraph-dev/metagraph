@@ -2,6 +2,7 @@ import pytest
 
 grblas = pytest.importorskip("grblas")
 
+import metagraph as mg
 from metagraph import NodeLabels
 from metagraph.tests.util import default_plugin_resolver
 from . import RoundTripper
@@ -38,6 +39,8 @@ def test_method_call(default_plugin_resolver):
     z_other = GrblasNodeMap(grblas.Vector.from_values([0, 2], [1, 2]))
     # Wrapper
     dpr.assert_equal(x.translate(GrblasNodeMap), z)
+    dpr.assert_equal(x.translate(dpr.wrappers.NodeMap.GrblasNodeMap), z)
+    dpr.assert_equal(x.translate(mg.wrappers.NodeMap.GrblasNodeMap), z)
     # ConcreteType
     dpr.assert_equal(x.translate(GrblasNodeMap.Type), z)
     dpr.assert_equal(x.translate(PythonNodeMapType), y)

@@ -44,6 +44,7 @@ _SPECIAL_ATTRS = [
     "wrappers",
     "algos",
     "translate",
+    "run",
     "type_of",
     "typeclass_of",
 ]
@@ -57,16 +58,7 @@ def __getattr__(name):
 
         res = resolver.Resolver()
         res.load_plugins_from_environment()
-        globals()["resolver"] = res
-        globals()["types"] = res.types
-        globals()["wrappers"] = res.wrappers
-        globals()["algos"] = res.algos
-        globals()["translate"] = res.translate
-        globals()["type_of"] = res.type_of
-        globals()["typeclass_of"] = res.typeclass_of
-
-        # Set default resolver
-        Wrapper._default_resolver = res
+        _set_default_resolver(res)
 
         return globals()[name]
     else:
@@ -78,3 +70,13 @@ def __dir__():
     if "resolver" not in attrs:
         attrs += _SPECIAL_ATTRS
     return attrs
+
+
+def _set_default_resolver(res):
+    # Update mg.resolver to res
+    # Point all special attrs to the versions from res
+    for attr in _SPECIAL_ATTRS:
+        if attr == "resolver":
+            globals()[attr] = res
+        else:
+            globals()[attr] = getattr(res, attr)

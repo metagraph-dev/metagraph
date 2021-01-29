@@ -170,13 +170,21 @@ class Resolver:
         self.plan = PlanNamespace(self)
 
     def __enter__(self):
+        import metagraph as mg
+
         if not hasattr(self, "_resolver_stack"):
             self._resolver_stack = []
-        self._resolver_stack.append(Wrapper._default_resolver)
-        Wrapper._default_resolver = self
+        # Save the current default
+        self._resolver_stack.append(mg.resolver)
+        # Set myself as the new default
+        mg._set_default_resolver(self)
 
     def __exit__(self, exc_type, exc_value, exc_traceback):
-        Wrapper._default_resolver = self._resolver_stack.pop()
+        import metagraph as mg
+
+        # Reset the default resolver to the previous value
+        prev = self._resolver_stack.pop()
+        mg._set_default_resolver(prev)
 
     def explore(self, embedded=None):
         from ..explorer import service

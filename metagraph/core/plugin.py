@@ -431,8 +431,6 @@ class Wrapper(metaclass=MetaWrapper):
     The auto-created ConcreteType will be attached as `.Type` onto the wrapper class.
     """
 
-    _default_resolver = None
-
     def __init_subclass__(cls, *, abstract=None, register=True):
         if not register:
             cls._abstract = abstract
@@ -493,10 +491,15 @@ class Wrapper(metaclass=MetaWrapper):
         return func
 
     def translate(self, dst_type: Union[str, ConcreteType, "Wrapper"], **props):
-        return self._default_resolver.translate(self, dst_type, **props)
+        import metagraph as mg
+
+        # This uses the current default resolver
+        return mg.translate(self, dst_type, **props)
 
     def run(self, algo_name: str, *args, **kwargs):
-        return self._default_resolver.run(algo_name, self, *args, **kwargs)
+        import metagraph as mg
+
+        return mg.run(algo_name, self, *args, **kwargs)
 
 
 class Translator:
