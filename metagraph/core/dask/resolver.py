@@ -94,6 +94,12 @@ class DaskResolver:
         names.sort()
         return names
 
+    def __enter__(self):
+        self.set_as_default()
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.reset_default()
+
     def delayed_wrapper(self, klass, concrete_type: Optional[ConcreteType] = None):
         """
         Similar to how `dask.delayed` operates by wrapping a callable, but
@@ -236,6 +242,8 @@ class DaskResolver:
         self._resolver.assert_equal(obj1, obj2, rel_tol=rel_tol, abs_tol=abs_tol)
 
     def translate(self, value, dst_type, **props):
+        if isinstance(dst_type, DelayedWrapper):
+            dst_type = dst_type._klass
         trans_plan = self.plan.translate(value, dst_type, **props)
         # Calling the plan will trigger a call to `_add_translation_plan`.
         #   The MultiStepTranslator knows about and checks for a DaskResolver

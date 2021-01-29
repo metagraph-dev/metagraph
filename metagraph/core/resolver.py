@@ -94,6 +94,7 @@ class PlanNamespace:
         Return translator to translate from type of value to dst_type
         """
         src_type = self._resolver.typeclass_of(value)
+        dst_type = self._resolver._normalize_translation_destination(dst_type, src_type)
         translator = MultiStepTranslator.find_translation(
             self._resolver, src_type, dst_type
         )
@@ -170,6 +171,12 @@ class Resolver:
         self.plan = PlanNamespace(self)
 
     def __enter__(self):
+        self.set_as_default()
+
+    def __exit__(self, exc_type, exc_value, exc_traceback):
+        self.reset_default()
+
+    def set_as_default(self):
         import metagraph as mg
 
         if not hasattr(self, "_resolver_stack"):
@@ -179,7 +186,7 @@ class Resolver:
         # Set myself as the new default
         mg._set_default_resolver(self)
 
-    def __exit__(self, exc_type, exc_value, exc_traceback):
+    def reset_default(self):
         import metagraph as mg
 
         # Reset the default resolver to the previous value
@@ -834,14 +841,12 @@ class Resolver:
             f'No translatable type found for "{name}" within {starting_type}'
         )
 
-    def translate(self, value, dst_type: Union[str, ConcreteType, Wrapper], **props):
-        """Convert a value to a new concrete type using translators"""
-        src_type = self.typeclass_of(value)
-
+    def _normalize_translation_destination(self, dst_type, src_type):
         # Normalize dst_type, which could be:
         #  - Wrapper, instance of Wrapper, or string of Wrapper class name
         #  - ConcreteType or string of ConcreteType class name
         #  - ConcreteType's value_type or instance of ConcreteType's value_type
+        orig_dst_type = dst_type
         if not isinstance(dst_type, type):
             if isinstance(dst_type, str):
                 dst_type = self._find_translatable_concrete_type_by_name(
@@ -858,8 +863,13 @@ class Resolver:
         elif not issubclass(dst_type, ConcreteType):
             dst_type = self.class_to_concrete.get(dst_type, dst_type)
             if not issubclass(dst_type, ConcreteType):
-                raise TypeError(f"Unexpected dst_type: {type(dst_type)}")
+                raise TypeError(f"Unexpected dst_type: {orig_dst_type}")
+        return dst_type
 
+    def translate(self, value, dst_type: Union[str, ConcreteType, Wrapper], **props):
+        """Convert a value to a new concrete type using translators"""
+        src_type = self.typeclass_of(value)
+        dst_type = self._normalize_translation_destination(dst_type, src_type)
         translator = MultiStepTranslator.find_translation(self, src_type, dst_type)
         if translator.unsatisfiable:
             raise TypeError(f"Cannot convert {value} to {dst_type}")
