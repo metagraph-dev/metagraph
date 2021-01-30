@@ -176,7 +176,7 @@ class Resolver:
 
     def register(self, plugins_by_name):
         """Register plugins for use with a resolver."""
-        ResolverRegistrar.register(self, plugins_by_name)
+        _ResolverRegistrar.register(self, plugins_by_name)
 
     def load_plugins_from_environment(self):
         """Scans environment for plugins and populates registry with them."""
@@ -431,7 +431,7 @@ class Resolver:
                 )
 
 
-class ResolverRegistrar:
+class _ResolverRegistrar:
     """
     Static methods to register plugins for use with a resolver.
     """
@@ -440,7 +440,7 @@ class ResolverRegistrar:
     def register(resolver: Resolver, plugins_by_name) -> None:
         """Register plugins for use with a resolver.
 
-        Plugins will be processed in category order (see _register_plugin_attributes_in_tree)
+        Plugins will be processed in category order (see register_plugin_attributes_in_tree)
         to ensure that abstract types are registered before concrete types,
         concrete types before translators, etc.
 
@@ -464,12 +464,12 @@ class ResolverRegistrar:
             for cat in plugin_categories:
                 items = set(plugin.get(cat, ()))
                 if cat == "concrete_algorithms":
-                    # Make a copy of concrete algorithms to avoid cross-mutation if multiple resolvers are used
+                    # Copy concrete algorithms to avoid cross-mutation if multiple resolvers are used
                     items = {copy.copy(x) for x in items}
                 items_by_plugin[plugin_name][cat] = items
                 items_by_plugin["all"][cat] |= items
 
-        ResolverRegistrar._register_plugin_attributes_in_tree(
+        _ResolverRegistrar.register_plugin_attributes_in_tree(
             resolver, resolver, **items_by_plugin["all"]
         )
 
@@ -491,7 +491,7 @@ class ResolverRegistrar:
             plugin_namespace._register("wrappers", Namespace())
             plugin_namespace._register("types", Namespace())
 
-            ResolverRegistrar._register_plugin_attributes_in_tree(
+            _ResolverRegistrar.register_plugin_attributes_in_tree(
                 plugin_namespace,
                 resolver,
                 **items_by_plugin[plugin_name],
@@ -501,7 +501,7 @@ class ResolverRegistrar:
         return
 
     @staticmethod
-    def _register_plugin_attributes_in_tree(
+    def register_plugin_attributes_in_tree(
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         abstract_types: Set[AbstractType] = set(),
@@ -547,7 +547,8 @@ class ResolverRegistrar:
                     missing_props = set(usub.properties) - set(at.properties)
                     if missing_props:
                         raise ValueError(
-                            f"unambiguous subcomponent {usub.__qualname__} has additional properties beyond {at.__qualname__}"
+                            f"unambiguous subcomponent {usub.__qualname__} has additional "
+                            f"properties beyond {at.__qualname__}"
                         )
 
         # Let concrete type associated with each wrapper be handled by concrete_types list
@@ -555,33 +556,33 @@ class ResolverRegistrar:
             concrete_types
         )  # copy; don't mutate original since we extend this set
 
-        ResolverRegistrar._register_wrappers_in_tree(tree, concrete_types, wrappers)
+        _ResolverRegistrar.register_wrappers_in_tree(tree, concrete_types, wrappers)
 
         if tree_is_resolver and (len(concrete_types) > 0 or len(translators) > 0):
             # Wipe out existing translation matrices (if any)
             resolver._translation_matrices.clear()
 
-        ResolverRegistrar._register_concrete_types_in_tree(
+        _ResolverRegistrar.register_concrete_types_in_tree(
             tree, resolver, concrete_types
         )
-        ResolverRegistrar._register_translators_in_tree(tree, resolver, translators)
-        ResolverRegistrar._register_abstract_algorithms_in_tree(
+        _ResolverRegistrar.register_translators_in_tree(tree, resolver, translators)
+        _ResolverRegistrar.register_abstract_algorithms_in_tree(
             tree, resolver, abstract_algorithms
         )
-        ResolverRegistrar._register_concrete_algorithms_in_tree(
+        _ResolverRegistrar.register_concrete_algorithms_in_tree(
             tree, resolver, concrete_algorithms, plugin_name
         )
 
         return
 
     @staticmethod
-    def _register_wrappers_in_tree(
+    def register_wrappers_in_tree(
         tree: Union[Resolver, Namespace],
         concrete_types: Set[ConcreteType],
         wrappers: Set[Wrapper],
     ) -> None:
         """
-        Helper for _register_plugin_attributes_in_tree to solely register wrappers.
+        Helper for register_plugin_attributes_in_tree to solely register wrappers.
         This method modifies concrete_types by adding elements to it.
         """
         for wr in wrappers:
@@ -597,13 +598,13 @@ class ResolverRegistrar:
         return
 
     @staticmethod
-    def _register_concrete_types_in_tree(
+    def register_concrete_types_in_tree(
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         concrete_types: Set[ConcreteType],
     ) -> None:
         """
-        Helper for _register_plugin_attributes_in_tree to solely register concrete types.
+        Helper for register_plugin_attributes_in_tree to solely register concrete types.
         """
         tree_is_resolver = resolver is tree
 
@@ -618,7 +619,8 @@ class ResolverRegistrar:
                     )
                 if ct.value_type in resolver.class_to_concrete:
                     raise ValueError(
-                        f"Python class '{ct.value_type}' already has a registered concrete type: {resolver.class_to_concrete[ct.value_type]}"
+                        f"Python class '{ct.value_type}' already has a registered "
+                        f"concrete type: {resolver.class_to_concrete[ct.value_type]}"
                     )
                 if ct.value_type is not None:
                     resolver.class_to_concrete[ct.value_type] = ct
@@ -632,13 +634,13 @@ class ResolverRegistrar:
         return
 
     @staticmethod
-    def _register_translators_in_tree(
+    def register_translators_in_tree(
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         translators: Set[Translator],
     ) -> None:
         """
-        Helper for _register_plugin_attributes_in_tree to solely register translators.
+        Helper for register_plugin_attributes_in_tree to solely register translators.
         """
         for tr in translators:
             signature = inspect.signature(tr.func)
@@ -660,25 +662,26 @@ class ResolverRegistrar:
                 # Check if dst is unambiguous subcomponent of src
                 if dst_type.abstract not in src_type.abstract.unambiguous_subcomponents:
                     raise ValueError(
-                        f"Translator {tr.func.__name__} must convert between concrete types of same abstract type ({src_type.abstract} != {dst_type.abstract})"
+                        f"Translator {tr.func.__name__} must convert between concrete types "
+                        f"of same abstract type ({src_type.abstract} != {dst_type.abstract})"
                     )
             tree.translators[(src_type, dst_type)] = tr
 
         return
 
     @staticmethod
-    def _register_abstract_algorithms_in_tree(
+    def register_abstract_algorithms_in_tree(
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         abstract_algorithms: Set[AbstractAlgorithm],
     ) -> None:
         """
-        Helper for _register_plugin_attributes_in_tree to solely register abstract algorithms.
+        Helper for register_plugin_attributes_in_tree to solely register abstract algorithms.
         """
         tree_is_resolver = resolver is tree
 
         for aa in abstract_algorithms:
-            ResolverRegistrar._normalize_abstract_algorithm_signature(aa)
+            _ResolverRegistrar.normalize_abstract_algorithm_signature(aa)
             if aa.name not in tree.abstract_algorithm_versions:
                 tree.abstract_algorithm_versions[aa.name] = {aa.version: aa}
                 tree.abstract_algorithms[aa.name] = aa
@@ -701,14 +704,14 @@ class ResolverRegistrar:
         return
 
     @staticmethod
-    def _register_concrete_algorithms_in_tree(
+    def register_concrete_algorithms_in_tree(
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         concrete_algorithms: Set[ConcreteAlgorithm],
         plugin_name: Optional[str],
     ) -> None:
         """
-        Helper for _register_plugin_attributes_in_tree to solely register concrete algorithms.
+        Helper for register_plugin_attributes_in_tree to solely register concrete algorithms.
         """
         tree_is_resolver = resolver is tree
         tree_is_plugin = plugin_name is not None
@@ -758,7 +761,7 @@ class ResolverRegistrar:
                     ca.version, latest_concrete_versions[ca.abstract_name]
                 )
                 if ca.version == abstract.version:
-                    ResolverRegistrar._normalize_concrete_algorithm_signature(
+                    _ResolverRegistrar.normalize_concrete_algorithm_signature(
                         resolver, abstract, ca
                     )
                 else:
@@ -774,7 +777,8 @@ class ResolverRegistrar:
 
                 except NamespaceError:
                     raise ValueError(
-                        f"Multiple concrete algorithms for abstract algorithm {ca.abstract_name} within plugin {plugin_name}."
+                        f"Multiple concrete algorithms for abstract algorithm {ca.abstract_name} "
+                        f"within plugin {plugin_name}."
                     )
                 # Locate the abstract dispatcher
                 dispatcher = resolver.algos
@@ -810,12 +814,14 @@ class ResolverRegistrar:
         return
 
     @staticmethod
-    def _normalize_abstract_algorithm_signature(abst_algo: AbstractAlgorithm) -> None:
+    def normalize_abstract_algorithm_signature(abst_algo: AbstractAlgorithm) -> None:
         """
         This method "normalizes" the parameter types in the abstract algorithm signature.
         "Normalizes" means:
-            * A parameter and its type is typically declared like "abstract_algo_name(graph: Graph(is_directed=False))"
-            * This method "executes" or instantiates the type declaration "Graph(is_directed=False)" to create an actual type.
+            * A parameter and its type is typically declared 
+              like "abstract_algo_name(graph: Graph(is_directed=False))"
+            * This method "executes" or instantiates the type declaration "Graph(is_directed=False)" 
+              to create an actual type.
         This method also does the same with the concrete and abstract return types.
         This method handles "combination" types as well.
 
@@ -827,100 +833,100 @@ class ResolverRegistrar:
         """
         abs_sig = abst_algo.__signature__
         params = abs_sig.parameters
-        params_modified = []
-        ret = abs_sig.return_annotation
-        any_changed = False
+        sig_mod = _SignatureModifier(abst_algo)
         for pname, p in params.items():
-            pmod, changed = ResolverRegistrar._check_abstract_type(
-                abst_algo, p.annotation, f'argument "{pname}"'
+            _ResolverRegistrar.check_abstract_type(
+                p.annotation, abst_algo, sig_mod, name=pname
             )
-            if changed:
-                p = p.replace(annotation=pmod)
-                any_changed = True
-            params_modified.append(p)
 
         # Normalize return type, which might be a tuple
+        ret = abs_sig.return_annotation
         if getattr(ret, "__origin__", None) == tuple:
-            ret_modified = []
-            for ret_sub in ret.__args__:
-                ret_sub, changed = ResolverRegistrar._check_abstract_type(
-                    abst_algo, ret_sub, "return type"
+            for ret_sub_index, ret_sub in enumerate(ret.__args__):
+                _ResolverRegistrar.check_abstract_type(
+                    ret_sub, abst_algo, sig_mod, index=ret_sub_index
                 )
-                any_changed |= changed
-                ret_modified.append(ret_sub)
-            ret.__args__ = tuple(ret_modified)
         else:
-            ret, changed = ResolverRegistrar._check_abstract_type(
-                abst_algo, ret, "return type"
-            )
-            any_changed |= changed
-
-        if any_changed:
-            abs_sig = abs_sig.replace(parameters=params_modified, return_annotation=ret)
-            abst_algo.__signature__ = abs_sig
+            _ResolverRegistrar.check_abstract_type(ret, abst_algo, sig_mod)
 
         return
 
     @staticmethod
-    def _check_abstract_type(
-        abst_algo: AbstractAlgorithm, obj, msg: str
-    ) -> Tuple[Any, bool]:
+    def check_abstract_type(
+        obj,
+        abst_algo: AbstractAlgorithm,
+        sig_mod: "_SignatureModifier",
+        *,
+        name=None,
+        index=None,
+    ):
         """
-        This is a helper for _normalize_abstract_algorithm_signature.
-        If we have an abstract algorithm declaration like "abstract_algo_name(graph: Graph(is_directed=False))", 
-        this method does the actual "instantiation" of a type declaration like "Graph(is_directed=False)" into an actual type.
+        This is a helper for normalize_abstract_algorithm_signature.
+        If we have an abstract algorithm declaration like 
+        "abstract_algo_name(graph: Graph(is_directed=False))", this method does the 
+        actual "instantiation" of a type declaration like "Graph(is_directed=False)" 
+        into an actual type.
         """
+        msg = (
+            abst_algo.func.__qualname__
+            + " "
+            + (f"argument {name}" if name is not None else "return type")
+        )
+
         if obj is Any or obj is NodeID:
-            return obj, False
+            return
 
         origin = getattr(obj, "__origin__", None)
         if origin == abc.Callable:
-            return obj, False
+            return
         elif origin == Union:
-            return mgtyping.Union[obj.__args__], True
+            new_annotation = mgtyping.Union[obj.__args__]
+            sig_mod.update_annotation(new_annotation, name=name, index=index)
+            return
         elif origin == list:
             if isinstance(obj.__args__[0], TypeVar):
-                raise TypeError(
-                    f"{abst_algo.func.__qualname__} {msg} must pass exactly one parameter to List."
-                )
-            return mgtyping.List[obj.__args__[0]], True
+                raise TypeError(f"{msg} must pass exactly one parameter to List.")
+            new_annotation = mgtyping.List[obj.__args__[0]]
+            sig_mod.update_annotation(new_annotation, name=name, index=index)
+            return
 
         if type(obj) is type:
             if issubclass(obj, AbstractType):
-                return obj(), True
+                sig_mod.update_annotation(obj(), name=name, index=index)
+                return
             # Non-abstract type class is assumed to be Python type
-            return obj, False
-        if isinstance(obj, mgtyping.Combo):
+            return
+        elif isinstance(obj, mgtyping.Combo):
             if obj.kind not in {"python", "abstract", "node_id", "uniform_iterable"}:
-                raise TypeError(
-                    f"{abst_algo.func.__qualname__} {msg} may not have Concrete types in Union"
-                )
-            return obj, False
+                raise TypeError(f"{msg} may not have Concrete types in Union")
+            return
         elif isinstance(obj, mgtyping.UniformIterable):
-            return obj, False
-        if isinstance(obj, AbstractType):
-            return obj, False
+            return
+        elif isinstance(obj, AbstractType):
+            return
 
         # All valid cases listed are listed above; if we got here, raise an error
         wrong_type_str = f"an instance of type {type(obj)}"
         # Improve messaging for typing module objects
         if origin is not None and getattr(obj, "_name", None) is not None:
             wrong_type_str = f"typing.{obj._name}"
-        raise TypeError(
-            f"{abst_algo.func.__qualname__} {msg} may not be {wrong_type_str}"
-        )
+        raise TypeError(f"{msg} may not be {wrong_type_str}")
 
     @staticmethod
-    def _normalize_concrete_algorithm_signature(
+    def normalize_concrete_algorithm_signature(
         resolver: Resolver, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
     ) -> None:
         """
         This method checks that the concrete and abstract signatures match, e.g. 
             * no missing params
-            * concrete types of the concrete parameters match the abstract types of the abstract parameter types
-            * checks that no default parameters are provided in the concrete algorithm (besides backend-specific parameters)
-            * recursively checks for matches in "combination" types, e.g. list types, tuple types, optional types, etc.
-                * NB: this only recursively goes one step down, e.g. Tuple[Tuple[Tuple[int]]] is intentionally not supported.
+            * concrete types of the concrete parameters match the abstract types of 
+              the abstract parameter types
+            * checks that no default parameters are provided in the concrete 
+              algorithm (besides backend-specific parameters)
+            * recursively checks for matches in "combination" types, e.g. list types, 
+              tuple types, optional types, etc.
+                * NB: this only recursively goes one step down, e.g. 
+                  Tuple[Tuple[Tuple[int]]] is intentionally not supported.
         This method also does the same with the concrete and abstract return types.
         This method is used when registering concrete algorithms into a resolver.
         
@@ -933,120 +939,107 @@ class ResolverRegistrar:
         """
         abst_sig = abstract.__signature__
         conc_sig = concrete.__signature__
-
-        # Check parameters
-        abst_keys = set(abst_sig.parameters)
-        abst_params = list(abst_sig.parameters.values())
-        conc_params = list(conc_sig.parameters.values())
+        sig_mod = _SignatureModifier(concrete)
 
         # Check for missing parameters in concrete signature
         missing_params = set(abst_sig.parameters) - set(conc_sig.parameters)
         if missing_params:
             raise TypeError(
-                f"Missing parameters: {missing_params} from {abstract.name} in implementation {concrete.func.__qualname__}"
+                f"Missing parameters: {missing_params} from {abstract.name} in "
+                f"implementation {concrete.func.__qualname__}"
             )
 
-        # Walk through the parameters, which will not line up because the concrete may have extra parameters
+        # Check that parameter order matches
+        for abst_param_name, conc_param_name in zip(
+            abst_sig.parameters.keys(), conc_sig.parameters.keys()
+        ):
+            if abst_param_name != conc_param_name:
+                raise TypeError(
+                    f'[{concrete.func.__qualname__}] argument "{conc_param_name}" '
+                    "does not match name of parameter in abstract function signature"
+                )
+
+        # Walk through the parameters (in reverse order to add missing default arg values first),
+        # which will not line up because the concrete may have extra parameters
         # Update concrete signature with defaults defined in the abstract signature
         # Verify that extra parameters contain a default value
-        params_modified = []
-        any_changed = False
-        iabst = -1
-        for iconc, conc_param in enumerate(conc_params):
-            if conc_param.name == "resolver" and concrete._include_resolver:
+        conc_params = list(reversed(conc_sig.parameters.values()))
+        for conc_param in conc_params:
+            conc_param_name = conc_param.name
+            if conc_param_name == "resolver" and concrete._include_resolver:
                 # Handle "include_resolver" logic; algo should not declare default,
                 # but we add a default to make things easier for exact dispatching
                 if conc_param.default is not inspect._empty:
                     raise TypeError('"resolver" should not have a default')
-                conc_param = conc_param.replace(default=None)
-                any_changed = True
-            elif conc_param.name not in abst_keys:
+                sig_mod.update_default(None, name=conc_param_name)
+            elif conc_param_name not in abst_sig.parameters:
                 # Extra concrete params must declare a default value
                 if conc_param.default is inspect._empty:
                     raise TypeError(
-                        f'[{concrete.func.__qualname__}] argument "{conc_param.name}" is not found in abstract signature and must declare a default value'
+                        f'[{concrete.func.__qualname__}] argument "{conc_param_name}" is not '
+                        "found in abstract signature and must declare a default value"
                     )
             else:
-                iabst += 1
-                abst_param = abst_params[iabst]
+                abst_param = abst_sig.parameters[conc_param_name]
 
-                # Concrete parameters should never define a default value -- they inherit the default from the abstract signature
+                # Concrete parameters should never define a default value
+                # They inherit the default from the abstract signature
                 if conc_param.default is not inspect._empty:
                     raise TypeError(
-                        f'[{concrete.func.__qualname__}] argument "{conc_param.name}" declares a default value; default values can only be defined in the abstract signature'
+                        f'[{concrete.func.__qualname__}] argument "{conc_param_name}" declares '
+                        f"a default value; default values can only be defined in the abstract signature"
                     )
-                # If abstract defines a default, update concrete with the same default
-                if abst_param.default is not inspect._empty:
-                    conc_param = conc_param.replace(default=abst_param.default)
-                    any_changed = True
 
                 abst_type = abst_param.annotation
-                conc_type, changed = ResolverRegistrar._normalize_concrete_type(
-                    resolver, conc_param.annotation, abst_type
-                )
-                if changed:
-                    conc_param = conc_param.replace(annotation=conc_type)
-                    any_changed = True
-                if abst_param.name != conc_param.name:
-                    raise TypeError(
-                        f'[{concrete.func.__qualname__}] argument "{conc_param.name}" does not match name of parameter in abstract function signature'
-                    )
-
-                ResolverRegistrar._normalize_concrete_algorithm_parameter(
-                    concrete, conc_param, abst_type, conc_type
+                conc_type = _ResolverRegistrar.normalize_concrete_type(
+                    resolver,
+                    conc_param.annotation,
+                    abst_type,
+                    sig_mod,
+                    name=conc_param_name,
                 )
 
-            params_modified.append(conc_param)
+                # If abstract defines a default, update concrete with the same default
+                if abst_param.default is not inspect._empty:
+                    sig_mod.update_default(abst_param.default, name=conc_param_name)
+
+                _ResolverRegistrar.check_concrete_algorithm_parameter(
+                    concrete, conc_param_name, abst_type, conc_type
+                )
 
         abst_ret = abst_sig.return_annotation
-        conc_ret, changed = ResolverRegistrar._normalize_concrete_type(
-            resolver, conc_sig.return_annotation, abst_ret
+        conc_ret = _ResolverRegistrar.normalize_concrete_type(
+            resolver, conc_sig.return_annotation, abst_ret, sig_mod
         )
-        any_changed |= changed
         # Normalize return type, which might be a tuple
-        if hasattr(conc_ret, "__origin__") and conc_ret.__origin__ == tuple:
+        if getattr(conc_ret, "__origin__", None) == tuple:
             if len(abst_ret.__args__) != len(conc_ret.__args__):
                 raise TypeError(
-                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                    f"{concrete.func.__qualname__} return type is not compatible "
+                    "with abstract function signature"
                 )
-            ret_modified = []
-            for conc_ret_sub_type, abst_ret_sub_type in zip(
-                conc_ret.__args__, abst_ret.__args__
+            for index, (conc_ret_sub_type, abst_ret_sub_type) in enumerate(
+                zip(conc_ret.__args__, abst_ret.__args__)
             ):
-                (
-                    conc_ret_sub_type_normalized,
-                    changed,
-                ) = ResolverRegistrar._normalize_concrete_type(
-                    resolver, conc_ret_sub_type, abst_ret_sub_type
+                conc_ret_sub_type_normalized = _ResolverRegistrar.normalize_concrete_type(
+                    resolver, conc_ret_sub_type, abst_ret_sub_type, sig_mod, index=index
                 )
-                any_changed |= changed
-                ResolverRegistrar._check_concrete_algorithm_return_signature(
+                _ResolverRegistrar.check_concrete_algorithm_return_signature(
                     concrete, conc_ret_sub_type_normalized, abst_ret_sub_type
                 )
-                ret_modified.append(conc_ret_sub_type_normalized)
-            conc_ret.__args__ = tuple(ret_modified)
         else:
-            ResolverRegistrar._check_concrete_algorithm_return_signature(
+            _ResolverRegistrar.check_concrete_algorithm_return_signature(
                 concrete, conc_ret, abst_ret
             )
-
-        if any_changed:
-            conc_sig = conc_sig.replace(
-                parameters=params_modified, return_annotation=conc_ret
-            )
-            concrete.__signature__ = conc_sig
 
         return
 
     @staticmethod
-    def _normalize_concrete_algorithm_parameter(
-        concrete: ConcreteAlgorithm,
-        conc_param: inspect.Parameter,
-        abst_type,
-        conc_type,
+    def check_concrete_algorithm_parameter(
+        concrete: ConcreteAlgorithm, conc_param_name: str, abst_type, conc_type,
     ) -> None:
         """
-        This is a helper for _normalize_concrete_algorithm_signature.
+        This is a helper for normalize_concrete_algorithm_signature.
         This method verifies that an individual pair of abstract and concrete types match.
         """
         if isinstance(conc_type, mgtyping.UniformIterable):
@@ -1080,27 +1073,35 @@ class ResolverRegistrar:
         elif isinstance(conc_type, ConcreteType):
             if not issubclass(conc_type.abstract, abst_type.__class__):
                 raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param.name}" does not have type compatible with abstract function signature'
+                    f'{concrete.func.__qualname__} argument "{conc_param_name}" does '
+                    "not have type compatible with abstract function signature"
                 )
             if conc_type.abstract_instance is not None:
                 raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param.name}" specifies abstract properties'
+                    f'{concrete.func.__qualname__} argument "{conc_param_name}" specifies '
+                    "abstract properties"
                 )
         else:
             # regular Python types need to match exactly
             if abst_type != conc_type:
                 raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param.name}" does not match abstract function signature'
+                    f'{concrete.func.__qualname__} argument "{conc_param_name}" does not '
+                    "match abstract function signature"
                 )
 
     @staticmethod
-    def _normalize_concrete_type(
-        resolver: Resolver, conc_type, abst_type
-    ) -> Tuple[Any, bool]:
+    def normalize_concrete_type(
+        resolver: Resolver,
+        conc_type,
+        abst_type,
+        sig_mod: "_SignatureModifier",
+        *,
+        name=None,
+        index=None,
+    ):
         """
         Coerces typing.Union, typing.Optional, etc. to mg.Union, mg.Optional, etc.
         """
-        changed = False
         origin = getattr(conc_type, "__origin__", None)
 
         if isinstance(abst_type, mgtyping.Combo) and not isinstance(
@@ -1112,7 +1113,6 @@ class ResolverRegistrar:
                 conc_type = mgtyping.Combo(
                     [conc_type], optional=abst_type.optional, strict=abst_type.strict
                 )
-            changed = True
         elif isinstance(abst_type, mgtyping.UniformIterable) and not isinstance(
             conc_type, mgtyping.UniformIterable
         ):
@@ -1120,24 +1120,27 @@ class ResolverRegistrar:
                 conc_type = mgtyping.List[conc_type.__args__[0]]
             else:
                 conc_type = mgtyping.Combo(conc_type)
-            changed = True
         elif isinstance(abst_type, AbstractType) and not isinstance(
             conc_type, ConcreteType
         ):
             if type(conc_type) is type and issubclass(conc_type, ConcreteType):
-                return conc_type(), True
+                conc_type = conc_type()
             # handle Python classes used as concrete types
             elif conc_type in resolver.class_to_concrete:
                 conc_type = resolver.class_to_concrete[conc_type]()
-                changed = True
             else:
                 raise TypeError(
                     f"'{conc_type}' is not a concrete type of '{abst_type}'"
                 )
-        return conc_type, changed
+        else:
+            return conc_type
+
+        sig_mod.update_annotation(conc_type, name=name, index=index)
+
+        return conc_type
 
     @staticmethod
-    def _check_concrete_algorithm_return_signature(
+    def check_concrete_algorithm_return_signature(
         concrete: ConcreteAlgorithm, conc_ret, abst_ret
     ) -> None:
         """
@@ -1147,14 +1150,61 @@ class ResolverRegistrar:
         if isinstance(conc_ret, ConcreteType):
             if not issubclass(conc_ret.abstract, abst_ret.__class__):
                 raise TypeError(
-                    f"{concrete.func.__qualname__} return type is not compatible with abstract function signature"
+                    f"{concrete.func.__qualname__} return type is not compatible "
+                    "with abstract function signature"
                 )
         else:
             # regular Python types need to match exactly
             if abst_ret != conc_ret:
                 raise TypeError(
-                    f"{concrete.func.__qualname__} return type does not match abstract function signature"
+                    f"{concrete.func.__qualname__} return type does not "
+                    "match abstract function signature"
                 )
+
+
+class _SignatureModifier:
+    def __init__(self, algo: Union[AbstractAlgorithm, ConcreteAlgorithm]):
+        self.algo = algo
+
+    def update_default(self, new_default, *, name):
+        sig = self.algo.__signature__
+        newparams = [
+            p.replace(default=new_default) if pname == name else p
+            for pname, p in sig.parameters.items()
+        ]
+        self.algo.__signature__ = sig.replace(parameters=newparams)
+
+    def update_annotation(self, new_annotation, *, name=None, index=None):
+        if name is None and index is None:  # single return
+            return self._update_return_annotation(new_annotation)
+        if name is None and index is not None:  # multi return
+            return self._update_return_annotation(new_annotation, index=index)
+        if name is not None and index is None:  # single arg
+            return self._update_arg_annotation(new_annotation, name=name)
+        if name is not None and index is not None:  # multi arg
+            raise NotImplementedError()
+
+    def _update_arg_annotation(self, new_annotation, name):
+        sig = self.algo.__signature__
+        newparams = [
+            p.replace(annotation=new_annotation) if pname == name else p
+            for pname, p in sig.parameters.items()
+        ]
+        self.algo.__signature__ = sig.replace(parameters=newparams)
+
+    def _update_return_annotation(self, new_return, index=None):
+        sig = self.algo.__signature__
+        if index is not None:
+            assert (
+                getattr(sig.return_annotation, "__origin__", None) == tuple
+            ), "Use of index only supported for `Tuple[]` return type"
+            new_rets = (
+                new_return if i == index else r
+                for i, r in enumerate(sig.return_annotation.__args__)
+            )
+            sig.return_annotation.__args__ = tuple(new_rets)
+        else:
+            self.algo.__signature__ = sig.replace(return_annotation=new_return)
 
 
 class Dispatcher:
