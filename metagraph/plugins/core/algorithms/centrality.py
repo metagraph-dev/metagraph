@@ -1,6 +1,6 @@
 import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, NodeMap, NodeSet, NodeID
+from ..types import Graph, NodeMap, NodeSet, NodeID
 from typing import Tuple
 
 

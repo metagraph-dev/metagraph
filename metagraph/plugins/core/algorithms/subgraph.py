@@ -1,6 +1,6 @@
 import metagraph as mg
-from metagraph import abstract_algorithm
-from metagraph.types import NodeSet, Graph, NodeID
+from metagraph import abstract_algorithm, NodeID
+from ..types import NodeSet, Graph
 
 
 @abstract_algorithm("subgraph.extract_subgraph")

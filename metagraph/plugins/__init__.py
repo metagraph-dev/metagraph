@@ -64,10 +64,10 @@ registry = metagraph.PluginRegistry("core")
 
 
 def find_plugins():
-    from . import graphblas, networkx, numpy, pandas, python, scipy
+    from . import core, graphblas, networkx, numpy, pandas, python, scipy
 
     # Default Plugins
-    registry.register_from_modules(metagraph.types, metagraph.algorithms)
+    registry.register_from_modules(core)
     registry.register_from_modules(graphblas, name="core_graphblas")
     registry.register_from_modules(networkx, name="core_networkx")
     registry.register_from_modules(numpy, name="core_numpy")

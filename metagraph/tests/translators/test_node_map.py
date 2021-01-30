@@ -2,12 +2,13 @@ import pytest
 
 grblas = pytest.importorskip("grblas")
 
+import metagraph as mg
 from metagraph import NodeLabels
 from metagraph.tests.util import default_plugin_resolver
 from . import RoundTripper
-from metagraph.plugins.python.types import PythonNodeMapType
+from metagraph.plugins.python.types import PythonNodeMapType, PythonNodeSetType
 from metagraph.plugins.numpy.types import NumpyNodeMap, NumpyNodeSet
-from metagraph.plugins.graphblas.types import GrblasNodeMap
+from metagraph.plugins.graphblas.types import GrblasNodeMap, GrblasNodeSet
 import numpy as np
 import grblas
 
@@ -30,39 +31,61 @@ def test_nodemap_nodeset_oneway(default_plugin_resolver):
     rt.verify_one_way(start, end)
 
 
-def test_python_2_numpy_node_ids(default_plugin_resolver):
+def test_method_call(default_plugin_resolver):
     dpr = default_plugin_resolver
-    x = {0: 12.5, 1: 33.4, 42: -1.2}
-    # Convert python -> numpy
-    intermediate = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), nodes=(0, 1, 42))
-    y = dpr.translate(x, NumpyNodeMap)
-    dpr.assert_equal(y, intermediate)
-    # Convert python <- numpy
-    x2 = dpr.translate(y, PythonNodeMapType)
-    dpr.assert_equal(x, x2)
+    with dpr:
+        x = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), nodes=(0, 1, 42))
+        y = {0: 12.5, 1: 33.4, 42: -1.2}
+        z = GrblasNodeMap(grblas.Vector.from_values([0, 1, 42], [12.5, 33.4, -1.2]))
+        z_other = GrblasNodeMap(grblas.Vector.from_values([0, 2], [1, 2]))
+        # Wrapper
+        dpr.assert_equal(x.translate(GrblasNodeMap), z)
+        dpr.assert_equal(x.translate(dpr.wrappers.NodeMap.GrblasNodeMap), z)
+        dpr.assert_equal(x.translate(mg.wrappers.NodeMap.GrblasNodeMap), z)
+        # ConcreteType
+        dpr.assert_equal(x.translate(GrblasNodeMap.Type), z)
+        dpr.assert_equal(x.translate(PythonNodeMapType), y)
+        dpr.assert_equal(x.translate(dpr.types.NodeMap.GrblasNodeMapType), z)
+        dpr.assert_equal(x.translate(mg.types.NodeMap.GrblasNodeMapType), z)
+        dpr.assert_equal(x.translate(mg.types.NodeMap.PythonNodeMapType), y)
+        # ConcreteType's value_type
+        dpr.assert_equal(x.translate(dict), y)
+        # instance of Wrapper
+        dpr.assert_equal(x.translate(z_other), z)
+        # instance of ConcreteType's value_type
+        dpr.assert_equal(x.translate({"a": 1, "b": 2}), y)
+        # string of Wrapper class name
+        dpr.assert_equal(x.translate("GrblasNodeMap"), z)
+        # string of ConcreteType class name
+        dpr.assert_equal(x.translate("PythonNodeMapType"), y)
+        dpr.assert_equal(x.translate("GrblasNodeMapType"), z)
 
 
-def test_graphblas_python(default_plugin_resolver):
+def test_method_call_secondary(default_plugin_resolver):
     dpr = default_plugin_resolver
-    x = GrblasNodeMap(
-        grblas.Vector.from_values([9, 24, 25], [-1.2, 33.4, 12.5], size=26),
-    )
-    assert len(x) == 3
-    # Convert graphblas -> python
-    intermediate = {25: 12.5, 24: 33.4, 9: -1.2}
-    y = dpr.translate(x, PythonNodeMapType)
-    dpr.assert_equal(y, intermediate)
-
-
-def test_numpy_graphblas(default_plugin_resolver):
-    dpr = default_plugin_resolver
-    data = np.array([3, -1, 4])
-    x = NumpyNodeMap(data, [2, 6, 4])
-    assert len(x) == 3
-    # Convert numpy -> graphblas
-    intermediate = dpr.wrappers.NodeMap.GrblasNodeMap(
-        grblas.Vector.from_values([2, 4, 6], [3, 4, -1]),
-    )
-    # NOTE: this tests DelayedWrappers in dask mode in addition to the normal translation
-    y = dpr.translate(x, dpr.wrappers.NodeMap.GrblasNodeMap)
-    dpr.assert_equal(y, intermediate)
+    with dpr:
+        x = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), nodes=(0, 1, 42))
+        y = {0, 1, 42}
+        z = GrblasNodeSet(grblas.Vector.from_values([0, 1, 42], [1, 1, 1]))
+        z_other = GrblasNodeSet(grblas.Vector.from_values([0, 2], [1, 1]))
+        # Wrapper
+        dpr.assert_equal(x.translate(GrblasNodeSet), z)
+        dpr.assert_equal(x.translate(dpr.wrappers.NodeSet.GrblasNodeSet), z)
+        dpr.assert_equal(x.translate(mg.wrappers.NodeSet.GrblasNodeSet), z)
+        # ConcreteType
+        dpr.assert_equal(x.translate(GrblasNodeSet.Type), z)
+        dpr.assert_equal(x.translate(PythonNodeSetType), y)
+        dpr.assert_equal(x.translate(dpr.types.NodeSet.GrblasNodeSetType), z)
+        dpr.assert_equal(x.translate(mg.types.NodeSet.GrblasNodeSetType), z)
+        dpr.assert_equal(x.translate(mg.types.NodeSet.PythonNodeSetType), y)
+        # ConcreteType's value_type
+        dpr.assert_equal(x.translate(set), y)
+        # instance of Wrapper
+        dpr.assert_equal(x.translate(z_other), z)
+        # instance of ConcreteType's value_type
+        dpr.assert_equal(x.translate({"a", "b"}), y)
+        # string of Wrapper class name
+        dpr.assert_equal(x.translate("GrblasNodeSet"), z)
+        # string of ConcreteType class name
+        dpr.assert_equal(x.translate("PythonNodeSetType"), y)
+        dpr.assert_equal(x.translate("GrblasNodeSetType"), z)

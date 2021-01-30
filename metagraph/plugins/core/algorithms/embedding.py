@@ -1,6 +1,6 @@
 import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import Graph, Matrix, Vector, NodeMap, GraphSageNodeEmbedding
+from ..types import Graph, Matrix, Vector, NodeMap, GraphSageNodeEmbedding
 from typing import Tuple
 
 

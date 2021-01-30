@@ -1,4 +1,4 @@
-from . import Wrapper
+from metagraph import Wrapper
 from .types import (
     NodeSet,
     NodeMap,

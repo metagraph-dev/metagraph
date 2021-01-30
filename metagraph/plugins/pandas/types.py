@@ -1,8 +1,8 @@
 import numpy as np
 from typing import Set, Dict, Any
 from metagraph import ConcreteType, dtypes
-from metagraph.types import DataFrame, EdgeSet, EdgeMap
-from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper
+from ..core.types import DataFrame, EdgeSet, EdgeMap
+from ..core.wrappers import EdgeSetWrapper, EdgeMapWrapper
 from metagraph.plugins import has_pandas
 import math
 
