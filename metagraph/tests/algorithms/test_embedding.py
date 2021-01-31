@@ -270,44 +270,44 @@ def test_hope_katz(default_plugin_resolver):
 
 def test_graph_sage_mean(default_plugin_resolver):
     """
-== Training Subgraph ==
+    == Training Subgraph ==
 
-[Training Subgraph A (fully connected), nodes 0..9] --------------|
-                           |                                      |
-                    node 9999_09_10                               |
-                           |                                      |
-[Training Subgraph B (fully connected), nodes 10..19]     node 9999_29_00
-                           |                                      |
-                    node 9999_19_20                               |
-                           |                                      |
-[Training Subgraph C (fully connected), nodes 10..19] -------------
+    [Training Subgraph A (fully connected), nodes 0..9] --------------|
+                               |                                      |
+                        node 9999_09_10                               |
+                               |                                      |
+    [Training Subgraph B (fully connected), nodes 10..19]     node 9999_29_00
+                               |                                      |
+                        node 9999_19_20                               |
+                               |                                      |
+    [Training Subgraph C (fully connected), nodes 10..19] -------------
 
-Training Subgraph A nodes all have feature vector [1, 0, 0, 0, 0, ..., 0]
-Training Subgraph B nodes all have feature vector [0, 1, 0, 0, 0, ..., 0]
-Training Subgraph C nodes all have feature vector [0, 0, 1, 0, 0, ..., 0]
-Nodes 9999_09_10, 9999_19_20, and node 9999_29_00 have the zero vector as their node features.
-
-
-
-== Testing Subgraph ==
-
-[Testing Subgraph A (fully connected), nodes 8888_00..8888_19]
-                        |
-                 node 8888_00_20
-                        |
-[Testing Subgraph B (fully connected), nodes 8888_20..8888_49]
-
-Testing Subgraph A nodes all have feature vector [1, 0, 0, 0, 0, ..., 0]
-Testing Subgraph B nodes all have feature vector [0, 1, 0, 0, 0, ..., 0]
-Node 8888_00_20 hsa the zero vector as a its node features.
+    Training Subgraph A nodes all have feature vector [1, 0, 0, 0, 0, ..., 0]
+    Training Subgraph B nodes all have feature vector [0, 1, 0, 0, 0, ..., 0]
+    Training Subgraph C nodes all have feature vector [0, 0, 1, 0, 0, ..., 0]
+    Nodes 9999_09_10, 9999_19_20, and node 9999_29_00 have the zero vector as their node features.
 
 
 
-== Differences Between Training & Testing Graphs ==
+    == Testing Subgraph ==
 
-All the complete subgraphs in the training graph have 10 nodes, but the complete subgraphs in the testing graph do NOT.
+    [Testing Subgraph A (fully connected), nodes 8888_00..8888_19]
+                            |
+                     node 8888_00_20
+                            |
+    [Testing Subgraph B (fully connected), nodes 8888_20..8888_49]
 
-The test verifies for the testing graph that the 20 nearest neighbors in the embedding space of each node are all part of the same complete subgraph.
+    Testing Subgraph A nodes all have feature vector [1, 0, 0, 0, 0, ..., 0]
+    Testing Subgraph B nodes all have feature vector [0, 1, 0, 0, 0, ..., 0]
+    Node 8888_00_20 hsa the zero vector as a its node features.
+
+
+
+    == Differences Between Training & Testing Graphs ==
+
+    All the complete subgraphs in the training graph have 10 nodes, but the complete subgraphs in the testing graph do NOT.
+
+    The test verifies for the testing graph that the 20 nearest neighbors in the embedding space of each node are all part of the same complete subgraph.
     """
 
     try:

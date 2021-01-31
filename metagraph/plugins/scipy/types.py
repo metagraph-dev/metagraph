@@ -1,8 +1,8 @@
 from typing import Set, Dict, Any
 from metagraph import ConcreteType, dtypes
-from metagraph.types import Matrix, EdgeSet, EdgeMap, Graph
-from metagraph.wrappers import EdgeSetWrapper, EdgeMapWrapper, GraphWrapper
-from metagraph.plugins import has_scipy
+from ..core.types import Matrix, EdgeSet, EdgeMap, Graph
+from ..core.wrappers import EdgeSetWrapper, EdgeMapWrapper, GraphWrapper
+from .. import has_scipy
 import numpy as np
 
 

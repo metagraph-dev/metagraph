@@ -4,7 +4,21 @@ Containers which mimic `typing` containers, but which allow for instances rather
 ex. typing.Optional[MyAbstractType] works, but typing.Optional[MyAbstractType(some_prop=True)] fails
 """
 from .plugin import AbstractType, ConcreteType, MetaWrapper
-from ..types import NodeID
+
+
+# Use in signatures when a node ID is required
+class NodeID:
+    def __repr__(self):
+        return "NodeID"
+
+    def __call__(self, *args, **kwargs):
+        raise NotImplementedError(
+            "Do not attempt to create a NodeID. Simply pass in the node_id as an int"
+        )
+
+
+# Create a singleton object which masks the class
+NodeID = NodeID()
 
 
 class Combo:

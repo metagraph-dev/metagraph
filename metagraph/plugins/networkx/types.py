@@ -1,7 +1,7 @@
 from typing import Set, Dict, Any
-from metagraph.types import Graph, BipartiteGraph
-from metagraph.wrappers import GraphWrapper, BipartiteGraphWrapper
-from metagraph.plugins import has_networkx
+from ..core.types import Graph, BipartiteGraph
+from ..core.wrappers import GraphWrapper, BipartiteGraphWrapper
+from .. import has_networkx
 import math
 
 

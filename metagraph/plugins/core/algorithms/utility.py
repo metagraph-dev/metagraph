@@ -1,6 +1,6 @@
 import metagraph as mg
 from metagraph import abstract_algorithm
-from metagraph.types import (
+from ..types import (
     NodeSet,
     NodeMap,
     Vector,
@@ -72,7 +72,7 @@ def graph_aggregate_edges(
     out_edges: bool = True,
 ) -> NodeMap:
     """
-    if in_edges == out_edges == False, every node is mapped to initial_value 
+    if in_edges == out_edges == False, every node is mapped to initial_value
     if the graph is undirected and either in_edges == True or out_edges == True, we aggregate over all of the edges for each node exactly once to avoid double counting
     if the graph is directed, in_edges and out_edges specify which edge types to aggregate over for a given node
     """

@@ -1,19 +1,4 @@
-from . import AbstractType, Wrapper
-
-
-# Use in signatures when a node ID is required
-class NodeID:
-    def __repr__(self):
-        return "NodeID"
-
-    def __call__(self, *args, **kwargs):
-        raise NotImplementedError(
-            "Do not attempt to create a NodeID. Simply pass in the node_id as an int"
-        )
-
-
-# Create a singleton object which masks the class
-NodeID = NodeID()
+from metagraph import AbstractType, Wrapper, NodeID
 
 
 DTYPE_CHOICES = ["float", "int", "bool"]

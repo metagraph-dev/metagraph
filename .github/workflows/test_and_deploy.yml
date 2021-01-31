@@ -49,7 +49,7 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda activate mg
           conda install -c conda-forge coveralls
-          coveralls
+          coveralls --service=github
       - name: Conda Build
         run: |
           source "$CONDA/etc/profile.d/conda.sh"

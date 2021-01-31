@@ -58,6 +58,21 @@ class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
 
         return ret
 
+    @classmethod
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
+        return obj1 == obj2
+
 
 class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     value_type = float
@@ -74,12 +89,27 @@ class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
             ret["positivity"] = ">0"
         elif obj == 0:
             ret["positivity"] = ">=0"
-
         return ret
+
+    @classmethod
+    def assert_equal(
+        cls,
+        obj1,
+        obj2,
+        aprops1,
+        aprops2,
+        cprops1,
+        cprops2,
+        *,
+        rel_tol=1e-9,
+        abs_tol=0.0,
+    ):
+        return math.isclose(obj1, obj2, rel_tol=rel_tol, abs_tol=abs_tol)
 
 
 class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
     def __init__(self, val):
+        super().__init__()
         self.value = val
         assert isinstance(val, str)
 
@@ -87,6 +117,12 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
         if not isinstance(other, self.__class__):
             return NotImplemented  # pragma: no cover
         return self.value == other.value
+
+    def to_num(self):
+        try:
+            return int(self.value)
+        except ValueError:
+            return float(self.value)
 
     class TypeMixin:
         @classmethod
@@ -109,6 +145,23 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
                 elif propname == "divisible_by_two":
                     ret["divisible_by_two"] = int(value) % 2 == 0
             return ret
+
+        @classmethod
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            return math.isclose(
+                float(obj1.value), float(obj2.value), rel_tol=rel_tol, abs_tol=abs_tol
+            )
 
 
 class StrType(plugin.ConcreteType, abstract=MyAbstractType):
@@ -160,6 +213,12 @@ def abstract_power(
 @plugin.concrete_algorithm("power")
 def int_power(x: IntType, p: IntType) -> IntType:
     return x ** p
+
+
+@plugin.concrete_algorithm("power")
+def strnum_power(x: StrNum, p: StrNum) -> StrNum:
+    result = x.to_num() ** p.to_num()
+    return StrNum(str(result))
 
 
 @plugin.abstract_algorithm("ln")
@@ -290,7 +349,8 @@ def make_example_resolver():
                     simple_odict_rev,
                 },
                 "compilers": {FailCompiler(), IdentityCompiler()},
-            }
+            },
+            "example2_plugin": {"concrete_algorithms": {strnum_power}},
         }
     )
     return res

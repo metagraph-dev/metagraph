@@ -23,11 +23,11 @@ class PluginRegistry:
     Example Usage
     -------------
     # /plugins.py
-    registry = metagraph.plugin_registry.PluginRegistry()
+    registry = metagraph.plugin_registry.PluginRegistry("my_plugin")
     def find_plugins():
-        from . import graphblas,
-        registry.register_from_modules(metagraph.types, metagraph.algorithms)
-        registry.register_from_modules(graphblas, name="core_graphblas")
+        from . import my_types, my_translators, my_algorithms, my_other_algorithms
+        registry.register_from_modules(my_types, my_translators, my_algorithms)
+        registry.register_from_modules(my_other_algorithms, name="my_plugin_part2")
         ...
         return registry.plugins
     # Add entry_points to setup.py
@@ -36,37 +36,39 @@ class PluginRegistry:
         entry_points={"metagraph.plugins": ["plugins = plugins:find_plugins",]},
         ...
     )
+
     # /my_types.py
-    from .plugins import registry
     from metagraph import AbstractType, Wrapper
-    @registry.register
+
     class MyCustomType(AbstractType):
         pass
-    @registry.register
+
     class MyWrapper(Wrapper, abstract=MyCustomType):
         allowed_props = {'flag'}
         def __init__(self, value, flag=True):
             self.value = value
             self.flag = flag
+
     # /my_translators.py
-    from .plugins import registry
     from .my_types import MyWrapper
     from metagraph import translator
     import networkx as nx
-    @translator(registry=registry)
+    @translator
     def nx_to_mycustom(x: nx.Graph, **props) -> MyWrapper:
         # modify x
         return MyWrapper(x, flag=False)
+
     # /my_algorithms.py
-    from .plugins import registry
     from .my_types import MyWrapper
     from metagraph import abstract_algorithm, concrete_algorithm
     import metagraph as mg
+
     # Create an abstract algorithm
-    @abstract_algorithm('link_analysis.CustomPageRank', registry=registry)
+    @abstract_algorithm('link_analysis.CustomPageRank')
     def custpr(g: Graph) -> Vector:
         pass
-    @concrete_algorithm('link_analysis.CustomPageRank', registry=registry)
+
+    @concrete_algorithm('link_analysis.CustomPageRank')
     def mycustpr(g: MyWrapper) -> mg.types.NumpyVector:
         result = ...
         return results

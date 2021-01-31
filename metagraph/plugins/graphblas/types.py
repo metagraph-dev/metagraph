@@ -1,13 +1,13 @@
 from metagraph import ConcreteType, dtypes
-from metagraph.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap, Graph
-from metagraph.wrappers import (
+from ..core.types import Vector, Matrix, NodeSet, NodeMap, EdgeSet, EdgeMap, Graph
+from ..core.wrappers import (
     NodeSetWrapper,
     NodeMapWrapper,
     EdgeSetWrapper,
     EdgeMapWrapper,
     GraphWrapper,
 )
-from metagraph.plugins import has_grblas
+from .. import has_grblas
 
 from typing import Set, Dict, Any
 
