@@ -30,9 +30,9 @@ def extract_compilable_subgraphs(dsk: Dict, compiler: str) -> List[DaskSubgraph]
     # which nodes are compilable concrete_algorithms?
     compilable_keys = set()
     for key in dsk.keys():
-        task_callable, task_args = dsk[key]
+        task_callable = dsk[key][0]
         if (
-            isinstanace(task_callable, ConcreteAlgorithm)
+            isinstance(task_callable, ConcreteAlgorithm)
             and task_callable._compiler == compiler
         ):
             compilable_keys.add(key)
@@ -47,16 +47,19 @@ def extract_compilable_subgraphs(dsk: Dict, compiler: str) -> List[DaskSubgraph]
         chain = [key]
         chain_extended = True
         while chain_extended:
-            next_compilable_tasks = dependents[chain[-1]].intersect(compilable_keys)
-            prior_compilable_tasks = dependencies[chain[0]].intersect(compilable_keys)
+            next_compilable_tasks = dependents[chain[-1]] & compilable_keys
+            prior_compilable_tasks = dependencies[chain[0]] & compilable_keys
 
             # Can we extend the chain?
             chain_extended = False
 
             if len(next_compilable_tasks) == 1:
-                chain.append(next_compilable_tasks.pop())
-                keys_left.remove(chain[-1])
-                chain_extended = True
+                candidate = next_compilable_tasks.pop()
+                # ensure this task does not have multiple compileable dependencies
+                if len(dependencies[candidate] & compilable_keys) == 1:
+                    chain.append(candidate)
+                    keys_left.remove(chain[-1])
+                    chain_extended = True
 
             if len(prior_compilable_tasks) == 1:
                 chain.insert(0, prior_compilable_tasks.pop())
@@ -64,10 +67,11 @@ def extract_compilable_subgraphs(dsk: Dict, compiler: str) -> List[DaskSubgraph]
                 chain_extended = True
 
         if len(chain) > 1:
-            # collect all the non-compiled inputs to the tasks in this chain
+            # collect all the inputs to the tasks in this chain
             inputs = set()
+            chain_keys = set(chain)
             for key in chain:
-                inputs.union(dependencies[key].intersect(non_compilable_keys))
+                inputs |= dependencies[key] - chain_keys
             tasks = {key: dsk[key] for key in chain}
             subgraphs.append(
                 DaskSubgraph(tasks=tasks, input_keys=list(inputs), output_key=chain[-1])
