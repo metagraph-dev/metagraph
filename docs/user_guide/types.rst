@@ -139,8 +139,8 @@ Wrapper Convenience Methods
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Several common resolver methods are made available as shortcuts on wrappers.
 
-- `.translate(dst)` will translate to another type
-- `.run(algo_name, *args, **kwargs)` will run an algorithm using the wrapper as the first argument
+- ``.translate(dst)`` will translate to another type
+- ``.run(algo_name, *args, **kwargs)`` will run an algorithm using the wrapper as the first argument
 
 This example shows equivalent calls:
 

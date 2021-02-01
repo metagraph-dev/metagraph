@@ -180,7 +180,7 @@ Because of this, the default resolver should be accessed prior to any time-sensi
 Hidden Default Resolver
 ~~~~~~~~~~~~~~~~~~~~~~~
 Because the default resolver is used for almost every action in Metagraph, the default resolver
-is integrated seemlessly back into the `metagraph` namespace.
+is integrated seamlessly back into the ``metagraph`` namespace.
 
 The following are identical:
 
@@ -190,7 +190,7 @@ The following are identical:
     r.translate(x, "NetworkXGraph")
     mg.translate(x, "NetworkXGraph")
 
-The full list of default resolver attributes copied into the `metagraph` namespace are:
+The full list of default resolver attributes copied into the ``metagraph`` namespace are:
 
  - types
  - wrappers
@@ -204,9 +204,9 @@ The full list of default resolver attributes copied into the `metagraph` namespa
 Custom Resolver
 ~~~~~~~~~~~~~~~
 
-Usually, the default resolver is sufficient for most scripts using metagraph. However, it is
+The default resolver is usually sufficient for most scripts use cases of metagraph. However, it is
 also possible to create custom resolvers separate from the default resolver. This requires
-creating a Resolver and registering plugins manually.
+creating a ``Resolver`` and registering plugins manually.
 
 .. code-block:: python
 
@@ -225,7 +225,7 @@ Replacing the Default Resolver
 
 Replacing the default resolver is possible, both temporarily and permanently.
 
-To temporary make a resolver the default:
+To temporarily make a resolver the default:
 
 .. code-block:: python
 
@@ -248,3 +248,10 @@ To permanently replace the default resolver:
     some_resolver.reset_default()
 
     mg.translate(...)  # back to the original default resolver
+
+Of course, calling methods directly from the alternate resolver is also allowed and will work as expected.
+
+.. code-block:: python
+
+    some_resolver = ...
+    some_resolver.translate(...)
