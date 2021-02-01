@@ -12,6 +12,7 @@ from metagraph import (
 from metagraph.core.plugin_registry import PluginRegistry
 from metagraph.core.resolver import (
     Resolver,
+    _ResolverRegistrar,
     Namespace,
     Dispatcher,
     NamespaceError,
@@ -918,10 +919,9 @@ def test_duplicate_plugin():
     with pytest.raises(ValueError, match=" already registered."):
         res.register({"test_duplciate_plugin": {"concrete_types": {ConcreteType1}}})
 
-    res = Resolver()
     with pytest.raises(ValueError, match=" not known to be the resolver or a plugin."):
-        res._register_plugin_attributes_in_tree(
-            Resolver(), abstract_types={AbstractType1}
+        _ResolverRegistrar.register_plugin_attributes_in_tree(
+            Resolver(), Resolver(), abstract_types={AbstractType1}
         )
 
 
