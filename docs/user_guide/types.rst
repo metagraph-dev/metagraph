@@ -123,7 +123,7 @@ This inner class is created exactly like ``ConcreteType`` except for the followi
 - It does not define the abstract class (that is done in the Wrapper definition)
 - It does not define ``value_type``
 
-All other parts of ``ConcreteType`` *are* defined within the inner ``TypeMixin`` class:
+All other parts of ``ConcreteType`` are defined within the inner ``TypeMixin`` class:
 
 - allowed_props
 - _compute_abstract_properties
@@ -134,3 +134,20 @@ All other parts of ``ConcreteType`` *are* defined within the inner ``TypeMixin``
 When the wrapper is registered with Metagraph, this ``TypeMixin`` class will be converted into
 a proper ``ConcreteType`` and set as the ``.Type`` attribute on the wrapper. The ``value_type``
 will point to the wrapper class, linking the two objects.
+
+Wrapper Convenience Methods
+~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Several common resolver methods are made available as shortcuts on wrappers.
+
+- `.translate(dst)` will translate to another type
+- `.run(algo_name, *args, **kwargs)` will run an algorithm using the wrapper as the first argument
+
+This example shows equivalent calls:
+
+.. code-block:: python
+
+    y = mg.translate(x, "NetworkXGraph")
+    y = x.translate("NetworkXGraph")
+
+    pr = mg.algos.centrality.pagerank(x, damping=0.75)
+    pr = x.run("centrality.pagerank", damping=0.75)

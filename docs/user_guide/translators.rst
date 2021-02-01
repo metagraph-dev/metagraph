@@ -24,7 +24,7 @@ output type.
 .. code-block:: python
 
     g = NetworkXGraph(...)
-    g2 = resolver.translate(g, CuGraph)
+    g2 = mg.translate(g, CuGraph)
 
 The primary rule of translators is that translation can only happen
 between objects of the same abstract type. There are exceptions to this rule,

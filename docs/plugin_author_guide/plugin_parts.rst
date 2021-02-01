@@ -44,7 +44,7 @@ Here's some example code showing how to declare an abstract algorithm:
  .. code-block:: python
 
      from metagraph import abstract_algorithm
-     from metagraph.types import Graph
+     from metagraph.plugins.core.types import Graph
 
      @abstract_algorithm("centrality.pagerank")
      def pagerank(
@@ -204,22 +204,34 @@ Since wrappers automatically introduce concrete types, wrappers are also useful 
 
     class NetworkXEdgeMap(EdgeMapWrapper, abstract=EdgeMap):
         def __init__(
-            self, nx_graph, weight_label="weight",
+            self, nx_graph, weight_label="weight", *, aprops=None
         ):
+            super().__init__(aprops=aprops)
             self.value = nx_graph
             self.weight_label = weight_label
             self._assert_instance(nx_graph, nx.Graph)
 
-        @classmethod
-        def assert_equal(cls, obj1, obj2, props1, props2, *, rel_tol=1e-9, abs_tol=0.0):
-            ...
-            return
+        class TypeMixin:
+            @classmethod
+            def _compute_abstract_properties(
+                cls, obj, props: Set[str], known_props: Dict[str, Any]
+            ) -> Dict[str, Any]:
+                ...
+                return
+
+            @classmethod
+            def assert_equal(cls, obj1, obj2, aprops1, aprops2, cprops1, cprops2,
+                             *, rel_tol=1e-9, abs_tol=0.0):
+                ...
+                return
 
 It's conventional to have the underlying data stored in the ``value`` attribute.
 
-It's highly recommended to use the inherited ``_assert_instance`` wrapper method to sanity check types. 
+If the underlying abstract type has abstract properties, it is required to define ``_compute_abstract_properties``.
 
-It's highly recommended to add an ``assert_equal`` class method as it gets inherited by the automatically created
+It is recommended to use the inherited ``_assert_instance`` wrapper method to sanity check types.
+
+It can be beneficial to add an ``assert_equal`` class method as it gets inherited by the automatically created
 concrete type and is useful for :ref:`testing purposes<testing_algorithms>`.
 
 For more about wrappers, see :ref:`here<wrappers>`.

@@ -33,40 +33,29 @@ Much of the functionality provided by types will be rigorously tested indirectly
 Testing Translators
 -------------------
 
-It's highly recommended to write tests for every translator included in a module.
+It is not recommended to write tests for every translator included in a module.
+The exception to this advice is if a plugin defines a new ``AbstractType``.
 
-The ``assert_equal`` method of concrete types discussed in :ref:`Plugin Parts<plugin_parts>` comes in handy for translator tests.
-
-Translator tests will frequently come in the form of creating an instance for a concrete type, translating it via the
-Metagraph resolver, and then verifying that the translated data structure is as we expected.
+Testing of translators is typically done using the ``metagraph.core.roundtrip.RoundTripper`` class, which
+tests all possible translation paths for a given abstract type.
 
 Here's an example:
 
 .. code-block:: python
 
     import metagraph as mg
-    from metagraph.plugins.python.types import PythonNodeMapType
     from metagraph.plugins.numpy.types import NumpyNodeMap
 
-    def test_python_2_numpy():
-        r = mg.resolver
-        x = {0: 12.5, 1: 33.4, 42: -1.2}
+    def test_nodemap_roundtrip(resolver):
+        rt = RoundTripper(resolver)
+        nodes = np.array([1, 2, 42, 99])
+        vals = np.array([12.5, 33.4, -1.2, 0.0])
+        rt.verify_round_trip(NumpyNodeMap(vals, nodes=nodes))
 
-        # Convert python -> numpy
-        intermediate = NumpyNodeMap(np.array([12.5, 33.4, -1.2]), nodes=np.array([0, 1, 42]))
+Here we test translation from a NumpyNodeMap to all other reachable NodeMaps and back again.
 
-        y = r.translate(x, NumpyNodeMap)
-        r.assert_equal(y, intermediate)
-
-        # Convert python <- numpy
-        x2 = r.translate(y, PythonNodeMapType)
-        r.assert_equal(x, x2)
-
-Here we test translation from a Python node map to a `NumPy <https://numpy.org/>`_ node map and back again.
-
-We use the Metagraph resolver's ``translate`` method to translate as necessary and ``assert_equal`` method to verify that
-the translations are valid. The Metagraph resolver's ``assert_equal`` method utilizes the ``assert_equal`` implemented by
-the relevant concrete types.
+We use the Metagraph resolver's ``translate`` method to translate and NumpyNodeMap's ``assert_equal`` method to verify that
+the translations yield identical objects.
 
 .. _testing_algorithms:
 
@@ -164,7 +153,6 @@ Here's an example:
     import metagraph as mg
     from metagraph.core.multiverify import MultiVerify
 
-    r = mg.resolver
     networkx_graph_data = [(0, 1), (0, 2), (2, 0), (1, 2), (3, 2)]
     networkx_graph = nx.DiGraph()
     networkx_graph.add_edges_from(networkx_graph_data)
@@ -174,9 +162,9 @@ Here's an example:
         2: 0.3941492368569718,
         3: 0.037500000000000006,
     }
-    graph = r.wrappers.Graph.NetworkXGraph(networkx_graph)
+    graph = mg.wrappers.Graph.NetworkXGraph(networkx_graph)
 
-    MultiVerify(r).compute(
+    MultiVerify(mg.resolver).compute(
         "centrality.pagerank",
         graph,
         tolerance=1e-7
@@ -207,7 +195,6 @@ Here's an example of how ``custom_compare`` might be used to verify reasonable c
     import metagraph as mg
     from metagraph.core.multiverify import MultiVerify
 
-    r = mg.resolver
     ebunch = [
         (0, 3, 1),
         (1, 0, 2),
@@ -221,15 +208,15 @@ Here's an example of how ``custom_compare`` might be used to verify reasonable c
     ]
     nx_graph = nx.Graph()
     nx_graph.add_weighted_edges_from(ebunch)
-    graph = r.wrappers.Graph.NetworkXGraph(nx_graph)
+    graph = mg.wrappers.Graph.NetworkXGraph(nx_graph)
 
     def cmp_func(x):
         x_graph, modularity_score = x
         assert len(x_graph) == 8, len(x_graph)
         assert modularity_score > 0.45
 
-    results = MultiVerify(r).compute("clustering.louvain_community", graph)
-    results.normalize(r.types.NodeMap.PythonNodeMapType).custom_compare(cmp_func)
+    results = MultiVerify(mg.resolver).compute("clustering.louvain_community", graph)
+    results.normalize(mg.types.NodeMap.PythonNodeMapType).custom_compare(cmp_func)
 
 ``custom_compare`` takes a comparison function (in this example ``cmp_func``). The comparison function is passed the output
 of each concrete algorithm and verifies expected behavior.
@@ -266,7 +253,6 @@ Here is an example for max flow:
 
 .. code-block:: python
 
-    r = mg.resolver
     nx_graph = nx.DiGraph()
     nx_graph.add_weighted_edges_from([
         (0, 1, 9),
@@ -281,14 +267,14 @@ Here is an example for max flow:
         (5, 6, 1),
         (6, 2, 11),
     ])
-    graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph)
+    graph = mg.wrappers.Graph.NetworkXGraph(nx_graph)
 
     # These are the elements of the result which *are* deterministic
     expected_flow_value = 6
     bottleneck_nodes = {2, 4}
     expected_nodemap = {2: 6, 4: 6}
 
-    mv = MultiVerify(dpr)
+    mv = MultiVerify(mg.resolver)
     results = mv.compute("flow.max_flow", graph, source_node=0, target_node=7)
 
     # Note: each algorithm returns a tuple of (flow_rate, graph_of_flow_values)
@@ -301,13 +287,13 @@ Here is an example for max flow:
 
     # Compare sum of out edges for bottleneck nodes
     out_edges = mv.transform(
-        dpr.plugins.core_networkx.algos.util.graph.aggregate_edges,
+        mg.plugins.core_networkx.algos.util.graph.aggregate_edges,
         actual_flow,
         lambda x, y: x + y,
         initial_value=0,
     )
     out_bottleneck = mv.transform(
-        dpr.plugins.core_python.algos.util.nodemap.select, out_edges, bottleneck_nodes
+        mg.algos.util.nodemap.select.core_python, out_edges, bottleneck_nodes
     )
     out_bottleneck.assert_equal(expected_nodemap)
 

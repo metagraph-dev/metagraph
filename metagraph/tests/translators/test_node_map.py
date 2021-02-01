@@ -59,6 +59,7 @@ def test_method_call(default_plugin_resolver):
         # string of ConcreteType class name
         dpr.assert_equal(x.translate("PythonNodeMapType"), y)
         dpr.assert_equal(x.translate("GrblasNodeMapType"), z)
+        dpr.assert_equal(x.translate("GrblasNodeMap.Type"), z)
 
 
 def test_method_call_secondary(default_plugin_resolver):
