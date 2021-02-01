@@ -1004,6 +1004,8 @@ class _ResolverRegistrar:
                 raise TypeError(f"{msg} may not have Concrete types in Union")
             return
         elif isinstance(obj, mgtyping.UniformIterable):
+            if issubclass(type(obj.element_type), ConcreteType):
+                raise TypeError(f"{msg} may not have Concrete types in signature")
             return
         elif isinstance(obj, AbstractType):
             return
