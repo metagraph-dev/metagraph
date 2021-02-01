@@ -3,6 +3,8 @@ import pytest
 import networkx as nx
 import numpy as np
 import math
+from sklearn.mixture import GaussianMixture
+from sklearn.neighbors import NearestNeighbors
 from collections import defaultdict
 
 from . import MultiVerify
@@ -66,10 +68,6 @@ def test_node2vec(default_plugin_resolver):
 
 
 def test_graph2vec(default_plugin_resolver):
-    try:
-        from sklearn.mixture import GaussianMixture
-    except ModuleNotFoundError:
-        pytest.skip("scikit-learn not installed.")
 
     dpr = default_plugin_resolver
     complete_graphs = [
@@ -187,10 +185,6 @@ def test_graphwave(default_plugin_resolver):
 
 
 def test_hope_katz(default_plugin_resolver):
-    try:
-        from sklearn.mixture import GaussianMixture
-    except ModuleNotFoundError:
-        pytest.skip("scikit-learn not installed.")
 
     dpr = default_plugin_resolver
 
@@ -309,11 +303,6 @@ def test_graph_sage_mean(default_plugin_resolver):
 
     The test verifies for the testing graph that the 20 nearest neighbors in the embedding space of each node are all part of the same complete subgraph.
     """
-
-    try:
-        from sklearn.neighbors import NearestNeighbors
-    except ModuleNotFoundError:
-        pytest.skip("scikit-learn not installed.")
 
     if "metagraph_stellargraph" not in dir(default_plugin_resolver.plugins):
         pytest.skip("metagraph_stellargraph not installed.")
@@ -434,10 +423,6 @@ def test_graph_sage_mean(default_plugin_resolver):
 
 
 def test_line(default_plugin_resolver):
-    try:
-        from sklearn.mixture import GaussianMixture
-    except ModuleNotFoundError:
-        pytest.skip("scikit-learn not installed.")
 
     dpr = default_plugin_resolver
 
