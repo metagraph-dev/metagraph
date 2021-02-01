@@ -692,7 +692,7 @@ class Compiler:
         """Initialize any resources or devices required before this compiler
         target can be used.
 
-        This will be called once before ``compile()`` is called.
+        If called multiple times, calls after the first should do nothing.
         """
         pass
 
@@ -711,6 +711,8 @@ class Compiler:
         
         If any literal values (Python ints, strings, etc) should be frozen at compile time,
         they are passed in the literals dict.
+
+        Implementation should automatically initialize runtime if needed and not already.
         """
         raise NotImplementedError(
             "all compiler plugins must implement compile_algorithm()"
