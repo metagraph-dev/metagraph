@@ -255,6 +255,27 @@ def test_register_errors():
         registry.register(my_any, "my_any_plugin")
         res.register(registry.plugins)
 
+    # Don't allow concrete types in abstract algorithm signature
+    @abstract_algorithm("testing.abst_algo_bad_return_type")
+    def abst_algo_bad_return_type(x: int) -> Concrete1:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match=" may not have Concrete types in signature"):
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(abst_algo_bad_return_type)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    @abstract_algorithm("testing.abst_algo_bad_parameter_type")
+    def abst_algo_bad_parameter_type(x: Concrete1) -> int:  # pragma: no cover
+        pass
+
+    with pytest.raises(TypeError, match=" may not have Concrete types in signature"):
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(abst_algo_bad_parameter_type)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
 
 def test_union_signatures():
     class Abstract1(AbstractType):
