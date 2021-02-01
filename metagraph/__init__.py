@@ -47,6 +47,7 @@ _SPECIAL_ATTRS = [
     "run",
     "type_of",
     "typeclass_of",
+    "plan",
 ]
 
 

@@ -85,6 +85,9 @@ but it hasn't been computed yet. To do that, call ``.compute()`` on the object.
 
     {0: 5, 1: 4, 2: 3, 3: 2, 4: 1}
 
+There is also a way to :ref:`make the Dask resolver the default resolver<replacing_default_resolver>`.
+This would allow a call to ``mg.translate()`` to delegate to the Dask resolver instead of the default.
+
 
 Custom Dask Resolvers
 ~~~~~~~~~~~~~~~~~~~~~

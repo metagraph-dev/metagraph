@@ -273,6 +273,10 @@ class Resolver:
         if not isinstance(name, str):
             raise TypeError(f"name must be str, not {type(name)}")
 
+        # Interpret "FooBar.Type" instead of "FooBarType"
+        if "." in name and name.endswith(".Type"):
+            name = f"{name[:-5]}Type"
+
         # Check direct concrete types
         cat = getattr(self.types, starting_type.__name__)
         for ct in dir(cat):
