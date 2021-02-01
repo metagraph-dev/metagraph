@@ -1,5 +1,6 @@
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_grblas
+from metagraph.plugins.core import exceptions
 from typing import Tuple, Iterable, Any, Union, Optional
 import numpy as np
 
@@ -64,6 +65,10 @@ if has_grblas:
             err = prev_r.reduce().value
             if err < N * tolerance:
                 break
+        else:
+            raise exceptions.ConvergenceError(
+                f"failed to converge within {maxiter} iterations"
+            )
         return GrblasNodeMap(r)
 
     @concrete_algorithm("util.graph.build")

@@ -4,6 +4,7 @@ import itertools
 from metagraph import ConcreteType
 from metagraph.core.resolver import Resolver, Dispatcher, ExactDispatcher
 from metagraph.core.dask.resolver import DaskResolver
+from metagraph.core.exceptions import MetagraphError
 from dask import is_dask_collection
 import warnings
 
@@ -24,7 +25,11 @@ def ensure_computed(obj):
     return obj
 
 
-class UnsatisfiableAlgorithmError(Exception):
+class UnsatisfiableAlgorithmError(MetagraphError):
+    pass
+
+
+class MultiVerifyError(MetagraphError):
     pass
 
 
@@ -101,6 +106,9 @@ class MultiResult:
             self, expected_val, rel_tol=rel_tol, abs_tol=abs_tol
         )
 
+    def assert_raises(self, expected_error: Exception):
+        return self._verifier.assert_raises(self, expected_error)
+
 
 class MultiVerify:
     def __init__(self, resolver: Resolver):
@@ -112,13 +120,56 @@ class MultiVerify:
         :param args: positional parameters passed to algo
         :param kwargs: keyword parameters passed to algo
 
-        Passing in MultiResults to args or kwargs is allowed as long as they have been normalized first.
-        Doing so will cause the best algorithm plan for `algo` to be run for every result in the MultiResult,
-        effectively making it a continuation of the original `compute` call.
+        Returns a MultiResult containing the result of running `algo` for every concrete
+        implementation.
 
-        If multiple MultiResults are present in args and kwargs, all pairs will be run through
-        the best algorithm plan for `algo`, multiplying the number of results.
+        Passing in MultiResults to args or kwargs is not allowed. Use `.transform` instead.
         """
+        algo, plans, args, kwargs = self._precompute_checks(algo, args, kwargs)
+
+        results = {}
+        for plan in plans:
+            algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
+            try:
+                ret_val = plan(*args, **kwargs)
+                results[algo_path] = ensure_computed(ret_val)
+            except Exception:  # pragma: no cover
+                print(f"Failed for {algo_path}")
+                raise
+
+        return MultiResult(self, results)
+
+    def compute_raises(self, algo: Union[Dispatcher, AnyStr], *args, **kwargs):
+        """
+        :param algo: abstract algorithm (resolver.algo.path.to.algo or 'path.to.algo')
+        :param args: positional parameters passed to algo
+        :param kwargs: keyword parameters passed to algo
+
+        Returns a MultiResult containing the result or error of running `algo`
+        for every concrete implementation.
+
+        The key difference between `compute_raises` and `compute` is that errors will be
+        saved in the MultiResult with this method, while `compute` will raise the
+        error instead.
+
+        This allows the ability to test for expected errors being raised by all implementations.
+
+        Passing in MultiResults to args or kwargs is not allowed.
+        """
+        algo, plans, args, kwargs = self._precompute_checks(algo, args, kwargs)
+
+        results = {}
+        for plan in plans:
+            algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
+            try:
+                ret_val = plan(*args, **kwargs)
+                results[algo_path] = ensure_computed(ret_val)
+            except Exception as e:  # pragma: no cover
+                results[algo_path] = e
+
+        return MultiResult(self, results)
+
+    def _precompute_checks(self, algo: Union[Dispatcher, AnyStr], args, kwargs):
         if type(algo) is Dispatcher:
             algo = algo._algo_name
         if not isinstance(algo, str):
@@ -167,17 +218,7 @@ class MultiVerify:
             )
             raise UnsatisfiableAlgorithmError(f"No plan found for {missing_algos}")
 
-        results = {}
-        for plan in plans:
-            algo_path = f"{plan.algo.func.__module__}.{plan.algo.func.__qualname__}"
-            try:
-                ret_val = plan(*args, **kwargs)
-                results[algo_path] = ensure_computed(ret_val)
-            except Exception:  # pragma: no cover
-                print(f"Failed for {algo_path}")
-                raise
-
-        return MultiResult(self, results)
+        return algo, plans, args, kwargs
 
     def transform(self, exact_algo: Union[ExactDispatcher, AnyStr], *args, **kwargs):
         """
@@ -321,6 +362,21 @@ class MultiVerify:
                     )
             else:
                 self.compare_values(result, expected_val, algo_path, rel_tol, abs_tol)
+
+    def assert_raises(self, multi_result: MultiResult, expected_error: Exception):
+        if type(expected_error) is not type or not issubclass(
+            expected_error, Exception
+        ):
+            raise TypeError(
+                f"expected_error must be an Exception, not {type(expected_error)}"
+            )
+        for algo_path, result in multi_result._results.items():
+            if not isinstance(result, expected_error):
+                if isinstance(result, Exception):
+                    err_msg = f"raised {result} instead of {expected_error}"
+                else:
+                    err_msg = f"did not raise {expected_error}"
+                raise MultiVerifyError(f"{algo_path} {err_msg}")
 
     def compare_values(self, val, expected_val, algo_path, rel_tol=1e-9, abs_tol=0.0):
         expected_val = ensure_computed(expected_val)
