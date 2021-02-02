@@ -14,6 +14,7 @@ dependencies:
   - pandas
   - conda-forge::python-louvain
   - scipy
+  - scikit-learn
   - conda-forge::donfig
   - conda-forge::grblas
   - dask
