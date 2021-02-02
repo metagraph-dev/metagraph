@@ -999,13 +999,17 @@ class _ResolverRegistrar:
             if issubclass(obj, AbstractType):
                 sig_mod.update_annotation(obj(), name=name, index=index)
                 return
-            # Non-abstract type class is assumed to be Python type
+            elif issubclass(obj, ConcreteType):
+                raise TypeError(f"{msg} may not have Concrete types in signature")
+            # Non-abstract and non-concrete type class is assumed to be Python type
             return
         elif isinstance(obj, mgtyping.Combo):
             if obj.kind not in {"python", "abstract", "node_id", "uniform_iterable"}:
                 raise TypeError(f"{msg} may not have Concrete types in Union")
             return
         elif isinstance(obj, mgtyping.UniformIterable):
+            if issubclass(type(obj.element_type), ConcreteType):
+                raise TypeError(f"{msg} may not have Concrete types in signature")
             return
         elif isinstance(obj, AbstractType):
             return
