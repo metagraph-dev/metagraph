@@ -31,6 +31,9 @@ def pagerank(
     maxiter: int = 50,
     tolerance: float = 1e-05,
 ) -> NodeMap:
+    """
+    Must raise mg.plugins.core.exceptions.ConvergenceLimit if maxiter is reached
+    """
     pass  # pragma: no cover
 
 

@@ -1,6 +1,7 @@
 import metagraph as mg
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_networkx, has_community, has_pandas
+from metagraph.plugins.core import exceptions
 from typing import Tuple, Any, Callable
 import random
 
@@ -16,48 +17,15 @@ if has_networkx:
     def nx_pagerank(
         graph: NetworkXGraph, damping: float, maxiter: int, tolerance: float
     ) -> PythonNodeMapType:
-        G = graph.value
-        # Copy and modify the networkx code to allow `maxiter` to be a best effort rather than a failure scenario
-        if len(G) == 0:
-            return {}
-
-        if not G.is_directed():
-            D = G.to_directed()
-        else:
-            D = G
-
-        # Create a copy in (right) stochastic form
-        W = nx.stochastic_graph(D, weight=None)
-        N = W.number_of_nodes()
-
-        # Choose fixed starting vector if not given
-        x = dict.fromkeys(W, 1.0 / N)
-
-        # Assign uniform personalization vector if not given
-        p = dict.fromkeys(W, 1.0 / N)
-
-        # Use personalization vector if dangling vector not specified
-        dangling_weights = p
-        dangling_nodes = [n for n in W if W.out_degree(n, weight=None) == 0.0]
-
-        # power iteration: make up to max_iter iterations
-        for _ in range(maxiter):
-            xlast = x
-            x = dict.fromkeys(xlast.keys(), 0)
-            danglesum = damping * sum(xlast[n] for n in dangling_nodes)
-            for n in x:
-                # this matrix multiply looks odd because it is
-                # doing a left multiply x^T=xlast^T*W
-                for nbr in W[n]:
-                    x[nbr] += damping * xlast[n] * W[n][nbr][None]
-                x[n] += danglesum * dangling_weights.get(n, 0) + (
-                    1.0 - damping
-                ) * p.get(n, 0)
-            # check convergence, l1 norm
-            err = sum([abs(x[n] - xlast[n]) for n in x])
-            if err < N * tolerance:
-                break
-        return x
+        try:
+            pagerank = nx.pagerank(
+                graph.value, alpha=damping, max_iter=maxiter, tol=tolerance, weight=None
+            )
+        except nx.exception.PowerIterationFailedConvergence:
+            raise exceptions.ConvergenceError(
+                f"failed to converge within {maxiter} iterations"
+            )
+        return pagerank
 
     @concrete_algorithm("centrality.katz")
     def nx_katz_centrality(
