@@ -2,12 +2,13 @@ import os
 import sys
 import pytest
 import math
-from typing import List, Set, Dict, Any
+from typing import List, Set, Dict, Any, Callable
 from collections import OrderedDict
 
 from metagraph import ConcreteType
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
+import dask.core
 
 
 def make_site_dir_fixture(site_dir):
@@ -299,11 +300,11 @@ class FailCompiler(TracingCompiler):
 
     def compile_algorithm(self, *args, **kwargs):
         super().compile_algorithm(**kwargs)
-        raise CompileError("'fail' compiler always fails")
+        raise plugin.CompileError("'fail' compiler always fails")
 
     def compile_subgraph(self, *args, **kwargs):
         super().compile_subgraph(**kwargs)
-        raise CompileError("'fail' compiler always fails")
+        raise plugin.ompileError("'fail' compiler always fails")
 
 
 class IdentityCompiler(TracingCompiler):
@@ -319,9 +320,20 @@ class IdentityCompiler(TracingCompiler):
 
     def compile_subgraph(self, *args, **kwargs):
         super().compile_subgraph(*args, **kwargs)
-        raise CompileError(
-            "'identity' compiler has not implemented compile_subgraph yet"
-        )
+
+        def compile_inner(subgraph: Dict, inputs: List[str], output: str) -> Callable:
+            tasks = {}
+            for key, task in subgraph.items():
+                func, rest = task[0], task[1:]
+                tasks[key] = (self.compile_algorithm(func, {}), *rest)
+
+            def fused(*args):
+                cache = dict(zip(inputs, args))
+                return dask.core.get(tasks, output, cache=cache)
+
+            return fused
+
+        return compile_inner(*args, **kwargs)
 
 
 # Handy for manual testing

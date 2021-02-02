@@ -723,6 +723,8 @@ class Compiler:
     ) -> Callable:
         """Compile a subgraph of compilable functions into a single callable with
         inputs in the order listed, returning output value.
+
+        Raises CompileError if unsuccessful.
         """
         raise NotImplementedError(
             "all compiler plugins must implement compile_subgraph()"

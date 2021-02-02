@@ -7,7 +7,9 @@ from metagraph.core.resolver import Resolver
 from metagraph.core.dask.resolver import DaskResolver
 from metagraph import PluginRegistry
 from pytest import fixture
+import pytest
 import numpy as np
+import dask
 
 
 def test_dask_subgraph():
@@ -31,6 +33,22 @@ def test_extract_subgraphs_noop():
     z = func1(func1(1))
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(z.dask, compiler="noexist")
+    assert len(subgraphs) == 0
+
+
+def test_extract_subgraphs_singleton(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    z = scale_func(a, 2.0)
+
+    # default behavior is to include compilable single node subgraphs
+    subgraphs = mg_compiler.extract_compilable_subgraphs(z._dsk, compiler="identity")
+    assert len(subgraphs) == 1
+
+    # disable
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        z._dsk, compiler="identity", include_singletons=False
+    )
     assert len(subgraphs) == 0
 
 
@@ -62,7 +80,9 @@ def test_extract_subgraphs_two_chains(res):
     # The merge node cannot be fused with z1 or z2 without reducing parallelism in the graph
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        merge.__dask_graph__(), compiler="identity"
+        merge.__dask_graph__(),
+        compiler="identity",
+        include_singletons=False,  # exclude the add node
     )
     assert len(subgraphs) == 2
     for subgraph in subgraphs:
@@ -72,6 +92,13 @@ def test_extract_subgraphs_two_chains(res):
         # we don't know what order the two chains will come out in
         # FIXME: key property
         assert subgraph.output_key in (z1.__dask_keys__()[0], z2.__dask_keys__()[0])
+
+    # now check if we get the add node
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        merge.__dask_graph__(), compiler="identity", include_singletons=True,
+    )
+    assert len(subgraphs) == 3
+    assert merge.__dask_keys__()[0] in [s.output_key for s in subgraphs]
 
 
 def test_extract_subgraphs_three_chains(res):
@@ -122,6 +149,30 @@ def test_extract_subgraphs_three_chains(res):
         # we don't know what order the two chains will come out in
         # FIXME: key property
         assert subgraph.output_key in (z1.__dask_keys__()[0], z2.__dask_keys__()[0])
+
+
+def test_compile_subgraphs_three_chains(res):
+    """Compile Y-shaped graph"""
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    z1 = scale_func(scale_func(scale_func(a, 2.0), 3.0), 4.0)
+    z2 = scale_func(scale_func(scale_func(a, 2.5), 3.5), 4.5)
+    merge = res.algos.testing.add(z1, z2)
+    ans = scale_func(merge, 2.8)
+
+    compiler = res.compilers["identity"]
+
+    optimized_dsk = mg_compiler.compile_subgraphs(
+        ans.__dask_graph__(), keys=[ans._key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 3
+    assert z1._key in optimized_dsk
+    assert z2._key in optimized_dsk
+    assert ans._key in optimized_dsk
+
+    optimized_result = dask.core.get(optimized_dsk, ans._key)
+    unoptimized_result = 2.8 * ((a * 2 * 3 * 4) + (a * 2.5 * 3.5 * 4.5))
+    np.testing.assert_array_equal(optimized_result, unoptimized_result)
 
 
 @fixture
