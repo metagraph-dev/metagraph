@@ -22,6 +22,7 @@ requirements:
     - pandas
     - python-louvain
     - scipy
+    - scikit-learn
     - donfig
     - grblas >=1.3.2
     - dask
