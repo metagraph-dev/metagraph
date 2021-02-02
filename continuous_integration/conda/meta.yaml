@@ -33,6 +33,7 @@ test:
     - pytest
     - pytest-cov
     - coverage
+    - scikit-learn
     - black >=20.8b1
   commands:
     - py.test --cov-report term-missing --cov=metagraph --pyargs metagraph.tests
