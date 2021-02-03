@@ -185,6 +185,13 @@ class DaskResolver:
                 trans, bound.arguments[name]
             )
         args, kwargs = bound.args, bound.kwargs
+        if (
+            algo_plan.algo._compiler is not None
+            and algo_plan.algo._compiler_obj is None
+        ):
+            algo_plan.algo._compiler_obj = self._resolver.compilers[
+                algo_plan.algo._compiler
+            ]
         # Add resolver if needed by the algorithm
         if algo_plan.algo._include_resolver:
             kwargs["resolver"] = self._resolver

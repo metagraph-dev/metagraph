@@ -171,8 +171,10 @@ def test_compile_subgraphs_three_chains(res):
     assert ans._key in optimized_dsk
 
     optimized_result = dask.core.get(optimized_dsk, ans._key)
-    unoptimized_result = 2.8 * ((a * 2 * 3 * 4) + (a * 2.5 * 3.5 * 4.5))
-    np.testing.assert_array_equal(optimized_result, unoptimized_result)
+    unoptimized_result = ans.compute()
+    numpy_result = 2.8 * ((a * 2 * 3 * 4) + (a * 2.5 * 3.5 * 4.5))
+    np.testing.assert_array_equal(optimized_result, numpy_result)
+    np.testing.assert_array_equal(unoptimized_result, numpy_result)
 
 
 @fixture
