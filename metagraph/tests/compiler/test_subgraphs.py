@@ -65,8 +65,7 @@ def test_extract_subgraphs_chain(res):
     assert len(subgraph.tasks) == 3
     # FIXME: This is zero because the input numpy array is not wrapped in its own placeholder object
     assert len(subgraph.input_keys) == 0
-    # FIXME: key property
-    assert subgraph.output_key == z.__dask_keys__()[0]
+    assert subgraph.output_key == z.key
 
 
 def test_extract_subgraphs_two_chains(res):
@@ -90,15 +89,14 @@ def test_extract_subgraphs_two_chains(res):
         # FIXME: This is zero because the input numpy array is not wrapped in its own placeholder object
         assert len(subgraph.input_keys) == 0
         # we don't know what order the two chains will come out in
-        # FIXME: key property
-        assert subgraph.output_key in (z1.__dask_keys__()[0], z2.__dask_keys__()[0])
+        assert subgraph.output_key in (z1.key, z2.key)
 
     # now check if we get the add node
     subgraphs = mg_compiler.extract_compilable_subgraphs(
         merge.__dask_graph__(), compiler="identity", include_singletons=True,
     )
     assert len(subgraphs) == 3
-    assert merge.__dask_keys__()[0] in [s.output_key for s in subgraphs]
+    assert merge.key in [s.output_key for s in subgraphs]
 
 
 def test_extract_subgraphs_three_chains(res):
@@ -123,7 +121,7 @@ def test_extract_subgraphs_three_chains(res):
     input_chains = []
     for subgraph in subgraphs:
         # FIXME: key property
-        if subgraph.output_key == ans.__dask_keys__()[0]:
+        if subgraph.output_key == ans.key:
             assert (
                 final_chain is None
             ), "found more than one subgraph with key of final chain"
@@ -136,9 +134,9 @@ def test_extract_subgraphs_three_chains(res):
     assert len(final_chain.input_keys) == 2
     for input_key in final_chain.input_keys:
         # FIXME: key property
-        assert input_key in (z1.__dask_keys__()[0], z2.__dask_keys__()[0])
+        assert input_key in (z1.key, z2.key)
     assert (
-        final_chain.output_key == ans.__dask_keys__()[0]
+        final_chain.output_key == ans.key
     )  # true by construction, checked here for completeness
 
     # input_chain tests
@@ -148,7 +146,7 @@ def test_extract_subgraphs_three_chains(res):
         assert len(subgraph.input_keys) == 0
         # we don't know what order the two chains will come out in
         # FIXME: key property
-        assert subgraph.output_key in (z1.__dask_keys__()[0], z2.__dask_keys__()[0])
+        assert subgraph.output_key in (z1.key, z2.key)
 
 
 def test_compile_subgraphs_three_chains(res):
@@ -163,14 +161,14 @@ def test_compile_subgraphs_three_chains(res):
     compiler = res.compilers["identity"]
 
     optimized_dsk = mg_compiler.compile_subgraphs(
-        ans.__dask_graph__(), keys=[ans._key], compiler=compiler
+        ans.__dask_graph__(), keys=[ans.key], compiler=compiler
     )
     assert len(optimized_dsk) == 3
-    assert z1._key in optimized_dsk
-    assert z2._key in optimized_dsk
-    assert ans._key in optimized_dsk
+    assert z1.key in optimized_dsk
+    assert z2.key in optimized_dsk
+    assert ans.key in optimized_dsk
 
-    optimized_result = dask.core.get(optimized_dsk, ans._key)
+    optimized_result = dask.core.get(optimized_dsk, ans.key)
     unoptimized_result = ans.compute()
     numpy_result = 2.8 * ((a * 2 * 3 * 4) + (a * 2.5 * 3.5 * 4.5))
     np.testing.assert_array_equal(optimized_result, numpy_result)

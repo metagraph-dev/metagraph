@@ -63,6 +63,10 @@ class Placeholder(DaskMethodsMixin):
             dsk = {}
         self._dsk = dsk
 
+    @property
+    def key(self):
+        return self._key
+
     def __dask_graph__(self):
         return self._dsk
 
