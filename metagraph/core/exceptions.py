@@ -1,0 +1,2 @@
+class MetagraphError(Exception):
+    pass

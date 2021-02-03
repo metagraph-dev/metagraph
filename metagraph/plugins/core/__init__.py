@@ -1,1 +1,1 @@
-from . import types, wrappers, algorithms
+from . import types, wrappers, algorithms, exceptions

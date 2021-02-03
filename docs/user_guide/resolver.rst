@@ -22,14 +22,17 @@ where ``r`` is the resolver, ``x`` is the input object, and ``OutputConcType`` i
 describes the output object.
 
 Because there is typically a 1-to-1 relationship between an object and a concrete type,
-``OutputConcType`` is also allowed to be the class of the output object.
+``OutputConcType`` is also allowed to be the class of the output object. The system can also
+figure out the type from a string name (capitalization matters).
 
-For example, both of these statements are correct and will yield identical results.
+All of the following statements are correct and will yield identical results.
 
 .. code-block:: python
 
     r.translate(x, r.types.Graph.NetworkXGraphType)
     r.translate(x, r.wrappers.Graph.NetworkXGraph)
+    r.translate(x, "NetworkXGraphType")
+    r.translate(x, "NetworkXGraph")
 
 
 The path that is taken to get from the input object to the desired output may take several
@@ -174,9 +177,36 @@ Because of this, the default resolver should be accessed prior to any time-sensi
     import metagraph as mg
     r = mg.resolver
 
-Usually, the default resolver is sufficient for most scripts using metagraph. However, it is
+Hidden Default Resolver
+~~~~~~~~~~~~~~~~~~~~~~~
+Because the default resolver is used for almost every action in Metagraph, the default resolver
+is integrated seamlessly back into the ``metagraph`` namespace.
+
+The following are identical:
+
+.. code-block:: python
+
+    # Assumes `mg` and `r` from above
+    r.translate(x, "NetworkXGraph")
+    mg.translate(x, "NetworkXGraph")
+
+The full list of default resolver attributes copied into the ``metagraph`` namespace are:
+
+ - types
+ - wrappers
+ - algos
+ - translate
+ - run
+ - type_of
+ - typeclass_of
+ - plan
+
+Custom Resolver
+~~~~~~~~~~~~~~~
+
+The default resolver is usually sufficient for most scripts use cases of metagraph. However, it is
 also possible to create custom resolvers separate from the default resolver. This requires
-creating a Resolver and registering plugins manually.
+creating a ``Resolver`` and registering plugins manually.
 
 .. code-block:: python
 
@@ -187,3 +217,41 @@ For more information about registry format, see the :ref:`plugin_author_guide`.
 
 The only benefit of using a custom resolver rather than the default one is to limit concrete algorithms
 and translations which will be considered when resolving translation and algorithm calls.
+
+.. _replacing_default_resolver:
+
+Replacing the Default Resolver
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Replacing the default resolver is possible, both temporarily and permanently.
+
+To temporarily make a resolver the default:
+
+.. code-block:: python
+
+    some_resolver = ...
+    with some_resolver:
+        mg.translate(...)  # this now uses some_resolver
+
+    mg.translate(...)  # uses the original default resolver again
+
+To permanently replace the default resolver:
+
+.. code-block:: python
+
+    some_resolver = ...
+    some_resolver.set_as_default()
+
+    mg.translate(...)  # uses some_resolver
+
+    # To return to the original default
+    some_resolver.reset_default()
+
+    mg.translate(...)  # back to the original default resolver
+
+Of course, calling methods directly from the alternate resolver is also allowed and will work as expected.
+
+.. code-block:: python
+
+    some_resolver = ...
+    some_resolver.translate(...)

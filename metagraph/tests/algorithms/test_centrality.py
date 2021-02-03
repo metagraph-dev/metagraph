@@ -4,6 +4,7 @@ import networkx as nx
 import numpy as np
 from . import MultiVerify
 from metagraph.plugins.networkx.types import NetworkXGraph
+from metagraph.plugins.core.exceptions import ConvergenceError
 
 
 def build_standard_graph(directed=True):
@@ -170,10 +171,10 @@ def test_pagerank_centrality(default_plugin_resolver):
         dpr.algos.centrality.pagerank, graph, tolerance=1e-7
     ).assert_equal(expected_val, rel_tol=1e-5)
 
-    # Test that hitting maxiter doesn't raise error
-    MultiVerify(dpr).compute(
+    # Test that hitting maxiter raises error
+    MultiVerify(dpr).compute_raises(
         dpr.algos.centrality.pagerank, graph, tolerance=1e-9, maxiter=2
-    )
+    ).assert_raises(ConvergenceError)
 
 
 def test_closeness_centrality(default_plugin_resolver):
