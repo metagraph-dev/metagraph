@@ -1,7 +1,7 @@
 import pytest
 
 from metagraph.plugins.networkx.types import NetworkXGraph
-from metagraph.plugins.scipy.types import ScipyGraph, ScipyEdgeMap
+from metagraph.plugins.scipy.types import ScipyGraph
 import networkx as nx
 import numpy as np
 import scipy.sparse as ss
@@ -209,6 +209,20 @@ def test_scipy():
             {},
             {},
         )
+    # Test copy method
+    x = ScipyGraph(g_float, node_list=[1, 3, 7], node_vals=[0.2, 0.4, 0.6])
+    x_copy = x.copy()
+    ScipyGraph.Type.assert_equal(
+        x,
+        x_copy,
+        {**aprops, "node_type": "map", "edge_dtype": "float"},
+        {**aprops, "node_type": "map", "edge_dtype": "float"},
+        {},
+        {},
+    )
+    assert x_copy.value is not x.value
+    assert x_copy.node_list is not x.node_list
+    assert x_copy.node_vals is not x.node_vals
 
 
 def test_graphblas():

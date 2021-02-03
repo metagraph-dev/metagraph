@@ -115,6 +115,10 @@ def test_triangle_count(default_plugin_resolver):
 
     MultiVerify(dpr).compute("clustering.triangle_count", graph).assert_equal(5)
 
+    # Repeat for unweighted graph
+    ugraph = dpr.wrappers.Graph.NetworkXGraph(simple_graph, edge_weight_label=None)
+    MultiVerify(dpr).compute("clustering.triangle_count", ugraph).assert_equal(5)
+
 
 def test_global_clustering_coefficient(default_plugin_resolver):
     r"""

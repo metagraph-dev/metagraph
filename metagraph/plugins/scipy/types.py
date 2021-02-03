@@ -120,10 +120,6 @@ if has_scipy:
             )
             return ScipyEdgeMap(self.value.copy(), node_list=node_list)
 
-        @property
-        def format(self):
-            return self.value.format
-
         class TypeMixin:
             @classmethod
             def _compute_abstract_properties(

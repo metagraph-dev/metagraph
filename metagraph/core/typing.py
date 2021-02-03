@@ -23,6 +23,23 @@ NodeID = NodeID()
 
 class Combo:
     def __init__(self, types, *, optional=False, strict=None):
+        """
+        optional inicates whether None is allowed
+        strict indicates that concrete types can only be translated within the same abstract type family
+            Not being strict requires a single optional ConcreteType
+
+        An example of non-strict behavior is Optional[PythonNodeSetType]
+            This indicates that a NodeSet is needed. But if the user passes in a PythonNodeMap,
+            we can extract the node set and the algorithm will function correctly.
+
+        An example of strict behavior is Union[PythonNodeSetType, PythonNodeMapType]
+            In this case, the algorithm can utilize either one, presumably by assuming
+            the NodeSet weights are all equal to 1. However, we would not want a NumpyNodeMap
+            to be translated to a PythonNodeSet, and lose its weights in the process.
+            To avoid this kind of mistake where valid translators exist, strict mode
+            enforces no translation across abstract type boundaries.
+        """
+
         # Ensure all AbstractTypes or all ConcreteType or all Python types or all UniformIterable, but not mixed
         kind = None
         checked_types = set()
@@ -63,7 +80,13 @@ class Combo:
 
         if strict is None:
             # Assume a single type with optional=True is only meant to be optional, not strict
-            strict = False if len(checked_types) == 1 and optional else True
+            strict = False if (len(checked_types) == 1 and optional) else True
+
+        if len(checked_types) == 1 and not optional:
+            raise TypeError("Must be optional if only one type")
+
+        if len(checked_types) > 1 and not strict:
+            raise TypeError("Strict is required for multiple allowable types")
 
         self.types = checked_types
         self.optional = optional
@@ -86,8 +109,8 @@ class Union:
     """
 
     def __getitem__(self, parameters):
-        if len(parameters) < 2:
-            raise TypeError(f"Expected more than one parameter, got {len(parameters)}")
+        if type(parameters) is not tuple or len(parameters) < 2:
+            raise TypeError(f"Union requires more than one parameter")
 
         return Combo(parameters, optional=False)
 
@@ -129,6 +152,10 @@ class UniformIterable:
 
 class List:
     def __getitem__(self, element_type):
+        if type(element_type) is tuple:
+            if len(element_type) > 1:
+                raise TypeError(f"Too many parameters, only one allowed for List")
+            element_type = element_type[0]
         return UniformIterable(element_type, self.__class__.__qualname__)
 
 

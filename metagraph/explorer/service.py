@@ -131,6 +131,9 @@ class Service:
             await self.unregister(websocket)
 
 
+_TEST_FLAG = False
+
+
 def main(resolver, embedded=True):
     if embedded and not has_nest_asyncio:
         print("nest_asyncio is required to use the explorer from within a notebook")
@@ -152,6 +155,12 @@ def main(resolver, embedded=True):
 
         traceback.print_exc()
         return
+
+    if _TEST_FLAG:
+        text = render_text(resolver, port)
+        loop = asyncio.get_event_loop()
+        loop.close()
+        return text
 
     if embedded:
         from IPython.core.display import HTML

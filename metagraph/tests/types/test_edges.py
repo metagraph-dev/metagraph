@@ -4,8 +4,7 @@ grblas = pytest.importorskip("grblas")
 
 from metagraph.plugins.pandas.types import PandasEdgeMap, PandasEdgeSet
 from metagraph.plugins.graphblas.types import GrblasEdgeMap
-from metagraph.plugins.scipy.types import ScipyEdgeMap
-from metagraph import NodeLabels
+from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet
 import pandas as pd
 import scipy.sparse as ss
 import numpy as np
@@ -221,3 +220,15 @@ def test_scipy():
             {},
             {},
         )
+    # Test copy method
+    x = ScipyEdgeMap(g_int, node_list=[6, 7, 9])
+    x_copy = x.copy()
+    ScipyEdgeMap.Type.assert_equal(x, x_copy, iprops, iprops, {}, {})
+    assert x_copy.value is not x.value
+    assert x_copy.node_list is not x.node_list
+    # Test copy for edgeset
+    y = ScipyEdgeSet(g_int)
+    y_copy = y.copy()
+    ScipyEdgeSet.Type.assert_equal(y, y_copy, iprops, iprops, {}, {})
+    assert y_copy.value is not y.value
+    assert y_copy.node_list is not y.node_list

@@ -1,5 +1,4 @@
 import pytest
-
 from metagraph.plugins.core import types
 
 
@@ -24,10 +23,3 @@ def test_nodemap_not_implemented():
 
     with pytest.raises(NotImplementedError):
         len(nodemap)
-
-
-def test_node_id():
-    assert str(types.NodeID) == "NodeID"
-
-    with pytest.raises(NotImplementedError):
-        types.NodeID(25)

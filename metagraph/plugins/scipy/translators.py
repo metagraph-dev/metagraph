@@ -32,12 +32,10 @@ if has_scipy and has_networkx:
                 [x.value.nodes[n].get(x.node_weight_label) for n in node_list]
             )
 
-        if aprops["edge_type"] == "map":
-            m = nx.convert_matrix.to_scipy_sparse_matrix(
-                x.value, nodelist=node_list, weight=x.edge_weight_label,
-            )
-        else:
-            m = nx.convert_matrix.to_scipy_sparse_matrix(x.value, nodelist=node_list)
+        weight = x.edge_weight_label if aprops["edge_type"] == "map" else None
+        m = nx.convert_matrix.to_scipy_sparse_matrix(
+            x.value, nodelist=node_list, weight=weight,
+        )
 
         return ScipyGraph(m, node_list, node_vals, aprops=aprops)
 
@@ -99,7 +97,7 @@ if has_scipy and has_grblas:
         elif aprops["edge_type"] == "set":
             ones = np.ones_like(rows)
             matrix = ss.coo_matrix((ones, (rows, cols)), shape=(size, size), dtype=bool)
-        else:
+        else:  # pragma: no cover
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
         return ScipyGraph(matrix, node_list, node_vals, aprops=aprops)
