@@ -185,16 +185,7 @@ class DaskResolver:
                 trans, bound.arguments[name]
             )
         args, kwargs = bound.args, bound.kwargs
-        if (
-            algo_plan.algo._compiler is not None
-            and algo_plan.algo._compiler_obj is None
-        ):
-            algo_plan.algo._compiler_obj = self._resolver.compilers[
-                algo_plan.algo._compiler
-            ]
-        # Add resolver if needed by the algorithm
-        if algo_plan.algo._include_resolver:
-            kwargs["resolver"] = self._resolver
+
         # Determine return type and add task
         ret = sig.return_annotation
         if getattr(ret, "__origin__", None) == tuple:
@@ -226,7 +217,14 @@ class DaskResolver:
                 f"call-{tokenize(ph, algo_plan, args, kwargs)}",
                 f"{algo_plan.algo.abstract_name}",
             )
-            return ph.build(key, algo_plan.algo, args, kwargs)
+            return ph.build(
+                key,
+                algo_plan.algo,
+                args,
+                kwargs,
+                result_type=ret,
+                resolver=self._resolver,
+            )
         else:
             # Use dask.delayed instead of a Placeholder
             delayed_call = delayed(algo_plan.algo)

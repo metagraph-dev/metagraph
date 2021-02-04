@@ -5,7 +5,7 @@ from typing import List, Dict, Hashable, Optional
 from dask.core import get_deps
 
 from metagraph.core.plugin import ConcreteAlgorithm, Compiler, CompileError
-from metagraph.core.dask.placeholder import ph_apply
+from metagraph.core.dask.placeholder import DelayedAlgo
 
 
 @dataclass
@@ -40,12 +40,9 @@ def extract_compilable_subgraphs(
     for key in dsk.keys():
         task_callable = dsk[key][0]
 
-        if task_callable == ph_apply:
-            task_callable = dsk[key][1]
-
         if (
-            isinstance(task_callable, ConcreteAlgorithm)
-            and task_callable._compiler == compiler
+            isinstance(task_callable, DelayedAlgo)
+            and task_callable.algo._compiler == compiler
         ):
             compilable_keys.add(key)
 

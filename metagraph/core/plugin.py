@@ -611,7 +611,6 @@ class ConcreteAlgorithm:
         self.version = version
         self._include_resolver = include_resolver
         self._compiler = compiler
-        self._compiler_obj = None
         self._compiled_func = None
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
@@ -623,11 +622,6 @@ class ConcreteAlgorithm:
         if self._compiler is not None:
             if self._compiled_func is not None:
                 func = self._compiled_func
-            elif self._compiler_obj is not None:
-                func = self._compiler_obj.compile_algorithm(
-                    self, literals={}
-                )  # TODO: pass literals here
-                self._compiled_func = func
             elif resolver is not None:
                 func = resolver.compile_algorithm(
                     self, literals={}

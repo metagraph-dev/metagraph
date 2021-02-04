@@ -322,10 +322,18 @@ class IdentityCompiler(TracingCompiler):
         super().compile_subgraph(*args, **kwargs)
 
         def compile_inner(subgraph: Dict, inputs: List[str], output: str) -> Callable:
+            def apply(func, args, kwargs):
+                return func(*args, **kwargs)
+
             tasks = {}
             for key, task in subgraph.items():
-                func, rest = task[0], task[1:]
-                tasks[key] = (self.compile_algorithm(func, {}), *rest)
+                algo_wrapper, args, kwargs = task
+                tasks[key] = (
+                    apply,
+                    self.compile_algorithm(algo_wrapper.algo, {}),
+                    args,
+                    kwargs,
+                )
 
             def fused(*args):
                 cache = dict(zip(inputs, args))

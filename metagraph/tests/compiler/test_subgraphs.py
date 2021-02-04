@@ -175,6 +175,26 @@ def test_compile_subgraphs_three_chains(res):
     np.testing.assert_array_equal(unoptimized_result, numpy_result)
 
 
+def test_compile_subgraph_kwargs(res):
+    """Compile Y-shaped graph"""
+    a = np.arange(100)
+    offset_func = res.algos.testing.offset
+    z = offset_func(offset_func(a=a, offset=1.0), offset=2.0)
+
+    compiler = res.compilers["identity"]
+
+    optimized_dsk = mg_compiler.compile_subgraphs(
+        z.__dask_graph__(), keys=[z.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 1
+
+    optimized_result = dask.core.get(optimized_dsk, z.key)
+    unoptimized_result = z.compute()
+    numpy_result = a + 1 + 2
+    np.testing.assert_array_equal(optimized_result, numpy_result)
+    np.testing.assert_array_equal(unoptimized_result, numpy_result)
+
+
 @fixture
 def res():
     from metagraph.plugins.core.types import Vector
@@ -196,12 +216,21 @@ def res():
     def compiled_scale(a: NumpyVectorType, scale: float) -> NumpyVectorType:
         return a * scale
 
+    @abstract_algorithm("testing.offset")
+    def testing_offset(a: Vector, *, offset: float) -> Vector:  # pragma: no cover
+        pass
+
+    @concrete_algorithm("testing.offset", compiler="identity")
+    def compiled_offset(a: NumpyVectorType, *, offset: float) -> NumpyVectorType:
+        return a + offset
+
     registry = PluginRegistry("test_subgraphs_plugin")
     registry.register(testing_add)
     registry.register(compiled_add)
     registry.register(testing_scale)
     registry.register(compiled_scale)
-
+    registry.register(testing_offset)
+    registry.register(compiled_offset)
     registry.register(IdentityCompiler())
 
     resolver = Resolver()

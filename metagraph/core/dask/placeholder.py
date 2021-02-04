@@ -4,6 +4,7 @@ from dask import is_dask_collection
 from dask.base import DaskMethodsMixin, tokenize
 from dask.core import quote
 from dask.highlevelgraph import HighLevelGraph
+from metagraph.core.plugin import ConcreteAlgorithm, ConcreteType
 
 
 def single_key(seq):
@@ -33,6 +34,23 @@ def rebuild(dsk, cls, key):
 
 def ph_apply(func, args, kwargs):
     return func(*args, **kwargs)
+
+
+class DelayedAlgo:
+    def __init__(
+        self, algo: ConcreteAlgorithm, result_type: ConcreteType, resolver: "Resolver"
+    ):
+        self.algo = algo
+        self.resolver = resolver
+        self.result_type = result_type
+
+    def __call__(self, args, kwargs):
+        algo = self.algo
+        if algo._include_resolver or algo._compiler:
+            # do not mutate the kwargs
+            kwargs = kwargs.copy()
+            kwargs["resolver"] = self.resolver
+        return self.algo(*args, **kwargs)
 
 
 def finalize(collection):
@@ -83,22 +101,27 @@ class Placeholder(DaskMethodsMixin):
         return rebuild, (self.__class__, self._key)
 
     @classmethod
-    def build(cls, key, func, args, kwargs=None):
+    def build(cls, key, func, args, kwargs=None, result_type=None, resolver=None):
         dsk = {}
         new_args = []
         for arg in args:
             arg = taskify(arg, dsk)
             new_args.append(arg)
-        if kwargs:
-            new_kwargs_flat = []
-            for kw, val in kwargs.items():
-                val = taskify(val, dsk)
-                new_kwargs_flat.append([kw, val])
-            # Add this func to the task graph
-            dsk[key] = (ph_apply, func, new_args, (dict, new_kwargs_flat))
+
+        new_kwargs_flat = []
+        if kwargs is None:
+            kwargs = {}
+        for kw, val in kwargs.items():
+            val = taskify(val, dsk)
+            new_kwargs_flat.append([kw, val])
+        # Add this func to the task graph
+        if isinstance(func, ConcreteAlgorithm):
+            task_func = DelayedAlgo(func, return_type=result_type, resolver=resolver)
+            dsk[key] = (task_func, new_args, (dict, new_kwargs_flat))
         else:
-            # Add this func to the task graph (no need for apply)
-            dsk[key] = (func,) + tuple(new_args)
+            task_func = ph_apply
+            dsk[key] = (task_func, func, new_args, (dict, new_kwargs_flat))
+
         return cls(key, dsk)
 
 
