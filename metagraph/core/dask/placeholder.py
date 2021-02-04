@@ -116,7 +116,7 @@ class Placeholder(DaskMethodsMixin):
             new_kwargs_flat.append([kw, val])
         # Add this func to the task graph
         if isinstance(func, ConcreteAlgorithm):
-            task_func = DelayedAlgo(func, return_type=result_type, resolver=resolver)
+            task_func = DelayedAlgo(func, result_type=result_type, resolver=resolver)
             dsk[key] = (task_func, new_args, (dict, new_kwargs_flat))
         else:
             task_func = ph_apply
