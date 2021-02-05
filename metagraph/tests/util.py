@@ -304,7 +304,7 @@ class FailCompiler(TracingCompiler):
 
     def compile_subgraph(self, *args, **kwargs):
         super().compile_subgraph(**kwargs)
-        raise plugin.ompileError("'fail' compiler always fails")
+        raise plugin.CompileError("'fail' compiler always fails")
 
 
 class IdentityCompiler(TracingCompiler):
