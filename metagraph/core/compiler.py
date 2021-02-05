@@ -22,13 +22,17 @@ class DaskSubgraph:
 
 
 def extract_compilable_subgraphs(
-    dsk: Dict, compiler: str, include_singletons=True
+    dsk: Dict, compiler: str, output_keys: List[str], include_singletons=True
 ) -> List[DaskSubgraph]:
     """Find compilable subgraphs in this Dask task graph.
 
     Currently only works with one compiler at a time, and only will return
     linear chains of compilable tasks.  If include_singletons is True,
-    returned chains may be of length 1.  If False, the chain length must be >1.
+    returned chains may be of length 1.  If False, the chain length must be
+    >1.
+
+    If present in a subgraph, tasks corresponding to output_keys can only be
+    at the end of a chain.
     """
 
     if include_singletons:
@@ -41,6 +45,8 @@ def extract_compilable_subgraphs(
 
     if len(compilable_keys) == 0:
         return []
+
+    output_keys_set = set(output_keys)
 
     subgraphs = []
     ordered_keys = _dfs_sorted_dask_keys(compilable_keys, dependencies, dependents)
@@ -67,6 +73,7 @@ def extract_compilable_subgraphs(
             and len(key_dependents) == 1
             and next_key in key_dependents
             and key in next_key_dependencies
+            and key not in output_keys  # output keys must be at the end of a chain
         ):
             current_chain.append(next_key)
         elif len(current_chain) >= chain_threshold:
@@ -119,10 +126,12 @@ def _dfs_sorted_dask_keys(
     return
 
 
-def compile_subgraphs(dsk, keys, compiler: Compiler):
+def compile_subgraphs(dsk, output_keys, compiler: Compiler):
     """Return a modified dask graph with compilable subgraphs fused together."""
 
-    subgraphs = extract_compilable_subgraphs(dsk, compiler=compiler.name)
+    subgraphs = extract_compilable_subgraphs(
+        dsk, output_keys=output_keys, compiler=compiler.name
+    )
     if len(subgraphs) == 0:
         return dsk  # no change, nothing to compile
 
@@ -156,6 +165,6 @@ def optimize(dsk, keys, *, compiler: Optional[Compiler] = None, **kwargs):
     # FUTURE: swap nodes in graph with compilable implementations if they exist?
 
     if compiler is not None:
-        optimized_dsk = compile_subgraphs(dsk, keys, compiler=compiler)
+        optimized_dsk = compile_subgraphs(dsk, output_keys=keys, compiler=compiler)
 
     return optimized_dsk
