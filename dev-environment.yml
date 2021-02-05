@@ -25,6 +25,7 @@ dependencies:
   - networkx
   - pandas
   - scipy
+  - scikit-learn
   - dask
   - conda-forge::donfig
   - conda-forge::grblas

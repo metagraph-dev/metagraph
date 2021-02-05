@@ -56,9 +56,15 @@ jobs:
           conda build -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda
           # This doesn't rebuild, but simply computes the name of the file that was previously built
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda)
-          echo "Path to built package:"
           echo $OUTPUT
-          echo "CONDA_BUILD_OUTPUT=$OUTPUT" >> $GITHUB_ENV
+          # Build tarball of output
+          mkdir tarball
+          cd tarball
+          for outpt in $OUTPUT; do
+            cp $outpt .
+          done
+          tar -cf output.tar `ls`
+          echo "CONDA_BUILD_OUTPUT=`pwd`/output.tar" >> $GITHUB_ENV
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
         with:
@@ -85,14 +91,17 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda config --set always_yes yes --set changeps1 no
           conda update -q conda
-          conda create -n mg python=${{ matrix.pyver }} pytest coverage pytest-cov
+          conda create -n mg python=${{ matrix.pyver }}
           conda activate mg
-          # Install built_package
-          BUILT_PKG=`ls ./artifact_storage | head -1`
-          conda install ./artifact_storage/$BUILT_PKG
+          # Install built_packages
+          cd ./artifact_storage
+          tar -xvf output.tar
+          rm output.tar
+          conda install `ls`
+          cd ..
           # Install dependencies listed in built package
           # (This is a workaround because conda does not install dependencies for local file installs)
-          conda update -c defaults -c conda-forge metagraph
+          conda update -c defaults -c conda-forge metagraph-dev
           conda list
       - name: Pytest
         run: |
@@ -122,7 +131,10 @@ jobs:
           source "$CONDA/etc/profile.d/conda.sh"
           conda config --set always_yes yes --set changeps1 no
           conda install -q anaconda-client
-          ls -la ./artifact_storage
-          UPLOAD=`ls ./artifact_storage | head -1`
+          cd ./artifact_storage
+          tar -xvf output.tar
+          rm output.tar
+          ls -la .
+          UPLOAD=`ls .`
           echo "Uploading $UPLOAD with label=${{ env.AC_LABEL }}"
-          $CONDA/bin/anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l ${{ env.AC_LABEL }} --no-progress --force --no-register ./artifact_storage/$UPLOAD
+          $CONDA/bin/anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l ${{ env.AC_LABEL }} --no-progress --force --no-register $UPLOAD
