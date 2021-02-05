@@ -58,7 +58,12 @@ jobs:
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda)
           echo $OUTPUT
           # Build tarball of output
-          tar -cf output.tar $OUTPUT
+          mkdir tarball
+          cd tarball
+          for outpt in $OUTPUT; do
+            cp $outpt .
+          done
+          tar -cf output.tar `ls`
           echo "CONDA_BUILD_OUTPUT=`pwd`/output.tar" >> $GITHUB_ENV
       - name: Upload build artifact
         uses: actions/upload-artifact@v2
