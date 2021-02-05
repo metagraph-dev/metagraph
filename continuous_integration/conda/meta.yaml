@@ -38,6 +38,8 @@ test:
 outputs:
   - name: metagraph
   - name: metagraph-dev
+    build:
+      noarch: python
     requirements:
       run:
         - metagraph
