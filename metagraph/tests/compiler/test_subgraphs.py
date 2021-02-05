@@ -149,6 +149,43 @@ def test_extract_subgraphs_three_chains(res):
         assert subgraph.output_key in (z1.key, z2.key)
 
 
+def test_extract_subgraphs_diamond(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    top_node = res.algos.testing.offset(a, offset=2.0)
+    left_node = scale_func(top_node, 3.0)
+    right_node = scale_func(top_node, 5.0)
+    bottom_node = res.algos.testing.add(left_node, right_node)
+    result_node = bottom_node
+
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        result_node.__dask_graph__(), compiler="identity",
+    )
+    assert len(subgraphs) == 4
+
+    key_to_node = {
+        top_node.key: top_node,
+        left_node.key: left_node,
+        right_node.key: right_node,
+        bottom_node.key: bottom_node,
+    }
+    node_key_to_input_node_keys = {
+        top_node.key: set(),
+        left_node.key: {top_node.key},
+        right_node.key: {top_node.key},
+        bottom_node.key: {left_node.key, right_node.key},
+    }
+
+    for subgraph in subgraphs:
+        expected_input_node_keys = node_key_to_input_node_keys[subgraph.output_key]
+        assert set(subgraph.input_keys) == expected_input_node_keys
+
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        result_node.__dask_graph__(), compiler="identity", include_singletons=False,
+    )
+    assert len(subgraphs) == 0
+
+
 def test_compile_subgraphs_three_chains(res):
     """Compile Y-shaped graph"""
     a = np.arange(100)

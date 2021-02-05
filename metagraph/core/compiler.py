@@ -1,6 +1,7 @@
 import logging
 from dataclasses import dataclass
-from typing import List, Dict, Hashable, Optional
+from typing import List, Dict, Hashable, Optional, Tuple, Generator
+from functools import reduce
 
 from dask.core import get_deps
 
@@ -29,64 +30,108 @@ def extract_compilable_subgraphs(
     linear chains of compilable tasks.  If include_singletons is True,
     returned chains may be of length 1.  If False, the chain length must be >1.
     """
+
     if include_singletons:
         chain_threshold = 1
     else:
         chain_threshold = 2
     dependencies, dependents = get_deps(dsk)
 
-    # which nodes are compilable concrete_algorithms?
+    compilable_keys, non_compilable_keys = _get_compilable_dask_keys(dsk, compiler)
+
+    if len(compilable_keys) == 0:
+        return []
+
+    subgraphs = []
+    ordered_keys = _topologically_sorted_dask_keys(
+        compilable_keys, dependencies, dependents
+    )
+    key = next(ordered_keys)
+    current_chain = [key]
+
+    def _note_subgraph(chain):
+        output_key = chain[-1]
+        chain = set(chain)
+        inputs = reduce(
+            set.union, (dependencies[chain_key] - chain for chain_key in chain)
+        )
+        tasks = {chain_key: dsk[chain_key] for chain_key in chain}
+        subgraphs.append(
+            DaskSubgraph(tasks=tasks, input_keys=list(inputs), output_key=output_key)
+        )
+
+    for next_key in ordered_keys:
+        next_key_dependencies = dependencies[next_key]
+        key_dependents = dependents[key]
+
+        if (
+            len(next_key_dependencies) == 1
+            and len(key_dependents) == 1
+            and next_key in key_dependents
+            and key in next_key_dependencies
+        ):
+            current_chain.append(next_key)
+        elif len(current_chain) >= chain_threshold:
+            _note_subgraph(current_chain)
+            current_chain = [next_key]
+        else:
+            current_chain = [next_key]
+        key = next_key
+
+    if len(current_chain) >= chain_threshold:
+        _note_subgraph(current_chain)
+
+    return subgraphs
+
+
+def _get_compilable_dask_keys(dsk: Dict, compiler: str) -> Tuple[set, set]:
+
     compilable_keys = set()
     for key in dsk.keys():
         task_callable = dsk[key][0]
-
-        if (
-            isinstance(task_callable, DelayedAlgo)
-            and task_callable.algo._compiler == compiler
-        ):
-            compilable_keys.add(key)
+        if isinstance(task_callable, DelayedAlgo):
+            if task_callable.algo._compiler == compiler:
+                compilable_keys.add(key)
 
     non_compilable_keys = set(dsk.keys()) - compilable_keys
 
-    subgraphs = []
-    # keep trying to build chains until no compilable tasks are left
-    keys_left = compilable_keys.copy()
-    while len(keys_left) > 0:
-        key = keys_left.pop()
-        chain = [key]
-        chain_extended = True
-        while chain_extended:
-            next_compilable_tasks = dependents[chain[-1]] & compilable_keys
-            prior_compilable_tasks = dependencies[chain[0]] & compilable_keys
+    return compilable_keys, non_compilable_keys
 
-            # Can we extend the chain?
-            chain_extended = False
 
-            if len(next_compilable_tasks) == 1:
-                candidate = next_compilable_tasks.pop()
-                # ensure this task does not have multiple compileable dependencies
-                if len(dependencies[candidate] & compilable_keys) == 1:
-                    chain.append(candidate)
-                    keys_left.remove(chain[-1])
-                    chain_extended = True
+def _topologically_sorted_dask_keys(
+    compilable_keys: set,
+    dependencies: Dict[Hashable, set],
+    dependents: Dict[Hashable, set],
+) -> Generator[Hashable, None, None]:
+    """
+    This is a "greedy" topological sort, e.g. this graph
 
-            if len(prior_compilable_tasks) == 1:
-                chain.insert(0, prior_compilable_tasks.pop())
-                keys_left.remove(chain[0])
-                chain_extended = True
+               a
+              / \
+             b   d
+             |   |
+             c   e
+        
+    might return [a,d,e,b,c] but will never return [a,b,d,c,e] even though the latter is in correct topological order.
+    
+    This greediness is necessary for the correctness of extract_compilable_subgraphs.
+    """
 
-        if len(chain) >= chain_threshold:
-            # collect all the inputs to the tasks in this chain
-            inputs = set()
-            chain_keys = set(chain)
-            for key in chain:
-                inputs |= dependencies[key] - chain_keys
-            tasks = {key: dsk[key] for key in chain}
-            subgraphs.append(
-                DaskSubgraph(tasks=tasks, input_keys=list(inputs), output_key=chain[-1])
-            )
+    visited = set()
 
-    return subgraphs
+    def _traverse(key):
+        if key not in visited:
+            visited.add(key)
+            parent_keys = dependencies[key]
+            for parent_key in parent_keys:
+                yield from _traverse(parent_key)
+            yield key
+
+    output_keys = filter(lambda key: len(dependents[key]) == 0, compilable_keys)
+    for output_key in output_keys:
+        yield from _traverse(output_key)
+
+    return
 
 
 def compile_subgraphs(dsk, keys, compiler: Compiler):
