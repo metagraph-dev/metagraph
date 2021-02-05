@@ -28,16 +28,24 @@ requirements:
     - dask
     - python-graphviz
     - nest-asyncio
+    - websockets
 
 test:
   requires:
-    - pytest
-    - pytest-cov
-    - coverage
-    - scikit-learn
-    - black >=20.8b1
+    - metagraph-dev
   commands:
     - py.test --cov-report term-missing --cov=metagraph --pyargs metagraph.tests
+
+outputs:
+  - name: metagraph
+  - name: metagraph-dev
+    requirements:
+      run:
+        - metagraph
+        - pytest
+        - pytest-cov
+        - coverage
+        - scikit-learn
 
 about:
   home: https://github.com/metagraph-dev/metagraph
