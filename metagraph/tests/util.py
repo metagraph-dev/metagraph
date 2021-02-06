@@ -272,10 +272,7 @@ class TracingCompiler(plugin.Compiler):
     """
 
     def __init__(self, name):
-        self.initialize_runtime_calls = 0
-        self.teardown_runtime_calls = 0
-        self.compile_algorithm_calls = []
-        self.compile_subgraph_calls = []
+        self.clear_trace()
         super().__init__(name=name)
 
     def initialize_runtime(self):
@@ -289,6 +286,13 @@ class TracingCompiler(plugin.Compiler):
 
     def compile_subgraph(self, *args, **kwargs):
         self.compile_subgraph_calls.append((args, kwargs))
+
+    def clear_trace(self):
+        """Clear trace records.  Call at start of test."""
+        self.initialize_runtime_calls = 0
+        self.teardown_runtime_calls = 0
+        self.compile_algorithm_calls = []
+        self.compile_subgraph_calls = []
 
 
 class FailCompiler(TracingCompiler):

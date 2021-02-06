@@ -219,7 +219,7 @@ def test_compile_subgraphs_three_chains(res):
     assert ans.key in optimized_dsk
 
     optimized_result = dask.core.get(optimized_dsk, ans.key)
-    unoptimized_result = ans.compute()
+    unoptimized_result = ans.compute(optimize_graph=False)
     numpy_result = 2.8 * ((a * 2 * 3 * 4) + (a * 2.5 * 3.5 * 4.5))
     np.testing.assert_array_equal(optimized_result, numpy_result)
     np.testing.assert_array_equal(unoptimized_result, numpy_result)
@@ -239,7 +239,7 @@ def test_compile_subgraph_kwargs(res):
     assert len(optimized_dsk) == 1
 
     optimized_result = dask.core.get(optimized_dsk, z.key)
-    unoptimized_result = z.compute()
+    unoptimized_result = z.compute(optimize_graph=False)
     numpy_result = a + 1 + 2
     np.testing.assert_array_equal(optimized_result, numpy_result)
     np.testing.assert_array_equal(unoptimized_result, numpy_result)
@@ -283,6 +283,47 @@ def test_compile_subgraphs_multiple_outputs(res):
     z_comp, y_comp = dask.core.get(optimized_dsk, [z.key, y.key])
     np.testing.assert_array_equal(z_comp, a * 2 * 3 * 4)
     np.testing.assert_array_equal(y_comp, a * 2 * 3)
+
+
+def test_optimize(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    x = scale_func(a, 2.0)
+    y = scale_func(x, 3.0)
+    z = scale_func(y, 4.0)
+
+    compiler = res.compilers["identity"]
+    optimized_dsk = mg_compiler.optimize(
+        z.__dask_graph__(), output_keys=[z.key, y.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 2
+
+
+def test_automatic_optimize(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    x = scale_func(a, 2.0)
+    y = scale_func(x, 3.0)
+    z = scale_func(y, 4.0)
+
+    compiler = res.compilers["identity"]
+
+    # expect 1 compiled chain
+    compiler.clear_trace()
+    np.testing.assert_array_equal(z.compute(), a * 2 * 3 * 4)
+    assert len(compiler.compile_subgraph_calls) == 1
+
+    # expect 2 compiled chains
+    compiler.clear_trace()
+    result = dask.compute(z, y)
+    np.testing.assert_array_equal(result[0], a * 2 * 3 * 4)
+    np.testing.assert_array_equal(result[1], a * 2 * 3)
+    assert len(compiler.compile_subgraph_calls) == 2
+
+    # expect no compiled chains
+    compiler.clear_trace()
+    np.testing.assert_array_equal(z.compute(optimize_graph=False), a * 2 * 3 * 4)
+    assert len(compiler.compile_subgraph_calls) == 0
 
 
 @fixture

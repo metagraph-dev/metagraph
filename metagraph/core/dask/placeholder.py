@@ -2,9 +2,11 @@ import types
 import dask
 from dask import is_dask_collection
 from dask.base import DaskMethodsMixin, tokenize
-from dask.core import quote
+from dask.core import quote, flatten
 from dask.highlevelgraph import HighLevelGraph
 from metagraph.core.plugin import ConcreteAlgorithm, ConcreteType
+from metagraph.core.compiler import optimize
+from .tasks import DelayedAlgo
 
 
 def single_key(seq):
@@ -34,23 +36,6 @@ def rebuild(dsk, cls, key):
 
 def ph_apply(func, args, kwargs):
     return func(*args, **kwargs)
-
-
-class DelayedAlgo:
-    def __init__(
-        self, algo: ConcreteAlgorithm, result_type: ConcreteType, resolver: "Resolver"
-    ):
-        self.algo = algo
-        self.resolver = resolver
-        self.result_type = result_type
-
-    def __call__(self, args, kwargs):
-        algo = self.algo
-        if algo._include_resolver or algo._compiler:
-            # do not mutate the kwargs
-            kwargs = kwargs.copy()
-            kwargs["resolver"] = self.resolver
-        return self.algo(*args, **kwargs)
 
 
 def finalize(collection):
@@ -99,6 +84,10 @@ class Placeholder(DaskMethodsMixin):
 
     def __dask_postpersist__(self):
         return rebuild, (self.__class__, self._key)
+
+    @staticmethod
+    def __dask_optimize__(dsk, keys, **kwargs):
+        return optimize(dsk, output_keys=list(flatten(keys)), **kwargs)
 
     @classmethod
     def build(cls, key, func, args, kwargs=None, result_type=None, resolver=None):

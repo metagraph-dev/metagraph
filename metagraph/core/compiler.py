@@ -6,7 +6,7 @@ from functools import reduce
 from dask.core import get_deps
 
 from metagraph.core.plugin import ConcreteAlgorithm, Compiler, CompileError
-from metagraph.core.dask.placeholder import DelayedAlgo
+from metagraph.core.dask.tasks import DelayedAlgo
 
 
 @dataclass
@@ -160,11 +160,26 @@ def compile_subgraphs(dsk, output_keys, compiler: Compiler):
     return new_dsk
 
 
-def optimize(dsk, keys, *, compiler: Optional[Compiler] = None, **kwargs):
+def optimize(dsk, output_keys, **kwargs):
     """Top level optimizer function for Metagraph DAGs"""
     # FUTURE: swap nodes in graph with compilable implementations if they exist?
+    optimized_dsk = dsk
 
-    if compiler is not None:
-        optimized_dsk = compile_subgraphs(dsk, output_keys=keys, compiler=compiler)
+    # discover all the compilers referenced in this DAG
+    compilers = {}
+    for key in dsk.keys():
+        task_callable = dsk[key][0]
+        if isinstance(task_callable, DelayedAlgo):
+            if task_callable.algo._compiler is not None:
+                compiler_name = task_callable.algo._compiler
+                if compiler_name not in compilers:
+                    compilers[compiler_name] = task_callable.resolver.compilers[
+                        compiler_name
+                    ]
 
+    # allow each compiler to optimize the graph
+    for compiler in compilers.values():
+        optimized_dsk = compile_subgraphs(
+            optimized_dsk, output_keys=output_keys, compiler=compiler
+        )
     return optimized_dsk
