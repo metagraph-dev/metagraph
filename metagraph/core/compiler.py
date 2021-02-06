@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import List, Dict, Hashable, Optional, Tuple, Generator
 from functools import reduce
 
-from dask.core import get_deps, toposort
+from dask.core import get_deps
 
 from metagraph.core.plugin import ConcreteAlgorithm, Compiler, CompileError
 from metagraph.core.dask.placeholder import DelayedAlgo
@@ -43,8 +43,9 @@ def extract_compilable_subgraphs(
         return []
 
     subgraphs = []
-    ordered_keys = toposort(compilable_keys, dependencies=dependencies)
-    current_chain = [ordered_keys[0]]
+    ordered_keys = _dfs_sorted_dask_keys(compilable_keys, dependencies, dependents)
+    key = next(ordered_keys)
+    current_chain = [key]
 
     def _note_subgraph(chain):
         output_key = chain[-1]
@@ -57,15 +58,15 @@ def extract_compilable_subgraphs(
             DaskSubgraph(tasks=tasks, input_keys=list(inputs), output_key=output_key)
         )
 
-    for key, next_key in zip(ordered_keys[:-1], ordered_keys[1:]):
-        key_dependents = dependents[key]
+    for next_key in ordered_keys:
         next_key_dependencies = dependencies[next_key]
+        key_dependents = dependents[key]
 
         if (
-            len(key_dependents) == 1
-            and len(next_key_dependencies) == 1
-            and key in next_key_dependencies
+            len(next_key_dependencies) == 1
+            and len(key_dependents) == 1
             and next_key in key_dependents
+            and key in next_key_dependencies
         ):
             current_chain.append(next_key)
         elif len(current_chain) >= chain_threshold:
@@ -93,6 +94,29 @@ def _get_compilable_dask_keys(dsk: Dict, compiler: str) -> Tuple[set, set]:
     non_compilable_keys = set(dsk.keys()) - compilable_keys
 
     return compilable_keys, non_compilable_keys
+
+
+def _dfs_sorted_dask_keys(
+    compilable_keys: set,
+    dependencies: Dict[Hashable, set],
+    dependents: Dict[Hashable, set],
+) -> Generator[Hashable, None, None]:
+
+    visited = set()
+
+    def _dfs(key):
+        if key not in visited:
+            visited.add(key)
+            child_keys = dependents[key]
+            yield key
+            for child_key in child_keys:
+                yield from _dfs(child_key)
+
+    input_keys = filter(lambda key: len(dependencies[key]) == 0, compilable_keys)
+    for input_key in input_keys:
+        yield from _dfs(input_key)
+
+    return
 
 
 def compile_subgraphs(dsk, keys, compiler: Compiler):
