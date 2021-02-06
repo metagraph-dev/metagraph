@@ -2,12 +2,13 @@ import os
 import sys
 import pytest
 import math
-from typing import List, Set, Dict, Any
+from typing import List, Set, Dict, Any, Callable
 from collections import OrderedDict
 
 from metagraph import ConcreteType
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
+import dask.core
 
 
 def make_site_dir_fixture(site_dir):
@@ -259,6 +260,90 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
     return d
 
 
+class TracingCompiler(plugin.Compiler):
+    """This compiler traces every call.  Use as subclass for test compilers.
+
+    Attributes:
+
+      initialize_runtime_calls: int - number of initialize_runtime() calls
+      teardown_runtime_calls: int - number of teardown_runtime() calls
+      compile_algorithm_calls: List[Dict[str, Any]] - List of arguments to compile_algorithm() calls
+      compile_subgraph_calls: List[Dict[str, Any]] - List of arguments to compile_subgraph() calls
+    """
+
+    def __init__(self, name):
+        self.initialize_runtime_calls = 0
+        self.teardown_runtime_calls = 0
+        self.compile_algorithm_calls = []
+        self.compile_subgraph_calls = []
+        super().__init__(name=name)
+
+    def initialize_runtime(self):
+        self.initialize_runtime_calls += 1
+
+    def teardown_runtime(self):
+        self.teardown_runtime_calls += 1
+
+    def compile_algorithm(self, *args, **kwargs):
+        self.compile_algorithm_calls.append((args, kwargs))
+
+    def compile_subgraph(self, *args, **kwargs):
+        self.compile_subgraph_calls.append((args, kwargs))
+
+
+class FailCompiler(TracingCompiler):
+    """This compiler always fails to compile every subgraph and function.
+    """
+
+    def __init__(self, name="fail"):
+        super().__init__(name=name)
+
+    def compile_algorithm(self, *args, **kwargs):
+        super().compile_algorithm(**kwargs)
+        raise plugin.CompileError("'fail' compiler always fails")
+
+    def compile_subgraph(self, *args, **kwargs):
+        super().compile_subgraph(**kwargs)
+        raise plugin.CompileError("'fail' compiler always fails")
+
+
+class IdentityCompiler(TracingCompiler):
+    """This compiler returns functions unchanged.
+    """
+
+    def __init__(self, name="identity"):
+        super().__init__(name=name)
+
+    def compile_algorithm(self, algo, literals):
+        super().compile_algorithm(algo, literals)
+        return algo.func
+
+    def compile_subgraph(self, *args, **kwargs):
+        super().compile_subgraph(*args, **kwargs)
+
+        def compile_inner(subgraph: Dict, inputs: List[str], output: str) -> Callable:
+            def apply(func, args, kwargs):
+                return func(*args, **kwargs)
+
+            tasks = {}
+            for key, task in subgraph.items():
+                algo_wrapper, args, kwargs = task
+                tasks[key] = (
+                    apply,
+                    self.compile_algorithm(algo_wrapper.algo, {}),
+                    args,
+                    kwargs,
+                )
+
+            def fused(*args):
+                cache = dict(zip(inputs, args))
+                return dask.core.get(tasks, output, cache=cache)
+
+            return fused
+
+        return compile_inner(*args, **kwargs)
+
+
 # Handy for manual testing
 def make_example_resolver():
     res = Resolver()
@@ -283,6 +368,7 @@ def make_example_resolver():
                     simple_echo,
                     simple_odict_rev,
                 },
+                "compilers": {FailCompiler(), IdentityCompiler()},
             },
             "example2_plugin": {"concrete_algorithms": {strnum_power}},
         }

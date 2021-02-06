@@ -3,7 +3,7 @@
 import types
 import inspect
 from functools import partial
-from typing import Callable, List, Dict, Set, Union, Any
+from typing import Callable, List, Dict, Set, Union, Any, Optional
 from .typecache import TypeCache, TypeInfo
 
 
@@ -604,11 +604,14 @@ class ConcreteAlgorithm:
         *,
         version: int = 0,
         include_resolver: bool = False,
+        compiler: Optional[str] = None,
     ):
         self.func = func
         self.abstract_name = abstract_name
         self.version = version
         self._include_resolver = include_resolver
+        self._compiler = compiler
+        self._compiled_func = None
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
@@ -616,6 +619,21 @@ class ConcreteAlgorithm:
         self.__signature__ = normalize_signature(self.__original_signature__)
 
     def __call__(self, *args, resolver=None, **kwargs):
+        if self._compiler is not None:
+            if self._compiled_func is not None:
+                func = self._compiled_func
+            elif resolver is not None:
+                func = resolver.compile_algorithm(
+                    self, literals={}
+                )  # TODO: pass literals here
+                self._compiled_func = func
+            else:
+                raise CompileError(
+                    f"Cannot call {self.__name__} without a 'resolver' argument to generate compiled function."
+                )
+        else:
+            func = self.func
+
         if self._include_resolver:
             if resolver is None:
                 raise ValueError(
@@ -623,13 +641,17 @@ class ConcreteAlgorithm:
                 )
             if hasattr(resolver, "_resolver"):  # DaskResolver
                 resolver = resolver._resolver
-            return self.func(*args, resolver=resolver, **kwargs)
+            return func(*args, resolver=resolver, **kwargs)
         else:
-            return self.func(*args, **kwargs)
+            return func(*args, **kwargs)
 
 
 def concrete_algorithm(
-    abstract_name: str, *, version: int = 0, include_resolver: bool = False
+    abstract_name: str,
+    *,
+    version: int = 0,
+    include_resolver: bool = False,
+    compiler: Optional[str] = None,
 ):
     def _concrete_decorator(func: Callable):
         return ConcreteAlgorithm(
@@ -637,7 +659,73 @@ def concrete_algorithm(
             abstract_name=abstract_name,
             version=version,
             include_resolver=include_resolver,
+            compiler=compiler,
         )
 
     _concrete_decorator.version = version
     return _concrete_decorator
+
+
+class CompileError(Exception):
+    """An error when compiling a concrete algorithm."""
+
+    pass
+
+
+class Compiler:
+    """A compiler plugin can fuse a task subgraph into a single operation.
+
+    Generally compilation is done with a JIT compiler, but that is not required.
+    Compilers will only be asked to compile task graphs which contain concrete
+    implementations which are tagged as compilable with this compiler.
+    """
+
+    def __init__(self, name: str):
+        """Create a compiler with given name.
+
+        The name will be used as a key to match with the compilable concrete
+        implementations.
+        """
+        self.name = name
+
+    def initialize_runtime(self):
+        """Initialize any resources or devices required before this compiler
+        target can be used.
+
+        If called multiple times, calls after the first should do nothing.
+        """
+        pass
+
+    def teardown_runtime(self):
+        """Shutdown and free any runtime resources reserved by this compiler.
+
+        Not guaranteed to be called before process exit, and should be safe to
+        call multiple times.
+        """
+        pass
+
+    def compile_algorithm(
+        self, algo: ConcreteAlgorithm, literals: Dict[str, Any] = None
+    ) -> Callable:
+        """Compile concrete algorithm to a callable that matches its function signature.
+        
+        If any literal values (Python ints, strings, etc) should be frozen at compile time,
+        they are passed in the literals dict.
+
+        Implementation should automatically initialize runtime if needed and not already.
+        """
+        raise NotImplementedError(
+            "all compiler plugins must implement compile_algorithm()"
+        )
+
+    def compile_subgraph(
+        self, subgraph: Dict, inputs: List[str], output: str
+    ) -> Callable:
+        """Compile a subgraph of compilable functions into a single callable with
+        inputs in the order listed, returning output value.
+
+        Raises CompileError if unsuccessful.
+        """
+        raise NotImplementedError(
+            "all compiler plugins must implement compile_subgraph()"
+        )

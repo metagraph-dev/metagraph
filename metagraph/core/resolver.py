@@ -25,6 +25,8 @@ from .plugin import (
     Translator,
     AbstractAlgorithm,
     ConcreteAlgorithm,
+    Compiler,
+    CompileError,
 )
 from .planning import MultiStepTranslator, AlgorithmPlan, TranslationMatrix
 from .entrypoints import load_plugins
@@ -146,6 +148,7 @@ class Resolver:
         self.abstract_types: Set[AbstractType] = set()
         self.concrete_types: Set[ConcreteType] = set()
         self.translators: Dict[Tuple[ConcreteType, ConcreteType], Translator] = {}
+        self.compilers: Dict[str, Compiler] = {}
 
         # map abstract name to instance of abstract algorithm
         self.abstract_algorithms: Dict[str, AbstractAlgorithm] = {}
@@ -535,6 +538,22 @@ class Resolver:
                     + "\n".join(unsatisfied_requirements)
                 )
 
+    def compile_algorithm(
+        self, concrete_algo: ConcreteAlgorithm, literals: Dict[str, Any] = None
+    ) -> Callable:
+        compiler_name = concrete_algo._compiler
+        if compiler_name is None:
+            raise CompileError(
+                f"Concrete algorithm '{concrete_algo.__name__}' is not compilable"
+            )
+
+        compiler = self.compilers.get(compiler_name, None)
+        if compiler is None:
+            raise CompileError(f"Required compiler '{compiler_name}' not found")
+
+        func = compiler.compile_algorithm(concrete_algo, literals=literals)
+        return func
+
 
 class _ResolverRegistrar:
     """
@@ -562,7 +581,9 @@ class _ResolverRegistrar:
             "translators",
             "abstract_algorithms",
             "concrete_algorithms",
+            "compilers",
         )
+
         items_by_plugin = {"all": defaultdict(set)}
         for plugin_name, plugin in plugins_by_name.items():
             items_by_plugin[plugin_name] = {}
@@ -592,6 +613,7 @@ class _ResolverRegistrar:
             plugin_namespace._register("abstract_algorithms", {})
             plugin_namespace._register("abstract_algorithm_versions", {})
             plugin_namespace._register("concrete_algorithms", defaultdict(set))
+            plugin_namespace._register("compilers", {})
             plugin_namespace._register("algos", Namespace())
             plugin_namespace._register("wrappers", Namespace())
             plugin_namespace._register("types", Namespace())
@@ -615,6 +637,7 @@ class _ResolverRegistrar:
         translators: Set[Translator] = set(),
         abstract_algorithms: Set[AbstractAlgorithm] = set(),
         concrete_algorithms: Set[ConcreteAlgorithm] = set(),
+        compilers: Set[Compiler] = set(),
         plugin_name: Optional[str] = None,
     ) -> None:
         """
@@ -674,6 +697,17 @@ class _ResolverRegistrar:
         _ResolverRegistrar.register_abstract_algorithms_in_tree(
             tree, resolver, abstract_algorithms
         )
+
+        if tree_is_resolver:
+            for compiler in compilers:
+                if compiler.name in tree.compilers:
+                    existing_compiler = tree.compilers[compiler.name]
+                    raise ValueError(
+                        f"Cannot register compiler named '{compiler.name}' from {compiler.__class__}\n"
+                        f" when {existing_compiler.__class__} has already been registered with the same name."
+                    )
+                tree.compilers[compiler.name] = compiler
+
         _ResolverRegistrar.register_concrete_algorithms_in_tree(
             tree, resolver, concrete_algorithms, plugin_name
         )
