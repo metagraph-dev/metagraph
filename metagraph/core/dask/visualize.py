@@ -1,5 +1,5 @@
 import dask.base
-from .tasks import DelayedAlgo
+from .tasks import MetagraphTask, DelayedAlgo, DelayedTranslate
 from copy import deepcopy
 from typing import Dict, Hashable, Any
 from collections.abc import Mapping
@@ -46,15 +46,19 @@ def visualize(*dags, filename="mydask", format=None, optimize_graph=False, **kwa
     for key, task in merged_dag.items():
         task_callable = task[0]
 
-        if isinstance(task_callable, DelayedAlgo):
+        if isinstance(task_callable, MetagraphTask):
             func_attrs = {
-                "shape": "octagon",
-                "label": f"{task_callable.algo.abstract_name}\n({task_callable.algo.__name__})",
+                "label": task_callable.func_label,
             }
             data_attrs = {
                 "shape": "parallelogram",
-                "label": f"{task_callable.result_type.__class__.__name__}",
+                "label": task_callable.data_label,
             }
+
+            if isinstance(task_callable, DelayedAlgo):
+                func_attrs["shape"] = "octagon"
+            if isinstance(task_callable, DelayedTranslate):
+                func_attrs["shape"] = "ellipse"
         else:
             continue
 

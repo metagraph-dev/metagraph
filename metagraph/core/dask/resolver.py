@@ -162,12 +162,17 @@ class DaskResolver:
                 f"{src_type.__name__}->{dst_type.__name__}",
             )
             kwargs = {}
-            # Pass in the real resolver if needed by the translator
-            if trans._include_resolver:
-                kwargs["resolver"] = self._resolver
             if dst_type is mst.final_type:
                 kwargs.update(props)
-            obj = ph.build(key, trans, (obj,), kwargs)
+            obj = ph.build(
+                key,
+                trans,
+                (obj,),
+                kwargs,
+                resolver=self._resolver,
+                source_type=src_type,
+                result_type=dst_type,
+            )
             src_type = dst_type
         return obj
 

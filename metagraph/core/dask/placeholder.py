@@ -4,10 +4,10 @@ from dask import is_dask_collection
 from dask.base import DaskMethodsMixin, tokenize
 from dask.core import quote, flatten
 from dask.highlevelgraph import HighLevelGraph
-from metagraph.core.plugin import ConcreteAlgorithm, ConcreteType
+from metagraph.core.plugin import ConcreteAlgorithm, Translator, ConcreteType
 from metagraph.core.compiler import optimize
 from .visualize import visualize
-from .tasks import DelayedAlgo
+from .tasks import DelayedAlgo, DelayedTranslate
 
 
 def single_key(seq):
@@ -100,7 +100,16 @@ class Placeholder(DaskMethodsMixin):
         )
 
     @classmethod
-    def build(cls, key, func, args, kwargs=None, result_type=None, resolver=None):
+    def build(
+        cls,
+        key,
+        func,
+        args,
+        kwargs=None,
+        source_type=None,
+        result_type=None,
+        resolver=None,
+    ):
         dsk = {}
         new_args = []
         for arg in args:
@@ -116,6 +125,14 @@ class Placeholder(DaskMethodsMixin):
         # Add this func to the task graph
         if isinstance(func, ConcreteAlgorithm):
             task_func = DelayedAlgo(func, result_type=result_type, resolver=resolver)
+            dsk[key] = (task_func, new_args, (dict, new_kwargs_flat))
+        elif isinstance(func, Translator):
+            task_func = DelayedTranslate(
+                func,
+                source_type=source_type,
+                result_type=result_type,
+                resolver=resolver,
+            )
             dsk[key] = (task_func, new_args, (dict, new_kwargs_flat))
         else:
             task_func = ph_apply
