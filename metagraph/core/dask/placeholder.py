@@ -6,6 +6,7 @@ from dask.core import quote, flatten
 from dask.highlevelgraph import HighLevelGraph
 from metagraph.core.plugin import ConcreteAlgorithm, ConcreteType
 from metagraph.core.compiler import optimize
+from .visualize import visualize
 from .tasks import DelayedAlgo
 
 
@@ -88,6 +89,15 @@ class Placeholder(DaskMethodsMixin):
     @staticmethod
     def __dask_optimize__(dsk, keys, **kwargs):
         return optimize(dsk, output_keys=list(flatten(keys)), **kwargs)
+
+    def visualize(self, filename="mydask", format=None, optimize_graph=False, **kwargs):
+        return visualize(
+            self,
+            filename=filename,
+            format=format,
+            optimize_graph=optimize_graph,
+            **kwargs,
+        )
 
     @classmethod
     def build(cls, key, func, args, kwargs=None, result_type=None, resolver=None):
