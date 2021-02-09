@@ -180,6 +180,7 @@ def test_node_sampling(default_plugin_resolver):
     dpr = default_plugin_resolver
     # Build a complete graph, then add a bunch of disconnected nodes
     # Node Sampling should pick some of the disconnected nodes for the subgraph
+    weighted = False
     g = nx.complete_graph(25)
     g.add_nodes_from(range(25, 50))
     graph = dpr.wrappers.Graph.NetworkXGraph(g)
@@ -196,7 +197,20 @@ def test_node_sampling(default_plugin_resolver):
             assert (
                 len(subg[n]) == len(complete_nodes) - 1
             )  # definition of complete graph
+        if weighted:
+            # Check that weights carry thru the sampling
+            n1, n2 = list(complete_nodes)[:2]
+            assert subg.nodes[n1]["weight"] == 1.0
+            assert subg.edges[(n1, n2)]["weight"] == 1.0
 
+    results = MultiVerify(dpr).compute("subgraph.sample.node_sampling", graph, 0.4)
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
+
+    # Repeat with weighted nodes and edges
+    weighted = True
+    nx.set_node_attributes(g, 1.0, "weight")
+    nx.set_edge_attributes(g, 1.0, "weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
     results = MultiVerify(dpr).compute("subgraph.sample.node_sampling", graph, 0.4)
     results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
@@ -225,6 +239,13 @@ def test_edge_sampling(default_plugin_resolver):
     results = MultiVerify(dpr).compute("subgraph.sample.edge_sampling", graph, 0.4)
     results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
+    # Repeat with weighted nodes and edges
+    nx.set_node_attributes(g, 1.0, "weight")
+    nx.set_edge_attributes(g, 1.0, "weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+    results = MultiVerify(dpr).compute("subgraph.sample.edge_sampling", graph, 0.4)
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
+
 
 def test_totally_induced_edge_sampling(default_plugin_resolver):
     dpr = default_plugin_resolver
@@ -250,6 +271,13 @@ def test_totally_induced_edge_sampling(default_plugin_resolver):
     results = MultiVerify(dpr).compute("subgraph.sample.ties", graph, 0.4)
     results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
+    # Repeat with weighted nodes and edges
+    nx.set_node_attributes(g, 1.0, "weight")
+    nx.set_edge_attributes(g, 1.0, "weight")
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+    results = MultiVerify(dpr).compute("subgraph.sample.ties", graph, 0.4)
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
+
 
 def test_random_walk_sampling_1(default_plugin_resolver):
     dpr = default_plugin_resolver
@@ -272,10 +300,20 @@ def test_random_walk_sampling_1(default_plugin_resolver):
     )
     results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
 
+    # Now with random starting node
+    def cmp_func_rand(subgraph):
+        subg = subgraph.value
+        assert set(subg.nodes()) != set(range(21))
+
+    results = MultiVerify(dpr).compute(
+        "subgraph.sample.random_walk", graph, num_steps=50, jump_probability=0.5
+    )
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func_rand)
+
 
 def test_random_walk_sampling_2(default_plugin_resolver):
     dpr = default_plugin_resolver
-    # Build two disconnected components. Randomly sampling should never leave the starting component.
+    # Build two disconnected components. Random sampling should never leave the starting component.
     # Keep going until all nodes in the starting component have been visited
     g1 = nx.complete_graph(7)
     g2 = nx.complete_graph(range(10, 17))
@@ -292,3 +330,18 @@ def test_random_walk_sampling_2(default_plugin_resolver):
         "subgraph.sample.random_walk", graph, num_nodes=7, start_node=12
     )
     results.normalize(dpr.wrappers.Graph.NetworkXGraph).custom_compare(cmp_func)
+
+
+def test_random_walk_sampling_3(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    # Build two disconnected components. The starting component is an isolate node.
+    g = nx.complete_graph(7)
+    g.add_node(12)
+    graph = dpr.wrappers.Graph.NetworkXGraph(g)
+    e = nx.Graph()
+    e.add_node(12)
+    expected = dpr.wrappers.Graph.NetworkXGraph(e)
+    results = MultiVerify(dpr).compute(
+        "subgraph.sample.random_walk", graph, start_node=12, num_nodes=5
+    )
+    results.normalize(dpr.wrappers.Graph.NetworkXGraph).assert_equal(expected)
