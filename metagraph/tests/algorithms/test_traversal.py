@@ -1,3 +1,4 @@
+import warnings
 from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
 import numpy as np
@@ -68,10 +69,26 @@ def test_bfs_iter(default_plugin_resolver):
     nx_graph.add_weighted_edges_from(ebunch)
     graph = dpr.wrappers.Graph.NetworkXGraph(nx_graph, edge_weight_label="weight")
     correct_answer = np.array([0, 3, 4, 5, 6, 2, 7])
-    # TODO test depth_limit when supported in SciPy
     MultiVerify(dpr).compute("traversal.bfs_iter", graph, 0).normalize(
         dpr.types.Vector.NumpyVectorType
     ).assert_equal(correct_answer)
+
+    # Test with depth limit
+    with warnings.catch_warnings():
+        # ignore the warning scipy raises
+        warnings.simplefilter("ignore")
+
+        correct_answer = np.array([0, 3, 4, 5])
+
+        def depth_limit_compare(val):
+            assert len(val) >= len(correct_answer)
+            np.testing.assert_equal(val[: len(correct_answer)], correct_answer)
+
+        MultiVerify(dpr).compute(
+            "traversal.bfs_iter", graph, 0, depth_limit=4
+        ).normalize(dpr.types.Vector.NumpyVectorType).custom_compare(
+            depth_limit_compare
+        )
 
 
 def test_bfs_tree(default_plugin_resolver):

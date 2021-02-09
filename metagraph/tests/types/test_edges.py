@@ -3,7 +3,7 @@ import pytest
 grblas = pytest.importorskip("grblas")
 
 from metagraph.plugins.pandas.types import PandasEdgeMap, PandasEdgeSet
-from metagraph.plugins.graphblas.types import GrblasEdgeMap
+from metagraph.plugins.graphblas.types import GrblasEdgeMap, GrblasEdgeSet
 from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet
 import pandas as pd
 import scipy.sparse as ss
@@ -63,8 +63,14 @@ def test_pandas_edge():
             PandasEdgeMap(df), PandasEdgeMap(extra), iprops, iprops, {}, {}
         )
     # Undirected cannot have duplicates
-    with pytest.raises(ValueError):
+    with pytest.raises(
+        ValueError, match="is_directed=False, but duplicate edges found"
+    ):
         PandasEdgeMap(df, is_directed=False)
+    with pytest.raises(
+        ValueError, match="is_directed=False, but duplicate edges found"
+    ):
+        PandasEdgeSet(df, is_directed=False)
 
     # Different weight_label
     wgt = df.copy()
@@ -77,6 +83,14 @@ def test_pandas_edge():
         {},
         {},
     )
+
+    # Exercise PandasEdgeSet
+    pes = PandasEdgeSet(df)
+    assert pes.num_nodes == 3
+
+    # Exercise PandasEdgeMap
+    pem = PandasEdgeMap(df)
+    assert pem.num_nodes == 3
 
 
 def test_graphblas():
@@ -132,6 +146,28 @@ def test_graphblas():
             {},
             {},
         )
+
+    # Exercise GrblasEdgeSet
+    x = GrblasEdgeSet(g_int)
+    g_large = g_int.dup()
+    g_large.resize(15, 15)
+    y = GrblasEdgeSet(g_large)
+    eprops = {"is_directed": True}
+    GrblasEdgeSet.Type.assert_equal(x, y, eprops, eprops, {}, {})
+    GrblasEdgeSet.Type.assert_equal(y, x, eprops, eprops, {}, {})
+
+    # Exercise GrblasEdgeMap
+    z = GrblasEdgeMap(
+        grblas.Matrix.from_values(
+            [0, 1, 1], [1, 0, 2], [True, True, True], nrows=3, ncols=3
+        )
+    )
+    props = GrblasEdgeMap.Type.compute_abstract_properties(z, {"has_negative_weights"})
+    assert props["has_negative_weights"] is None
+    z1 = GrblasEdgeMap(g_int)
+    z2 = GrblasEdgeMap(g_large)
+    GrblasEdgeMap.Type.assert_equal(z1, z2, iprops, iprops, {}, {})
+    GrblasEdgeMap.Type.assert_equal(z2, z1, iprops, iprops, {}, {})
 
 
 def test_scipy():
@@ -220,15 +256,7 @@ def test_scipy():
             {},
             {},
         )
-    # Test copy method
-    x = ScipyEdgeMap(g_int, node_list=[6, 7, 9])
-    x_copy = x.copy()
-    ScipyEdgeMap.Type.assert_equal(x, x_copy, iprops, iprops, {}, {})
-    assert x_copy.value is not x.value
-    assert x_copy.node_list is not x.node_list
-    # Test copy for edgeset
+
+    # Exercise ScipyEdgeSet
     y = ScipyEdgeSet(g_int)
-    y_copy = y.copy()
-    ScipyEdgeSet.Type.assert_equal(y, y_copy, iprops, iprops, {}, {})
-    assert y_copy.value is not y.value
-    assert y_copy.node_list is not y.node_list
+    assert (y.node_list == [0, 1, 2]).all()

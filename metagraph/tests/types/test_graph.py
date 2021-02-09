@@ -25,7 +25,7 @@ def test_networkx():
     )
     g_float = nx.DiGraph()
     g_float.add_weighted_edges_from(
-        [(0, 0, 1.0), (0, 1, 2.0), (1, 1, 0.0), (1, 2, 3.0), (2, 1, 3.0),]
+        [(0, 0, 1.0), (0, 1, 2.0), (1, 1, 0.0), (1, 2, 3.0), (2, 1, 3.0)]
     )
     NetworkXGraph.Type.assert_equal(
         NetworkXGraph(g_int), NetworkXGraph(g_int.copy()), aprops, aprops, {}, {}
@@ -99,6 +99,13 @@ def test_networkx():
         {},
         {},
     )
+
+    # Exercise NetworkXGraph
+    with pytest.raises(TypeError, match="unable to determine dtype"):
+        g = nx.Graph()
+        g.add_weighted_edges_from([(0, 2, "a"), (1, 0, "b"), (1, 2, "c")])
+        gr = NetworkXGraph(g)
+        NetworkXGraph.Type.compute_abstract_properties(gr, {"edge_dtype"})
 
 
 def test_scipy():
@@ -209,20 +216,18 @@ def test_scipy():
             {},
             {},
         )
-    # Test copy method
+
+    # Exercise ScipyGraph
     x = ScipyGraph(g_float, node_list=[1, 3, 7], node_vals=[0.2, 0.4, 0.6])
-    x_copy = x.copy()
+    y = ScipyGraph(g_float, node_list=[1, 3, 7], node_vals=[0.2, 0.4, 0.60000000001])
     ScipyGraph.Type.assert_equal(
         x,
-        x_copy,
+        y,
         {**aprops, "node_type": "map", "edge_dtype": "float"},
         {**aprops, "node_type": "map", "edge_dtype": "float"},
         {},
         {},
     )
-    assert x_copy.value is not x.value
-    assert x_copy.node_list is not x.node_list
-    assert x_copy.node_vals is not x.node_vals
 
 
 def test_graphblas():
@@ -357,23 +362,52 @@ def test_graphblas():
         {},
         {},
     )
-    # Node weights affect comparison
-    nodes1 = grblas.Vector.from_values([0, 1, 2], [10, 20, 30])
-    nodes2 = grblas.Vector.from_values([0, 1, 2], [10, 20, 33])
     GrblasGraph.Type.assert_equal(
-        GrblasGraph(m_int, nodes1),
-        GrblasGraph(m_int, nodes1),
-        {**aprops, "node_type": "map"},
-        {**aprops, "node_type": "map"},
+        GrblasGraph(m_sparse, nodes=active),
+        GrblasGraph(m_sparse_big, nodes=active_big),
+        aprops,
+        aprops,
+        {},
+        {},
+    )
+    # Node weights affect comparison
+    nodes1_int = grblas.Vector.from_values([0, 1, 2], [10, 20, 30])
+    nodes1_float = grblas.Vector.from_values([0, 1, 2], [10.1, 20.2, 30.3])
+    nodes2_int = grblas.Vector.from_values([0, 1, 2], [10, 20, 33])
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_int, nodes1_int),
+        GrblasGraph(m_int, nodes1_int),
+        {**aprops, "node_type": "map", "node_dtype": "int"},
+        {**aprops, "node_type": "map", "node_dtype": "int"},
+        {},
+        {},
+    )
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_int, nodes1_float),
+        GrblasGraph(m_int, nodes1_float),
+        {**aprops, "node_type": "map", "node_dtype": "float"},
+        {**aprops, "node_type": "map", "node_dtype": "float"},
         {},
         {},
     )
     with pytest.raises(AssertionError):
         GrblasGraph.Type.assert_equal(
-            GrblasGraph(m_int, nodes=nodes1),
-            GrblasGraph(m_int, nodes=nodes2),
+            GrblasGraph(m_int, nodes=nodes1_int),
+            GrblasGraph(m_int, nodes=nodes2_int),
             {**aprops, "node_type": "map"},
             {**aprops, "node_type": "map"},
             {},
             {},
         )
+    # Test unweighted
+    uprops = {
+        "is_directed": True,
+        "node_type": "set",
+        "edge_type": "set",
+    }
+    m_unweighted = grblas.Matrix.from_values(
+        [0, 0, 1, 1, 2], [0, 1, 1, 2, 1], [1, 1, 1, 1, 1], nrows=3, ncols=3, dtype=int
+    )
+    GrblasGraph.Type.assert_equal(
+        GrblasGraph(m_unweighted), GrblasGraph(m_unweighted), uprops, uprops, {}, {}
+    )

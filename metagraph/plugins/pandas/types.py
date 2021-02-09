@@ -30,7 +30,7 @@ if has_pandas:
                 pd.testing.assert_frame_equal(
                     obj1, obj2, check_like=True, rtol=rel_tol, atol=abs_tol
                 )
-            else:
+            else:  # pragma: no cover
                 digits_precision = round(-math.log(rel_tol, 10))
                 pd.testing.assert_frame_equal(
                     obj1, obj2, check_like=True, check_less_precise=digits_precision
@@ -73,15 +73,15 @@ if has_pandas:
         @property
         def num_nodes(self):
             src_nodes, dst_nodes = self.index.levels
-            return len(src_nodes | dst_nodes)
+            return len(src_nodes.union(dst_nodes))
 
-        def copy(self):
-            return PandasEdgeSet(
-                self.value.copy(),
-                self.src_label,
-                self.dst_label,
-                is_directed=self.is_directed,
-            )
+        # def copy(self):
+        #     return PandasEdgeSet(
+        #         self.value.copy(),
+        #         self.src_label,
+        #         self.dst_label,
+        #         is_directed=self.is_directed,
+        #     )
 
         class TypeMixin:
             @classmethod
@@ -184,16 +184,16 @@ if has_pandas:
         @property
         def num_nodes(self):
             src_nodes, dst_nodes = self.index.levels
-            return len(src_nodes | dst_nodes)
+            return len(src_nodes.union(dst_nodes))
 
-        def copy(self):
-            return PandasEdgeMap(
-                self.value.copy(),
-                self.src_label,
-                self.dst_label,
-                self.weight_label,
-                is_directed=self.is_directed,
-            )
+        # def copy(self):
+        #     return PandasEdgeMap(
+        #         self.value.copy(),
+        #         self.src_label,
+        #         self.dst_label,
+        #         self.weight_label,
+        #         is_directed=self.is_directed,
+        #     )
 
         class TypeMixin:
             @classmethod
@@ -218,14 +218,7 @@ if has_pandas:
                             neg_weights = None
                         else:
                             min_val = obj.value[obj.weight_label].min()
-                            if min_val < 0:
-                                neg_weights = True
-                            else:
-                                min_val = obj.value[obj.weight_label].min()
-                                if min_val < 0:
-                                    neg_weights = True
-                                else:
-                                    neg_weights = False
+                            neg_weights = min_val < 0
                         ret[prop] = neg_weights
 
                 return ret

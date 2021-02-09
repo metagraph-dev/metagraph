@@ -1,3 +1,4 @@
+import warnings
 import numpy as np
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_scipy
@@ -83,7 +84,7 @@ if has_scipy:
         graph: ScipyGraph, source_node: NodeID, depth_limit: int
     ) -> NumpyVectorType:
         if depth_limit != -1:  # TODO support depth_limit
-            raise NotImplementedError("scipy.sparse does not support depth_limit")
+            warnings.warn("scipy does not limit bfs_iter based on depth_limit")
         is_directed = ScipyGraph.Type.compute_abstract_properties(
             graph, {"is_directed"}
         )["is_directed"]
