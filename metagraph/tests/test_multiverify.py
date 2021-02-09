@@ -8,11 +8,12 @@ from metagraph.core.multiverify import (
     MultiVerify,
     MultiResult,
     UnsatisfiableAlgorithmError,
+    MultiVerifyError,
 )
 from .util import default_plugin_resolver
 import numpy as np
 from metagraph.plugins.graphblas.types import GrblasNodeMap
-from metagraph.plugins.numpy.types import NumpyNodeMap
+from metagraph.plugins.numpy.types import NumpyNodeMap, NumpyNodeSet
 from metagraph.plugins.python.types import PythonNodeMapType
 
 
@@ -197,7 +198,7 @@ def test_custom_compare(default_plugin_resolver):
     with pytest.raises(AssertionError):
         mv.custom_compare(mr, cmp_func=cmp_func)
 
-    mr2 = MultiResult(mv, {"testing.bar": {0, 2, 4, 7}})
+    mr2 = MultiResult(mv, {"testing.bar": NumpyNodeSet([0, 2, 4, 7])})
     mr2 = mr2.normalize(None)  # force computation for lazy objects
 
     def cmp_func2(result):
@@ -210,22 +211,48 @@ def test_custom_compare(default_plugin_resolver):
 def test_compare_values(default_plugin_resolver, capsys):
     dpr = default_plugin_resolver
     mv = MultiVerify(dpr)
-    pnm1 = {0: 1.1, 2: 4.5}
-    pnm2 = {0: 1.1, 2: 4.9}
+    nnm1 = NumpyNodeMap([1.1, 4.5], [0, 2])
+    nnm2 = NumpyNodeMap([1.1, 4.9], [0, 2])
     pns = {0, 2}
 
     with pytest.raises(TypeError, match="`val` must be"):
-        mv.compare_values(pns, pnm1, "testing.compare.values")
+        mv.compare_values(pns, nnm1, "testing.compare.values")
 
     capsys.readouterr()
     with pytest.raises(AssertionError):
-        mv.compare_values(pnm1, pnm2, "testing.compare.values")
+        mv.compare_values(nnm1, nnm2, "testing.compare.values")
     captured = capsys.readouterr()
     assert "val" in captured.out
+    assert "val.value" in captured.out
     assert "expected_val" in captured.out
+    assert "expected_val.value" in captured.out
 
     # Compare floats
     mv.compare_values(1.1, 1.1 + 1e-9, "testing.compare.values.floats", rel_tol=1e-6)
 
     # Compare ints
     mv.compare_values(5, 5, "testing.compare.values.ints")
+
+
+def test_assert_raises(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    mv = MultiVerify(dpr)
+
+    class TestAssertRaisesError(Exception):
+        pass
+
+    mr = MultiResult(mv, {"testing.baz": TestAssertRaisesError("abc")})
+    mr2 = MultiResult(mv, {"testing.baz": 17})
+
+    mv.assert_raises(mr, TestAssertRaisesError)
+
+    with pytest.raises(TypeError, match="expected_error must be an Exception"):
+        mv.assert_raises(mr, int)
+
+    with pytest.raises(
+        MultiVerifyError, match="raised TestAssertRaisesError.* instead of KeyError"
+    ):
+        mv.assert_raises(mr, KeyError)
+
+    with pytest.raises(MultiVerifyError, match="did not raise KeyError"):
+        mv.assert_raises(mr2, KeyError)

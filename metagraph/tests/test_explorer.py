@@ -1,6 +1,6 @@
 import pytest
 import metagraph as mg
-from metagraph.explorer import api
+from metagraph.explorer import api, service
 from metagraph.tests.util import default_plugin_resolver
 
 
@@ -107,3 +107,13 @@ def test_solve_algorithm(default_plugin_resolver):
     result = api.solve_algorithm(dpr, "util.nodemap.select", param_info)
     assert "plan_0" in result
     assert result["plan_0"].keys() == {"type", "plan_index", "children"}
+
+
+def test_service(default_plugin_resolver):
+    try:
+        service._TEST_FLAG = True
+        text = service.main(default_plugin_resolver)
+        assert len(text) > 60000, f"text length is {len(text)}"
+        assert "/* Shadow DOM Initializations */" in text
+    finally:
+        service._TEST_FLAG = False

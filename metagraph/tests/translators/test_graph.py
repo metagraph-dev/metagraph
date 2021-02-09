@@ -7,7 +7,7 @@ from . import RoundTripper
 from metagraph.plugins.numpy.types import NumpyNodeSet
 from metagraph.plugins.scipy.types import ScipyEdgeMap, ScipyEdgeSet, ScipyGraph
 from metagraph.plugins.networkx.types import NetworkXGraph
-from metagraph.plugins.graphblas.types import GrblasEdgeMap
+from metagraph.plugins.graphblas.types import GrblasEdgeMap, GrblasGraph
 from metagraph.plugins.pandas.types import PandasEdgeSet
 from metagraph import NodeLabels
 import networkx as nx
@@ -17,12 +17,20 @@ import numpy as np
 
 
 def test_graph_roundtrip_directed_unweighted(default_plugin_resolver):
-    rt = RoundTripper(default_plugin_resolver)
+    dpr = default_plugin_resolver
+    rt = RoundTripper(dpr)
     g = nx.DiGraph()
     g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
     g.add_edges_from([(1, 3), (3, 1), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)])
     graph = NetworkXGraph(g)
     rt.verify_round_trip(graph)
+
+    # networkx: edgetype=set overrides weight label
+    g2 = nx.DiGraph()
+    g2.add_nodes_from([1, 3, 5, 7, 8])
+    g2.add_weighted_edges_from([(1, 3, 2), (3, 5, 4), (5, 7, 6)])
+    graph2 = NetworkXGraph(g2, aprops={"edge_type": "set"})
+    rt.verify_round_trip(graph2)
 
 
 def test_graph_roundtrip_directed_weighted(default_plugin_resolver):

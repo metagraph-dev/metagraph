@@ -34,12 +34,12 @@ if has_networkx:
             self.edge_weight_label = edge_weight_label
             self._assert_instance(nx_graph, nx.Graph)
 
-        def copy(self):
-            return NetworkXGraph(
-                copy.deepcopy(self.value),
-                self.node_weight_label,
-                self.edge_weight_label,
-            )
+        # def copy(self):
+        #     return NetworkXGraph(
+        #         copy.deepcopy(self.value),
+        #         self.node_weight_label,
+        #         self.edge_weight_label,
+        #     )
 
         class TypeMixin:
             @classmethod
@@ -180,6 +180,8 @@ if has_networkx:
             self.node_weight_label = node_weight_label
             self.edge_weight_label = edge_weight_label
             self._assert_instance(nx_graph, nx.Graph)
+            if isinstance(nx_graph, nx.DiGraph):
+                raise TypeError("Directed Graph not supported")
             if not hasattr(nodes, "__len__") or len(nodes) != 2:
                 raise TypeError("nodes must have length of 2")
             self.nodes = (set(nodes[0]), set(nodes[1]))

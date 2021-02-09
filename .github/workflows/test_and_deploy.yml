@@ -10,9 +10,6 @@ on:
     tags:
       - '*'
 
-env:
-  MAIN_PYVER: 3.8
-
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -28,7 +25,7 @@ jobs:
           conda update -q conda
           conda info -a
           conda install -q conda-build
-          conda env create -f continuous_integration/environment-${{ env.MAIN_PYVER }}.yml
+          conda env create -f continuous_integration/environment.yml
           conda activate mg
           pip install -e .
       - name: Lint with Black
@@ -53,9 +50,9 @@ jobs:
       - name: Conda Build
         run: |
           source "$CONDA/etc/profile.d/conda.sh"
-          conda build -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda
+          conda build -c defaults -c conda-forge --python 3.8 continuous_integration/conda
           # This doesn't rebuild, but simply computes the name of the file that was previously built
-          OUTPUT=$(conda build --output -c defaults -c conda-forge --python ${{ env.MAIN_PYVER }} continuous_integration/conda)
+          OUTPUT=$(conda build --output -c defaults -c conda-forge --python 3.8 continuous_integration/conda)
           echo $OUTPUT
           # Build tarball of output
           mkdir tarball

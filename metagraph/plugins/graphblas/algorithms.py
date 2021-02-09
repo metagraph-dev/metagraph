@@ -111,6 +111,9 @@ if has_grblas:
 
     @concrete_algorithm("subgraph.sample.node_sampling")
     def grblas_node_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
+        # TODO: move this check into the abstract algorithm layer
+        if p <= 0 or p > 1:  # pragma: no cover
+            raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
         all_nodes, _ = graph.nodes.to_values()
         chosen_indices = np.random.random(len(all_nodes)) < p
         chosen_nodes = all_nodes[chosen_indices]
@@ -119,6 +122,9 @@ if has_grblas:
 
     @concrete_algorithm("subgraph.sample.edge_sampling")
     def grblas_edge_sampling(graph: GrblasGraph, p: float) -> GrblasGraph:
+        # TODO: move this check into the abstract algorithm layer
+        if p <= 0 or p > 1:  # pragma: no cover
+            raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
         aprops = GrblasGraph.Type.compute_abstract_properties(graph, "node_type")
         rows, cols, vals = graph.value.to_values()
         chosen_indices = np.random.random(len(rows)) < p
@@ -140,6 +146,9 @@ if has_grblas:
     def grblas_totally_induced_edge_sampling(
         graph: GrblasGraph, p: float
     ) -> GrblasGraph:
+        # TODO: move this check into the abstract algorithm layer
+        if p <= 0 or p > 1:  # pragma: no cover
+            raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
         aprops = GrblasGraph.Type.compute_abstract_properties(graph, "is_directed")
         if not aprops["is_directed"]:
             # For undirected graphs, cut the probability in half to avoid overcounting edges

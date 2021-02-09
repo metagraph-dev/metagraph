@@ -58,6 +58,7 @@ class RoundTripper:
         frontier = set()
         known_good_objs = {ct_obj: obj}
         # Expand in breadth-first-search until frontier stops updating
+        # Look only for one-hop round-trippable translation paths
         while known_good_objs.keys() - frontier:
             frontier = set(known_good_objs.keys())
             for ct_target in all_ctypes:
@@ -111,7 +112,7 @@ class RoundTripper:
                         translators_to_verify.pop((ct_target, ct_source))
                         # Add inflight object as a known good object
                         known_good_objs[ct_target] = inflight_obj
-        # Look for circular route in unexercised translators
+        # Look for circular route in unexercised translators (multi-hop)
         while translators_to_verify:
             shortest_path = None
             saved_plan = None

@@ -132,7 +132,7 @@ if has_grblas and has_scipy:
             nodes = grblas.Vector.from_values(
                 x.node_list, node_vals, size=size, dtype=bool
             )
-        else:
+        else:  # pragma: no cover
             raise TypeError(f"Cannot translate with node_type={aprops['node_type']}")
 
         edges = x.value.tocoo()
@@ -149,7 +149,7 @@ if has_grblas and has_scipy:
             matrix = grblas.Matrix.from_values(
                 rows, cols, node_vals, nrows=size, ncols=size, dtype=bool
             )
-        else:
+        else:  # pragma: no cover
             raise TypeError(f"Cannot translate with edge_type={aprops['edge_type']}")
 
         return GrblasGraph(matrix, nodes=nodes, aprops=aprops)

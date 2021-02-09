@@ -9,12 +9,13 @@ dependencies:
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - importlib_metadata
+  - dask
   - numpy
   - networkx
   - pandas
-  - conda-forge::python-louvain
   - scipy
   - scikit-learn
   - conda-forge::donfig
   - conda-forge::grblas
-  - dask
+  - conda-forge::python-louvain
+  - conda-forge::websockets

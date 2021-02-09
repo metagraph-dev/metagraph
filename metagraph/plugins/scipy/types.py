@@ -36,8 +36,8 @@ if has_scipy:
             )
             self.node_list = node_list
 
-        def copy(self):
-            return ScipyEdgeSet(self.value.copy(), node_list=self.node_list.copy())
+        # def copy(self):
+        #     return ScipyEdgeSet(self.value.copy(), node_list=self.node_list.copy())
 
         class TypeMixin:
             @classmethod
@@ -114,15 +114,11 @@ if has_scipy:
             )
             self.node_list = node_list
 
-        def copy(self):
-            node_list = (
-                self.node_list if self.node_list is None else self.node_list.copy()
-            )
-            return ScipyEdgeMap(self.value.copy(), node_list=node_list)
-
-        @property
-        def format(self):
-            return self.value.format
+        # def copy(self):
+        #     node_list = (
+        #         self.node_list if self.node_list is None else self.node_list.copy()
+        #     )
+        #     return ScipyEdgeMap(self.value.copy(), node_list=node_list)
 
         class TypeMixin:
             @classmethod
@@ -228,9 +224,9 @@ if has_scipy:
             self.node_list: np.ndarray = node_list
             self.node_vals: np.ndarray = node_vals
 
-        def copy(self):
-            node_vals = None if self.node_vals is None else self.node_vals.copy()
-            return ScipyGraph(self.value.copy(), self.node_list.copy(), node_vals)
+        # def copy(self):
+        #     node_vals = None if self.node_vals is None else self.node_vals.copy()
+        #     return ScipyGraph(self.value.copy(), self.node_list.copy(), node_vals)
 
         class TypeMixin:
             # Both forward and reverse lookup

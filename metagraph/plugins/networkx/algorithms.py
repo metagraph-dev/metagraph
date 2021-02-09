@@ -414,7 +414,8 @@ if has_networkx:
 
     @concrete_algorithm("subgraph.sample.node_sampling")
     def nx_node_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
-        if p <= 0 or p > 1:
+        # TODO: move this check into the abstract algorithm layer
+        if p <= 0 or p > 1:  # pragma: no cover
             raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
         aprops = NetworkXGraph.Type.compute_abstract_properties(
             graph, {"node_type", "edge_type"}
@@ -444,7 +445,8 @@ if has_networkx:
 
     @concrete_algorithm("subgraph.sample.edge_sampling")
     def nx_edge_sampling(graph: NetworkXGraph, p: float) -> NetworkXGraph:
-        if p <= 0 or p > 1:
+        # TODO: move this check into the abstract algorithm layer
+        if p <= 0 or p > 1:  # pragma: no cover
             raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
         aprops = NetworkXGraph.Type.compute_abstract_properties(
             graph, {"node_type", "edge_type"}
@@ -476,7 +478,8 @@ if has_networkx:
         Totally Induced Edge Sampling method
         https://docs.lib.purdue.edu/cgi/viewcontent.cgi?article=2743&context=cstech
         """
-        if p <= 0 or p > 1:
+        # TODO: move this check into the abstract algorithm layer
+        if p <= 0 or p > 1:  # pragma: no cover
             raise ValueError(f"Probability `p` must be between 0 and 1, found {p}")
         aprops = NetworkXGraph.Type.compute_abstract_properties(
             graph, {"node_type", "edge_type"}
@@ -522,11 +525,15 @@ if has_networkx:
         When resetting the walk, if start_node is specified, always reset to this node. If not specified, every reset
             picks a new node in the graph at random.
         """
-        if jump_probability <= 0 or jump_probability > 1:
+        # TODO: move this check into the abstract algorithm layer
+        if jump_probability <= 0 or jump_probability > 1:  # pragma: no cover
             raise ValueError(
                 f"`jump_probability` must be between 0 and 1, found {jump_probability}"
             )
-        if num_steps is None and num_nodes is None and num_edges is None:
+        # TODO: move this check into the abstract algorithm layer
+        if (
+            num_steps is None and num_nodes is None and num_edges is None
+        ):  # pragma: no cover
             raise ValueError(
                 "Must specify at least one of num_steps, num_nodes, or num_edges"
             )

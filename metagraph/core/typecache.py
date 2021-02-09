@@ -81,23 +81,17 @@ class TypeCache:
             try:
                 weakref.ref(obj)
             except TypeError:
-                if type(obj) is set:
-                    self._special_handling_set(obj, key)
-                elif type(obj) is dict:
+                if type(obj) is dict:
                     self._special_handling_dict(obj, key)
                 else:
                     raise TypeError(
-                        f"Object of type {type(obj)} requires special handling which not been defined yet"
+                        f"Object of type {type(obj)} requires special handling which has not been defined yet"
                     )
             return key
 
     def _expire_key(self, key):
         if key in self._cache:
             del self._cache[key]
-
-    def _special_handling_set(self, obj, ident):
-        # Nothing to do for sets until NodeSet gains an abstract property
-        pass
 
     def _special_handling_dict(self, obj, ident):
         # Use a fingerprint to detect if this is the same object

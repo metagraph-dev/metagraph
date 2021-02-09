@@ -80,7 +80,7 @@ if has_grblas:
             return self.value.nvals
 
         def __contains__(self, key):
-            return 0 <= key < len(self.value) and self.value[key].value is not None
+            return 0 <= key < self.value.size and self.value[key].value is not None
 
         class TypeMixin:
             @classmethod
@@ -120,7 +120,7 @@ if has_grblas:
             return self.value.nvals
 
         def __contains__(self, key):
-            return 0 <= key < len(self.value) and self.value[key].value is not None
+            return 0 <= key < self.value.size and self.value[key].value is not None
 
         class TypeMixin:
             @classmethod
@@ -311,10 +311,7 @@ if has_grblas:
                             min_val = (
                                 obj.value.reduce_scalar(grblas.monoid.min).new().value
                             )
-                            if min_val < 0:
-                                neg_weights = True
-                            else:
-                                neg_weights = False
+                            neg_weights = min_val < 0
                         ret[prop] = neg_weights
 
                 return ret

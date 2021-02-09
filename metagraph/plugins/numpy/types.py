@@ -83,9 +83,9 @@ class NumpyNodeSet(NodeSetWrapper, abstract=NodeSet):
     def __len__(self):
         return len(self.value)
 
-    def copy(self):
-        aprops = NumpyNodeSet.Type.compute_abstract_properties(self, {})
-        return NumpyNodeSet(self.value.copy(), aprops=aprops)
+    # def copy(self):
+    #     aprops = NumpyNodeSet.Type.compute_abstract_properties(self, {})
+    #     return NumpyNodeSet(self.value.copy(), aprops=aprops)
 
     def __iter__(self):
         return iter(self.value)
@@ -147,7 +147,7 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
                         f"Nodes must be same shape and size as data: {nodes.shape} != {data.shape}"
                     )
                 if not issubclass(nodes.dtype.type, np.integer):
-                    raise TypeError(f"Invalid dtype for NodeSet: {nodes.dtype}")
+                    raise TypeError(f"Invalid dtype for nodes: {nodes.dtype}")
             # Ensure sorted
             if not np.all(np.diff(nodes) > 0):
                 sorter = np.argsort(nodes)
@@ -177,9 +177,9 @@ class NumpyNodeMap(NodeMapWrapper, abstract=NodeMap):
     def __len__(self):
         return len(self.value)
 
-    def copy(self):
-        aprops = NumpyNodeMap.Type.compute_abstract_properties(self, {})
-        return NumpyNodeMap(self.value.copy(), nodes=self.nodes.copy(), aprops=aprops)
+    # def copy(self):
+    #     aprops = NumpyNodeMap.Type.compute_abstract_properties(self, {})
+    #     return NumpyNodeMap(self.value.copy(), nodes=self.nodes.copy(), aprops=aprops)
 
     def __contains__(self, key):
         index = np.searchsorted(self.nodes, key)

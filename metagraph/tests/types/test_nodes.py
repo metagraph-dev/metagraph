@@ -3,8 +3,8 @@ import pytest
 grblas = pytest.importorskip("grblas")
 
 from metagraph.plugins.python.types import PythonNodeMapType
-from metagraph.plugins.numpy.types import NumpyNodeMap
-from metagraph.plugins.graphblas.types import GrblasNodeMap
+from metagraph.plugins.numpy.types import NumpyNodeMap, NumpyNodeSet
+from metagraph.plugins.graphblas.types import GrblasNodeMap, GrblasNodeSet
 from metagraph import NodeLabels
 import numpy as np
 from grblas import Vector
@@ -44,6 +44,8 @@ def test_python():
         PythonNodeMapType.assert_equal(
             {"A": 1.1}, {"A": 1}, {"dtype": "float"}, {"dtype": "int"}, {}, {},
         )
+    with pytest.raises(TypeError, match="Unable to compute dtype"):
+        PythonNodeMapType.compute_abstract_properties({0: 3 + 4j, 1: 5 - 2j}, {"dtype"})
 
 
 def test_numpy():
@@ -101,6 +103,36 @@ def test_numpy():
             {},
         )
 
+    # Exercise NumpyNodeSet
+    with pytest.raises(TypeError, match="Invalid number of dimensions: 2"):
+        NumpyNodeSet(np.array([[1, 2, 3], [4, 5, 6]]))
+    with pytest.raises(TypeError, match="Invalid dtype for NodeSet"):
+        NumpyNodeSet(np.array([1.1, 2.2, 3.3]))
+    # Handle duplicates
+    x = NumpyNodeSet([1, 1, 3, 4, 1, 2, 1])
+    assert len(x) == 4
+    assert 1 in x
+    assert [2, 3, 4] in x
+
+    # Exercise NumpyNodeMap
+    with pytest.raises(TypeError, match="Invalid number of dimensions: 2"):
+        NumpyNodeMap(np.array([[1, 2, 3], [4, 5, 6]]))
+    with pytest.raises(TypeError, match="Nodes must be same shape and size as data"):
+        NumpyNodeMap([1, 2, 3, 4], nodes=[1, 2, 3])
+    with pytest.raises(TypeError, match="Invalid dtype for nodes"):
+        NumpyNodeMap([1, 2, 3, 4], nodes=[1.1, 2.2, 3.3, 4.4])
+    with pytest.raises(TypeError, match="Duplicate node ids found"):
+        NumpyNodeMap([1, 2, 3, 4], nodes=[1, 1, 1, 2])
+    y = NumpyNodeMap([1.1, 2.2, 3.3, 4.4], nodes=[5, 6, 7, 22])
+    assert len(y) == 4
+    assert 22 in y
+    assert [5, 6, 7] in y
+    assert y[5] == 1.1
+    with pytest.raises(KeyError, match="is not in the NodeMap"):
+        y[17]
+    with pytest.raises(KeyError, match="are not all in the NodeMap"):
+        y[[7, 8, 9]]
+
 
 def test_graphblas():
     GrblasNodeMap.Type.assert_equal(
@@ -141,3 +173,16 @@ def test_graphblas():
             {},
             {},
         )
+
+    # Exercise GrblasNodeSet
+    x = GrblasNodeSet(Vector.from_values([0, 1, 3], [1, 1, 1]))
+    assert len(x) == 3
+    assert 3 in x
+    assert 2 not in x
+
+    # Exercise GrblasNodeMap
+    y = GrblasNodeMap(Vector.from_values([0, 1, 3], [1.1, 2.2, 3.3]))
+    assert len(y) == 3
+    assert 3 in y
+    assert 2 not in y
+    assert y[3] == 3.3

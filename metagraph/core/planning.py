@@ -289,14 +289,16 @@ class AlgorithmPlan:
                     if translator.unsatisfiable:
                         failure_message = f"Failed to find translator to {translator.final_type.__name__} for {arg_name}"
                         err_msgs.append(failure_message)
-                        if config.get("core.planner.build.verbose", False):
+                        if config.get(
+                            "core.planner.build.verbose", False
+                        ):  # pragma: no cover
                             print(failure_message)
                     else:
                         required_translations[arg_name] = translator
         except TypeError as e:
             failure_message = f"Failed to find plan due to TypeError:\n{e}"
             err_msgs.append(failure_message)
-            if config.get("core.planner.build.verbose", False):
+            if config.get("core.planner.build.verbose", False):  # pragma: no cover
                 print(failure_message)
         return AlgorithmPlan(
             resolver, concrete_algorithm, required_translations, err_msgs
@@ -378,12 +380,7 @@ class AlgorithmPlan:
                 raise TypeError(
                     f"{arg_name} {arg_value} does not match any of {param_type}"
                 )
-            else:
-                # Non-strict should only have a single possible choice
-                if len(param_type.types) > 1:
-                    raise AssertionError(
-                        f"{arg_name} Illegal Combo: non-strict with choice of {param_type.types}"
-                    )
+            else:  # Non-strict (allow translation between abstract types)
                 return AlgorithmPlan._check_arg_type(
                     resolver, arg_name, arg_value, list(param_type.types)[0]
                 )

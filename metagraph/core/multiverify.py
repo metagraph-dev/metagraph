@@ -12,7 +12,7 @@ try:
     import pytest
 
     has_pytest = True
-except ImportError:
+except ImportError:  # pragma: no cover
     has_pytest = False
 
 
@@ -373,10 +373,10 @@ class MultiVerify:
         for algo_path, result in multi_result._results.items():
             if not isinstance(result, expected_error):
                 if isinstance(result, Exception):
-                    err_msg = f"raised {result} instead of {expected_error}"
+                    err_msg = f"raised {result!r} instead of {expected_error.__name__}"
                 else:
-                    err_msg = f"did not raise {expected_error}"
-                raise MultiVerifyError(f"{algo_path} {err_msg}")
+                    err_msg = f"did not raise {expected_error.__name__}"
+                raise MultiVerifyError(f"{algo_path}: {err_msg}")
 
     def compare_values(self, val, expected_val, algo_path, rel_tol=1e-9, abs_tol=0.0):
         expected_val = ensure_computed(expected_val)
