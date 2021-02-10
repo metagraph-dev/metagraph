@@ -45,13 +45,13 @@ def test_extract_subgraphs_singleton(res):
 
     # default behavior is to include compilable single node subgraphs
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        z.__dask_graph__(), output_keys=[z.key], compiler="identity"
+        z.__dask_graph__(), output_keys=[z.key], compiler="identity_comp"
     )
     assert len(subgraphs) == 1
 
     # disable
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        z._dsk, compiler="identity", output_keys=[z.key], include_singletons=False
+        z._dsk, compiler="identity_comp", output_keys=[z.key], include_singletons=False
     )
     assert len(subgraphs) == 0
 
@@ -62,7 +62,7 @@ def test_extract_subgraphs_chain(res):
     z = scale_func(scale_func(scale_func(a, 2.0), 3.0), 4.0)
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        z.__dask_graph__(), output_keys=[z.key], compiler="identity"
+        z.__dask_graph__(), output_keys=[z.key], compiler="identity_comp"
     )
     assert len(subgraphs) == 1
     subgraph = subgraphs[0]
@@ -84,7 +84,7 @@ def test_extract_subgraphs_two_chains(res):
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
         merge.__dask_graph__(),
-        compiler="identity",
+        compiler="identity_comp",
         output_keys=[merge.key],
         include_singletons=False,  # exclude the add node
     )
@@ -100,7 +100,7 @@ def test_extract_subgraphs_two_chains(res):
     subgraphs = mg_compiler.extract_compilable_subgraphs(
         merge.__dask_graph__(),
         output_keys=[merge.key],
-        compiler="identity",
+        compiler="identity_comp",
         include_singletons=True,
     )
     assert len(subgraphs) == 3
@@ -120,7 +120,7 @@ def test_extract_subgraphs_three_chains(res):
     # but the merge node can start the final chain
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        ans.__dask_graph__(), output_keys=[ans.key], compiler="identity"
+        ans.__dask_graph__(), output_keys=[ans.key], compiler="identity_comp"
     )
     assert len(subgraphs) == 3
 
@@ -169,7 +169,7 @@ def test_extract_subgraphs_diamond(res):
     subgraphs = mg_compiler.extract_compilable_subgraphs(
         result_node.__dask_graph__(),
         output_keys=[result_node.key],
-        compiler="identity",
+        compiler="identity_comp",
     )
     assert len(subgraphs) == 4
 
@@ -192,7 +192,7 @@ def test_extract_subgraphs_diamond(res):
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
         result_node.__dask_graph__(),
-        compiler="identity",
+        compiler="identity_comp",
         output_keys=[result_node.key],
         include_singletons=False,
     )
@@ -208,7 +208,7 @@ def test_compile_subgraphs_three_chains(res):
     merge = res.algos.testing.add(z1, z2)
     ans = scale_func(merge, 2.8)
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
 
     optimized_dsk = mg_compiler.compile_subgraphs(
         ans.__dask_graph__(), output_keys=[ans.key], compiler=compiler
@@ -231,7 +231,7 @@ def test_compile_subgraph_kwargs(res):
     offset_func = res.algos.testing.offset
     z = offset_func(offset_func(a=a, offset=1.0), offset=2.0)
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
 
     optimized_dsk = mg_compiler.compile_subgraphs(
         z.__dask_graph__(), output_keys=[z.key], compiler=compiler
@@ -253,7 +253,7 @@ def test_extract_subgraphs_multiple_outputs(res):
     z = scale_func(y, 4.0)
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        z.__dask_graph__(), output_keys=[z.key, y.key], compiler="identity"
+        z.__dask_graph__(), output_keys=[z.key, y.key], compiler="identity_comp"
     )
     assert len(subgraphs) == 2
     for subgraph in subgraphs:
@@ -275,7 +275,7 @@ def test_compile_subgraphs_multiple_outputs(res):
     y = scale_func(x, 3.0)
     z = scale_func(y, 4.0)
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
     optimized_dsk = mg_compiler.compile_subgraphs(
         z.__dask_graph__(), output_keys=[z.key, y.key], compiler=compiler
     )
@@ -292,7 +292,7 @@ def test_optimize(res):
     y = scale_func(x, 3.0)
     z = scale_func(y, 4.0)
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
     optimized_dsk = mg_compiler.optimize(
         z.__dask_graph__(), output_keys=[z.key, y.key], compiler=compiler
     )
@@ -321,7 +321,7 @@ def test_automatic_optimize(res):
     y = scale_func(x, 3.0)
     z = scale_func(y, 4.0)
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
 
     # expect 1 compiled chain
     compiler.clear_trace()
@@ -350,7 +350,7 @@ def res():
     def testing_add(a: Vector, b: Vector) -> Vector:  # pragma: no cover
         pass
 
-    @concrete_algorithm("testing.add", compiler="identity")
+    @concrete_algorithm("testing.add", compiler="identity_comp")
     def compiled_add(a: NumpyVectorType, b: NumpyVectorType) -> NumpyVectorType:
         return a + b
 
@@ -358,7 +358,7 @@ def res():
     def testing_scale(a: Vector, scale: float) -> Vector:  # pragma: no cover
         pass
 
-    @concrete_algorithm("testing.scale", compiler="identity")
+    @concrete_algorithm("testing.scale", compiler="identity_comp")
     def compiled_scale(a: NumpyVectorType, scale: float) -> NumpyVectorType:
         return a * scale
 
@@ -366,7 +366,7 @@ def res():
     def testing_offset(a: Vector, *, offset: float) -> Vector:  # pragma: no cover
         pass
 
-    @concrete_algorithm("testing.offset", compiler="identity")
+    @concrete_algorithm("testing.offset", compiler="identity_comp")
     def compiled_offset(a: NumpyVectorType, *, offset: float) -> NumpyVectorType:
         return a + offset
 

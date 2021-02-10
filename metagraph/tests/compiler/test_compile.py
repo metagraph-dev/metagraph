@@ -11,7 +11,7 @@ def test_compile_immediate(example_resolver):
     def add_two(x: int) -> int:  # pragma: no cover
         pass
 
-    @concrete_algorithm("testing.add_two", compiler="identity")
+    @concrete_algorithm("testing.add_two", compiler="identity_comp")
     def add_two_c(x: int) -> int:  # pragma: no cover
         return x + 2
 
