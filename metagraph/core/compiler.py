@@ -4,6 +4,7 @@ from typing import List, Dict, Hashable, Optional, Tuple, Generator
 from functools import reduce
 
 from dask.core import get_deps
+import dask.optimization
 
 from metagraph.core.plugin import ConcreteAlgorithm, Compiler, CompileError
 from metagraph.core.dask.tasks import DelayedAlgo
@@ -165,10 +166,16 @@ def optimize(dsk, output_keys, **kwargs):
     # FUTURE: swap nodes in graph with compilable implementations if they exist?
     optimized_dsk = dsk
 
+    # cull unused nodes
+    optimized_dsk, dependencies = dask.optimization.cull(optimized_dsk, output_keys)
+    # FUTURE: could speed up extract_compilable_subgraphs by using this dependencies
+    # dict to compute dependents as well and passing both dicts into the function
+    # so redunant work isn't performed.
+
     # discover all the compilers referenced in this DAG
     compilers = {}
-    for key in dsk.keys():
-        task_callable = dsk[key][0]
+    for key in optimized_dsk.keys():
+        task_callable = optimized_dsk[key][0]
         if isinstance(task_callable, DelayedAlgo):
             if task_callable.algo._compiler is not None:
                 compiler_name = task_callable.algo._compiler

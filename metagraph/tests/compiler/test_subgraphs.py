@@ -299,6 +299,21 @@ def test_optimize(res):
     assert len(optimized_dsk) == 2
 
 
+def test_optimize_cull(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    z1 = scale_func(scale_func(scale_func(a, 2.0), 3.0), 4.0)
+    z2 = scale_func(scale_func(scale_func(a, 2.5), 3.5), 4.5)
+    merge = res.algos.testing.add(z1, z2)
+    ans = scale_func(merge, 2.8)
+
+    compiler = res.compilers["identity"]
+    optimized_dsk = mg_compiler.optimize(
+        ans.__dask_graph__(), output_keys=[z2.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 1
+
+
 def test_automatic_optimize(res):
     a = np.arange(100)
     scale_func = res.algos.testing.scale
