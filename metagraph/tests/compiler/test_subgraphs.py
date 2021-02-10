@@ -307,7 +307,7 @@ def test_optimize_cull(res):
     merge = res.algos.testing.add(z1, z2)
     ans = scale_func(merge, 2.8)
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
     optimized_dsk = mg_compiler.optimize(
         ans.__dask_graph__(), output_keys=[z2.key], compiler=compiler
     )
