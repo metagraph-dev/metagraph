@@ -74,7 +74,7 @@ def extract_compilable_subgraphs(
             and len(key_dependents) == 1
             and next_key in key_dependents
             and key in next_key_dependencies
-            and key not in output_keys  # output keys must be at the end of a chain
+            and key not in output_keys_set  # output keys must be at the end of a chain
         ):
             current_chain.append(next_key)
         elif len(current_chain) >= chain_threshold:
