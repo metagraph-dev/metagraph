@@ -3,6 +3,7 @@ from .tasks import MetagraphTask, DelayedAlgo, DelayedJITAlgo, DelayedTranslate
 from copy import deepcopy
 from typing import Dict, Hashable, Any
 from collections.abc import Mapping
+from metagraph.core.compiler import optimize
 
 
 def merge_dict_of_dict(
@@ -33,11 +34,16 @@ def visualize(*dags, filename="mydask", format=None, optimize_graph=False, **kwa
 
     # combine arguments into one large task list (cf. dask.base.visualize)
     merged_dag = {}
+    output_keys = set()
     for dag in dags:
         if isinstance(dag, Mapping):
             merged_dag.update(dag)
         elif dask.base.is_dask_collection(dag):
             merged_dag.update(dag.__dask_graph__())
+            output_keys = output_keys.union(set(dag.__dask_keys__()))
+
+    if optimize_graph:
+        merged_dag = optimize(merged_dag, output_keys=list(output_keys))
 
     # To give the caller priority to override styling, first compute
     # attributes then overlay any attributes that were passed in.

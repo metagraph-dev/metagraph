@@ -57,3 +57,18 @@ def test_placeholder_visualize(res):
         with open(fn) as f:
             contents = f.read()
         assert "testing.scale" in contents
+
+
+def test_optimize_and_visualize(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    z1 = scale_func(scale_func(scale_func(a, 2.0), 3.0), 4.0)
+    z2 = scale_func(scale_func(scale_func(a, 2.5), 3.5), 4.5)
+    merge = res.algos.testing.add(z1, z2)
+    ans = scale_func(merge, 2.8)
+
+    with tmpfile(extension="dot") as fn:
+        visualize(ans, filename=fn, optimize_graph=True)
+        with open(fn) as f:
+            contents = f.read()
+        assert "identity_comp fused" in contents
