@@ -1,5 +1,5 @@
 from metagraph.core.plugin import ConcreteAlgorithm, ConcreteType, Translator
-from typing import Callable
+from typing import Callable, List
 
 
 class MetagraphTask:
@@ -38,6 +38,27 @@ class DelayedAlgo(MetagraphTask):
     @property
     def func_label(self):
         return f"{self.algo.abstract_name}\n({self.algo.__name__})"
+
+
+class DelayedJITAlgo(MetagraphTask):
+    def __init__(
+        self,
+        func: Callable,
+        compiler: str,
+        source_algos: List[ConcreteAlgorithm],
+        result_type: ConcreteType,
+        resolver: "Resolver",
+    ):
+        self.source_algos = source_algos
+        self.compiler = compiler
+        super().__init__(callable=func, result_type=result_type)
+
+    @property
+    def func_label(self):
+        label = f"{self.compiler} fused:\n"
+        for algo in self.source_algos:
+            label += f" {algo.__name__}\n"
+        return label
 
 
 class DelayedTranslate(MetagraphTask):

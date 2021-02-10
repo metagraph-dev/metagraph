@@ -1,5 +1,5 @@
 import dask.base
-from .tasks import MetagraphTask, DelayedAlgo, DelayedTranslate
+from .tasks import MetagraphTask, DelayedAlgo, DelayedJITAlgo, DelayedTranslate
 from copy import deepcopy
 from typing import Dict, Hashable, Any
 from collections.abc import Mapping
@@ -57,8 +57,15 @@ def visualize(*dags, filename="mydask", format=None, optimize_graph=False, **kwa
 
             if isinstance(task_callable, DelayedAlgo):
                 func_attrs["shape"] = "octagon"
+                if task_callable.algo._compiler is not None:
+                    func_attrs["color"] = "red"
+                    func_attrs["penwidth"] = "2.0"
             if isinstance(task_callable, DelayedTranslate):
                 func_attrs["shape"] = "ellipse"
+            if isinstance(task_callable, DelayedJITAlgo):
+                func_attrs["shape"] = "doubleoctagon"
+                func_attrs["color"] = "red"
+                func_attrs["penwidth"] = "2.0"
         else:
             continue
 
