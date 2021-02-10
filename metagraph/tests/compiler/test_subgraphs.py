@@ -32,7 +32,9 @@ def test_extract_subgraphs_noop():
 
     z = func1(func1(1))
 
-    subgraphs = mg_compiler.extract_compilable_subgraphs(z.dask, compiler="noexist")
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        z.dask, output_keys=[z.key], compiler="noexist"
+    )
     assert len(subgraphs) == 0
 
 
@@ -42,12 +44,14 @@ def test_extract_subgraphs_singleton(res):
     z = scale_func(a, 2.0)
 
     # default behavior is to include compilable single node subgraphs
-    subgraphs = mg_compiler.extract_compilable_subgraphs(z._dsk, compiler="identity")
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        z.__dask_graph__(), output_keys=[z.key], compiler="identity"
+    )
     assert len(subgraphs) == 1
 
     # disable
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        z._dsk, compiler="identity", include_singletons=False
+        z._dsk, compiler="identity", output_keys=[z.key], include_singletons=False
     )
     assert len(subgraphs) == 0
 
@@ -58,7 +62,7 @@ def test_extract_subgraphs_chain(res):
     z = scale_func(scale_func(scale_func(a, 2.0), 3.0), 4.0)
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        z.__dask_graph__(), compiler="identity"
+        z.__dask_graph__(), output_keys=[z.key], compiler="identity"
     )
     assert len(subgraphs) == 1
     subgraph = subgraphs[0]
@@ -81,6 +85,7 @@ def test_extract_subgraphs_two_chains(res):
     subgraphs = mg_compiler.extract_compilable_subgraphs(
         merge.__dask_graph__(),
         compiler="identity",
+        output_keys=[merge.key],
         include_singletons=False,  # exclude the add node
     )
     assert len(subgraphs) == 2
@@ -93,7 +98,10 @@ def test_extract_subgraphs_two_chains(res):
 
     # now check if we get the add node
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        merge.__dask_graph__(), compiler="identity", include_singletons=True,
+        merge.__dask_graph__(),
+        output_keys=[merge.key],
+        compiler="identity",
+        include_singletons=True,
     )
     assert len(subgraphs) == 3
     assert merge.key in [s.output_key for s in subgraphs]
@@ -112,7 +120,7 @@ def test_extract_subgraphs_three_chains(res):
     # but the merge node can start the final chain
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        ans.__dask_graph__(), compiler="identity"
+        ans.__dask_graph__(), output_keys=[ans.key], compiler="identity"
     )
     assert len(subgraphs) == 3
 
@@ -159,7 +167,9 @@ def test_extract_subgraphs_diamond(res):
     result_node = bottom_node
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        result_node.__dask_graph__(), compiler="identity",
+        result_node.__dask_graph__(),
+        output_keys=[result_node.key],
+        compiler="identity",
     )
     assert len(subgraphs) == 4
 
@@ -181,7 +191,10 @@ def test_extract_subgraphs_diamond(res):
         assert set(subgraph.input_keys) == expected_input_node_keys
 
     subgraphs = mg_compiler.extract_compilable_subgraphs(
-        result_node.__dask_graph__(), compiler="identity", include_singletons=False,
+        result_node.__dask_graph__(),
+        compiler="identity",
+        output_keys=[result_node.key],
+        include_singletons=False,
     )
     assert len(subgraphs) == 0
 
@@ -198,7 +211,7 @@ def test_compile_subgraphs_three_chains(res):
     compiler = res.compilers["identity"]
 
     optimized_dsk = mg_compiler.compile_subgraphs(
-        ans.__dask_graph__(), keys=[ans.key], compiler=compiler
+        ans.__dask_graph__(), output_keys=[ans.key], compiler=compiler
     )
     assert len(optimized_dsk) == 3
     assert z1.key in optimized_dsk
@@ -206,14 +219,14 @@ def test_compile_subgraphs_three_chains(res):
     assert ans.key in optimized_dsk
 
     optimized_result = dask.core.get(optimized_dsk, ans.key)
-    unoptimized_result = ans.compute()
+    unoptimized_result = ans.compute(optimize_graph=False)
     numpy_result = 2.8 * ((a * 2 * 3 * 4) + (a * 2.5 * 3.5 * 4.5))
     np.testing.assert_array_equal(optimized_result, numpy_result)
     np.testing.assert_array_equal(unoptimized_result, numpy_result)
 
 
 def test_compile_subgraph_kwargs(res):
-    """Compile Y-shaped graph"""
+    """Compile subgraph with task that has kwargs"""
     a = np.arange(100)
     offset_func = res.algos.testing.offset
     z = offset_func(offset_func(a=a, offset=1.0), offset=2.0)
@@ -221,15 +234,111 @@ def test_compile_subgraph_kwargs(res):
     compiler = res.compilers["identity"]
 
     optimized_dsk = mg_compiler.compile_subgraphs(
-        z.__dask_graph__(), keys=[z.key], compiler=compiler
+        z.__dask_graph__(), output_keys=[z.key], compiler=compiler
     )
     assert len(optimized_dsk) == 1
 
     optimized_result = dask.core.get(optimized_dsk, z.key)
-    unoptimized_result = z.compute()
+    unoptimized_result = z.compute(optimize_graph=False)
     numpy_result = a + 1 + 2
     np.testing.assert_array_equal(optimized_result, numpy_result)
     np.testing.assert_array_equal(unoptimized_result, numpy_result)
+
+
+def test_extract_subgraphs_multiple_outputs(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    x = scale_func(a, 2.0)
+    y = scale_func(x, 3.0)
+    z = scale_func(y, 4.0)
+
+    subgraphs = mg_compiler.extract_compilable_subgraphs(
+        z.__dask_graph__(), output_keys=[z.key, y.key], compiler="identity"
+    )
+    assert len(subgraphs) == 2
+    for subgraph in subgraphs:
+        if subgraph.output_key == z.key:
+            assert len(subgraph.tasks) == 1
+            assert subgraph.input_keys == [y.key]
+        elif subgraph.output_key == y.key:
+            assert len(subgraph.tasks) == 2
+            # FIXME: This is zero because the input numpy array is not wrapped in its own placeholder object
+            assert subgraph.input_keys == []
+        else:
+            assert Fail, f"unexpected subgraph with output key {subgraph.output_key}"
+
+
+def test_compile_subgraphs_multiple_outputs(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    x = scale_func(a, 2.0)
+    y = scale_func(x, 3.0)
+    z = scale_func(y, 4.0)
+
+    compiler = res.compilers["identity"]
+    optimized_dsk = mg_compiler.compile_subgraphs(
+        z.__dask_graph__(), output_keys=[z.key, y.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 2
+    z_comp, y_comp = dask.core.get(optimized_dsk, [z.key, y.key])
+    np.testing.assert_array_equal(z_comp, a * 2 * 3 * 4)
+    np.testing.assert_array_equal(y_comp, a * 2 * 3)
+
+
+def test_optimize(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    x = scale_func(a, 2.0)
+    y = scale_func(x, 3.0)
+    z = scale_func(y, 4.0)
+
+    compiler = res.compilers["identity"]
+    optimized_dsk = mg_compiler.optimize(
+        z.__dask_graph__(), output_keys=[z.key, y.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 2
+
+
+def test_optimize_cull(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    z1 = scale_func(scale_func(scale_func(a, 2.0), 3.0), 4.0)
+    z2 = scale_func(scale_func(scale_func(a, 2.5), 3.5), 4.5)
+    merge = res.algos.testing.add(z1, z2)
+    ans = scale_func(merge, 2.8)
+
+    compiler = res.compilers["identity"]
+    optimized_dsk = mg_compiler.optimize(
+        ans.__dask_graph__(), output_keys=[z2.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 1
+
+
+def test_automatic_optimize(res):
+    a = np.arange(100)
+    scale_func = res.algos.testing.scale
+    x = scale_func(a, 2.0)
+    y = scale_func(x, 3.0)
+    z = scale_func(y, 4.0)
+
+    compiler = res.compilers["identity"]
+
+    # expect 1 compiled chain
+    compiler.clear_trace()
+    np.testing.assert_array_equal(z.compute(), a * 2 * 3 * 4)
+    assert len(compiler.compile_subgraph_calls) == 1
+
+    # expect 2 compiled chains
+    compiler.clear_trace()
+    result = dask.compute(z, y)
+    np.testing.assert_array_equal(result[0], a * 2 * 3 * 4)
+    np.testing.assert_array_equal(result[1], a * 2 * 3)
+    assert len(compiler.compile_subgraph_calls) == 2
+
+    # expect no compiled chains
+    compiler.clear_trace()
+    np.testing.assert_array_equal(z.compute(optimize_graph=False), a * 2 * 3 * 4)
+    assert len(compiler.compile_subgraph_calls) == 0
 
 
 @fixture

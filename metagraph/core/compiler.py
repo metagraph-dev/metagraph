@@ -4,9 +4,10 @@ from typing import List, Dict, Hashable, Optional, Tuple, Generator
 from functools import reduce
 
 from dask.core import get_deps
+import dask.optimization
 
 from metagraph.core.plugin import ConcreteAlgorithm, Compiler, CompileError
-from metagraph.core.dask.placeholder import DelayedAlgo
+from metagraph.core.dask.tasks import DelayedAlgo
 
 
 @dataclass
@@ -22,13 +23,17 @@ class DaskSubgraph:
 
 
 def extract_compilable_subgraphs(
-    dsk: Dict, compiler: str, include_singletons=True
+    dsk: Dict, compiler: str, output_keys: List[str], include_singletons=True
 ) -> List[DaskSubgraph]:
     """Find compilable subgraphs in this Dask task graph.
 
     Currently only works with one compiler at a time, and only will return
     linear chains of compilable tasks.  If include_singletons is True,
-    returned chains may be of length 1.  If False, the chain length must be >1.
+    returned chains may be of length 1.  If False, the chain length must be
+    >1.
+
+    If present in a subgraph, tasks corresponding to output_keys can only be
+    at the end of a chain.
     """
 
     if include_singletons:
@@ -41,6 +46,8 @@ def extract_compilable_subgraphs(
 
     if len(compilable_keys) == 0:
         return []
+
+    output_keys_set = set(output_keys)
 
     subgraphs = []
     ordered_keys = _dfs_sorted_dask_keys(compilable_keys, dependencies, dependents)
@@ -67,6 +74,7 @@ def extract_compilable_subgraphs(
             and len(key_dependents) == 1
             and next_key in key_dependents
             and key in next_key_dependencies
+            and key not in output_keys_set  # output keys must be at the end of a chain
         ):
             current_chain.append(next_key)
         elif len(current_chain) >= chain_threshold:
@@ -119,10 +127,12 @@ def _dfs_sorted_dask_keys(
     return
 
 
-def compile_subgraphs(dsk, keys, compiler: Compiler):
+def compile_subgraphs(dsk, output_keys, compiler: Compiler):
     """Return a modified dask graph with compilable subgraphs fused together."""
 
-    subgraphs = extract_compilable_subgraphs(dsk, compiler=compiler.name)
+    subgraphs = extract_compilable_subgraphs(
+        dsk, output_keys=output_keys, compiler=compiler.name
+    )
     if len(subgraphs) == 0:
         return dsk  # no change, nothing to compile
 
@@ -151,11 +161,32 @@ def compile_subgraphs(dsk, keys, compiler: Compiler):
     return new_dsk
 
 
-def optimize(dsk, keys, *, compiler: Optional[Compiler] = None, **kwargs):
+def optimize(dsk, output_keys, **kwargs):
     """Top level optimizer function for Metagraph DAGs"""
     # FUTURE: swap nodes in graph with compilable implementations if they exist?
+    optimized_dsk = dsk
 
-    if compiler is not None:
-        optimized_dsk = compile_subgraphs(dsk, keys, compiler=compiler)
+    # cull unused nodes
+    optimized_dsk, dependencies = dask.optimization.cull(optimized_dsk, output_keys)
+    # FUTURE: could speed up extract_compilable_subgraphs by using this dependencies
+    # dict to compute dependents as well and passing both dicts into the function
+    # so redunant work isn't performed.
 
+    # discover all the compilers referenced in this DAG
+    compilers = {}
+    for key in optimized_dsk.keys():
+        task_callable = optimized_dsk[key][0]
+        if isinstance(task_callable, DelayedAlgo):
+            if task_callable.algo._compiler is not None:
+                compiler_name = task_callable.algo._compiler
+                if compiler_name not in compilers:
+                    compilers[compiler_name] = task_callable.resolver.compilers[
+                        compiler_name
+                    ]
+
+    # allow each compiler to optimize the graph
+    for compiler in compilers.values():
+        optimized_dsk = compile_subgraphs(
+            optimized_dsk, output_keys=output_keys, compiler=compiler
+        )
     return optimized_dsk
