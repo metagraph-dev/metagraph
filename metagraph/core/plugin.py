@@ -103,6 +103,7 @@ class ConcreteType:
                 raise KeyError(f"{key} not allowed property of {self.__class__}")
             # maybe type check?
         self.props = dict(props)
+        self.__name__ = self.__class__.__name__
 
     def __init_subclass__(cls, *, abstract=None):
         """Enforce requirements on 'abstract' attribute"""
