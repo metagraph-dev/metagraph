@@ -2,7 +2,7 @@ import os
 import sys
 import pytest
 import math
-from typing import List, Set, Dict, Any, Callable
+from typing import List, Set, Dict, Any, Callable, Optional, Union
 from collections import OrderedDict
 
 from metagraph import ConcreteType
@@ -38,7 +38,11 @@ class MyAbstractType(plugin.AbstractType):
 
 
 class MyNumericAbstractType(plugin.AbstractType):
-    properties = {"positivity": ["any", ">=0", ">0"], "divisible_by_two": [False, True]}
+    properties = {
+        "positivity": ["any", "==0", ">0"],
+        "divisible_by_two": [False, True],
+        "fizzbuzz": [None, "fizz", "buzz", "fizzbuzz"],
+    }
 
 
 class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
@@ -51,12 +55,17 @@ class IntType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
-        ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
-        if obj > 0:
-            ret["positivity"] = ">0"
-        elif obj == 0:
-            ret["positivity"] = ">=0"
-
+        ret = {}
+        ret["positivity"] = ">0" if obj > 0 else "==0" if obj == 0 else "any"
+        ret["divisible_by_two"] = obj % 2 == 0
+        if obj % 3 == 0 and obj % 5 == 0:
+            ret["fizzbuzz"] = "fizzbuzz"
+        elif obj % 3 == 0:
+            ret["fizzbuzz"] = "fizz"
+        elif obj % 5 == 0:
+            ret["fizzbuzz"] = "buzz"
+        else:
+            ret["fizzbuzz"] = None
         return ret
 
     @classmethod
@@ -85,11 +94,17 @@ class FloatType(plugin.ConcreteType, abstract=MyNumericAbstractType):
     ) -> Dict[str, Any]:
         # return all properties regardless of what was requested, as
         # is permitted by the interface
-        ret = {"positivity": "any", "divisible_by_two": obj % 2 == 0}
-        if obj > 0:
-            ret["positivity"] = ">0"
-        elif obj == 0:
-            ret["positivity"] = ">=0"
+        ret = {}
+        ret["positivity"] = ">0" if obj > 0 else "==0" if obj == 0 else "any"
+        ret["divisible_by_two"] = obj % 2 == 0
+        if obj % 3 == 0 and obj % 5 == 0:
+            ret["fizzbuzz"] = "fizzbuzz"
+        elif obj % 3 == 0:
+            ret["fizzbuzz"] = "fizz"
+        elif obj % 5 == 0:
+            ret["fizzbuzz"] = "buzz"
+        else:
+            ret["fizzbuzz"] = None
         return ret
 
     @classmethod
@@ -139,12 +154,23 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
                     if value.startswith("-"):
                         positivity = "any"
                     elif value == "0":
-                        positivity = ">=0"
+                        positivity = "==0"
                     else:
                         positivity = ">0"
                     ret["positivity"] = positivity
                 elif propname == "divisible_by_two":
                     ret["divisible_by_two"] = int(value) % 2 == 0
+                elif propname == "fizzbuzz":
+                    v = int(value)
+                    if v % 3 == 0 and v % 5 == 0:
+                        fb = "fizzbuzz"
+                    elif v % 3 == 0:
+                        fb = "fizz"
+                    elif v % 5 == 0:
+                        fb = "buzz"
+                    else:
+                        fb = None
+                    ret["fizzbuzz"] = fb
             return ret
 
         @classmethod
@@ -233,6 +259,41 @@ def abstract_ln(
 @plugin.concrete_algorithm("ln")
 def float_ln(x: FloatType) -> FloatType:
     return math.log(x)
+
+
+@plugin.abstract_algorithm("fizzbuzz_club")
+def fizzbuzz_club(
+    x: MyNumericAbstractType(fizzbuzz=("fizz", "buzz", "fizzbuzz"))
+) -> str:
+    pass
+
+
+@plugin.concrete_algorithm("fizzbuzz_club")
+def strnum_fizzbuzz_club(x: StrNum) -> str:
+    aprops = StrNum.Type.compute_abstract_properties(x, {"fizzbuzz"})
+    return f'Hi, {aprops["fizzbuzz"]}'
+
+
+@plugin.abstract_algorithm("repeat")
+def abstract_repeat(
+    x: Union[MyAbstractType, MyNumericAbstractType],
+    times: Optional[int] = None,
+    sep: Optional[str] = None,
+) -> str:
+    pass
+
+
+@plugin.concrete_algorithm("repeat")
+def string_repeat(
+    x: Union[StrType, StrNum], times: Optional[int], sep: Optional[str]
+) -> str:
+    if isinstance(x, StrNum):
+        x = x.value
+    if times is None:
+        times = 2
+    if sep is None:
+        sep = ""
+    return sep.join([x] * times)
 
 
 @plugin.abstract_algorithm("echo_str")
@@ -365,12 +426,16 @@ def make_example_resolver():
                     abstract_ln,
                     abstract_echo,
                     odict_reverse,
+                    abstract_repeat,
+                    fizzbuzz_club,
                 },
                 "concrete_algorithms": {
                     int_power,
                     float_ln,
                     simple_echo,
                     simple_odict_rev,
+                    string_repeat,
+                    strnum_fizzbuzz_club,
                 },
                 "compilers": {FailCompiler(), IdentityCompiler()},
             },

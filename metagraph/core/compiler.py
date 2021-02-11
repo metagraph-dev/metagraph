@@ -150,7 +150,7 @@ def compile_subgraphs(dsk, output_keys, compiler: Compiler):
 
             # put the fused task in with the output task's old key
             new_dsk[subgraph.output_key] = (fused_func, *subgraph.input_keys)
-        except CompileError as e:
+        except CompileError as e:  # pragma: no cover
             logging.debug(
                 "Unable to compile subgraph with output key: %s",
                 subgraph.output_key,

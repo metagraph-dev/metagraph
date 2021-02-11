@@ -17,12 +17,13 @@ from metagraph.core.resolver import (
     Dispatcher,
     NamespaceError,
     AlgorithmWarning,
+    _SignatureModifier,
 )
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
 import typing
 from typing import Tuple, List, Dict, Any
-from collections import OrderedDict
+from collections import OrderedDict, defaultdict
 
 from .util import site_dir, example_resolver
 
@@ -51,6 +52,8 @@ def test_namespace():
 
     with pytest.raises(NamespaceError, match="Name already registered"):
         ns._register("A.B.c", 4)
+
+    assert ns.to_dict() == {"A": {"B": {"c": 3, "d": "test",}, "other": 1.5,}}
 
 
 def test_dispatcher(example_resolver):
@@ -471,7 +474,7 @@ def test_incorrect_signature_errors(example_resolver):
 
     @concrete_algorithm("ln")
     def specifies_abstract_property(
-        x: FloatType(positivity=">=0"),
+        x: FloatType(positivity="==0"),
     ) -> FloatType:  # pragma: no cover
         pass
 
@@ -620,6 +623,16 @@ def test_translate(example_resolver):
     assert example_resolver.translate(4.4, float) == 4.4
 
 
+def test_translator_utils(example_resolver):
+    res = example_resolver
+    with pytest.raises(
+        AttributeError, match='No translatable type found for "FooBar" within'
+    ):
+        res.translate(4, "FooBar")
+    with pytest.raises(TypeError, match="Unexpected dst_type"):
+        res.translate(4, defaultdict(set))
+
+
 def test_find_algorithm(example_resolver):
     from .util import int_power, MyNumericAbstractType
 
@@ -700,27 +713,49 @@ def test_run_algorithm_with_resolver(example_resolver):
 
 
 def test_call_using_dispatcher(example_resolver):
-    assert example_resolver.algos.power(2, 3) == 8
-    assert example_resolver.algos.power(p=2, x=3) == 9
+    res = example_resolver
+    assert res.algos.power(2, 3) == 8
+    assert res.algos.power(p=2, x=3) == 9
+    assert res.algos.repeat("abc", 3) == "abcabcabc"
+    assert res.algos.repeat(0, 4, sep=":") == "0:0:0:0"
+    assert res.algos.fizzbuzz_club(33) == "Hi, fizz"
 
     with pytest.raises(TypeError, match="too many positional arguments"):
-        example_resolver.algos.echo_str(14, "...", "$")
+        res.algos.echo_str(14, "...", "$")
 
     with pytest.raises(TypeError, match="got an unexpected keyword argument .prefix."):
-        example_resolver.algos.echo_str(14, prefix="$")
+        res.algos.echo_str(14, prefix="$")
+
+    with pytest.raises(TypeError, match="x is None, but the parameter is not Optional"):
+        res.algos.repeat(None)
+
+    with pytest.raises(TypeError, match="does not match any of"):
+        res.algos.repeat("abc", 3, sep=12)
+
+    with pytest.raises(TypeError, match="`fizzbuzz` must be one of"):
+        res.algos.fizzbuzz_club(34)
 
 
 def test_call_using_exact_dispatcher(example_resolver):
+    res = example_resolver
     # Call with plugin at the end
-    assert example_resolver.algos.echo_str.example_plugin(14, "...", "$") == "$14..."
-    assert (
-        example_resolver.algos.echo_str.example_plugin(14, prefix="$") == "$14 <echo>"
-    )
+    assert res.algos.echo_str.example_plugin(14, "...", "$") == "$14..."
+    assert res.algos.echo_str.example_plugin(14, prefix="$") == "$14 <echo>"
     # Call with plugin at the start
-    assert (
-        example_resolver.plugins.example_plugin.algos.echo_str(14, prefix="$")
-        == "$14 <echo>"
-    )
+    assert res.plugins.example_plugin.algos.echo_str(14, prefix="$") == "$14 <echo>"
+    # Handle unsatisfiable case
+    with pytest.raises(
+        TypeError,
+        match="Incorrect input types and no valid translation path to solution",
+    ):
+        res.algos.ln.example_plugin(15)
+    # Translations are not allowed when calling exact
+    with pytest.raises(
+        TypeError, match="Incorrect input types. Translations required for"
+    ):
+        res.algos.power.example_plugin(
+            res.wrappers.MyNumericAbstractType.StrNum("4"), 2
+        )
 
 
 def test_run_algorithm_logging(example_resolver, capsys):
@@ -774,6 +809,12 @@ def test_concrete_algorithm_with_properties(example_resolver):
 
     with pytest.raises(TypeError, match="does not meet requirements"):
         example_resolver.algos.ln(StrNum("0"))
+
+
+def test_assert_equal_different_types(example_resolver):
+    with pytest.raises(TypeError, match="Cannot assert_equal with different types"):
+        str_14 = example_resolver.wrappers.MyNumericAbstractType.StrNum("14")
+        example_resolver.assert_equal(str_14, 14.0)
 
 
 def test_default_resolver(example_resolver):
@@ -886,15 +927,15 @@ def test_duplicate_plugin():
         value_type = int
         pass
 
-    @abstract_algorithm("test_duplciate_plugin.test_abstract_algo")
+    @abstract_algorithm("test_duplicate_plugin.test_abstract_algo")
     def abstract_algo1(input_int: int):
         pass  # pragma: no cover
 
-    @concrete_algorithm("test_duplciate_plugin.test_abstract_algo")
+    @concrete_algorithm("test_duplicate_plugin.test_abstract_algo")
     def concrete_algo1(input_int: int):
         pass  # pragma: no cover
 
-    @concrete_algorithm("test_duplciate_plugin.test_abstract_algo")
+    @concrete_algorithm("test_duplicate_plugin.test_abstract_algo")
     def concrete_algo2(input_int: int):
         pass  # pragma: no cover
 
@@ -931,9 +972,9 @@ def test_duplicate_plugin():
         )
 
     res = Resolver()
-    res.register({"test_duplciate_plugin": {"abstract_types": {AbstractType1}}})
+    res.register({"test_duplicate_plugin": {"abstract_types": {AbstractType1}}})
     with pytest.raises(ValueError, match=" already registered."):
-        res.register({"test_duplciate_plugin": {"concrete_types": {ConcreteType1}}})
+        res.register({"test_duplicate_plugin": {"concrete_types": {ConcreteType1}}})
 
     with pytest.raises(ValueError, match=" not known to be the resolver or a plugin."):
         _ResolverRegistrar.register_plugin_attributes_in_tree(
@@ -1124,3 +1165,10 @@ def test_algorithm_versions():
                     }
                 }
             )
+
+
+def test_signature_modifier(example_resolver):
+    res = example_resolver
+    sigmod = _SignatureModifier(res.algos.power)
+    with pytest.raises(NotImplementedError):
+        sigmod.update_annotation(int, name="x", index=0)

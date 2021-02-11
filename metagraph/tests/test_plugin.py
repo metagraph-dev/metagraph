@@ -33,11 +33,15 @@ def test_abstract_type():
     assert MyNumericAbstractType(divisible_by_two=True) != MyNumericAbstractType(
         divisible_by_two=False
     )
-    assert hash(MyNumericAbstractType(divisible_by_two=False, positivity=">=0"))
+    assert hash(MyNumericAbstractType(divisible_by_two=False, positivity=">0"))
 
     # property values
-    at = MyNumericAbstractType(positivity=">=0")
-    assert at.prop_val == {"positivity": ">=0", "divisible_by_two": None}
+    at = MyNumericAbstractType(positivity=">0")
+    assert at.prop_val == {
+        "positivity": ">0",
+        "divisible_by_two": None,
+        "fizzbuzz": None,
+    }
 
     class AbstractType1(plugin.AbstractType):
         properties = {"k1": ["v1", "v2", "v3"]}

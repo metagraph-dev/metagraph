@@ -199,6 +199,18 @@ def test_extract_subgraphs_diamond(res):
     assert len(subgraphs) == 0
 
 
+def test_compile_subgraphs_noop(res):
+    a = res.wrappers.NodeSet.NumpyNodeSet(np.arange(100))
+
+    compiler = res.compilers["identity"]
+
+    optimized_dsk = mg_compiler.compile_subgraphs(
+        a.__dask_graph__(), output_keys=[a.key], compiler=compiler
+    )
+    assert len(optimized_dsk) == 1
+    assert a.key in optimized_dsk
+
+
 def test_compile_subgraphs_three_chains(res):
     """Compile Y-shaped graph"""
     a = np.arange(100)

@@ -142,8 +142,6 @@ def get_plugins(resolver, **kwargs):
                         ][
                             concrete_type_name
                         ] = {}  # TODO add other useful information here
-            else:
-                pass  # TODO consider showing algorithm versions
     return result
 
 
@@ -202,7 +200,7 @@ def list_translators(resolver, source_type, **kwargs):
             trans_keys = getattr(resolver.plugins, plugin).translators
             if (src, dst) in trans_keys:
                 break
-        else:
+        else:  # pragma: no cover
             plugin = "Unknown"
         trans_info = [
             ("type", "translator"),
@@ -284,7 +282,7 @@ def list_algorithm_params(resolver, abstract_pathname: str, **kwargs):
             combo_type = " or ".join(r["type"] for r in resolved)
             choices = [c for r in resolved for c in r["choices"]]
             if p.optional:
-                combo_type += " or NoneType"  # should this really be type(NoneType)? Python doesn't have a concept of abstract types
+                combo_type += " or None"
                 choices.append("NoneType")
             result = OrderedDict([("type", combo_type), ("choices", choices)])
         elif issubclass(p_class, AbstractType):

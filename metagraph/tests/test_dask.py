@@ -5,7 +5,7 @@ grblas = pytest.importorskip("grblas")
 from metagraph.core.resolver import Resolver
 from metagraph.dask import DaskResolver
 from metagraph.core.dask.placeholder import Placeholder
-from metagraph.tests.util import default_plugin_resolver
+from metagraph.tests.util import default_plugin_resolver, example_resolver
 from metagraph.plugins.python.types import PythonNodeMapType
 from metagraph.plugins.numpy.types import NumpyNodeMap
 from metagraph.plugins.graphblas.types import GrblasNodeMap
@@ -15,6 +15,35 @@ from metagraph.plugins.scipy.algorithms import ss_graph_filter_edges
 from metagraph.plugins.networkx.algorithms import nx_graph_aggregate_edges
 import networkx as nx
 import dask
+
+
+def test_dask_resolver(example_resolver):
+    res = example_resolver
+    dres = DaskResolver(res)
+    assert set(dir(dres)) == set(dir(res)) | {"delayed_wrapper"}
+
+    with pytest.raises(
+        NotImplementedError,
+        match="Register with the resolver prior to creating a DaskResolver",
+    ):
+        dres.register()
+
+
+def test_delayed_wrapper(default_plugin_resolver):
+    dpr = default_plugin_resolver
+    if not isinstance(dpr, DaskResolver):
+        dpr = DaskResolver(dpr)
+
+    dvec = dpr.delayed_wrapper(
+        grblas.Vector.from_values, dpr.types.Vector.GrblasVectorType
+    )
+    my_vec = dvec([0, 1, 2], [2.2, 3.3, 9.9])
+    assert isinstance(my_vec, Placeholder)
+
+    with pytest.raises(
+        TypeError, match="is not a defined `value_type`. Must provide `concrete_type`"
+    ):
+        dpr.delayed_wrapper(grblas.Vector.from_values)
 
 
 def test_translation_direct(default_plugin_resolver):
@@ -134,6 +163,15 @@ def test_call_using_dispatcher(default_plugin_resolver):
     assert result.compute() == 3
 
 
+def test_call_errors(example_resolver):
+    dres = DaskResolver(example_resolver)
+    with pytest.raises(
+        TypeError,
+        match='No concrete algorithm for "ln" can be satisfied for the given inputs',
+    ):
+        dres.algos.ln(14)
+
+
 def test_call_using_exact_dispatcher(default_plugin_resolver):
     dpr = default_plugin_resolver
     if not isinstance(dpr, DaskResolver):
@@ -143,3 +181,23 @@ def test_call_using_exact_dispatcher(default_plugin_resolver):
     nxg = dpr.wrappers.Graph.NetworkXGraph(g)
     result = dpr.algos.centrality.pagerank.core_networkx(nxg)
     assert isinstance(result, Placeholder)
+
+    # Exercise the persist functionality
+    result = result.persist()
+    assert isinstance(result, Placeholder)
+
+    # Check the result
+    assert result.compute() == {0: 1 / 3, 1: 1 / 3, 2: 1 / 3}
+
+
+def test_call_exact_errors(example_resolver):
+    dres = DaskResolver(example_resolver)
+    with pytest.raises(
+        TypeError,
+        match="Incorrect input types and no valid translation path to solution",
+    ):
+        dres.algos.ln.example_plugin(14)
+    with pytest.raises(
+        TypeError, match="Incorrect input types. Translations required for"
+    ):
+        dres.algos.power.example2_plugin(14, 2)

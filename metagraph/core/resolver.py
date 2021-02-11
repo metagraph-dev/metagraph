@@ -273,9 +273,6 @@ class Resolver:
         check for possible duplicate names.
         Raises AttributeError if name is not found
         """
-        if not isinstance(name, str):
-            raise TypeError(f"name must be str, not {type(name)}")
-
         # Interpret "FooBar.Type" instead of "FooBarType"
         if "." in name and name.endswith(".Type"):
             name = f"{name[:-5]}Type"
@@ -446,7 +443,7 @@ class Resolver:
                             key = e.args[0][36:-1]
                             extra_kwargs[key] = kwargs.pop(key)
                             continue
-                    raise
+                    raise  # pragma: no cover
         else:
             bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
