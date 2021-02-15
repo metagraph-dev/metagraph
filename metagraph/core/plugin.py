@@ -2,6 +2,7 @@
 """
 import types
 import inspect
+import copy
 from functools import partial
 from typing import Callable, List, Dict, Set, Union, Any, Optional
 from .typecache import TypeCache, TypeInfo
@@ -509,12 +510,21 @@ class Translator:
 
     def __init__(self, func: Callable, include_resolver: bool):
         self.func = func
+        self.resolver = None
         self._include_resolver = include_resolver
         self.__name__ = func.__name__
         self.__doc__ = func.__doc__
         self.__wrapped__ = func
 
+    def copy_and_bind(self, resolver):
+        new_copy = copy.copy(self)
+        new_copy.resolver = resolver
+        return new_copy
+
     def __call__(self, src, *, resolver=None, **props):
+        if resolver is None:
+            resolver = self.resolver  # use bound resolver
+
         if self._include_resolver:
             if resolver is None:
                 raise ValueError("`resolver` is None, but is required by translator")
@@ -610,6 +620,7 @@ class ConcreteAlgorithm:
         self.func = func
         self.abstract_name = abstract_name
         self.version = version
+        self.resolver = None
         self._include_resolver = include_resolver
         self._compiler = compiler
         self._compiled_func = None
@@ -619,7 +630,16 @@ class ConcreteAlgorithm:
         self.__original_signature__ = inspect.signature(self.func)
         self.__signature__ = normalize_signature(self.__original_signature__)
 
+    def copy_and_bind(self, resolver):
+        new_copy = copy.copy(self)
+        new_copy.resolver = resolver
+        new_copy._compiled_func = None
+        return new_copy
+
     def __call__(self, *args, resolver=None, **kwargs):
+        if resolver is None:
+            resolver = self.resolver  # use bound resolver
+
         if self._compiler is not None:
             if self._compiled_func is not None:
                 func = self._compiled_func

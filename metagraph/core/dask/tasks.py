@@ -20,17 +20,10 @@ class MetagraphTask:
 
 
 class DelayedAlgo(MetagraphTask):
-    def __init__(
-        self, algo: ConcreteAlgorithm, result_type: ConcreteType, resolver: "Resolver"
-    ):
+    def __init__(self, algo: ConcreteAlgorithm, result_type: ConcreteType):
         self.algo = algo
-        self.resolver = resolver
 
         def call(args, kwargs):
-            if algo._include_resolver or algo._compiler:
-                # do not mutate the kwargs
-                kwargs = kwargs.copy()
-                kwargs["resolver"] = resolver
             return algo(*args, **kwargs)
 
         super().__init__(callable=call, result_type=result_type)
@@ -47,7 +40,6 @@ class DelayedJITAlgo(MetagraphTask):
         compiler: str,
         source_algos: List[ConcreteAlgorithm],
         result_type: ConcreteType,
-        resolver: "Resolver",
     ):
         self.source_algos = source_algos
         self.compiler = compiler
