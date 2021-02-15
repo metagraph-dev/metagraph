@@ -40,7 +40,6 @@ class DelayedJITAlgo(MetagraphTask):
         compiler: str,
         source_algos: List[ConcreteAlgorithm],
         result_type: ConcreteType,
-        resolver: "Resolver",
     ):
         self.source_algos = source_algos
         self.compiler = compiler

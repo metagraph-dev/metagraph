@@ -149,9 +149,6 @@ def compile_subgraphs(dsk, output_keys, compiler: Compiler):
             source_algos = [task[0].algo for task in subgraph.tasks.values()]
             output_task = subgraph.tasks[subgraph.output_key]
             result_type = output_task[0].result_type
-            resolver = source_algos[
-                0
-            ].resolver  # assume all concrete algos were bound to same resolver
 
             # remove keys for existing tasks in subgraph, including the output task
             for key in subgraph.tasks:
@@ -163,7 +160,6 @@ def compile_subgraphs(dsk, output_keys, compiler: Compiler):
                 compiler=compiler.name,
                 source_algos=source_algos,
                 result_type=result_type,
-                resolver=resolver,
             )
             new_dsk[subgraph.output_key] = (fused_task, *subgraph.input_keys)
         except CompileError as e:
