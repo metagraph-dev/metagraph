@@ -149,7 +149,9 @@ def compile_subgraphs(dsk, output_keys, compiler: Compiler):
             source_algos = [task[0].algo for task in subgraph.tasks.values()]
             output_task = subgraph.tasks[subgraph.output_key]
             result_type = output_task[0].result_type
-            resolver = output_task[0].resolver
+            resolver = source_algos[
+                0
+            ].resolver  # assume all concrete algos were bound to same resolver
 
             # remove keys for existing tasks in subgraph, including the output task
             for key in subgraph.tasks:
@@ -194,7 +196,7 @@ def optimize(dsk, output_keys, **kwargs):
             if task_callable.algo._compiler is not None:
                 compiler_name = task_callable.algo._compiler
                 if compiler_name not in compilers:
-                    compilers[compiler_name] = task_callable.resolver.compilers[
+                    compilers[compiler_name] = task_callable.algo.resolver.compilers[
                         compiler_name
                     ]
 
