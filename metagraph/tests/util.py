@@ -2,9 +2,11 @@ import os
 import sys
 import pytest
 import math
-from typing import List, Set, Dict, Any, Callable, Optional, Union
+import codecs
+from typing import List, Set, Dict, Tuple, Any, Callable, Optional, Union
 from collections import OrderedDict
 
+import metagraph as mg
 from metagraph import ConcreteType
 from metagraph.core import plugin
 from metagraph.core.resolver import Resolver
@@ -191,6 +193,47 @@ class StrNum(plugin.Wrapper, abstract=MyNumericAbstractType):
             )
 
 
+class StrNumRot13(plugin.Wrapper, abstract=MyNumericAbstractType):
+    def __init__(self, val):
+        super().__init__()
+        self.value = val
+        assert isinstance(val, str)
+
+    def to_num(self):
+        val = codecs.encode(self.value, "rot-13")
+        try:
+            return int(val)
+        except ValueError:
+            return float(val)
+
+    class TypeMixin:
+        @classmethod
+        def _compute_abstract_properties(
+            cls, obj, props: Set[str], known_props: Dict[str, Any]
+        ) -> Dict[str, Any]:
+            unrot = codecs.encode(obj.value, "rot-13")
+            return FloatType._compute_abstract_properties(unrot, props, known_props)
+
+        @classmethod
+        def assert_equal(
+            cls,
+            obj1,
+            obj2,
+            aprops1,
+            aprops2,
+            cprops1,
+            cprops2,
+            *,
+            rel_tol=1e-9,
+            abs_tol=0.0,
+        ):
+            val1 = codecs.encode(obj1.value, "rot-13")
+            val2 = codecs.encode(obj2.value, "rot-13")
+            return math.isclose(
+                float(val1), float(val2), rel_tol=rel_tol, abs_tol=abs_tol
+            )
+
+
 class StrType(plugin.ConcreteType, abstract=MyAbstractType):
     value_type = str
     allowed_props = dict(lowercase=bool)
@@ -229,6 +272,12 @@ def str_to_int(src: StrNum) -> IntType:
     return int(src.value)
 
 
+@plugin.translator
+def str_to_rot13(src: StrNum) -> StrNumRot13:
+    rot = codecs.encode(src.value, "rot-13")
+    return StrNumRot13(rot)
+
+
 @plugin.abstract_algorithm("power")
 def abstract_power(
     x: MyNumericAbstractType, p: MyNumericAbstractType
@@ -246,6 +295,12 @@ def int_power(x: IntType, p: IntType) -> IntType:
 def strnum_power(x: StrNum, p: StrNum) -> StrNum:
     result = x.to_num() ** p.to_num()
     return StrNum(str(result))
+
+
+@plugin.concrete_algorithm("power")
+def strnumrot13_power(x: StrNumRot13, p: StrNumRot13) -> StrNumRot13:
+    result = x.to_num() ** p.to_num()
+    return StrNumRot13(codecs.encode(str(result), "rot-13"))
 
 
 @plugin.abstract_algorithm("ln")
@@ -319,6 +374,36 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
     for k in reversed(x):
         d[k] = x[k]
     return d
+
+
+@plugin.abstract_algorithm("crazy_inputs")
+def crazy_inputs(
+    a1: mg.NodeID,
+    a2: MyNumericAbstractType,
+    b1: Union[int, float],
+    b2: mg.Union[int, float],
+    c1: Optional[MyNumericAbstractType],
+    c2: mg.Optional[MyNumericAbstractType],
+    d1: List[MyNumericAbstractType],
+    d2: mg.List[MyNumericAbstractType],
+    e: Callable[[Any], Any],
+) -> Tuple[int, float]:
+    pass
+
+
+@plugin.concrete_algorithm("crazy_inputs")
+def simple_crazy_inputs(
+    a1: mg.NodeID,
+    a2: int,
+    b1: Union[int, float],
+    b2: mg.Union[int, float],
+    c1: Optional[int],
+    c2: mg.Optional[int],
+    d1: List[int],
+    d2: mg.List[int],
+    e: Callable[[Any], Any],
+) -> Tuple[int, float]:
+    return (3, 4.5)
 
 
 class TracingCompiler(plugin.Compiler):
@@ -419,8 +504,8 @@ def make_example_resolver():
             "example_plugin": {
                 "abstract_types": {MyAbstractType, MyNumericAbstractType},
                 "concrete_types": {StrType, IntType, FloatType, OtherType},
-                "wrappers": {StrNum},
-                "translators": {int_to_str, str_to_int},
+                "wrappers": {StrNum, StrNumRot13},
+                "translators": {int_to_str, str_to_int, str_to_rot13},
                 "abstract_algorithms": {
                     abstract_power,
                     abstract_ln,
@@ -428,6 +513,7 @@ def make_example_resolver():
                     odict_reverse,
                     abstract_repeat,
                     fizzbuzz_club,
+                    # crazy_inputs,
                 },
                 "concrete_algorithms": {
                     int_power,
@@ -436,10 +522,12 @@ def make_example_resolver():
                     simple_odict_rev,
                     string_repeat,
                     strnum_fizzbuzz_club,
+                    # simple_crazy_inputs,
                 },
                 "compilers": {FailCompiler(), IdentityCompiler()},
             },
             "example2_plugin": {"concrete_algorithms": {strnum_power}},
+            "example3_plugin": {"concrete_algorithms": {strnumrot13_power}},
         }
     )
     return res

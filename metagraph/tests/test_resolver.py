@@ -23,6 +23,7 @@ from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
 import typing
 from typing import Tuple, List, Dict, Any
+from metagraph.core import typing as mgtyping
 from collections import OrderedDict, defaultdict
 
 from .util import site_dir, example_resolver
@@ -106,6 +107,10 @@ def test_register_errors():
     def c1_to_c2(src: Concrete1, **props) -> Concrete2:  # pragma: no cover
         pass
 
+    @translator
+    def c2_to_c1(src: Concrete2, **props) -> Concrete1:  # pragma: no cover
+        pass
+
     registry.register(c1_to_c2)
     with pytest.raises(ValueError, match="has unregistered abstract type "):
         res.register(registry.plugins)
@@ -115,8 +120,14 @@ def test_register_errors():
         ValueError, match="translator destination type .* has not been registered"
     ):
         res.register(registry.plugins)
+    with pytest.raises(
+        ValueError, match="translator source type .* has not been registered"
+    ):
+        res.register(
+            {"test_register_errors_default_plugin": {"translators": {c2_to_c1}}}
+        )
 
-    # Fresh start -- too much baggage of things partially registered above
+    # Fresh start
     res = Resolver()
 
     registry.register(Abstract2)
@@ -141,7 +152,7 @@ def test_register_errors():
         res.register(my_algo2_registry.plugins)
 
     @abstract_algorithm("testing.bad_input_type")
-    def my_algo_bad_list_input_type(a: List) -> Resolver:  # pragma: no cover
+    def my_algo_bad_list_input_type(a: List) -> int:  # pragma: no cover
         pass
 
     @abstract_algorithm("testing.bad_output_type")
@@ -154,7 +165,7 @@ def test_register_errors():
     ) -> Tuple[List, List]:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match="must pass exactly one parameter to List"):
+    with pytest.raises(TypeError, match='argument "a" may not be an instance of type'):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_list_input_type)
         res_tmp = Resolver()
@@ -166,7 +177,10 @@ def test_register_errors():
         res_tmp = Resolver()
         res_tmp.register(registry.plugins)
 
-    with pytest.raises(TypeError, match="must pass exactly one parameter to List"):
+    with pytest.raises(
+        TypeError,
+        match="return type may not be an instance of type <class 'typing.TypeVar'>",
+    ):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(my_algo_bad_compound_list_output_type)
         res_tmp = Resolver()
@@ -251,7 +265,8 @@ def test_register_errors():
         return 12
 
     with pytest.raises(
-        TypeError, match='argument "x" does not match abstract function signature'
+        TypeError,
+        match='argument "x": .* does not match typing.Any in abstract signature',
     ):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(abstract_any)
@@ -284,7 +299,9 @@ def test_register_errors():
     def abst_algo_bad_return_type_2(x: int) -> List[Concrete1]:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match=" may not have Concrete types in signature"):
+    with pytest.raises(
+        TypeError, match="return type may not have Concrete types in signature"
+    ):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(abst_algo_bad_return_type_2)
         res_tmp = Resolver()
@@ -294,7 +311,9 @@ def test_register_errors():
     def abst_algo_bad_parameter_type_2(x: List[Concrete1]) -> int:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match=" may not have Concrete types in signature"):
+    with pytest.raises(
+        TypeError, match='argument "x" may not have Concrete types in signature'
+    ):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(abst_algo_bad_parameter_type_2)
         res_tmp = Resolver()
@@ -352,12 +371,6 @@ def test_union_signatures():
     def typing_union_mixed(a: typing.Union[int, Abstract1]) -> int:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match="Cannot mix"):
-
-        @abstract_algorithm("testing.mg_union_mixed")
-        def mg_union_mixed(a: mg.Union[int, Abstract1]) -> int:  # pragma: no cover
-            pass
-
     registry = PluginRegistry("test_union_signatures_bad")
     registry.register(Abstract1)
     registry.register(typing_union_mixed)
@@ -378,9 +391,10 @@ def test_list_signatures():
     def typing_list_types(
         a: typing.List[int],
         b: typing.Optional[typing.List[float]],
-        c: typing.Union[typing.List[int], typing.List[float]],
+        c: typing.Optional[typing.Union[int, float]],
         d: typing.List[Abstract1],
         e: typing.Optional[typing.List[Abstract1]],
+        f: typing.Union[int, None],
     ) -> int:
         pass  # pragma: no cover
 
@@ -388,9 +402,12 @@ def test_list_signatures():
     def mg_list_types(
         a: mg.List[int],
         b: mg.Optional[mg.List[float]],
-        c: mg.Union[mg.List[int], mg.List[float]],
+        c: mg.Optional[mg.Union[int, float]],
         d: mg.List[Abstract1],
         e: mg.Optional[mg.List[Abstract1]],
+        # This is not currently supported. If the need arises, we should
+        # add mg.UnionList[int, float] which is a Combo with a new kind=UnionList
+        # f: mg.Union[mg.List[int], mg.List[float]],
     ) -> int:
         pass  # pragma: no cover
 
@@ -411,6 +428,14 @@ def test_list_signatures():
 
     res_good = Resolver()
     res_good.register(registry.plugins)
+
+    sig = res_good.abstract_algorithms["testing.typing_list_types"].__signature__
+    for letter in "bcef":
+        assert sig.parameters[letter].annotation.optional
+    for letter in "abde":
+        assert sig.parameters[letter].annotation.kind == "List"
+    assert sig.parameters["c"].annotation.kind == "Union"
+    assert sig.parameters["f"].annotation.kind is None
 
 
 def test_incorrect_signature_errors(example_resolver):
@@ -440,7 +465,7 @@ def test_incorrect_signature_errors(example_resolver):
     def wrong_abstract_arg(x: Concrete1, p: IntType) -> IntType:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match='"x" does not have type compatible'):
+    with pytest.raises(TypeError, match='argument "x" .* is not a concrete type of .*'):
         registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
         registry.register(wrong_abstract_arg)
         example_resolver.register(registry.plugins)
@@ -449,7 +474,7 @@ def test_incorrect_signature_errors(example_resolver):
     def wrong_return_arg(x: IntType, p: IntType) -> Concrete1:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match="return type is not compatible"):
+    with pytest.raises(TypeError, match="return type .* is not a concrete type of"):
         registry = PluginRegistry("test_incorrect_signature_errors_default_plugin")
         registry.register(wrong_return_arg)
         example_resolver.register(registry.plugins)
@@ -501,7 +526,9 @@ def test_python_types_in_signature(example_resolver):
     def wrong_python_type(x: IntType, p) -> IntType:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match='"p" does not match'):
+    with pytest.raises(
+        TypeError, match='"p": .* does not match .* in abstract signature'
+    ):
         registry = PluginRegistry("test_python_types_in_signature_default_plugin")
         registry.register(wrong_python_type)
         example_resolver.register(registry.plugins)
@@ -510,7 +537,9 @@ def test_python_types_in_signature(example_resolver):
     def wrong_return_type(x: IntType, p: int) -> complex:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match="is not a concrete type of"):
+    with pytest.raises(
+        TypeError, match="return type: .* does not match .* in abstract signature"
+    ):
         registry = PluginRegistry("test_python_types_in_signature_default_plugin")
         registry.register(wrong_return_type)
         example_resolver.register(registry.plugins)
@@ -523,7 +552,9 @@ def test_python_types_in_signature(example_resolver):
     def notmatching_return_type(x: int) -> float:  # pragma: no cover
         pass
 
-    with pytest.raises(TypeError, match="return type does not match"):
+    with pytest.raises(
+        TypeError, match="return type: .* does not match .* in abstract signature"
+    ):
         registry = PluginRegistry("test_python_types_in_signature_default_plugin")
         registry.register(return_type)
         registry.register(notmatching_return_type)
@@ -979,6 +1010,40 @@ def test_duplicate_plugin():
     with pytest.raises(ValueError, match=" not known to be the resolver or a plugin."):
         _ResolverRegistrar.register_plugin_attributes_in_tree(
             Resolver(), Resolver(), abstract_types={AbstractType1}
+        )
+
+
+def test_unambiguous_subcomponents():
+    class AbstractType1(AbstractType):
+        properties = {
+            "divisible_by_two": [False, True],
+            "in_fizzbuzz_club": [False, True],
+        }
+
+    class AbstractType2(AbstractType):
+        properties = {
+            "divisible_by_two": [False, True],
+        }
+        unambiguous_subcomponents = {AbstractType1}
+
+    res = Resolver()
+    with pytest.raises(
+        KeyError, match="unambiguous subcomponent .* has not been registered"
+    ):
+        res.register(
+            {"test_unambiguous_subcomponents": {"abstract_types": {AbstractType2}}}
+        )
+
+    res = Resolver()
+    with pytest.raises(
+        ValueError, match="unambiguous subcomponent .* has additional properties beyond"
+    ):
+        res.register(
+            {
+                "test_unambiguous_subcomponents": {
+                    "abstract_types": {AbstractType1, AbstractType2}
+                }
+            }
         )
 
 
