@@ -591,7 +591,7 @@ class _ResolverRegistrar:
                 items = set(plugin.get(cat, ()))
                 if cat == "concrete_algorithms":
                     # Copy concrete algorithms to avoid cross-mutation if multiple resolvers are used
-                    items = {copy.copy(x) for x in items}
+                    items = {x.copy_and_bind(resolver) for x in items}
                 items_by_plugin[plugin_name][cat] = items
                 items_by_plugin["all"][cat] |= items
 

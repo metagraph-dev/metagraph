@@ -2,6 +2,7 @@
 """
 import types
 import inspect
+import copy
 from functools import partial
 from typing import Callable, List, Dict, Set, Union, Any, Optional
 from .typecache import TypeCache, TypeInfo
@@ -611,6 +612,7 @@ class ConcreteAlgorithm:
         self.abstract_name = abstract_name
         self.version = version
         self._include_resolver = include_resolver
+        self._resolver = None
         self._compiler = compiler
         self._compiled_func = None
         self.__name__ = func.__name__
@@ -619,7 +621,16 @@ class ConcreteAlgorithm:
         self.__original_signature__ = inspect.signature(self.func)
         self.__signature__ = normalize_signature(self.__original_signature__)
 
+    def copy_and_bind(self, resolver):
+        new_copy = copy.copy(self)
+        new_copy._resolver = resolver
+        new_copy._compiled_func = None
+        return new_copy
+
     def __call__(self, *args, resolver=None, **kwargs):
+        if resolver is None:
+            resolver = self._resolver  # use bound resolver
+
         if self._compiler is not None:
             if self._compiled_func is not None:
                 func = self._compiled_func
