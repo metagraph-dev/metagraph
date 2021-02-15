@@ -618,8 +618,9 @@ def test_find_translator(example_resolver):
             assert len(trns.translators) == 1
             return trns.translators[0]
 
-    assert find_translator(4, StrNum.Type) == int_to_str
-    assert find_translator(StrNum("4"), IntType) == str_to_int
+    # cannot check Translator equality because of copy_and_bind() during registration
+    assert find_translator(4, StrNum.Type).func == int_to_str.func
+    assert find_translator(StrNum("4"), IntType).func == str_to_int.func
     assert find_translator(4, OtherType) is None
     assert find_translator(4, IntType) is None  # no self-translator registered
 

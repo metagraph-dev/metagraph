@@ -7,7 +7,7 @@ from dask.core import get_deps
 import dask.optimization
 
 from metagraph.core.plugin import ConcreteAlgorithm, Compiler, CompileError
-from metagraph.core.dask.tasks import DelayedAlgo
+from metagraph.core.dask.tasks import DelayedAlgo, DelayedJITAlgo
 
 
 @dataclass
@@ -144,13 +144,25 @@ def compile_subgraphs(dsk, output_keys, compiler: Compiler):
                 subgraph.tasks, subgraph.input_keys, subgraph.output_key
             )
 
+            # remember the algorithms being fused and return type
+            # this assumes all tasks in the subgraph are DelayedAlgo tasks!
+            source_algos = [task[0].algo for task in subgraph.tasks.values()]
+            output_task = subgraph.tasks[subgraph.output_key]
+            result_type = output_task[0].result_type
+
             # remove keys for existing tasks in subgraph, including the output task
             for key in subgraph.tasks:
                 del new_dsk[key]
 
-            # put the fused task in with the output task's old key
-            new_dsk[subgraph.output_key] = (fused_func, *subgraph.input_keys)
-        except CompileError as e:  # pragma: no cover
+            # create a fused task with the output task's old key
+            fused_task = DelayedJITAlgo(
+                fused_func,
+                compiler=compiler.name,
+                source_algos=source_algos,
+                result_type=result_type,
+            )
+            new_dsk[subgraph.output_key] = (fused_task, *subgraph.input_keys)
+        except CompileError as e:
             logging.debug(
                 "Unable to compile subgraph with output key: %s",
                 subgraph.output_key,
@@ -180,7 +192,7 @@ def optimize(dsk, output_keys, **kwargs):
             if task_callable.algo._compiler is not None:
                 compiler_name = task_callable.algo._compiler
                 if compiler_name not in compilers:
-                    compilers[compiler_name] = task_callable.resolver.compilers[
+                    compilers[compiler_name] = task_callable.algo.resolver.compilers[
                         compiler_name
                     ]
 

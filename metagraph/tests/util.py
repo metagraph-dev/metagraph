@@ -461,7 +461,7 @@ class IdentityCompiler(TracingCompiler):
     """This compiler returns functions unchanged.
     """
 
-    def __init__(self, name="identity"):
+    def __init__(self, name="identity_comp"):
         super().__init__(name=name)
 
     def compile_algorithm(self, algo, literals):
