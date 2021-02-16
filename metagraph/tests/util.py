@@ -380,12 +380,14 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
 def crazy_inputs(
     a1: mg.NodeID,
     a2: MyNumericAbstractType,
+    a3: int,
     b1: Union[int, float],
     b2: mg.Union[int, float],
     c1: Optional[MyNumericAbstractType],
     c2: mg.Optional[MyNumericAbstractType],
     d1: List[MyNumericAbstractType],
     d2: mg.List[MyNumericAbstractType],
+    d3: mg.List[float],
     e: Callable[[Any], Any],
 ) -> Tuple[int, float]:
     pass
@@ -395,12 +397,14 @@ def crazy_inputs(
 def simple_crazy_inputs(
     a1: mg.NodeID,
     a2: int,
+    a3: int,
     b1: Union[int, float],
     b2: mg.Union[int, float],
     c1: Optional[int],
     c2: mg.Optional[int],
     d1: List[int],
     d2: mg.List[int],
+    d3: mg.List[float],
     e: Callable[[Any], Any],
 ) -> Tuple[int, float]:
     return (3, 4.5)
@@ -513,7 +517,7 @@ def make_example_resolver():
                     odict_reverse,
                     abstract_repeat,
                     fizzbuzz_club,
-                    # crazy_inputs,
+                    crazy_inputs,
                 },
                 "concrete_algorithms": {
                     int_power,
@@ -522,7 +526,7 @@ def make_example_resolver():
                     simple_odict_rev,
                     string_repeat,
                     strnum_fizzbuzz_club,
-                    # simple_crazy_inputs,
+                    simple_crazy_inputs,
                 },
                 "compilers": {FailCompiler(), IdentityCompiler()},
             },

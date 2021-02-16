@@ -202,7 +202,7 @@ def test_extract_subgraphs_diamond(res):
 def test_compile_subgraphs_noop(res):
     a = res.wrappers.NodeSet.NumpyNodeSet(np.arange(100))
 
-    compiler = res.compilers["identity"]
+    compiler = res.compilers["identity_comp"]
 
     optimized_dsk = mg_compiler.compile_subgraphs(
         a.__dask_graph__(), output_keys=[a.key], compiler=compiler

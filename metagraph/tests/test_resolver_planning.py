@@ -112,54 +112,64 @@ def test_build_algorithm_plan(example_resolver):
 def test_build_algorithm_plan_errors(example_resolver):
     res = example_resolver
     StrNum = res.wrappers.MyNumericAbstractType.StrNum
-    # crazy = list(res.plugins.example_plugin.concrete_algorithms["crazy_inputs"])[0]
+    crazy = list(res.plugins.example_plugin.concrete_algorithms["crazy_inputs"])[0]
 
     kwargs = {
         "a1": 1,  # NodeID
-        "a2": 2,  # int
+        "a2": 2,  # IntType
+        "a3": 42,  # int
         "b1": 3.3,  # Union[int, float]
         "b2": 4.4,  # mg.Union[int, float]
         "c1": None,  # c1: Optional[int]
         "c2": None,  # c2: mg.Optional[int]
         "d1": [StrNum("1"), StrNum("2")],  # d1: List[int]
         "d2": [2, 3, 4],  # d2: mg.List[int]
+        "d3": [1.1, 2.2],  # d3: mg.List[float]
         "e": lambda x: x + 1,  # e: Callable[[Any], Any]
     }
 
-    # plan = AlgorithmPlan.build(res, crazy, **kwargs)
-    # print(repr(plan))
-    # assert not plan.unsatisfiable
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "a1": "node_name"})
-    # assert plan.unsatisfiable
-    # assert "`a1` Not a valid NodeID: node_name" in repr(plan)
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "a2": 2.2})
-    # assert plan.unsatisfiable
-    # assert "Failed to find translator to IntType for a2" in repr(plan)
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "b1": None})
-    # assert plan.unsatisfiable
-    # assert "b1 is not Optional, but None was given" in repr(plan)
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "b2": "a"})
-    # assert plan.unsatisfiable
-    # assert "`b2` with type <class 'str'> does not match any of Union" in repr(plan)
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "c1": 3.3})
-    # assert plan.unsatisfiable
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "c2": 3+2j})
-    # assert plan.unsatisfiable
+    plan = AlgorithmPlan.build(res, crazy, **kwargs)
+    print(repr(plan))
+    assert not plan.unsatisfiable
 
-    # plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "d1": StrNum})
-    # assert plan.unsatisfiable
-    # assert "" in repr(plan)
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "a1": "node_name"})
+    assert plan.unsatisfiable
+    assert "`a1` Not a valid NodeID: node_name" in repr(plan)
 
-    # plan = AlgorithmPlan.build(res, crazy, **{})
-    # assert plan.unsatisfiable
-    # assert "" in repr(plan)
-    #
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "a2": 2.2})
+    assert plan.unsatisfiable
+    assert "Failed to find translator to IntType for a2" in repr(plan)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "a3": 2.2})
+    assert plan.unsatisfiable
+    assert "Failed to find translator to IntType for a3" in repr(plan)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "b1": None})
+    assert plan.unsatisfiable
+    assert "b1 is not Optional, but None was given" in repr(plan)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "b2": "a"})
+    assert plan.unsatisfiable
+    assert "`b2` with type <class 'str'> does not match any of mg.Union" in repr(plan)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "c1": 3.3})
+    assert plan.unsatisfiable
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "c2": 3 + 2j})
+    assert plan.unsatisfiable
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "d1": StrNum("1")})
+    assert plan.unsatisfiable
+    assert "`d1` must be a list, not" in repr(plan)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "d3": [3 + 4j, 2 - 6j]})
+    assert plan.unsatisfiable
+    assert "d3: [(3+4j), (2-6j)] does not match mg.List[<class 'float'>]" in repr(plan)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "e": 3.3})
+    assert plan.unsatisfiable
+    assert "e must be Callable, not" in repr(plan)
+
     # plan = AlgorithmPlan.build(res, crazy, **{})
     # assert plan.unsatisfiable
     # assert "" in repr(plan)

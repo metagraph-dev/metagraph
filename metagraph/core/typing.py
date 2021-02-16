@@ -48,7 +48,7 @@ class Combo:
             raise TypeError(f"Invalid kind: {kind}")
 
         if not hasattr(types, "__len__") or len(types) == 0:
-            raise TypeError(f"types must be a non-empty list")
+            raise TypeError("types must be a non-empty list")
 
         if kind in {"List", None} and len(types) > 1:
             raise TypeError(
@@ -58,7 +58,6 @@ class Combo:
         if kind is None and not optional:
             raise TypeError("Combo must have a kind or be optional")
 
-        # Ensure all AbstractTypes or all ConcreteType or all Python types, but not mixed
         subtype = None
         checked_types = []
         for t in types:
@@ -94,6 +93,7 @@ class Combo:
         self.types[index] = obj
 
     def compute_common_subtype(self):
+        # Ensure all AbstractTypes or all ConcreteType or all Python types, but not mixed
         subtype = None
         for t in self.types:
             if type(t) is type:
@@ -127,11 +127,8 @@ class List:
     """
 
     def __getitem__(self, element_type):
-        if type(element_type) is tuple:
-            if len(element_type) > 1:
-                raise TypeError(f"Too many parameters, only one allowed for List")
-        else:
-            element_type = [element_type]
+        if type(element_type) is not tuple:
+            element_type = (element_type,)
 
         return Combo(element_type, kind="List")
 
@@ -170,7 +167,7 @@ class Optional:
     def __getitem__(self, parameter):
         if type(parameter) is tuple:
             if len(parameter) > 1:
-                raise TypeError(f"Too many parameters, only one allowed for Optional")
+                raise TypeError("Too many parameters, only one allowed for Optional")
             parameter = parameter[0]
 
         if isinstance(parameter, Combo):

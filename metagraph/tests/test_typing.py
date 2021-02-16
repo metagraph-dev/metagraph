@@ -47,7 +47,9 @@ def test_list():
     assert isinstance(c, mgtyping.Combo)
     assert c.types[0] is int
 
-    with pytest.raises(TypeError, match="Too many parameters"):
+    with pytest.raises(
+        TypeError, match="Expected exactly one type for kind=List, found 2"
+    ):
         mg.List[int, float]
 
 
@@ -70,3 +72,40 @@ def test_optional():
     assert c.optional
     assert c.kind == "List"
     assert len(c) == 1
+
+    d = mg.Optional[
+        int,
+    ]
+    assert isinstance(d, mgtyping.Combo)
+    assert d.optional
+    assert d.kind is None
+    assert len(d) == 1
+
+    with pytest.raises(
+        TypeError, match="Too many parameters, only one allowed for Optional"
+    ):
+        mg.Optional[int, float]
+
+
+def test_combo():
+    with pytest.raises(TypeError, match="Invalid kind: foobar"):
+        mgtyping.Combo([int, float], kind="foobar")
+
+    with pytest.raises(TypeError, match="types must be a non-empty list"):
+        mgtyping.Combo(int, kind="Union")
+
+    with pytest.raises(TypeError, match="types must be a non-empty list"):
+        mgtyping.Combo([], kind="Union")
+
+    with pytest.raises(TypeError, match="Combo must have a kind or be optional"):
+        mgtyping.Combo([int], kind=None, optional=False)
+
+    with pytest.raises(
+        TypeError,
+        match="Do not include `None` in the types. Instead, set `optional=True`",
+    ):
+        mgtyping.Combo([int, None], kind="Union")
+
+    with pytest.raises(TypeError, match="Unexpected subtype within Combo"):
+        c = mgtyping.Combo([14.2, 16.2], kind="Union")
+        c.compute_common_subtype()
