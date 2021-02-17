@@ -138,9 +138,9 @@ class MultiStepTranslator:
             self.display()
 
         for translator in self.translators[:-1]:
-            src = translator(src, resolver=self.resolver)
+            src = translator(src)
         # Finish by reaching destination along with required properties
-        dst = self.translators[-1](src, resolver=self.resolver, **props)
+        dst = self.translators[-1](src, **props)
         return dst
 
     def display(self):
@@ -244,7 +244,12 @@ class AlgorithmPlan:
         bound_args.apply_defaults()
         for varname, trans in self.required_translations.items():
             if type(trans) is list:
-                result = [trans(item) for item in bound_args.arguments[varname]]
+                # This case happens when a Combo List input needs translation
+                # Each element of the incoming list is solved for a translator
+                # So each element needs to apply its specific translator
+                result = [
+                    tr(item) for tr, item in zip(trans, bound_args.arguments[varname])
+                ]
             else:
                 result = trans(bound_args.arguments[varname])
             bound_args.arguments[varname] = result
@@ -417,8 +422,14 @@ class AlgorithmPlan:
                     )
             else:
                 arg_value_signature = inspect.signature(arg_value)
-                arg_value_params = arg_value_signature.parameters.values()
-                actual_input_types = (param.annotation for param in arg_value_params)
+                actual_input_types = [
+                    param.annotation
+                    for param in arg_value_signature.parameters.values()
+                ]
+                if len(required_input_types) != len(actual_input_types):
+                    raise TypeError(
+                        f"number of inputs mismatch: {len(actual_input_types)} != {len(required_input_types)}"
+                    )
                 for itype, (actual_type, required_type) in enumerate(
                     zip(actual_input_types, required_input_types)
                 ):

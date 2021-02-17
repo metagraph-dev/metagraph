@@ -1,5 +1,6 @@
 import pytest
 import codecs
+import numpy as np
 
 import metagraph as mg
 from metagraph import (
@@ -112,6 +113,7 @@ def test_build_algorithm_plan(example_resolver):
 def test_build_algorithm_plan_errors(example_resolver):
     res = example_resolver
     StrNum = res.wrappers.MyNumericAbstractType.StrNum
+    StrNumRot13 = res.wrappers.MyNumericAbstractType.StrNumRot13
     crazy = list(res.plugins.example_plugin.concrete_algorithms["crazy_inputs"])[0]
 
     kwargs = {
@@ -125,7 +127,7 @@ def test_build_algorithm_plan_errors(example_resolver):
         "d1": [StrNum("1"), StrNum("2")],  # d1: List[int]
         "d2": [2, 3, 4],  # d2: mg.List[int]
         "d3": [1.1, 2.2],  # d3: mg.List[float]
-        "e": lambda x: x + 1,  # e: Callable[[Any], Any]
+        "e": lambda x, y: "hello",  # e: Callable[[int, float], str]
     }
 
     plan = AlgorithmPlan.build(res, crazy, **kwargs)
@@ -162,6 +164,12 @@ def test_build_algorithm_plan_errors(example_resolver):
     assert plan.unsatisfiable
     assert "`d1` must be a list, not" in repr(plan)
 
+    plan = AlgorithmPlan.build(
+        res, crazy, **{**kwargs, "d1": [StrNumRot13("1"), StrNumRot13("2")]}
+    )
+    assert plan.unsatisfiable
+    assert "Failed to find translator to IntType for d1[0]" in repr(plan)
+
     plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "d3": [3 + 4j, 2 - 6j]})
     assert plan.unsatisfiable
     assert "d3: [(3+4j), (2-6j)] does not match mg.List[<class 'float'>]" in repr(plan)
@@ -170,13 +178,36 @@ def test_build_algorithm_plan_errors(example_resolver):
     assert plan.unsatisfiable
     assert "e must be Callable, not" in repr(plan)
 
-    # plan = AlgorithmPlan.build(res, crazy, **{})
-    # assert plan.unsatisfiable
-    # assert "" in repr(plan)
-    #
-    # plan = AlgorithmPlan.build(res, crazy, **{})
-    # assert plan.unsatisfiable
-    # assert "" in repr(plan)
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "e": lambda x: x + 1})
+    assert plan.unsatisfiable
+    assert "number of inputs mismatch: 1 != 2" in repr(plan)
 
-    # print(repr(plan))
-    # raise Exception('foobar')
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "e": np.sin})
+    assert plan.unsatisfiable
+    assert "number of inputs mismatch: 1 != 2" in repr(plan)
+
+    def annotated_callable1(x: str, y: float) -> str:
+        return x
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "e": annotated_callable1})
+    assert plan.unsatisfiable
+    assert "e[0] must be type <class 'int'>, not" in repr(plan)
+
+    def annotated_callable2(x: int, y: float) -> int:
+        return x + int(y)
+
+    plan = AlgorithmPlan.build(res, crazy, **{**kwargs, "e": annotated_callable2})
+    assert plan.unsatisfiable
+    assert "e return must be type <class 'str'>, not" in repr(plan)
+
+
+def test_build_and_run_with_list_translator(example_resolver):
+    res = example_resolver
+    StrNum = res.wrappers.MyNumericAbstractType.StrNum
+    add_me_up = list(res.plugins.example_plugin.concrete_algorithms["add_me_up"])[0]
+    inputs = [StrNum("1"), StrNum("2"), StrNum("3"), StrNum("4"), StrNum("5")]
+
+    plan = AlgorithmPlan.build(res, add_me_up, inputs)
+    assert not plan.unsatisfiable
+    assert type(plan.required_translations["x"]) is list
+    assert plan(inputs) == 15

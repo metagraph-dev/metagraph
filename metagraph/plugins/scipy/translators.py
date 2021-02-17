@@ -75,8 +75,8 @@ if has_scipy and has_grblas:
         )
         return ScipyEdgeMap(sm, node_list=active_nodes, aprops=aprops)
 
-    @translator(include_resolver=True)
-    def graph_from_graphblas(x: GrblasGraph, *, resolver, **props) -> ScipyGraph:
+    @translator
+    def graph_from_graphblas(x: GrblasGraph, **props) -> ScipyGraph:
         aprops = GrblasGraph.Type.compute_abstract_properties(
             x, {"node_type", "edge_type", "node_dtype", "edge_dtype", "is_directed"}
         )

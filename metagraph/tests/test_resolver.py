@@ -1086,6 +1086,29 @@ def test_wrapper_mixing_required():
             pass
 
 
+def test_wrapper_implied_abstract():
+    class Abstract1(AbstractType):
+        pass
+
+    class Abstract2(AbstractType):
+        pass
+
+    class Wrapper1(Wrapper, abstract=Abstract1, register=False):
+        pass
+
+    class Wrapper2(Wrapper1):
+        class TypeMixin:
+            pass
+
+    assert Wrapper2.Type.abstract is Abstract1
+
+    with pytest.raises(TypeError, match="Wrong abstract type for wrapper"):
+
+        class Wrapper3(Wrapper1, abstract=Abstract2):
+            class TypeMixin:
+                pass
+
+
 def test_wrapper_insufficient_properties():
     class TestNodes(AbstractType):
         @Wrapper.required_method
@@ -1101,6 +1124,14 @@ def test_wrapper_insufficient_properties():
         class Wrapper1(Wrapper, abstract=TestNodes):
             def num_nodes(self):
                 return "dummy"  # pragma: no cover
+
+            class TypeMixin:
+                pass
+
+    with pytest.raises(TypeError, match="must be callable, not"):
+
+        class Wrapper1(Wrapper, abstract=TestNodes):
+            __getitem__ = 42
 
             class TypeMixin:
                 pass

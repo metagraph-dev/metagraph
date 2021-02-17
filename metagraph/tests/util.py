@@ -272,8 +272,9 @@ def str_to_int(src: StrNum) -> IntType:
     return int(src.value)
 
 
-@plugin.translator
-def str_to_rot13(src: StrNum) -> StrNumRot13:
+@plugin.translator(include_resolver=True)
+def str_to_rot13(src: StrNum, *, resolver) -> StrNumRot13:
+    assert resolver is not None
     rot = codecs.encode(src.value, "rot-13")
     return StrNumRot13(rot)
 
@@ -297,8 +298,9 @@ def strnum_power(x: StrNum, p: StrNum) -> StrNum:
     return StrNum(str(result))
 
 
-@plugin.concrete_algorithm("power")
-def strnumrot13_power(x: StrNumRot13, p: StrNumRot13) -> StrNumRot13:
+@plugin.concrete_algorithm("power", include_resolver=True)
+def strnumrot13_power(x: StrNumRot13, p: StrNumRot13, *, resolver) -> StrNumRot13:
+    assert resolver is not None
     result = x.to_num() ** p.to_num()
     return StrNumRot13(codecs.encode(str(result), "rot-13"))
 
@@ -376,6 +378,19 @@ def simple_odict_rev(x: OrderedDict) -> OrderedDict:  # pragma: no cover
     return d
 
 
+@plugin.abstract_algorithm("add_me_up")
+def add_me_up(x: List[MyNumericAbstractType]) -> MyNumericAbstractType:
+    pass
+
+
+@plugin.concrete_algorithm("add_me_up")
+def simple_add_me_up(x: List[IntType]) -> IntType:
+    sum = 0
+    for item in x:
+        sum += item
+    return sum
+
+
 @plugin.abstract_algorithm("crazy_inputs")
 def crazy_inputs(
     a1: mg.NodeID,
@@ -388,7 +403,7 @@ def crazy_inputs(
     d1: List[MyNumericAbstractType],
     d2: mg.List[MyNumericAbstractType],
     d3: mg.List[float],
-    e: Callable[[Any], Any],
+    e: Callable[[int, float], str],
 ) -> Tuple[int, float]:
     pass
 
@@ -405,7 +420,7 @@ def simple_crazy_inputs(
     d1: List[int],
     d2: mg.List[int],
     d3: mg.List[float],
-    e: Callable[[Any], Any],
+    e: Callable[[int, float], str],
 ) -> Tuple[int, float]:
     return (3, 4.5)
 
@@ -517,6 +532,7 @@ def make_example_resolver():
                     odict_reverse,
                     abstract_repeat,
                     fizzbuzz_club,
+                    add_me_up,
                     crazy_inputs,
                 },
                 "concrete_algorithms": {
@@ -526,6 +542,7 @@ def make_example_resolver():
                     simple_odict_rev,
                     string_repeat,
                     strnum_fizzbuzz_club,
+                    simple_add_me_up,
                     simple_crazy_inputs,
                 },
                 "compilers": {FailCompiler(), IdentityCompiler()},
