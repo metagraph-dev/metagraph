@@ -1,6 +1,6 @@
 from typing import List, Dict, Optional, Any
 from .plugin import ConcreteType
-from .typing import Combo, UniformIterable
+from .typing import Combo
 from collections import abc
 import inspect
 import numpy as np
@@ -138,9 +138,9 @@ class MultiStepTranslator:
             self.display()
 
         for translator in self.translators[:-1]:
-            src = translator(src, resolver=self.resolver)
+            src = translator(src)
         # Finish by reaching destination along with required properties
-        dst = self.translators[-1](src, resolver=self.resolver, **props)
+        dst = self.translators[-1](src, **props)
         return dst
 
     def display(self):
@@ -194,9 +194,7 @@ class AlgorithmPlan:
 
     @classmethod
     def string_for_annotation(cls, annotation) -> str:
-        if type(annotation) is Wrapper:
-            result = f"{annotation.__name__}"
-        elif type(annotation) is type:
+        if type(annotation) in (type, Wrapper):
             result = f"{annotation.__name__}"
         else:
             result = f"{annotation.__class__.__name__}"
@@ -244,10 +242,17 @@ class AlgorithmPlan:
             kwargs["resolver"] = self.resolver
         bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
-        for varname in self.required_translations:
-            bound_args.arguments[varname] = self.required_translations[varname](
-                bound_args.arguments[varname]
-            )
+        for varname, trans in self.required_translations.items():
+            if type(trans) is list:
+                # This case happens when a Combo List input needs translation
+                # Each element of the incoming list is solved for a translator
+                # So each element needs to apply its specific translator
+                result = [
+                    tr(item) for tr, item in zip(trans, bound_args.arguments[varname])
+                ]
+            else:
+                result = trans(bound_args.arguments[varname])
+            bound_args.arguments[varname] = result
         return self.algo(*bound_args.args, **bound_args.kwargs)
 
     def display(self):
@@ -278,16 +283,33 @@ class AlgorithmPlan:
                 # If argument type is not okay, look for translator
                 #   If translator is found, add to required_translations
                 #   If no translator is found, add message to err_msgs
-                translation_param_type = cls._check_arg_type(
+                translation_param_type = cls._check_arg_needs_translation(
                     resolver, arg_name, arg_value, param_type
                 )
                 if translation_param_type is not None:
-                    src_type = resolver.typeclass_of(arg_value)
-                    translator = MultiStepTranslator.find_translation(
-                        resolver, src_type, translation_param_type
-                    )
-                    if translator.unsatisfiable:
-                        failure_message = f"Failed to find translator to {translator.final_type.__name__} for {arg_name}"
+                    failure_message = None
+                    if (
+                        isinstance(translation_param_type, Combo)
+                        and translation_param_type.kind == "List"
+                    ):
+                        translator = []
+                        for iav, av in enumerate(arg_value):
+                            src_type = resolver.typeclass_of(av)
+                            trans = MultiStepTranslator.find_translation(
+                                resolver, src_type, translation_param_type.types[0]
+                            )
+                            if trans.unsatisfiable:
+                                failure_message = f"Failed to find translator to {trans.final_type.__name__} for {arg_name}[{iav}]"
+                                break
+                            translator.append(trans)
+                    else:
+                        src_type = resolver.typeclass_of(arg_value)
+                        translator = MultiStepTranslator.find_translation(
+                            resolver, src_type, translation_param_type
+                        )
+                        if translator.unsatisfiable:
+                            failure_message = f"Failed to find translator to {translator.final_type.__name__} for {arg_name}"
+                    if failure_message:
                         err_msgs.append(failure_message)
                         if config.get(
                             "core.planner.build.verbose", False
@@ -304,8 +326,8 @@ class AlgorithmPlan:
             resolver, concrete_algorithm, required_translations, err_msgs
         )
 
-    @staticmethod
-    def _check_arg_type(resolver, arg_name, arg_value, param_type):
+    @classmethod
+    def _check_arg_needs_translation(cls, resolver, arg_name, arg_value, param_type):
         """
         Returns None if no translation is needed
         If translation is needed, returns the appropriate param_type to build the translation for
@@ -314,7 +336,7 @@ class AlgorithmPlan:
             return
         elif param_type is NodeID:
             if not isinstance(arg_value, int):
-                raise TypeError(f"{arg_name} Not a valid NodeID: {arg_value}")
+                raise TypeError(f"`{arg_name}` Not a valid NodeID: {arg_value}")
             return
         elif isinstance(param_type, ConcreteType):
             arg_typeclass = resolver.typeclass_of(arg_value)
@@ -336,41 +358,18 @@ class AlgorithmPlan:
 
             if not param_type.is_satisfied_by(arg_type):
                 return param_type
-        elif isinstance(param_type, UniformIterable):
-            if isinstance(param_type.element_type, ConcreteType):
-                target_param_types = [
-                    AlgorithmPlan._check_arg_type(
-                        resolver, arg_name, arg_value_element, param_type.element_type
-                    )
-                    for arg_value_element in arg_value
-                ]
-                num_unique_target_param_types = len(set(target_param_types))
-                if num_unique_target_param_types == 1:
-                    if target_param_types[0] is None:
-                        return
-                    return param_type[
-                        target_param_types[0]
-                    ]  # TODO verify that this translation is handled
-            elif all(
-                isinstance(arg_value_element, param_type.element_type)
-                for arg_value_element in arg_value
-            ):
-                return
-            raise TypeError(
-                f"{arg_name} {arg_value} does not match {param_type.element_type}"
-            )
         elif isinstance(param_type, Combo):
             if arg_value is None:
                 if not param_type.optional:
                     raise TypeError(f"{arg_name} is not Optional, but None was given")
                 return
-            elif param_type.strict:
-                if param_type.kind == "concrete":
+            elif param_type.kind == "Union":
+                if param_type.subtype == "concrete":
                     arg_typeclass = resolver.typeclass_of(arg_value)
                     # Find appropriate abstract type to translate to (don't allow translation between abstract types)
                     for ct in param_type.types:
                         if arg_typeclass.abstract == ct.abstract:
-                            return AlgorithmPlan._check_arg_type(
+                            return cls._check_arg_needs_translation(
                                 resolver, arg_name, arg_value, ct
                             )
                 else:
@@ -378,48 +377,79 @@ class AlgorithmPlan:
                         if isinstance(arg_value, pt):
                             return
                 raise TypeError(
-                    f"{arg_name} {arg_value} does not match any of {param_type}"
+                    f"`{arg_name}` with type {type(arg_value)} does not match any of {param_type}"
                 )
-            else:  # Non-strict (allow translation between abstract types)
-                return AlgorithmPlan._check_arg_type(
-                    resolver, arg_name, arg_value, list(param_type.types)[0]
+            elif param_type.kind == "List":
+                if not isinstance(arg_value, (list, tuple)):
+                    raise TypeError(
+                        f"`{arg_name}` must be a list, not {type(arg_value)}"
+                    )
+
+                item_type = param_type.types[0]
+                if isinstance(item_type, ConcreteType):
+                    target_types = [
+                        cls._check_arg_needs_translation(
+                            resolver, arg_name, arg_value_element, item_type
+                        )
+                        for arg_value_element in arg_value
+                    ]
+                    unique_target_types = {t for t in target_types if t is not None}
+                    if not unique_target_types:
+                        # Nothing to translate
+                        return
+                    num_unique_target_types = len(unique_target_types)
+                    if num_unique_target_types == 1:
+                        return Combo(list(unique_target_types), kind="List")
+                elif all(
+                    isinstance(arg_value_element, item_type)
+                    for arg_value_element in arg_value
+                ):
+                    return
+                raise TypeError(f"{arg_name}: {arg_value} does not match {param_type}")
+            else:  # kind = None
+                item_type = param_type.types[0]
+                return cls._check_arg_needs_translation(
+                    resolver, arg_name, arg_value, item_type
                 )
         elif getattr(param_type, "__origin__", None) == abc.Callable:
             if not callable(arg_value):
                 raise TypeError(f"{arg_name} must be Callable, not {type(arg_value)}")
             # TODO consider using typing.get_type_hints
-            arg_value_func_params_desired_types = param_type.__args__[:-1]
-            arg_value_func_desired_return_type = param_type.__args__[-1]
+            required_input_types = param_type.__args__[:-1]
+            required_return_type = param_type.__args__[-1]
             if isinstance(arg_value, np.ufunc):
-                if len(arg_value_func_params_desired_types) != arg_value.nin:
-                    return param_type
-                # TODO use arg_value.nout to compare to arg_value_func_desired_return_type
-                if arg_value.signature is not None:
-                    pass  # TODO handle this case
+                if len(required_input_types) != arg_value.nin:
+                    raise TypeError(
+                        f"number of inputs mismatch: {arg_value.nin} != {len(required_input_types)}"
+                    )
             else:
                 arg_value_signature = inspect.signature(arg_value)
-                arg_value_func_params = arg_value_signature.parameters.values()
-                arg_value_func_params_actual_types = (
-                    param.annotation for param in arg_value_func_params
-                )
-                for actual_type, desired_type in zip(
-                    arg_value_func_params_actual_types,
-                    arg_value_func_params_desired_types,
+                actual_input_types = [
+                    param.annotation
+                    for param in arg_value_signature.parameters.values()
+                ]
+                if len(required_input_types) != len(actual_input_types):
+                    raise TypeError(
+                        f"number of inputs mismatch: {len(actual_input_types)} != {len(required_input_types)}"
+                    )
+                for itype, (actual_type, required_type) in enumerate(
+                    zip(actual_input_types, required_input_types)
                 ):
-                    if (
-                        actual_type != inspect._empty
-                    ):  # free pass if no type declaration
-                        if not issubclass(actual_type, desired_type):
-                            return param_type
-                arg_value_func_actual_return_type = (
-                    arg_value_signature.return_annotation
-                )
-                if arg_value_func_actual_return_type != inspect._empty:
-                    if not issubclass(
-                        arg_value_func_actual_return_type,
-                        arg_value_func_desired_return_type,
-                    ):
-                        return param_type
+                    if actual_type == inspect._empty:
+                        # free pass if no type declaration
+                        pass
+                    elif not issubclass(actual_type, required_type):
+                        raise TypeError(
+                            f"{arg_name}[{itype}] must be type {required_type}, not {type(actual_type)}"
+                        )
+                actual_return_type = arg_value_signature.return_annotation
+                if actual_return_type == inspect._empty:
+                    # free pass if no type declaration
+                    pass
+                elif not issubclass(actual_return_type, required_return_type):
+                    raise TypeError(
+                        f"{arg_name} return must be type {required_return_type}, not {type(actual_return_type)}"
+                    )
         else:
             if not isinstance(arg_value, param_type):
                 return param_type

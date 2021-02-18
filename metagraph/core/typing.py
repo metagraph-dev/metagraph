@@ -22,85 +22,115 @@ NodeID = NodeID()
 
 
 class Combo:
-    def __init__(self, types, *, optional=False, strict=None):
+    def __init__(self, types, *, kind=None, optional=False):
         """
-        optional inicates whether None is allowed
-        strict indicates that concrete types can only be translated within the same abstract type family
-            Not being strict requires a single optional ConcreteType
+        types are the list of acceptable types
+        optional indicates whether None is allowed
+        kind must be one of 'Union' or 'List' or None
+          - Union: Allows `types` to have several values.
+                   Translation is restricted to within the same abstract type family.
+                   Input data must be a single object.
+          - List: Restricts `types` to a single value.
+                  There are no translation restrictions.
+                  Input data must be a list of items of the single type.
+          - None: Restricts `types` to a single value.
+                  There are no translation restrictions.
+                  Input data must be a single object.
 
-        An example of non-strict behavior is Optional[PythonNodeSetType]
-            This indicates that a NodeSet is needed. But if the user passes in a PythonNodeMap,
-            we can extract the node set and the algorithm will function correctly.
-
-        An example of strict behavior is Union[PythonNodeSetType, PythonNodeMapType]
+        The reason for kind=Union is to allow Union[PythonNodeSetType, PythonNodeMapType].
             In this case, the algorithm can utilize either one, presumably by assuming
             the NodeSet weights are all equal to 1. However, we would not want a NumpyNodeMap
-            to be translated to a PythonNodeSet, and lose its weights in the process.
-            To avoid this kind of mistake where valid translators exist, strict mode
+            to be translated to a PythonNodeSet, losing its weights in the process.
+            To avoid this kind of mistake where valid translators exist, kind=Union
             enforces no translation across abstract type boundaries.
         """
+        if kind not in {"List", "Union", None}:
+            raise TypeError(f"Invalid kind: {kind}")
 
-        # Ensure all AbstractTypes or all ConcreteType or all Python types or all UniformIterable, but not mixed
-        kind = None
-        checked_types = set()
+        if not hasattr(types, "__len__") or len(types) == 0:
+            raise TypeError("types must be a non-empty list")
+
+        if kind in {"List", None} and len(types) > 1:
+            raise TypeError(
+                f"Expected exactly one type for kind={kind}, found {len(types)}"
+            )
+
+        if kind is None and not optional:
+            raise TypeError("Combo must have a kind or be optional")
+
+        subtype = None
+        checked_types = []
         for t in types:
-            if t is None or t is type(None):
-                optional = True
-                continue
-
-            # Convert all AbstractTypes and ConcreteTypes into instances
-            if type(t) is type and issubclass(t, (AbstractType, ConcreteType)):
-                t = t()
-
-            # Convert all Wrappers into instances of their Type class
-            if type(t) is MetaWrapper:
-                t = t.Type()
-
-            if type(t) is type:
-                this_kind = "python"
-            elif isinstance(t, AbstractType):
-                this_kind = "abstract"
-            elif isinstance(t, ConcreteType):
-                this_kind = "concrete"
-            elif t is NodeID:
-                this_kind = "node_id"
-            elif isinstance(t, UniformIterable):
-                this_kind = "uniform_iterable"
-            elif getattr(t, "__origin__", None) in {list}:  # expand this as necessary
-                this_kind = "uniform_iterable"
-            else:
-                raise TypeError(f"type within Union or Optional may not be {type(t)}")
-
-            if kind is None:
-                kind = this_kind
-            elif kind != this_kind:
-                raise TypeError(f"Cannot mix {kind} and {this_kind} types within Union")
-
-            checked_types.add(t)
-
-        if strict is None:
-            # Assume a single type with optional=True is only meant to be optional, not strict
-            strict = False if (len(checked_types) == 1 and optional) else True
-
-        if len(checked_types) == 1 and not optional:
-            raise TypeError("Must be optional if only one type")
-
-        if len(checked_types) > 1 and not strict:
-            raise TypeError("Strict is required for multiple allowable types")
+            if t in {None, type(None)}:
+                raise TypeError(
+                    "Do not include `None` in the types. Instead, set `optional=True`"
+                )
+            checked_types.append(t)
 
         self.types = checked_types
         self.optional = optional
         self.kind = kind
-        self.strict = strict
+        self.subtype = subtype
 
     def __len__(self):
         return len(self.types)
 
     def __repr__(self):
-        ret = f"Union[{','.join(str(x) for x in self.types)}]"
+        if self.kind == "List":
+            ret = f"mg.List[{str(self.types[0])}]"
+        elif self.kind == "Union":
+            ret = f"mg.Union[{','.join(str(x) for x in self.types)}]"
+        else:
+            ret = str(self.types[0])
         if self.optional:
-            ret = f"Optional[{ret}]"
+            ret = f"mg.Optional[{ret}]"
         return ret
+
+    # This allows Combo to behave as a SignatureModifier
+    def update_annotation(self, obj, *, name=None, index=None):
+        assert name is not None
+        assert index is not None
+        self.types[index] = obj
+
+    def compute_common_subtype(self):
+        # Ensure all AbstractTypes or all ConcreteType or all Python types, but not mixed
+        subtype = None
+        for t in self.types:
+            if type(t) is type:
+                this_subtype = "python"
+            elif isinstance(t, AbstractType):
+                this_subtype = "abstract"
+            elif isinstance(t, ConcreteType):
+                this_subtype = "concrete"
+            elif t is NodeID:
+                this_subtype = "node_id"
+            else:
+                raise TypeError(f"Unexpected subtype within Combo: {type(t)}")
+
+            if subtype is None:
+                subtype = this_subtype
+            elif subtype != this_subtype:
+                raise TypeError(
+                    f"Cannot mix {subtype} and {this_subtype} types within {self.kind}"
+                )
+        self.subtype = subtype
+
+
+#################################################
+# These will be converted to Singleton instances
+#################################################
+
+
+class List:
+    """
+    Similar to typing.List, except allows for instances of metagraph types
+    """
+
+    def __getitem__(self, element_type):
+        if type(element_type) is not tuple:
+            element_type = (element_type,)
+
+        return Combo(element_type, kind="List")
 
 
 class Union:
@@ -112,11 +142,21 @@ class Union:
         if type(parameters) is not tuple or len(parameters) < 2:
             raise TypeError(f"Union requires more than one parameter")
 
-        return Combo(parameters, optional=False)
+        kind = "Union"
+        optional = False
 
+        # Filter out None-like values
+        params_filtered = []
+        for p in parameters:
+            if p in (None, type(None)):
+                optional = True
+            else:
+                params_filtered.append(p)
 
-# Convert to singleton
-Union = Union()
+        if optional and len(params_filtered) == 1:
+            kind = None
+
+        return Combo(params_filtered, kind=kind, optional=optional)
 
 
 class Optional:
@@ -125,39 +165,18 @@ class Optional:
     """
 
     def __getitem__(self, parameter):
+        if type(parameter) is tuple:
+            if len(parameter) > 1:
+                raise TypeError("Too many parameters, only one allowed for Optional")
+            parameter = parameter[0]
+
         if isinstance(parameter, Combo):
-            return Combo(parameter.types, optional=True, strict=parameter.strict)
+            return Combo(parameter.types, kind=parameter.kind, optional=True)
 
-        return Combo([parameter], optional=True, strict=False)
-
-
-# Convert to singleton
-Optional = Optional()
+        return Combo([parameter], optional=True)
 
 
-class UniformIterable:
-    def __init__(self, element_type, container_name):
-        if type(element_type) is type and issubclass(
-            element_type, (AbstractType, ConcreteType)
-        ):
-            element_type = element_type()
-        if type(element_type) is MetaWrapper:
-            element_type = element_type.Type()
-        self.element_type = element_type
-        self.container_name = container_name
-
-    def __repr__(self):
-        return f"{self.container_name}[{self.element_type}]"
-
-
-class List:
-    def __getitem__(self, element_type):
-        if type(element_type) is tuple:
-            if len(element_type) > 1:
-                raise TypeError(f"Too many parameters, only one allowed for List")
-            element_type = element_type[0]
-        return UniformIterable(element_type, self.__class__.__qualname__)
-
-
-# Convert to singleton
+# Convert to singletons
 List = List()
+Union = Union()
+Optional = Optional()

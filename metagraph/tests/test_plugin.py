@@ -33,11 +33,16 @@ def test_abstract_type():
     assert MyNumericAbstractType(divisible_by_two=True) != MyNumericAbstractType(
         divisible_by_two=False
     )
-    assert hash(MyNumericAbstractType(divisible_by_two=False, positivity=">=0"))
+    assert hash(MyNumericAbstractType(divisible_by_two=False, positivity=">0"))
 
     # property values
-    at = MyNumericAbstractType(positivity=">=0")
-    assert at.prop_val == {"positivity": ">=0", "divisible_by_two": None}
+    at = MyNumericAbstractType(positivity=">0")
+    assert at["positivity"] == ">0"
+    assert at.prop_val == {
+        "positivity": ">0",
+        "divisible_by_two": None,
+        "fizzbuzz": None,
+    }
 
     class AbstractType1(plugin.AbstractType):
         properties = {"k1": ["v1", "v2", "v3"]}
@@ -45,11 +50,12 @@ def test_abstract_type():
     with pytest.raises(
         ValueError, match="Invalid setting for .+ property: .+; must be one of .+"
     ):
+        AbstractType1(k1="bad_k1_value")
 
-        class ConcreteType1(
-            plugin.ConcreteType, abstract=AbstractType1(k1="bad_k1_value")
-        ):
-            pass  # pragma: no cover
+    with pytest.raises(
+        ValueError, match="Invalid setting for .+ property: .+; must be one of .+"
+    ):
+        AbstractType1(k1={"bad_k1_value", "wrong_k1_value"})
 
 
 def test_concrete_type():
@@ -106,6 +112,59 @@ def test_concrete_type():
         assert StrType.compute_concrete_properties("arbitrary string", ["bad_key"])
     with pytest.raises(KeyError, match="is not a concrete property of"):
         IntType.compute_concrete_properties(10, ["bad_key"])
+    with pytest.raises(NotImplementedError):
+        plugin.ConcreteType.get_typeinfo(14)
+
+    # concrete type with abstract properties
+    ct = StrNum.Type(positivity=">0", divisible_by_two=True, fizzbuzz="buzz")
+    assert ct["fizzbuzz"] == "buzz"
+    assert "StrNumType(" in repr(ct)
+    assert "'positivity': '>0'" in repr(ct)
+    assert "'divisible_by_two': True" in repr(ct)
+    assert "'fizzbuzz': 'buzz'" in repr(ct)
+
+
+def test_concrete_type_not_fully_implemented():
+    class MyCT(plugin.ConcreteType, abstract=MyNumericAbstractType):
+        pass
+
+    with pytest.raises(NotImplementedError):
+        MyCT.is_typeclass_of(14)
+
+    with pytest.raises(NotImplementedError):
+        MyCT._compute_abstract_properties(14, {"foobar"}, {})
+
+    with pytest.raises(NotImplementedError):
+        MyCT._compute_concrete_properties(14, {"foobar"}, {})
+
+    with pytest.raises(NotImplementedError):
+        MyCT.assert_equal(14, 15, {}, {}, {}, {})
+
+    class MyCT2(plugin.ConcreteType, abstract=MyNumericAbstractType):
+        allowed_props = {"foobar": [False, True]}
+
+        @classmethod
+        def is_typeclass_of(cls, obj):
+            return True
+
+        @classmethod
+        def _compute_abstract_properties(cls, obj, props, known_props):
+            return {}
+
+        @classmethod
+        def _compute_concrete_properties(cls, obj, props, known_props):
+            return {}
+
+    with pytest.raises(
+        AssertionError,
+        match="Requested abstract properties were not computed: {'fizzbuzz'}",
+    ):
+        MyCT2.compute_abstract_properties(14, "fizzbuzz")
+    with pytest.raises(
+        AssertionError,
+        match="Requested concrete properties were not computed: {'foobar'}",
+    ):
+        MyCT2.compute_concrete_properties(14, "foobar")
 
 
 def test_concrete_type_abstract_errors():
@@ -118,6 +177,13 @@ def test_concrete_type_abstract_errors():
 
         class MyBadType(plugin.ConcreteType, abstract=4):
             pass
+
+    with pytest.raises(
+        ValueError, match='Cannot preset "fizzbuzz"; already set in abstract properties'
+    ):
+        some_strnum = StrNum("14.5")
+        StrNum.Type.preset_abstract_properties(some_strnum, fizzbuzz="fizz")
+        StrNum.Type.preset_abstract_properties(some_strnum, fizzbuzz="buzz")
 
 
 def test_wrapper():
@@ -140,9 +206,12 @@ def test_wrapper():
     class StrNumZeroOnlyDefaultErrorMessage(
         plugin.Wrapper, abstract=MyNumericAbstractType
     ):
-        def __init__(self, val):
+        def __init__(self, val, *, check_tuple=False):
             super().__init__()
-            self._assert_instance(val, str)
+            if check_tuple:
+                self._assert_instance(val, (str,))
+            else:
+                self._assert_instance(val, str)
             self._assert(0 == float(val), "str '0' is the only valid value.")
 
         class TypeMixin:
@@ -151,8 +220,10 @@ def test_wrapper():
     # This should work
     StrNumZeroOnlyDefaultErrorMessage("0")
     # This will fail
-    with pytest.raises(TypeError, match="is not an instance of"):
+    with pytest.raises(TypeError, match="0 is not an instance of str"):
         StrNumZeroOnlyDefaultErrorMessage(0)
+    with pytest.raises(TypeError, match=r"0 is not an instance of \('str',\)"):
+        StrNumZeroOnlyDefaultErrorMessage(0, check_tuple=True)
 
 
 def test_translator():

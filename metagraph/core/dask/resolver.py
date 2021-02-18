@@ -108,7 +108,8 @@ class DaskResolver:
         For example, a `grblas.Vector` is the `value_class` of `GrblasVectorType`.
         To build a delayed `grblas.Vector` object and have Metagraph understand that it
         is of type `GrblasVectorType`, wrap the constructor using `delayed_wrapper`.
-        >>> dvec = delayed_resolver.delayed_wrapper(grblas.Vector.from_values)
+        >>> dvec = delayed_resolver.delayed_wrapper(grblas.Vector.from_values,
+        ...                                         delayed_resolver.types.Vector.GrblasVectorType)
         >>> my_vec = dvec([0, 1, 2], [2.2, 3.3, 9.9])
         >>> my_vec
         <types.GrblasVectorTypePlaceholder at 0x7f93e488b450>

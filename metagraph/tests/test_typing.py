@@ -15,11 +15,14 @@ def test_union():
     a = mg.Union[int, float]
     assert isinstance(a, mgtyping.Combo)
     assert not a.optional
+    assert a.kind == "Union"
     assert len(a) == 2
+    assert repr(a) == "mg.Union[<class 'int'>,<class 'float'>]"
 
     b = mg.Union[int, None]
     assert isinstance(b, mgtyping.Combo)
     assert b.optional
+    assert a.kind == "Union"
     assert len(b) == 1
 
     with pytest.raises(TypeError, match="Union requires more than one parameter"):
@@ -29,47 +32,80 @@ def test_union():
         mg.Union[(int,)]
 
 
+def test_list():
+    a = mg.List[int]
+    assert isinstance(a, mgtyping.Combo)
+    assert a.kind == "List"
+    assert len(a) == 1
+    assert repr(a) == "mg.List[<class 'int'>]"
+
+    b = mg.List[NumpyNodeMap]
+    assert isinstance(b, mgtyping.Combo)
+    assert b.types[0] is NumpyNodeMap
+
+    c = mg.List[(int,)]
+    assert isinstance(c, mgtyping.Combo)
+    assert c.types[0] is int
+
+    with pytest.raises(
+        TypeError, match="Expected exactly one type for kind=List, found 2"
+    ):
+        mg.List[int, float]
+
+
 def test_optional():
-    a = mg.Optional[mg.Union[int, float]]
+    a = mg.Optional[int]
     assert isinstance(a, mgtyping.Combo)
     assert a.optional
-    assert len(a) == 2
+    assert a.kind is None
+    assert len(a) == 1
+    assert repr(a) == "mg.Optional[<class 'int'>]"
 
-    b = mg.Optional[float]
+    b = mg.Optional[mg.Union[int, float]]
     assert isinstance(b, mgtyping.Combo)
     assert b.optional
-    assert len(b) == 1
+    assert b.kind == "Union"
+    assert len(b) == 2
+
+    c = mg.Optional[mg.List[int]]
+    assert isinstance(c, mgtyping.Combo)
+    assert c.optional
+    assert c.kind == "List"
+    assert len(c) == 1
+
+    d = mg.Optional[
+        int,
+    ]
+    assert isinstance(d, mgtyping.Combo)
+    assert d.optional
+    assert d.kind is None
+    assert len(d) == 1
+
+    with pytest.raises(
+        TypeError, match="Too many parameters, only one allowed for Optional"
+    ):
+        mg.Optional[int, float]
 
 
 def test_combo():
-    with pytest.raises(TypeError, match="type within Union or Optional may not be"):
-        mg.Optional[7]
+    with pytest.raises(TypeError, match="Invalid kind: foobar"):
+        mgtyping.Combo([int, float], kind="foobar")
 
-    with pytest.raises(TypeError, match="type within Union or Optional may not be"):
-        mg.Union[7, 14]
+    with pytest.raises(TypeError, match="types must be a non-empty list"):
+        mgtyping.Combo(int, kind="Union")
 
-    with pytest.raises(TypeError, match="Must be optional if only one type"):
-        mgtyping.Combo([int], optional=False)
+    with pytest.raises(TypeError, match="types must be a non-empty list"):
+        mgtyping.Combo([], kind="Union")
+
+    with pytest.raises(TypeError, match="Combo must have a kind or be optional"):
+        mgtyping.Combo([int], kind=None, optional=False)
 
     with pytest.raises(
-        TypeError, match="Strict is required for multiple allowable types"
+        TypeError,
+        match="Do not include `None` in the types. Instead, set `optional=True`",
     ):
-        mgtyping.Combo([int, float], strict=False)
+        mgtyping.Combo([int, None], kind="Union")
 
-
-def test_uniform_iterable():
-    a = mg.List[int]
-    assert isinstance(a, mgtyping.UniformIterable)
-    assert a.container_name == "List"
-    assert repr(a) == "List[<class 'int'>]"
-
-    b = mg.List[NumpyNodeMap]
-    assert isinstance(b, mgtyping.UniformIterable)
-    assert isinstance(b.element_type, NumpyNodeMap.Type)
-
-    c = mg.List[(int,)]
-    assert isinstance(c, mgtyping.UniformIterable)
-    assert c.element_type is int
-
-    with pytest.raises(TypeError, match="Too many parameters"):
-        mg.List[int, float]
+    with pytest.raises(TypeError, match="Unexpected subtype within Combo"):
+        c = mgtyping.Combo([14.2, 16.2], kind="Union")
+        c.compute_common_subtype()

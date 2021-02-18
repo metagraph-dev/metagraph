@@ -273,9 +273,6 @@ class Resolver:
         check for possible duplicate names.
         Raises AttributeError if name is not found
         """
-        if not isinstance(name, str):
-            raise TypeError(f"name must be str, not {type(name)}")
-
         # Interpret "FooBar.Type" instead of "FooBarType"
         if "." in name and name.endswith(".Type"):
             name = f"{name[:-5]}Type"
@@ -421,7 +418,7 @@ class Resolver:
     ):
         """
         Binds the variables from args and kwargs to those of the concrete algorithm.
-        "Combination" types, e.g. mg.Optional, mg. Union, etc., are handled here
+        Checks that types match signature.
         """
         if algo_name not in self.abstract_algorithms:
             raise ValueError(f'No abstract algorithm "{algo_name}" has been registered')
@@ -446,7 +443,7 @@ class Resolver:
                             key = e.args[0][36:-1]
                             extra_kwargs[key] = kwargs.pop(key)
                             continue
-                    raise
+                    raise  # pragma: no cover
         else:
             bound_args = sig.bind(*args, **kwargs)
         bound_args.apply_defaults()
@@ -462,15 +459,26 @@ class Resolver:
                             f"{arg_name} is None, but the parameter is not Optional"
                         )
 
-                # Find any satisfiable value in the Combo
-                for pt in param_type.types:
-                    err_msg = self._check_valid_arg(arg_name, arg_value, pt)
-                    if not err_msg:
-                        break
+                if param_type.kind == "List":
+                    if not isinstance(arg_value, (list, tuple)):
+                        raise TypeError(
+                            f"{arg_name} must be a list, not {type(arg_name)}"
+                        )
+                    args_to_check = [
+                        (f"{arg_name}[{iv}]", v) for iv, v in enumerate(arg_value)
+                    ]
                 else:
-                    raise TypeError(
-                        f"{arg_name} (type={type(arg_value)}) does not match any of {param_type}"
-                    )
+                    args_to_check = [(arg_name, arg_value)]
+                for name, val in args_to_check:
+                    # Find any satisfiable value in the Combo
+                    for pt in param_type.types:
+                        err_msg = self._check_valid_arg(name, val, pt)
+                        if not err_msg:
+                            break
+                    else:
+                        raise TypeError(
+                            f"{name} (type={type(val)}) does not match any of {param_type}"
+                        )
             else:
                 err_msg = self._check_valid_arg(arg_name, arg_value, param_type)
                 if err_msg:
@@ -560,8 +568,8 @@ class _ResolverRegistrar:
     Static methods to register plugins for use with a resolver.
     """
 
-    @staticmethod
-    def register(resolver: Resolver, plugins_by_name) -> None:
+    @classmethod
+    def register(cls, resolver: Resolver, plugins_by_name) -> None:
         """Register plugins for use with a resolver.
 
         Plugins will be processed in category order (see register_plugin_attributes_in_tree)
@@ -595,7 +603,7 @@ class _ResolverRegistrar:
                 items_by_plugin[plugin_name][cat] = items
                 items_by_plugin["all"][cat] |= items
 
-        _ResolverRegistrar.register_plugin_attributes_in_tree(
+        cls.register_plugin_attributes_in_tree(
             resolver, resolver, **items_by_plugin["all"]
         )
 
@@ -618,7 +626,7 @@ class _ResolverRegistrar:
             plugin_namespace._register("wrappers", Namespace())
             plugin_namespace._register("types", Namespace())
 
-            _ResolverRegistrar.register_plugin_attributes_in_tree(
+            cls.register_plugin_attributes_in_tree(
                 plugin_namespace,
                 resolver,
                 **items_by_plugin[plugin_name],
@@ -627,8 +635,9 @@ class _ResolverRegistrar:
 
         return
 
-    @staticmethod
+    @classmethod
     def register_plugin_attributes_in_tree(
+        cls,
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         abstract_types: Set[AbstractType] = set(),
@@ -684,19 +693,15 @@ class _ResolverRegistrar:
             concrete_types
         )  # copy; don't mutate original since we extend this set
 
-        _ResolverRegistrar.register_wrappers_in_tree(tree, concrete_types, wrappers)
+        cls.register_wrappers_in_tree(tree, concrete_types, wrappers)
 
         if tree_is_resolver and (len(concrete_types) > 0 or len(translators) > 0):
             # Wipe out existing translation matrices (if any)
             resolver._translation_matrices.clear()
 
-        _ResolverRegistrar.register_concrete_types_in_tree(
-            tree, resolver, concrete_types
-        )
-        _ResolverRegistrar.register_translators_in_tree(tree, resolver, translators)
-        _ResolverRegistrar.register_abstract_algorithms_in_tree(
-            tree, resolver, abstract_algorithms
-        )
+        cls.register_concrete_types_in_tree(tree, resolver, concrete_types)
+        cls.register_translators_in_tree(tree, resolver, translators)
+        cls.register_abstract_algorithms_in_tree(tree, resolver, abstract_algorithms)
 
         if tree_is_resolver:
             for compiler in compilers:
@@ -708,14 +713,15 @@ class _ResolverRegistrar:
                     )
                 tree.compilers[compiler.name] = compiler
 
-        _ResolverRegistrar.register_concrete_algorithms_in_tree(
+        cls.register_concrete_algorithms_in_tree(
             tree, resolver, concrete_algorithms, plugin_name
         )
 
         return
 
-    @staticmethod
+    @classmethod
     def register_wrappers_in_tree(
+        cls,
         tree: Union[Resolver, Namespace],
         concrete_types: Set[ConcreteType],
         wrappers: Set[Wrapper],
@@ -736,8 +742,9 @@ class _ResolverRegistrar:
 
         return
 
-    @staticmethod
+    @classmethod
     def register_concrete_types_in_tree(
+        cls,
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         concrete_types: Set[ConcreteType],
@@ -772,8 +779,9 @@ class _ResolverRegistrar:
 
         return
 
-    @staticmethod
+    @classmethod
     def register_translators_in_tree(
+        cls,
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         translators: Set[Translator],
@@ -808,8 +816,9 @@ class _ResolverRegistrar:
 
         return
 
-    @staticmethod
+    @classmethod
     def register_abstract_algorithms_in_tree(
+        cls,
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         abstract_algorithms: Set[AbstractAlgorithm],
@@ -820,7 +829,7 @@ class _ResolverRegistrar:
         tree_is_resolver = resolver is tree
 
         for aa in abstract_algorithms:
-            _ResolverRegistrar.normalize_abstract_algorithm_signature(aa)
+            cls.normalize_abstract_algorithm_signature(aa)
             if aa.name not in tree.abstract_algorithm_versions:
                 tree.abstract_algorithm_versions[aa.name] = {aa.version: aa}
                 tree.abstract_algorithms[aa.name] = aa
@@ -842,8 +851,9 @@ class _ResolverRegistrar:
                     tree.abstract_algorithms[aa.name] = aa
         return
 
-    @staticmethod
+    @classmethod
     def register_concrete_algorithms_in_tree(
+        cls,
         tree: Union[Resolver, Namespace],
         resolver: Resolver,
         concrete_algorithms: Set[ConcreteAlgorithm],
@@ -886,11 +896,11 @@ class _ResolverRegistrar:
                     )
                     if action is None or action == "ignore":
                         pass
-                    elif action == "warn":
+                    elif action == "warn":  # pragma: no cover
                         warnings.warn(message, AlgorithmWarning, stacklevel=2)
                     elif action == "raise":
                         raise ValueError(message)
-                    else:
+                    else:  # pragma: no cover
                         raise ValueError(
                             "Unknown configuration for 'core.algorithm.unknown_concrete_version'.\n"
                             f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
@@ -899,12 +909,10 @@ class _ResolverRegistrar:
                 latest_concrete_versions[ca.abstract_name] = max(
                     ca.version, latest_concrete_versions[ca.abstract_name]
                 )
-                if ca.version == abstract.version:
-                    _ResolverRegistrar.normalize_concrete_algorithm_signature(
-                        resolver, abstract, ca
-                    )
-                else:
+                if ca.version != abstract.version:
                     continue
+                else:
+                    cls.normalize_concrete_algorithm_signature(resolver, abstract, ca)
             elif tree_is_plugin:
                 abstract = resolver.abstract_algorithms.get(ca.abstract_name)
                 if abstract is None or ca.version != abstract.version:
@@ -944,7 +952,7 @@ class _ResolverRegistrar:
                         warnings.warn(message, AlgorithmWarning, stacklevel=2)
                     elif action == "raise":
                         raise ValueError(message)
-                    else:
+                    else:  # pragma: no cover
                         raise ValueError(
                             "Unknown configuration for 'core.algorithm.outdated_concrete_version'.\n"
                             f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
@@ -952,8 +960,10 @@ class _ResolverRegistrar:
                         )
         return
 
-    @staticmethod
-    def normalize_abstract_algorithm_signature(abst_algo: AbstractAlgorithm) -> None:
+    @classmethod
+    def normalize_abstract_algorithm_signature(
+        cls, abst_algo: AbstractAlgorithm
+    ) -> None:
         """
         This method "normalizes" the parameter types in the abstract algorithm signature.
         "Normalizes" means:
@@ -974,7 +984,7 @@ class _ResolverRegistrar:
         params = abs_sig.parameters
         sig_mod = _SignatureModifier(abst_algo)
         for pname, p in params.items():
-            _ResolverRegistrar.check_abstract_type(
+            cls.normalize_and_check_abstract_type(
                 p.annotation, abst_algo, sig_mod, name=pname
             )
 
@@ -982,19 +992,20 @@ class _ResolverRegistrar:
         ret = abs_sig.return_annotation
         if getattr(ret, "__origin__", None) == tuple:
             for ret_sub_index, ret_sub in enumerate(ret.__args__):
-                _ResolverRegistrar.check_abstract_type(
+                cls.normalize_and_check_abstract_type(
                     ret_sub, abst_algo, sig_mod, index=ret_sub_index
                 )
         else:
-            _ResolverRegistrar.check_abstract_type(ret, abst_algo, sig_mod)
+            cls.normalize_and_check_abstract_type(ret, abst_algo, sig_mod)
 
         return
 
-    @staticmethod
-    def check_abstract_type(
+    @classmethod
+    def normalize_and_check_abstract_type(
+        cls,
         obj,
         abst_algo: AbstractAlgorithm,
-        sig_mod: "_SignatureModifier",
+        sig_mod: Union["_SignatureModifier", mgtyping.Combo],
         *,
         name=None,
         index=None,
@@ -1009,25 +1020,22 @@ class _ResolverRegistrar:
         msg = (
             abst_algo.func.__qualname__
             + " "
-            + (f"argument {name}" if name is not None else "return type")
+            + (f'argument "{name}"' if name is not None else "return type")
         )
 
         if obj is Any or obj is NodeID:
             return
 
+        # Convert normal typing objects into Combos
         origin = getattr(obj, "__origin__", None)
         if origin == abc.Callable:
             return
         elif origin == Union:
-            new_annotation = mgtyping.Union[obj.__args__]
-            sig_mod.update_annotation(new_annotation, name=name, index=index)
-            return
+            obj = mgtyping.Union[obj.__args__]
+            sig_mod.update_annotation(obj, name=name, index=index)
         elif origin == list:
-            if isinstance(obj.__args__[0], TypeVar):
-                raise TypeError(f"{msg} must pass exactly one parameter to List.")
-            new_annotation = mgtyping.List[obj.__args__[0]]
-            sig_mod.update_annotation(new_annotation, name=name, index=index)
-            return
+            obj = mgtyping.List[obj.__args__]
+            sig_mod.update_annotation(obj, name=name, index=index)
 
         if type(obj) is type:
             if issubclass(obj, AbstractType):
@@ -1035,15 +1043,30 @@ class _ResolverRegistrar:
                 return
             elif issubclass(obj, ConcreteType):
                 raise TypeError(f"{msg} may not have Concrete types in signature")
-            # Non-abstract and non-concrete type class is assumed to be Python type
+            else:
+                # Non-abstract and non-concrete type class is assumed to be Python type
+                pass
             return
         elif isinstance(obj, mgtyping.Combo):
-            if obj.kind not in {"python", "abstract", "node_id", "uniform_iterable"}:
-                raise TypeError(f"{msg} may not have Concrete types in Union")
-            return
-        elif isinstance(obj, mgtyping.UniformIterable):
-            if issubclass(type(obj.element_type), ConcreteType):
-                raise TypeError(f"{msg} may not have Concrete types in signature")
+            if isinstance(sig_mod, mgtyping.Combo):
+                # Optional[List] or Optional[Union] is allowed
+                if sig_mod.kind is None and sig_mod.optional and not obj.optional:
+                    sig_mod.kind = obj.kind
+                    sig_mod.types = obj.types
+                    obj = sig_mod
+                else:
+                    # Everything else is not allowed
+                    raise TypeError(
+                        "Nesting a Combo type inside a Combo type is not allowed"
+                    )
+            # Normalize and check nested types
+            for combo_idx, typ_ in enumerate(obj.types):
+                # obj (a Combo) masquerades as sig_mod during this call
+                cls.normalize_and_check_abstract_type(
+                    typ_, abst_algo, sig_mod=obj, name=name, index=combo_idx
+                )
+            # This must be done after all nested types have been upgraded
+            obj.compute_common_subtype()
             return
         elif isinstance(obj, AbstractType):
             return
@@ -1055,9 +1078,12 @@ class _ResolverRegistrar:
             wrong_type_str = f"typing.{obj._name}"
         raise TypeError(f"{msg} may not be {wrong_type_str}")
 
-    @staticmethod
+    @classmethod
     def normalize_concrete_algorithm_signature(
-        resolver: Resolver, abstract: AbstractAlgorithm, concrete: ConcreteAlgorithm
+        cls,
+        resolver: Resolver,
+        abstract: AbstractAlgorithm,
+        concrete: ConcreteAlgorithm,
     ) -> None:
         """
         This method checks that the concrete and abstract signatures match, e.g. 
@@ -1114,7 +1140,7 @@ class _ResolverRegistrar:
                 # Handle "include_resolver" logic; algo should not declare default,
                 # but we add a default to make things easier for exact dispatching
                 if conc_param.default is not inspect._empty:
-                    raise TypeError('"resolver" should not have a default')
+                    raise TypeError('"resolver" cannot have a default')
                 sig_mod.update_default(None, name=conc_param_name)
             elif conc_param_name not in abst_sig.parameters:
                 # Extra concrete params must declare a default value
@@ -1125,6 +1151,7 @@ class _ResolverRegistrar:
                     )
             else:
                 abst_param = abst_sig.parameters[conc_param_name]
+                abst_type = abst_param.annotation
 
                 # Concrete parameters should never define a default value
                 # They inherit the default from the abstract signature
@@ -1133,28 +1160,24 @@ class _ResolverRegistrar:
                         f'[{concrete.func.__qualname__}] argument "{conc_param_name}" declares '
                         f"a default value; default values can only be defined in the abstract signature"
                     )
+                # If abstract defines a default, update concrete with the same default
+                if abst_param.default is not inspect._empty:
+                    sig_mod.update_default(abst_param.default, name=conc_param_name)
 
-                abst_type = abst_param.annotation
-                conc_type = _ResolverRegistrar.normalize_concrete_type(
+                # Normalize and check concrete parameter
+                conc_type = cls.normalize_concrete_type(
                     resolver,
                     conc_param.annotation,
                     abst_type,
                     sig_mod,
                     name=conc_param_name,
                 )
-
-                # If abstract defines a default, update concrete with the same default
-                if abst_param.default is not inspect._empty:
-                    sig_mod.update_default(abst_param.default, name=conc_param_name)
-
-                _ResolverRegistrar.check_concrete_algorithm_parameter(
-                    concrete, conc_param_name, abst_type, conc_type
+                cls.check_concrete_type(
+                    concrete, conc_type, abst_type, name=conc_param_name
                 )
 
         abst_ret = abst_sig.return_annotation
-        conc_ret = _ResolverRegistrar.normalize_concrete_type(
-            resolver, conc_sig.return_annotation, abst_ret, sig_mod
-        )
+        conc_ret = conc_sig.return_annotation
         # Normalize return type, which might be a tuple
         if getattr(conc_ret, "__origin__", None) == tuple:
             if len(abst_ret.__args__) != len(conc_ret.__args__):
@@ -1165,41 +1188,113 @@ class _ResolverRegistrar:
             for index, (conc_ret_sub_type, abst_ret_sub_type) in enumerate(
                 zip(conc_ret.__args__, abst_ret.__args__)
             ):
-                conc_ret_sub_type_normalized = _ResolverRegistrar.normalize_concrete_type(
+                # Normalize and check concrete return subtype
+                conc_ret_sub_type_normalized = cls.normalize_concrete_type(
                     resolver, conc_ret_sub_type, abst_ret_sub_type, sig_mod, index=index
                 )
-                _ResolverRegistrar.check_concrete_algorithm_return_signature(
+                cls.check_concrete_type(
                     concrete, conc_ret_sub_type_normalized, abst_ret_sub_type
                 )
         else:
-            _ResolverRegistrar.check_concrete_algorithm_return_signature(
-                concrete, conc_ret, abst_ret
+            # Normalize and check concrete return type
+            conc_ret = cls.normalize_concrete_type(
+                resolver, conc_ret, abst_ret, sig_mod
             )
+            cls.check_concrete_type(concrete, conc_ret, abst_ret)
 
         return
 
-    @staticmethod
-    def check_concrete_algorithm_parameter(
-        concrete: ConcreteAlgorithm, conc_param_name: str, abst_type, conc_type,
+    @classmethod
+    def normalize_concrete_type(
+        cls,
+        resolver: Resolver,
+        conc_type,
+        abst_type,
+        sig_mod: Union["_SignatureModifier", mgtyping.Combo],
+        *,
+        name=None,
+        index=None,
+    ):
+        """
+        Converts ConcreteType classes into instances.
+        For example, NumpyNodeMapType -> NumpyNodeMapType()
+        """
+
+        # Convert normal typing objects into Combos
+        origin = getattr(conc_type, "__origin__", None)
+        if origin == Union:
+            conc_type = mgtyping.Union[conc_type.__args__]
+            sig_mod.update_annotation(conc_type, name=name, index=index)
+        elif origin == list:
+            conc_type = mgtyping.List[conc_type.__args__]
+            sig_mod.update_annotation(conc_type, name=name, index=index)
+
+        if type(conc_type) is type and issubclass(conc_type, ConcreteType):
+            conc_type = conc_type()
+            sig_mod.update_annotation(conc_type, name=name, index=index)
+        elif isinstance(conc_type, ConcreteType):
+            return conc_type
+        elif isinstance(conc_type, mgtyping.Combo):
+            if isinstance(sig_mod, mgtyping.Combo):
+                # Optional[List] or Optional[Union] is allowed
+                if sig_mod.kind is None and sig_mod.optional and not conc_type.optional:
+                    sig_mod.kind = conc_type.kind
+                    sig_mod.types = conc_type.types
+                    conc_type = sig_mod
+                else:
+                    # Everything else is not allowed
+                    raise TypeError(
+                        "Nesting a Combo type inside a Combo type is not allowed"
+                    )
+            # Get the first type from abst_type, which is sufficient for normalization purposes
+            # because of the requirement for a common subtype within a Combo
+            sub_abst_type = (
+                abst_type.types[0] if isinstance(abst_type, mgtyping.Combo) else None
+            )
+            # Normalize nested types
+            for combo_idx, typ_ in enumerate(conc_type.types):
+                # conc_type (a Combo) masquerades as sig_mod during this call
+                cls.normalize_concrete_type(
+                    resolver,
+                    typ_,
+                    sub_abst_type,
+                    sig_mod=conc_type,
+                    name=name,
+                    index=combo_idx,
+                )
+            # This must be done after all nested types have been upgraded
+            conc_type.compute_common_subtype()
+        elif conc_type in resolver.class_to_concrete:
+            if isinstance(abst_type, AbstractType):
+                conc_type = resolver.class_to_concrete[conc_type]()
+                sig_mod.update_annotation(conc_type, name=name, index=index)
+            else:
+                # If the abstract signatures uses a plain Python object
+                # which happens to be a value_type of a ConcreteType, we leave it alone
+                pass
+
+        return conc_type
+
+    @classmethod
+    def check_concrete_type(
+        cls, conc_algo: ConcreteAlgorithm, conc_type, abst_type, *, name=None
     ) -> None:
         """
         This is a helper for normalize_concrete_algorithm_signature.
         This method verifies that an individual pair of abstract and concrete types match.
         """
-        if isinstance(conc_type, mgtyping.UniformIterable):
-            is_concrete = isinstance(conc_type.element_type, ConcreteType)
-            valid_concrete = is_concrete and issubclass(
-                conc_type.element_type.abstract, abst_type.element_type.__class__,
-            )
-            valid_non_concrete = (
-                not is_concrete and conc_type.element_type == abst_type.element_type
-            )
-            if not valid_concrete and not valid_non_concrete:
-                raise TypeError(f"{conc_type} does not match {abst_type}")
-        elif isinstance(conc_type, mgtyping.Combo):
+        msg = (
+            conc_algo.func.__qualname__
+            + " "
+            + (f'argument "{name}"' if name is not None else "return type")
+        )
+
+        if isinstance(conc_type, mgtyping.Combo):
+            if name is None:
+                raise TypeError(f"{msg} may not be a Combo")
             if abst_type.optional != conc_type.optional:
                 raise TypeError(
-                    f"{conc_type} does not match optional flag in {abst_type}"
+                    f"{msg}: {conc_type} does not match optional flag in {abst_type}"
                 )
             unmatched_types = []
             # Verify that each item in conc_type matches at least one item in abst_type
@@ -1213,95 +1308,19 @@ class _ResolverRegistrar:
                 else:
                     unmatched_types.append(ct)
             if unmatched_types:
-                raise TypeError(f"{unmatched_types} not found in {abst_type}")
+                raise TypeError(f"{msg}: {unmatched_types} not found in {abst_type}")
         elif isinstance(conc_type, ConcreteType):
             if not issubclass(conc_type.abstract, abst_type.__class__):
                 raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param_name}" does '
-                    "not have type compatible with abstract function signature"
+                    f"{msg} {conc_type} is not a concrete type of {abst_type}"
                 )
             if conc_type.abstract_instance is not None:
-                raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param_name}" specifies '
-                    "abstract properties"
-                )
+                raise TypeError(f"{msg} specifies abstract properties")
         else:
             # regular Python types need to match exactly
             if abst_type != conc_type:
                 raise TypeError(
-                    f'{concrete.func.__qualname__} argument "{conc_param_name}" does not '
-                    "match abstract function signature"
-                )
-
-    @staticmethod
-    def normalize_concrete_type(
-        resolver: Resolver,
-        conc_type,
-        abst_type,
-        sig_mod: "_SignatureModifier",
-        *,
-        name=None,
-        index=None,
-    ):
-        """
-        Coerces typing.Union, typing.Optional, etc. to mg.Union, mg.Optional, etc.
-        """
-        origin = getattr(conc_type, "__origin__", None)
-
-        if isinstance(abst_type, mgtyping.Combo) and not isinstance(
-            conc_type, mgtyping.Combo
-        ):
-            if origin == Union:
-                conc_type = mgtyping.Combo(conc_type.__args__, strict=abst_type.strict)
-            else:
-                conc_type = mgtyping.Combo(
-                    [conc_type], optional=abst_type.optional, strict=abst_type.strict
-                )
-        elif isinstance(abst_type, mgtyping.UniformIterable) and not isinstance(
-            conc_type, mgtyping.UniformIterable
-        ):
-            if origin == List:
-                conc_type = mgtyping.List[conc_type.__args__[0]]
-            else:
-                conc_type = mgtyping.Combo(conc_type)
-        elif isinstance(abst_type, AbstractType) and not isinstance(
-            conc_type, ConcreteType
-        ):
-            if type(conc_type) is type and issubclass(conc_type, ConcreteType):
-                conc_type = conc_type()
-            # handle Python classes used as concrete types
-            elif conc_type in resolver.class_to_concrete:
-                conc_type = resolver.class_to_concrete[conc_type]()
-            else:
-                raise TypeError(
-                    f"'{conc_type}' is not a concrete type of '{abst_type}'"
-                )
-        else:
-            return conc_type
-        sig_mod.update_annotation(conc_type, name=name, index=index)
-
-        return conc_type
-
-    @staticmethod
-    def check_concrete_algorithm_return_signature(
-        concrete: ConcreteAlgorithm, conc_ret, abst_ret
-    ) -> None:
-        """
-        This method checks that the non-"combination" abstract and concrete types match. 
-        "Combination" types are tuple types, optional types, lislt types, etc.
-        """
-        if isinstance(conc_ret, ConcreteType):
-            if not issubclass(conc_ret.abstract, abst_ret.__class__):
-                raise TypeError(
-                    f"{concrete.func.__qualname__} return type is not compatible "
-                    "with abstract function signature"
-                )
-        else:
-            # regular Python types need to match exactly
-            if abst_ret != conc_ret:
-                raise TypeError(
-                    f"{concrete.func.__qualname__} return type does not "
-                    "match abstract function signature"
+                    f"{msg}: {conc_type} does not match {abst_type} in abstract signature"
                 )
 
 
@@ -1362,7 +1381,7 @@ class Dispatcher:
         abstract_algo = resolver.abstract_algorithms[algo_name].func
         self.__name__ = algo_name
         self.__doc__ = abstract_algo.__doc__
-        self.__signature__ = inspect.signature(abstract_algo)
+        self.__signature__ = resolver.abstract_algorithms[algo_name].__signature__
         self.__wrapped__ = abstract_algo
 
     def __call__(self, *args, **kwargs):

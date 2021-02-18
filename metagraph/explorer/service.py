@@ -1,8 +1,6 @@
 import os
 import uuid
 import asyncio
-import string
-import random
 import websockets
 import webbrowser
 import tempfile
@@ -17,7 +15,7 @@ try:
 
     has_nest_asyncio = True
     nest_asyncio.apply()
-except ImportError:
+except ImportError:  # pragma: no cover
     has_nest_asyncio = False
 
 
@@ -83,7 +81,7 @@ def find_open_port(initial_port=5678):
                 if config.get("explorer.verbose", False):
                     print(f"Port {port} is already in use")
                 port += 1
-            else:
+            else:  # pragma: no cover
                 # something else raised the socket.error exception
                 if config.get("explorer.verbose", False):
                     print(e)
@@ -101,17 +99,17 @@ class Service:
         self._is_running = True
         self.server = None  # This will be monkey-patched later
 
-    async def register(self, websocket):
+    async def register(self, websocket):  # pragma: no cover
         self.active_connections.add(websocket)
 
-    async def unregister(self, websocket):
+    async def unregister(self, websocket):  # pragma: no cover
         self.active_connections.remove(websocket)
         if not self.active_connections:
             self.server.close()
             if not self._embedded:
                 asyncio.get_event_loop().stop()
 
-    async def handler(self, websocket, path):
+    async def handler(self, websocket, path):  # pragma: no cover
         await self.register(websocket)
         try:
             async for message in websocket:
@@ -135,9 +133,13 @@ _TEST_FLAG = False
 
 
 def main(resolver, embedded=True):
-    if embedded and not has_nest_asyncio:
+    if embedded and not has_nest_asyncio:  # pragma: no cover
         print("nest_asyncio is required to use the explorer from within a notebook")
         embedded = False
+
+    if _TEST_FLAG:  # only used for unit testing
+        prev_explorer_verbose = config.get("explorer.verbose", False)
+        config.set({"explorer.verbose": True})
 
     port = find_open_port()
     try:
@@ -150,19 +152,23 @@ def main(resolver, embedded=True):
         asyncio.get_event_loop().run_until_complete(start_service())
         if config.get("explorer.verbose", False):
             print(f"serving explorer on port {port}")
-    except RuntimeError:
+    except RuntimeError:  # pragma: no cover
         import traceback
 
         traceback.print_exc()
         return
 
-    if _TEST_FLAG:
+    if _TEST_FLAG:  # only used for unit testing
         text = render_text(resolver, port)
+        f = write_tempfile(text)
+        f.seek(0)
+        text_back = f.read().decode("ascii")
         loop = asyncio.get_event_loop()
         loop.close()
-        return text
+        config.set({"explorer.verbose": prev_explorer_verbose})
+        return text_back
 
-    if embedded:
+    if embedded:  # pragma: no cover
         from IPython.core.display import HTML
 
         # import panel
@@ -171,7 +177,7 @@ def main(resolver, embedded=True):
         text = render_text(resolver, port)
         return HTML(text)
         # return panel.pane.markup.HTML(text, style={'width': '100%'}, sizing_mode='stretch_both')
-    else:
+    else:  # pragma: no cover
         text = render_text(resolver, port, "mgExplorer")
         f = write_tempfile(text)
         webbrowser.open(f"file://{f.name}")

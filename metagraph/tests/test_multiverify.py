@@ -19,7 +19,6 @@ from metagraph.plugins.python.types import PythonNodeMapType
 
 def test_multiresult_consistent_length(default_plugin_resolver):
     mv = MultiVerify(default_plugin_resolver)
-    mr = MultiResult(mv, {"foo.bar": (1, 2, "c"), "foo.bar2": (3, 4, "f")})
 
     with pytest.raises(ValueError, match="length mismatch"):
         MultiResult(

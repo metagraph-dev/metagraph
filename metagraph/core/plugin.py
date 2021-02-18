@@ -120,21 +120,6 @@ class ConcreteType:
         # Property caches live with each ConcreteType, allowing them to be easily accessible
         # separate from the Resolver
         cls._typecache = TypeCache()
-        # Ensure ConcreteType.method decorators are used in ConcreteType class
-        # They are intended only to be used in a Wrapper class
-        for name, val in cls.__dict__.items():
-            if getattr(val, "_is_type_method", False):
-                raise TypeError(
-                    "Invalid decorator: `ConcreteType.method` should only be used in a Wrapper class"
-                )
-            elif getattr(val, "_is_type_classmethod", False):
-                raise TypeError(
-                    "Invalid decorator: `ConcreteType.classmethod` should only be used in a Wrapper class"
-                )
-            elif getattr(val, "_is_type_staticmethod", False):
-                raise TypeError(
-                    "Invalid decorator: `ConcreteType.staticmethod` should only be used in a Wrapper class"
-                )
 
     @classmethod
     def get_typeinfo(cls, value):
@@ -167,7 +152,7 @@ class ConcreteType:
         for prop, val in props.items():
             if prop in aprops:
                 raise ValueError(
-                    '"Cannot preset "{prop}"; already set in abstract properties'
+                    f'Cannot preset "{prop}"; already set in abstract properties'
                 )
             aprops[prop] = val
 
@@ -526,7 +511,7 @@ class Translator:
             resolver = self.resolver  # use bound resolver
 
         if self._include_resolver:
-            if resolver is None:
+            if resolver is None:  # pragma: no cover
                 raise ValueError("`resolver` is None, but is required by translator")
             if hasattr(resolver, "_resolver"):  # DaskResolver
                 resolver = resolver._resolver
@@ -656,7 +641,7 @@ class ConcreteAlgorithm:
             func = self.func
 
         if self._include_resolver:
-            if resolver is None:
+            if resolver is None:  # pragma: no cover
                 raise ValueError(
                     "`resolver` is None, but is required by concrete algorithm"
                 )
