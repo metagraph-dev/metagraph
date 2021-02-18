@@ -222,7 +222,7 @@ def test_wrapper():
     # This will fail
     with pytest.raises(TypeError, match="0 is not an instance of str"):
         StrNumZeroOnlyDefaultErrorMessage(0)
-    with pytest.raises(TypeError, match="0 is not an instance of \('str',\)"):
+    with pytest.raises(TypeError, match=r"0 is not an instance of \('str',\)"):
         StrNumZeroOnlyDefaultErrorMessage(0, check_tuple=True)
 
 

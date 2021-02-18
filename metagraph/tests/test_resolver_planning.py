@@ -205,7 +205,8 @@ def test_build_and_run_with_list_translator(example_resolver):
     res = example_resolver
     StrNum = res.wrappers.MyNumericAbstractType.StrNum
     add_me_up = list(res.plugins.example_plugin.concrete_algorithms["add_me_up"])[0]
-    inputs = [StrNum("1"), StrNum("2"), StrNum("3"), StrNum("4"), StrNum("5")]
+    # Notice some of these are plain ints and don't need translation
+    inputs = [StrNum("1"), StrNum("2"), 3, 4, 5]
 
     plan = AlgorithmPlan.build(res, add_me_up, inputs)
     assert not plan.unsatisfiable

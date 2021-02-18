@@ -22,7 +22,7 @@ from metagraph.core.resolver import (
 from metagraph.core.planning import MultiStepTranslator, AlgorithmPlan
 from metagraph import config
 import typing
-from typing import Tuple, List, Dict, Any
+from typing import Tuple, Union, List, Dict, Any, Optional
 from metagraph.core import typing as mgtyping
 from collections import OrderedDict, defaultdict
 
@@ -239,6 +239,15 @@ def test_register_errors():
         registry.register(conc_algo_with_defaults)
         res.register(registry.plugins)
 
+    @concrete_algorithm("testing.myalgo", include_resolver=True)
+    def conc_algo_with_resolver_default(a: Concrete1, *, resolver=14) -> Concrete2:
+        return a
+
+    with pytest.raises(TypeError, match='"resolver" cannot have a default'):
+        registry = PluginRegistry("test_register_errors_default_plugin")
+        registry.register(conc_algo_with_resolver_default)
+        res.register(registry.plugins)
+
     @abstract_algorithm("testing.multi_ret")
     def my_multi_ret_algo() -> Tuple[int, int, int]:  # pragma: no cover
         pass
@@ -316,6 +325,85 @@ def test_register_errors():
     ):
         registry = PluginRegistry("test_register_errors_default_plugin")
         registry.register(abst_algo_bad_parameter_type_2)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    @abstract_algorithm("testing.abst_algo_combo_combo_bad")
+    def abst_algo_combo_combo_bad(x: Union[List[int], List[float]]) -> int:
+        pass
+
+    with pytest.raises(
+        TypeError, match="Nesting a Combo type inside a Combo type is not allowed"
+    ):
+        registry = PluginRegistry("test_register_errors_combo_combo")
+        registry.register(abst_algo_combo_combo_bad)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    @abstract_algorithm("testing.abst_algo_combo_combo_good")
+    def abst_algo_combo_combo_good(x: Optional[List[int]]) -> int:
+        pass
+
+    @concrete_algorithm("testing.abst_algo_combo_combo_good")
+    def my_algo_combo_combo_good(x: Optional[List[int]]) -> int:
+        return 12
+
+    registry = PluginRegistry("test_register_good_combo_combo")
+    registry.register(abst_algo_combo_combo_good)
+    registry.register(my_algo_combo_combo_good)
+    res_tmp = Resolver()
+    res_tmp.register(registry.plugins)
+
+    @concrete_algorithm("testing.abst_algo_combo_combo_good")
+    def my_algo_combo_combo_not_so_good(x: Union[List[int], List[float]]) -> int:
+        return 12
+
+    with pytest.raises(
+        TypeError, match="Nesting a Combo type inside a Combo type is not allowed"
+    ):
+        registry = PluginRegistry("test_register_good_combo_combo")
+        registry.register(abst_algo_combo_combo_good)
+        registry.register(my_algo_combo_combo_not_so_good)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    # Return type cannot be a Combo
+    @abstract_algorithm("testing.combos")
+    def abst_combos(x: Union[int, float]) -> int:
+        pass
+
+    @concrete_algorithm("testing.combos")
+    def conc_combos(x: Union[int, float]) -> Union[int, float]:
+        return x
+
+    with pytest.raises(TypeError, match="return type may not be a Combo"):
+        registry = PluginRegistry("test_register_combos")
+        registry.register(abst_combos)
+        registry.register(conc_combos)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    # Optional flag of a Combo must match what the abstract definition
+    @concrete_algorithm("testing.combos")
+    def conc_combos2(x: Optional[Union[int, float]]) -> int:
+        return x
+
+    with pytest.raises(TypeError, match="does not match optional flag in"):
+        registry = PluginRegistry("test_register_combos")
+        registry.register(abst_combos)
+        registry.register(conc_combos2)
+        res_tmp = Resolver()
+        res_tmp.register(registry.plugins)
+
+    # Subtypes of a Combo must match those in the abstract definition
+    @concrete_algorithm("testing.combos")
+    def conc_combos3(x: Union[complex, str]) -> int:
+        return x
+
+    with pytest.raises(TypeError, match="not found in mg.Union"):
+        registry = PluginRegistry("test_register_combos")
+        registry.register(abst_combos)
+        registry.register(conc_combos3)
         res_tmp = Resolver()
         res_tmp.register(registry.plugins)
 
@@ -766,6 +854,9 @@ def test_call_using_dispatcher(example_resolver):
 
     with pytest.raises(TypeError, match="`fizzbuzz` must be one of"):
         res.algos.fizzbuzz_club(34)
+
+    with pytest.raises(TypeError, match="x must be a list, not"):
+        res.algos.add_me_up(42)
 
 
 def test_call_using_exact_dispatcher(example_resolver):

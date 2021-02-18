@@ -387,17 +387,19 @@ class AlgorithmPlan:
 
                 item_type = param_type.types[0]
                 if isinstance(item_type, ConcreteType):
-                    target_param_types = [
+                    target_types = [
                         cls._check_arg_needs_translation(
                             resolver, arg_name, arg_value_element, item_type
                         )
                         for arg_value_element in arg_value
                     ]
-                    num_unique_target_param_types = len(set(target_param_types))
-                    if num_unique_target_param_types == 1:
-                        if target_param_types[0] is None:
-                            return
-                        return Combo([target_param_types[0]], kind="List")
+                    unique_target_types = {t for t in target_types if t is not None}
+                    if not unique_target_types:
+                        # Nothing to translate
+                        return
+                    num_unique_target_types = len(unique_target_types)
+                    if num_unique_target_types == 1:
+                        return Combo(list(unique_target_types), kind="List")
                 elif all(
                     isinstance(arg_value_element, item_type)
                     for arg_value_element in arg_value

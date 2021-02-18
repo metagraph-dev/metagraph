@@ -460,7 +460,7 @@ class Resolver:
                         )
 
                 if param_type.kind == "List":
-                    if not isinstance(arg_value, (list, type)):
+                    if not isinstance(arg_value, (list, tuple)):
                         raise TypeError(
                             f"{arg_name} must be a list, not {type(arg_name)}"
                         )
@@ -896,11 +896,11 @@ class _ResolverRegistrar:
                     )
                     if action is None or action == "ignore":
                         pass
-                    elif action == "warn":
+                    elif action == "warn":  # pragma: no cover
                         warnings.warn(message, AlgorithmWarning, stacklevel=2)
                     elif action == "raise":
                         raise ValueError(message)
-                    else:
+                    else:  # pragma: no cover
                         raise ValueError(
                             "Unknown configuration for 'core.algorithm.unknown_concrete_version'.\n"
                             f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
@@ -909,10 +909,10 @@ class _ResolverRegistrar:
                 latest_concrete_versions[ca.abstract_name] = max(
                     ca.version, latest_concrete_versions[ca.abstract_name]
                 )
-                if ca.version == abstract.version:
-                    cls.normalize_concrete_algorithm_signature(resolver, abstract, ca)
-                else:
+                if ca.version != abstract.version:
                     continue
+                else:
+                    cls.normalize_concrete_algorithm_signature(resolver, abstract, ca)
             elif tree_is_plugin:
                 abstract = resolver.abstract_algorithms.get(ca.abstract_name)
                 if abstract is None or ca.version != abstract.version:
@@ -952,7 +952,7 @@ class _ResolverRegistrar:
                         warnings.warn(message, AlgorithmWarning, stacklevel=2)
                     elif action == "raise":
                         raise ValueError(message)
-                    else:
+                    else:  # pragma: no cover
                         raise ValueError(
                             "Unknown configuration for 'core.algorithm.outdated_concrete_version'.\n"
                             f"Expected 'ignore', 'warn', or 'raise'.  Got: {action!r}.  Raising.\n\n"
@@ -1140,7 +1140,7 @@ class _ResolverRegistrar:
                 # Handle "include_resolver" logic; algo should not declare default,
                 # but we add a default to make things easier for exact dispatching
                 if conc_param.default is not inspect._empty:
-                    raise TypeError('"resolver" should not have a default')
+                    raise TypeError('"resolver" cannot have a default')
                 sig_mod.update_default(None, name=conc_param_name)
             elif conc_param_name not in abst_sig.parameters:
                 # Extra concrete params must declare a default value
