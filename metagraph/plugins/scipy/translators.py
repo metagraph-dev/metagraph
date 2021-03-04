@@ -34,7 +34,7 @@ if has_scipy and has_networkx:
 
         weight = x.edge_weight_label if aprops["edge_type"] == "map" else None
         m = nx.convert_matrix.to_scipy_sparse_matrix(
-            x.value, nodelist=node_list, weight=weight,
+            x.value, nodelist=node_list, weight=weight, dtype=aprops["edge_dtype"]
         )
 
         return ScipyGraph(m, node_list, node_vals, aprops=aprops)
