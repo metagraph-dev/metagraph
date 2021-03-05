@@ -1,5 +1,6 @@
 import warnings
 import numpy as np
+import metagraph as mg
 from metagraph import concrete_algorithm, NodeID
 from metagraph.plugins import has_scipy
 from .types import ScipyEdgeSet, ScipyEdgeMap, ScipyGraph
@@ -269,6 +270,8 @@ if has_scipy:
     @concrete_algorithm("util.graph.assign_uniform_weight")
     def ss_graph_assign_uniform_weight(graph: ScipyGraph, weight: Any) -> ScipyGraph:
         matrix = graph.value.copy()
+        dtype = mg.dtypes.dtype(type(weight))
+        matrix.data = matrix.data.astype(dtype)
         matrix.data.fill(weight)
         return ScipyGraph(matrix, graph.node_list, graph.node_vals)
 
