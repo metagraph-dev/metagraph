@@ -13,43 +13,39 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-      - name: Setup conda env
+      - name: Create env
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          activate-environment: mg
+          environment-file: continuous_integration/environment.yml
+      - name: Update env
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda config --set always_yes yes --set changeps1 no
-          conda update -q conda
-          conda info -a
           conda install -q conda-build
-          conda env create -f continuous_integration/environment.yml
-          conda activate mg
           pip install -e .
       - name: Lint with Black
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
           black metagraph *.py --check --diff
       - name: Pytest
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
           pytest metagraph
           pytest metagraph --dask --cov-append
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
           conda install -c conda-forge coveralls
           coveralls --service=github
       - name: Conda Build
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
           conda build -c defaults -c conda-forge --python 3.8 continuous_integration/conda
           # This doesn't rebuild, but simply computes the name of the file that was previously built
           OUTPUT=$(conda build --output -c defaults -c conda-forge --python 3.8 continuous_integration/conda)
@@ -83,13 +79,14 @@ jobs:
         with:
           name: built_package
           path: ./artifact_storage
-      - name: Setup conda env
+      - name: Create env
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          auto-update-conda: true
+          python-version: ${{ matrix.pyver }}
+      - name: Update env
+        shell: bash -l {0}
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda config --set always_yes yes --set changeps1 no
-          conda update -q conda
-          conda create -n mg python=${{ matrix.pyver }}
-          conda activate mg
           # Install built_packages
           cd ./artifact_storage
           tar -xvf output.tar
@@ -101,9 +98,8 @@ jobs:
           conda update -c defaults -c conda-forge metagraph-dev
           conda list
       - name: Pytest
+        shell: bash -l {0}
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda activate mg
           python -m metagraph.tests
           python -m metagraph.tests --dask
 
@@ -123,10 +119,10 @@ jobs:
         if: contains(github.ref, 'refs/tags/')
         run: |
           echo "AC_LABEL=main" >> $GITHUB_ENV
+      - name: Create env
+        uses: conda-incubator/setup-miniconda@v2
       - name: Deploy to Anaconda Cloud
         run: |
-          source "$CONDA/etc/profile.d/conda.sh"
-          conda config --set always_yes yes --set changeps1 no
           conda install -q anaconda-client
           cd ./artifact_storage
           tar -xvf output.tar
