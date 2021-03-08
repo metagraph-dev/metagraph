@@ -29,8 +29,6 @@ jobs:
           environment-file: continuous_integration/environment.yml
       - name: Update env
         run: |
-          conda config --set always_yes yes --set changeps1 no
-          conda info -a
           conda install -q conda-build
           pip install -e .
       - name: Lint with Black
@@ -89,7 +87,6 @@ jobs:
       - name: Update env
         shell: bash -l {0}
         run: |
-          conda config --set always_yes yes --set changeps1 no
           # Install built_packages
           cd ./artifact_storage
           tar -xvf output.tar
@@ -126,7 +123,7 @@ jobs:
         uses: conda-incubator/setup-miniconda@v2
       - name: Deploy to Anaconda Cloud
         run: |
-          conda install -q anaconda-client -y
+          conda install -q anaconda-client
           cd ./artifact_storage
           tar -xvf output.tar
           rm output.tar
