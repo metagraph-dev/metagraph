@@ -14,9 +14,11 @@ setup(
 The find_plugins function should return a metagraph.PluginRegistry of the relevant plugins.
 """
 
-from typing import Set, Dict, Callable
-import importlib_metadata
-from .plugin_registry import PluginRegistry
+# Check if importlib.metadata is available (new in py=3.8)
+try:
+    from importlib import metadata
+except ImportError:
+    import importlib_metadata as metadata
 
 
 class EntryPointsError(Exception):
@@ -24,7 +26,7 @@ class EntryPointsError(Exception):
 
 
 def load_plugins():
-    entry_points = importlib_metadata.entry_points().get("metagraph.plugins", [])
+    entry_points = metadata.entry_points().get("metagraph.plugins", [])
     plugins = dict()
     seen = set()
     for entry_point in entry_points:
