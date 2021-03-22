@@ -22,5 +22,6 @@ dependencies:
   - pandas
   - scipy
   - dask
+  - conda-forge::grblas
   - conda-forge::donfig
   - conda-forge::websockets
