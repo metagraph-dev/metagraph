@@ -25,7 +25,7 @@ requirements:
     - donfig
     - grblas >=1.3.2,<1.3.4
     - dask
-    - python-graphviz
+    - python-graphviz >=2.47
     - nest-asyncio
     - websockets
 
