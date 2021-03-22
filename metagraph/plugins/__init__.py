@@ -35,7 +35,8 @@ except ImportError:  # pragma: no cover
 try:
     import grblas as _grblas
 
-    if _grblas.__version__ < "v1.3.2":  # pragma: no cover
+    # older versions of grblas had a "v" in their version string
+    if _grblas.__version__.strip("v") < "1.3.2":  # pragma: no cover
         warnings.warn(
             f"grblas {_grblas.__version__} is installed, but >=v1.3.2 is required"
         )
