@@ -9,7 +9,7 @@ formats:
   - pdf
 
 conda:
-  environment: dev-environment.yml
+  environment: docs-environment.yml
 
 python:
   version: 3.8  # this doesn't do anything
