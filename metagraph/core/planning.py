@@ -1,3 +1,4 @@
+import typing
 from typing import List, Dict, Optional, Any
 from .plugin import ConcreteType
 from .typing import Combo
@@ -411,12 +412,11 @@ class AlgorithmPlan:
                 return cls._check_arg_needs_translation(
                     resolver, arg_name, arg_value, item_type
                 )
-        elif getattr(param_type, "__origin__", None) == abc.Callable:
+        elif typing.get_origin(param_type) == abc.Callable:
             if not callable(arg_value):
                 raise TypeError(f"{arg_name} must be Callable, not {type(arg_value)}")
-            # TODO consider using typing.get_type_hints
-            required_input_types = param_type.__args__[:-1]
-            required_return_type = param_type.__args__[-1]
+
+            required_input_types, required_return_type = typing.get_args(param_type)
             if isinstance(arg_value, np.ufunc):
                 if len(required_input_types) != arg_value.nin:
                     raise TypeError(

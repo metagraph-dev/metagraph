@@ -91,10 +91,12 @@ def test_combo():
     with pytest.raises(TypeError, match="Invalid kind: foobar"):
         mgtyping.Combo([int, float], kind="foobar")
 
-    with pytest.raises(TypeError, match="types must be a non-empty list"):
+    with pytest.raises(
+        TypeError, match="Expected a list of types for kind=Union, but got"
+    ):
         mgtyping.Combo(int, kind="Union")
 
-    with pytest.raises(TypeError, match="types must be a non-empty list"):
+    with pytest.raises(TypeError, match="Found an empty list of types for kind=Union"):
         mgtyping.Combo([], kind="Union")
 
     with pytest.raises(TypeError, match="Combo must have a kind or be optional"):

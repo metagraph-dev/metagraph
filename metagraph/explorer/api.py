@@ -288,7 +288,7 @@ def list_algorithm_params(resolver, abstract_pathname: str, **kwargs):
         elif issubclass(p_class, AbstractType):
             choices = list(types[p_class.__name__]["children"].keys())
             result = OrderedDict([("type", p_class.__name__), ("choices", choices)])
-        elif getattr(p, "__origin__", None) == collections.abc.Callable:
+        elif typing.get_origin(p) == collections.abc.Callable:
             result = OrderedDict([("type", p._name), ("choices", [p._name])])
         elif p is typing.Any:
             result = OrderedDict([("type", "Any"), ("choices", ["Any"])])
@@ -303,8 +303,8 @@ def list_algorithm_params(resolver, abstract_pathname: str, **kwargs):
         params[pname] = resolve_parameter(p.annotation)
 
     returns = []
-    if getattr(sig.return_annotation, "__origin__", None) is tuple:
-        for ret in sig.return_annotation.__args__:
+    if typing.get_origin(sig.return_annotation) is tuple:
+        for ret in typing.get_args(sig.return_annotation):
             returns.append(resolve_parameter(ret))
     else:
         returns.append(resolve_parameter(sig.return_annotation))

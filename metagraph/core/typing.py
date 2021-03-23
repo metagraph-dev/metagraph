@@ -47,8 +47,13 @@ class Combo:
         if kind not in {"List", "Union", None}:
             raise TypeError(f"Invalid kind: {kind}")
 
-        if not hasattr(types, "__len__") or len(types) == 0:
-            raise TypeError("types must be a non-empty list")
+        if not hasattr(types, "__len__"):
+            raise TypeError(
+                f"Expected a list of types for kind={kind}, but got {type(types)}"
+            )
+
+        if len(types) == 0:
+            raise TypeError(f"Found an empty list of types for kind={kind}")
 
         if kind in {"List", None} and len(types) > 1:
             raise TypeError(

@@ -71,7 +71,6 @@ jobs:
     strategy:
       matrix:
         pyver:
-          - 3.7
           - 3.8
     steps:
       - name: Download build artifact
@@ -93,8 +92,11 @@ jobs:
           rm output.tar
           conda install `ls`
           cd ..
+          conda list
           # Install dependencies listed in built package
           # (This is a workaround because conda does not install dependencies for local file installs)
+          conda update -c defaults -c conda-forge metagraph
+          conda list
           conda update -c defaults -c conda-forge metagraph-dev
           conda list
       - name: Pytest

@@ -13,19 +13,19 @@ build:
 
 requirements:
   build:
-    - python >=3.7
+    - python >=3.8
   run:
-    - python >=3.7
-    - importlib_metadata
+    - python >=3.8
     - numpy >=1.15
     - networkx
     - pandas
     - python-louvain
     - scipy
     - donfig
-    - grblas >=1.3.2
+    - grblas >=1.3.5
     - dask
     - python-graphviz
+    - graphviz >=2.47
     - nest-asyncio
     - websockets
 

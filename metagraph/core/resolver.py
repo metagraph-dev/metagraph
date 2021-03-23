@@ -6,6 +6,7 @@ import copy
 import inspect
 import warnings
 from collections import defaultdict, abc
+import typing
 from typing import (
     List,
     Tuple,
@@ -990,8 +991,8 @@ class _ResolverRegistrar:
 
         # Normalize return type, which might be a tuple
         ret = abs_sig.return_annotation
-        if getattr(ret, "__origin__", None) == tuple:
-            for ret_sub_index, ret_sub in enumerate(ret.__args__):
+        if typing.get_origin(ret) is tuple:
+            for ret_sub_index, ret_sub in enumerate(typing.get_args(ret)):
                 cls.normalize_and_check_abstract_type(
                     ret_sub, abst_algo, sig_mod, index=ret_sub_index
                 )
@@ -1027,14 +1028,14 @@ class _ResolverRegistrar:
             return
 
         # Convert normal typing objects into Combos
-        origin = getattr(obj, "__origin__", None)
+        origin = typing.get_origin(obj)
         if origin == abc.Callable:
             return
         elif origin == Union:
-            obj = mgtyping.Union[obj.__args__]
+            obj = mgtyping.Union[typing.get_args(obj)]
             sig_mod.update_annotation(obj, name=name, index=index)
         elif origin == list:
-            obj = mgtyping.List[obj.__args__]
+            obj = mgtyping.List[typing.get_args(obj)]
             sig_mod.update_annotation(obj, name=name, index=index)
 
         if type(obj) is type:
@@ -1179,14 +1180,14 @@ class _ResolverRegistrar:
         abst_ret = abst_sig.return_annotation
         conc_ret = conc_sig.return_annotation
         # Normalize return type, which might be a tuple
-        if getattr(conc_ret, "__origin__", None) == tuple:
-            if len(abst_ret.__args__) != len(conc_ret.__args__):
+        if typing.get_origin(conc_ret) == tuple:
+            if len(typing.get_args(abst_ret)) != len(typing.get_args(conc_ret)):
                 raise TypeError(
                     f"{concrete.func.__qualname__} return type is not compatible "
                     "with abstract function signature"
                 )
             for index, (conc_ret_sub_type, abst_ret_sub_type) in enumerate(
-                zip(conc_ret.__args__, abst_ret.__args__)
+                zip(typing.get_args(conc_ret), typing.get_args(abst_ret))
             ):
                 # Normalize and check concrete return subtype
                 conc_ret_sub_type_normalized = cls.normalize_concrete_type(
@@ -1221,12 +1222,12 @@ class _ResolverRegistrar:
         """
 
         # Convert normal typing objects into Combos
-        origin = getattr(conc_type, "__origin__", None)
+        origin = typing.get_origin(conc_type)
         if origin == Union:
-            conc_type = mgtyping.Union[conc_type.__args__]
+            conc_type = mgtyping.Union[typing.get_args(conc_type)]
             sig_mod.update_annotation(conc_type, name=name, index=index)
         elif origin == list:
-            conc_type = mgtyping.List[conc_type.__args__]
+            conc_type = mgtyping.List[typing.get_args(conc_type)]
             sig_mod.update_annotation(conc_type, name=name, index=index)
 
         if type(conc_type) is type and issubclass(conc_type, ConcreteType):
@@ -1358,12 +1359,13 @@ class _SignatureModifier:
         sig = self.algo.__signature__
         if index is not None:
             assert (
-                getattr(sig.return_annotation, "__origin__", None) == tuple
+                typing.get_origin(sig.return_annotation) == tuple
             ), "Use of index only supported for `Tuple[]` return type"
             new_rets = (
                 new_return if i == index else r
-                for i, r in enumerate(sig.return_annotation.__args__)
+                for i, r in enumerate(typing.get_args(sig.return_annotation))
             )
+            # TODO: check if this breaks in Python 3.9+
             sig.return_annotation.__args__ = tuple(new_rets)
         else:
             self.algo.__signature__ = sig.replace(return_annotation=new_return)
