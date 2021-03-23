@@ -1,0 +1,14 @@
+name: mg
+dependencies:
+# dev environment
+  - python=3.7
+  - python-graphviz
+
+# documentation
+  - sphinx=3.0.4
+  - nbsphinx
+  - notebook
+  - conda-forge::pydata-sphinx-theme
+  - pip
+  - pip:
+    - rst2pdf
