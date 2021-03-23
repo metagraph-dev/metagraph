@@ -71,7 +71,6 @@ jobs:
     strategy:
       matrix:
         pyver:
-          - 3.7
           - 3.8
     steps:
       - name: Download build artifact

@@ -5,6 +5,7 @@ from ..resolver import Resolver, Namespace, PlanNamespace, Dispatcher, ExactDisp
 from .placeholder import Placeholder, DelayedWrapper
 from ..plugin import ConcreteType, MetaWrapper, ConcreteAlgorithm
 from ..planning import AlgorithmPlan
+import typing
 from typing import Optional
 
 
@@ -194,9 +195,9 @@ class DaskResolver:
 
         # Determine return type and add task
         ret = sig.return_annotation
-        if getattr(ret, "__origin__", None) == tuple:
+        if typing.get_origin(ret) is tuple:
             # Use dask.delayed to compute the tuple
-            tpl_call = delayed(algo_plan.algo, nout=len(ret.__args__))
+            tpl_call = delayed(algo_plan.algo, nout=len(typing.get_args(ret)))
             key = (
                 f"call-{tokenize(tpl_call, algo_plan, args, kwargs)}",
                 f"{algo_plan.algo.abstract_name}",
@@ -204,7 +205,7 @@ class DaskResolver:
             tpl = tpl_call(*args, **kwargs, dask_key_name=key)
             # Add extraction tasks for each component
             ret_vals = []
-            for i, ret_item in enumerate(ret.__args__):
+            for i, ret_item in enumerate(typing.get_args(ret)):
                 extract_func = lambda x, i=i: x[i]
                 if type(ret_item) is not type and isinstance(ret_item, ConcreteType):
                     ct = type(ret_item)

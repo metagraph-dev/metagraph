@@ -13,12 +13,7 @@ setup(
 
 The find_plugins function should return a metagraph.PluginRegistry of the relevant plugins.
 """
-
-# Check if importlib.metadata is available (new in py=3.8)
-try:
-    from importlib import metadata
-except ImportError:
-    import importlib_metadata as metadata
+from importlib import metadata
 
 
 class EntryPointsError(Exception):
