@@ -37,6 +37,10 @@ class RoundTripper:
               translation graph), raise an error. Note that this does not apply to translators across abstract
               types, such as those allowed by unambiguous_subcomponents. Those translators should be exercised
               using `verify_one_way`.
+
+        Note: If any translator raises NotImplementedError for a given input, the test continues. NotImplementedError
+        is considered a success because it avoids giving a wrong translation to the user. In the future, this may
+        change, but for now RoundTrip will silently ignore NotImplementedErrors.
         """
         # Initial sanity check that `obj` is equal to itself
         self.mv.compare_values(
@@ -72,46 +76,50 @@ class RoundTripper:
                         and backward in translators_to_verify
                     ):
                         # Found a valid one-hop round trip
-                        good_obj = known_good_objs[ct_source]
-                        inflight_obj = translators_to_verify[forward](
-                            ensure_computed(good_obj), resolver=self.resolver
-                        )
-                        ct_inflight = self.resolver.typeclass_of(inflight_obj)
-                        aprops_inflight = self._aprops(inflight_obj)
-                        assert (
-                            ct_inflight is ct_target
-                        ), f"Translator from {ct_source} to {ct_target} returned an object of type {ct_inflight}"
-                        assert (
-                            aprops_inflight == aprops_obj
-                        ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight} (expected {aprops_obj})"
-                        translator = translators_to_verify[backward]
-                        unverified_obj = translator(
-                            ensure_computed(inflight_obj), resolver=self.resolver
-                        )
-                        ct_unverified = self.resolver.typeclass_of(unverified_obj)
-                        aprops_unverified = self._aprops(unverified_obj)
-                        assert (
-                            ct_unverified is ct_source
-                        ), f"Translator from {ct_target} to {ct_source} returned an object of type {ct_unverified}"
-                        assert (
-                            aprops_unverified == aprops_obj
-                        ), f"Translated object of type {ct_unverified} has wrong properties {aprops_unverified} (expected {aprops_obj})"
-                        # Translate to ct_obj if needed (these are known good translators at this point)
-                        if ct_unverified is not ct_obj:
-                            unverified_obj = self.resolver.translate(
-                                unverified_obj, ct_obj
+                        try:
+                            good_obj = known_good_objs[ct_source]
+                            inflight_obj = translators_to_verify[forward](
+                                ensure_computed(good_obj), resolver=self.resolver
                             )
-                        # Verify equal to `obj`
-                        self.mv.compare_values(
-                            unverified_obj,
-                            obj,
-                            f"roundtrip translation from {ct_source} to {ct_target}",
-                        )
+                            ct_inflight = self.resolver.typeclass_of(inflight_obj)
+                            aprops_inflight = self._aprops(inflight_obj)
+                            assert (
+                                ct_inflight is ct_target
+                            ), f"Translator from {ct_source} to {ct_target} returned an object of type {ct_inflight}"
+                            assert (
+                                aprops_inflight == aprops_obj
+                            ), f"Translated object of type {ct_inflight} has wrong properties {aprops_inflight} (expected {aprops_obj})"
+                            translator = translators_to_verify[backward]
+                            unverified_obj = translator(
+                                ensure_computed(inflight_obj), resolver=self.resolver
+                            )
+                            ct_unverified = self.resolver.typeclass_of(unverified_obj)
+                            aprops_unverified = self._aprops(unverified_obj)
+                            assert (
+                                ct_unverified is ct_source
+                            ), f"Translator from {ct_target} to {ct_source} returned an object of type {ct_unverified}"
+                            assert (
+                                aprops_unverified == aprops_obj
+                            ), f"Translated object of type {ct_unverified} has wrong properties {aprops_unverified} (expected {aprops_obj})"
+                            # Translate to ct_obj if needed (these are known good translators at this point)
+                            if ct_unverified is not ct_obj:
+                                unverified_obj = self.resolver.translate(
+                                    unverified_obj, ct_obj
+                                )
+                            # Verify equal to `obj`
+                            self.mv.compare_values(
+                                unverified_obj,
+                                obj,
+                                f"roundtrip translation from {ct_source} to {ct_target}",
+                            )
+                            # Add inflight object as a known good object
+                            known_good_objs[ct_target] = inflight_obj
+                        except NotImplementedError:
+                            # TODO: decide how to handle translators which cannot handle all abstract properties
+                            pass
                         # Remove exercised translators
                         translators_to_verify.pop((ct_source, ct_target))
                         translators_to_verify.pop((ct_target, ct_source))
-                        # Add inflight object as a known good object
-                        known_good_objs[ct_target] = inflight_obj
         # Look for circular route in unexercised translators (multi-hop)
         while translators_to_verify:
             shortest_path = None

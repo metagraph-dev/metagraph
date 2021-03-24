@@ -4,7 +4,7 @@ import numpy as np
 
 if has_scipy:
     import scipy.sparse as ss
-    from .types import ScipyEdgeMap, ScipyEdgeSet
+    from .types import ScipyEdgeMap, ScipyEdgeSet, ScipyGraph
 
     @translator
     def edgemap_to_edgeset(x: ScipyEdgeMap, **props) -> ScipyEdgeSet:
@@ -17,7 +17,6 @@ if has_scipy:
 
 if has_scipy and has_networkx:
     import networkx as nx
-    from .types import ScipyGraph
     from ..networkx.types import NetworkXGraph
 
     @translator

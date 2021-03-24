@@ -1,6 +1,6 @@
 import numpy as np
 
-bool = np.dtype(np.bool)
+bool = np.dtype(bool)
 int8 = np.dtype(np.int8)
 int16 = np.dtype(np.int16)
 int32 = np.dtype(np.int32)
@@ -17,7 +17,7 @@ complex64 = np.dtype(np.complex64)
 complex128 = np.dtype(np.complex128)
 datetime64 = np.dtype(np.datetime64)
 timedelta64 = np.dtype(np.timedelta64)
-object = np.dtype(np.object)
+object = np.dtype(object)
 
 _dtypes = [
     bool,
