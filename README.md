@@ -1,5 +1,6 @@
 # Metagraph
 
+[![Conda Version](https://img.shields.io/conda/v/metagraph/metagraph.svg)](https://anaconda.org/metagraph/metagraph)
 [![Build Status](https://github.com/metagraph-dev/metagraph/actions/workflows/test_and_deploy.yml/badge.svg?branch=main)](https://github.com/metagraph-dev/metagraph/actions/workflows/test_and_deploy.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/metagraph-dev/metagraph/badge.svg?branch=master)](https://coveralls.io/r/metagraph-dev/metagraph)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/metagraph-dev/metagraph/blob/master/LICENSE)
