@@ -1,6 +1,6 @@
 # Metagraph
 
-[![Build Status](https://travis-ci.org/metagraph-dev/metagraph.svg?branch=master)](https://travis-ci.org/metagraph-dev/metagraph)
+[![Build Status](https://github.com/metagraph-dev/metagraph/actions/workflows/test_and_deploy.yml/badge.svg?branch=main)](https://github.com/metagraph-dev/metagraph/actions/workflows/test_and_deploy.yml?query=branch%3Amain)
 [![Coverage Status](https://coveralls.io/repos/metagraph-dev/metagraph/badge.svg?branch=master)](https://coveralls.io/r/metagraph-dev/metagraph)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://github.com/metagraph-dev/metagraph/blob/master/LICENSE)
 [![Code style](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
