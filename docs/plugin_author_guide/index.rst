@@ -16,3 +16,4 @@ This guide is intended to go over :ref:`what a plugin is exactly<plugin_parts>`,
    plugin_parts
    end_to_end_plugin_pathway
    plugin_testing
+   compiler_plugins
