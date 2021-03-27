@@ -49,6 +49,8 @@ _SPECIAL_ATTRS = [
     "type_of",
     "typeclass_of",
     "plan",
+    "visualize",
+    "optimize",
 ]
 
 
@@ -80,5 +82,13 @@ def _set_default_resolver(res):
     for attr in _SPECIAL_ATTRS:
         if attr == "resolver":
             globals()[attr] = res
+        elif attr == "visualize":
+            from metagraph.core.dask.visualize import visualize
+
+            globals()[attr] = visualize
+        elif attr == "optimize":
+            from metagraph.core.compiler import optimize
+
+            globals()[attr] = optimize
         else:
             globals()[attr] = getattr(res, attr)
