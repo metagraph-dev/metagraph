@@ -1,7 +1,7 @@
 name: mg
 dependencies:
 # dev environment
-  - python=3.7
+  - python=3.8
   - coverage
   - pytest
   - pytest-cov
