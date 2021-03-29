@@ -8,9 +8,8 @@ setup(
     description="Graph algorithm solver across multiple hardware backends",
     author="Anaconda, Inc.",
     packages=find_packages(include=["metagraph", "metagraph.*"]),
-    python_requires=">=3.7",
+    python_requires=">=3.8",
     install_requires=[
-        "importlib_metadata",
         "numpy",
         "scipy",
         "donfig",
