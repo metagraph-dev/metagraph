@@ -9,7 +9,14 @@ def test_version():
 
 
 def test_lazy_attributes():
-    for attr in ["resolver", "translate", "typeclass_of", "algos"]:
+    for attr in [
+        "resolver",
+        "translate",
+        "typeclass_of",
+        "algos",
+        "visualize",
+        "optimize",
+    ]:
         assert hasattr(mg, attr)
 
     with pytest.raises(TypeError, match="does not have a registered type"):
@@ -33,6 +40,8 @@ def test_dir():
         "typeclass_of",
         "type_of",
         "algos",
+        "visualize",
+        "optimize",
         "AbstractType",
     }.issubset(dir(mg))
     mg.resolver  # trigger resolver init
@@ -42,5 +51,7 @@ def test_dir():
         "typeclass_of",
         "type_of",
         "algos",
+        "visualize",
+        "optimize",
         "AbstractType",
     }.issubset(dir(mg))
