@@ -1,5 +1,13 @@
 .. _compiler_plugins:
 
+Prerequisite Reading
+--------------------
+
+Familiarity with the concepts covered in the following sections are highly recommended:
+
+* :ref:`Algorithms<algorithms>`
+* :ref:`Usage with Dask<dask>`
+
 Compiler Plugins
 ================
 
@@ -23,7 +31,11 @@ optimizer is invoked when the ``compute()`` method is called on a
 ``Placeholder`` object.  This optimizer will scan the Dask task graph for
 compilable Metagraph algorithms and identify task subgraphs to send to the
 compiler plugin.  Currently, subgraphs must be linear chains of compilable
-tasks to ensure that we do not reduce the parallelism of the overall task graph.
+tasks to ensure that we do not reduce the parallelism of the overall task
+graph.  For an overview of DAG optimization concepts, like fusing linear
+chains of tasks, see the `Dask optimization documentation`_.
+
+.. _Dask optimization documentation: https://docs.dask.org/en/latest/optimize.html
 
 .. note::
 
@@ -72,8 +84,8 @@ first needed.  Note that ``teardown_runtime()`` is not currently called by
 Metagraph, but is present to make it possible to reinitialize the plugin for
 testing purposes.
 
-The ``compile_algorithm()`` method is used when the user is executing compilable
-algorithms immediately from the standard Resolver, wherease the
+The ``compile_algorithm()`` method is used when the user is executing
+compilable algorithms immediately from the standard Resolver, whereas the
 ``compile_subgraph()`` method is used when the user is constructing a Dask DAG
 using the DaskResolver.  In the latter scenario, subgraphs may have only one
 task.
@@ -125,7 +137,7 @@ Invoking the Compiler
 
 Users will generally not need to interact with or think about the compiler
 when using Metagraph.  The optimizer is applied automatically when a Metagraph
-placeholder object is computed.  
+``Placeholder`` object is computed.  
 
 If you have a larger DAG that uses Metagraph for an intermediate calculation,
 you will have to ask Dask to apply the Metagraph optimizer manually.  To do this:
@@ -187,10 +199,11 @@ Consider the following example of task graph:
 .. image:: dag_orig.png
 
 The user who constructed this graph will have in their script a Metagraph
-placeholder object which contains a “future” representing the result of
-“Metagraph Op #7”.  When they pass the future to the “Save Result” function,
-which needs to performs I/O, this will call ``dask.compute()`` on the future to
-produce the result, and the following actions will happen:
+placeholder object which contains a `future
+<https://en.wikipedia.org/wiki/Futures_and_promises>`_ representing the result
+of“Metagraph Op #7”.  When they pass the future to the “Save Result” function,
+which needs to performs I/O, this will call ``dask.compute()`` on the future
+to produce the result, and the following actions will happen:
 
 1. Dask will attempt to optimize the graph by calling ``__dask_optimize__()``
 on the Metagraph placeholder object.
