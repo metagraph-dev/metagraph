@@ -33,6 +33,7 @@ jobs:
           pip install -e .
       - name: Lint with Black
         run: |
+          black --version
           black metagraph *.py --check --diff
       - name: Pytest
         run: |
@@ -110,7 +111,7 @@ jobs:
     needs: test_pyver
     if: (github.ref == 'refs/heads/main') || contains(github.ref, 'refs/tags/')
     env:
-      AC_LABEL: dev
+      AC_LABEL: -l dev
     steps:
       - name: Download build artifact
         uses: actions/download-artifact@v2
@@ -120,9 +121,7 @@ jobs:
       - name: Determine label
         if: contains(github.ref, 'refs/tags/')
         run: |
-          echo "AC_LABEL=main" >> $GITHUB_ENV
-      - name: Create env
-        uses: conda-incubator/setup-miniconda@v2
+          echo "AC_LABEL='-l main -l dev'" >> $GITHUB_ENV
       - name: Deploy to Anaconda Cloud
         run: |
           conda install -q anaconda-client
@@ -132,4 +131,4 @@ jobs:
           ls -la .
           UPLOAD=`ls .`
           echo "Uploading $UPLOAD with label=${{ env.AC_LABEL }}"
-          $CONDA/bin/anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph -l ${{ env.AC_LABEL }} --no-progress --force --no-register $UPLOAD
+          $CONDA/bin/anaconda -t ${{ secrets.ANACONDA_ORG_TOKEN }} upload -u metagraph ${{ env.AC_LABEL }} --no-progress --force --no-register $UPLOAD
