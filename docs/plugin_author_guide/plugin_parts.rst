@@ -13,13 +13,14 @@ Familiarity with the concepts covered in the following sections are highly recom
 Introduction
 ------------
 
-There are three classes of functionality provided by a plugin:
+There are four classes of functionality provided by a plugin:
 
 * :ref:`Algorithms<algorithms>` (e.g. abstract algorithms and concrete algorithms)
 * :ref:`Types<types>` (e.g. abstract types, concrete types, and wrappers)
 * :ref:`Translators<translators>`
+* Compilers (see :ref:`compiler_plugins` for details)
 
-This document will cover recommendations to consider when writing plugins as they relate to these three classes of functionality.
+This document will cover recommendations to consider when writing plugins as they relate to the first three classes of functionality.  Compiler plugins are more advanced and described in :ref:`compiler_plugins`.
 
 It is not necessary for a plugin to provide functionality that fits into all of the above, e.g. a plugin with only translators is valid.
 
