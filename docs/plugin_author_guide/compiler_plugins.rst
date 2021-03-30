@@ -1,5 +1,8 @@
 .. _compiler_plugins:
 
+Compiler Plugins
+================
+
 Prerequisite Reading
 --------------------
 
@@ -8,8 +11,8 @@ Familiarity with the concepts covered in the following sections are highly recom
 * :ref:`Algorithms<algorithms>`
 * :ref:`Usage with Dask<dask>`
 
-Compiler Plugins
-================
+Introduction
+------------
 
 Most concrete algorithms in Metagraph are self-contained "black box
 implementations" that are run independently by the dispatcher or Dask
