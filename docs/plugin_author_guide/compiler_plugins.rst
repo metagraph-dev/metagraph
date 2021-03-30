@@ -226,9 +226,11 @@ those are not assumed to have JIT-compilable implementations.  (This could
 change in the future.)
 
 4. Each subgraph will be passed to the compiler backend separately, along with
-any captured arguments.  The backend will build a subprogram by flattening the
-subgraph into a linear call sequence and combining the IR from all of the
-operations into a single module.
+any captured arguments.  The backend will build a subprogram by combining the
+source code (the source code format depends on the specific compiler) from all
+tasks into a single module and generating a wrapper function to call each task
+in order.  This module will be compiled and optimized into a single executable
+unit, allowing the compiler to perform cross-function optimizations.
 
 5. If compilation is successful, the compiler backend will return a newly
 generated Python function that calls the necessary unboxing functions for the
