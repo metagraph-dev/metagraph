@@ -120,7 +120,10 @@ def _dfs_sorted_dask_keys(
             for child_key in child_keys:
                 yield from _dfs(child_key)
 
-    input_keys = filter(lambda key: len(dependencies[key]) == 0, compilable_keys)
+    input_keys = filter(
+        lambda key: len(dependencies[key].intersection(compilable_keys)) == 0,
+        compilable_keys,
+    )
     for input_key in input_keys:
         yield from _dfs(input_key)
 
