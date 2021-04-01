@@ -353,6 +353,59 @@ def test_automatic_optimize(res):
     assert len(compiler.compile_subgraph_calls) == 0
 
 
+def test_dfs_bug():
+    from metagraph.core.compiler import _dfs_sorted_dask_keys
+    from collections import defaultdict
+
+    compilable_keys = {
+        ("call-a79434332c1962a6347ce169a566b3ed", "ex.relu"),
+        ("call-585a8a06d235f777867e08955d490071", "ex.fully_connected_layer"),
+        ("call-7da00fd444fc128ceacb194485c1ff15", "ex.neighbor_features"),
+    }
+
+    dependencies = {
+        ("call-a79434332c1962a6347ce169a566b3ed", "ex.relu"): {
+            ("call-585a8a06d235f777867e08955d490071", "ex.fully_connected_layer")
+        },
+        ("call-585a8a06d235f777867e08955d490071", "ex.fully_connected_layer"): {
+            ("call-7da00fd444fc128ceacb194485c1ff15", "ex.neighbor_features")
+        },
+        ("call-7da00fd444fc128ceacb194485c1ff15", "ex.neighbor_features"): {
+            (
+                "translate-f7233ee614fb487c5360be7d042cee54",
+                "ScipyGraphType->MLIRGraphBLASGraphType",
+            )
+        },
+        (
+            "translate-f7233ee614fb487c5360be7d042cee54",
+            "ScipyGraphType->MLIRGraphBLASGraphType",
+        ): set(),
+    }
+
+    dependents = defaultdict(
+        None,
+        {
+            ("call-a79434332c1962a6347ce169a566b3ed", "ex.relu"): set(),
+            ("call-585a8a06d235f777867e08955d490071", "ex.fully_connected_layer"): {
+                ("call-a79434332c1962a6347ce169a566b3ed", "ex.relu")
+            },
+            ("call-7da00fd444fc128ceacb194485c1ff15", "ex.neighbor_features"): {
+                ("call-585a8a06d235f777867e08955d490071", "ex.fully_connected_layer")
+            },
+            (
+                "translate-f7233ee614fb487c5360be7d042cee54",
+                "ScipyGraphType->MLIRGraphBLASGraphType",
+            ): {("call-7da00fd444fc128ceacb194485c1ff15", "ex.neighbor_features")},
+        },
+    )
+
+    ordered_keys = list(
+        _dfs_sorted_dask_keys(compilable_keys, dependencies, dependents)
+    )
+
+    assert len(ordered_keys) == 3
+
+
 @fixture
 def res():
     from metagraph.plugins.core.types import Vector
