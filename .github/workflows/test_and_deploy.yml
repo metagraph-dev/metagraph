@@ -35,10 +35,13 @@ jobs:
         run: |
           black --version
           black metagraph *.py --check --diff
+          echo "SOME_TEST=metagraph --dask --cov-append" >> $GITHUB_ENV
       - name: Pytest
         run: |
           pytest metagraph
-          pytest metagraph --dask --cov-append
+          echo ${{ env.SOME_TEST }}
+          echo "Running test from env var containing spaces"
+          pytest ${{ env.SOME_TEST }}
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
