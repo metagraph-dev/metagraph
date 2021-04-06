@@ -35,13 +35,10 @@ jobs:
         run: |
           black --version
           black metagraph *.py --check --diff
-          echo "SOME_TEST=metagraph --dask --cov-append" >> $GITHUB_ENV
       - name: Pytest
         run: |
           pytest metagraph
-          echo ${{ env.SOME_TEST }}
-          echo "Running test from env var containing spaces"
-          pytest ${{ env.SOME_TEST }}
+          pytest metagraph --dask --cov-append
       - name: Coveralls
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -124,7 +121,7 @@ jobs:
       - name: Determine label
         if: contains(github.ref, 'refs/tags/')
         run: |
-          echo "AC_LABEL='-l main -l dev'" >> $GITHUB_ENV
+          echo "AC_LABEL=-l main -l dev" >> $GITHUB_ENV
       - name: Deploy to Anaconda Cloud
         run: |
           conda install -q anaconda-client
