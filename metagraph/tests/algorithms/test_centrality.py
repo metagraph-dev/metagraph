@@ -2,7 +2,7 @@ import pytest
 from metagraph.tests.util import default_plugin_resolver
 import networkx as nx
 import numpy as np
-from . import MultiVerify
+from metagraph.core.multiverify import MultiVerify, MultiResult
 from metagraph.plugins.networkx.types import NetworkXGraph
 from metagraph.plugins.core.exceptions import ConvergenceError
 
@@ -157,6 +157,7 @@ def test_pagerank_centrality(default_plugin_resolver):
     +-+  -->  +-+       +-+
     """
     dpr = default_plugin_resolver
+    mv = MultiVerify(dpr)
     networkx_graph_data = [(0, 1, 1), (0, 2, 1), (2, 0, 1), (1, 2, 1), (3, 2, 1)]
     networkx_graph = nx.DiGraph()
     networkx_graph.add_weighted_edges_from(networkx_graph_data)
@@ -167,14 +168,25 @@ def test_pagerank_centrality(default_plugin_resolver):
         3: 0.037500000000000006,
     }
     graph = dpr.wrappers.Graph.NetworkXGraph(networkx_graph)
-    MultiVerify(dpr).compute(
-        dpr.algos.centrality.pagerank, graph, tolerance=1e-7
-    ).assert_equal(expected_val, rel_tol=1e-5)
+    mv.compute(dpr.algos.centrality.pagerank, graph, tolerance=1e-7).assert_equal(
+        expected_val, rel_tol=1e-5
+    )
 
     # Test that hitting maxiter raises error
-    MultiVerify(dpr).compute_raises(
+    # However, we also allow implementations to converge and essentially ignore the maxiter
+    # As long as they never return an unconverged result, we consider the algorithm a success
+    comp_results = mv.compute_raises(
         dpr.algos.centrality.pagerank, graph, tolerance=1e-9, maxiter=2
-    ).assert_raises(ConvergenceError)
+    )
+    # Split results into errors and values
+    err_comp_results = {
+        k: v for k, v in comp_results._results.items() if isinstance(v, Exception)
+    }
+    value_comp_results = {
+        k: v for k, v in comp_results._results.items() if not isinstance(v, Exception)
+    }
+    MultiResult(mv, err_comp_results).assert_raises(ConvergenceError)
+    MultiResult(mv, value_comp_results).assert_equal(expected_val, rel_tol=1e-9)
 
 
 def test_closeness_centrality(default_plugin_resolver):
