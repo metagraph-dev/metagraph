@@ -121,7 +121,7 @@ jobs:
       - name: Determine label
         if: contains(github.ref, 'refs/tags/')
         run: |
-          echo "AC_LABEL='-l main -l dev'" >> $GITHUB_ENV
+          echo "AC_LABEL=-l main -l dev" >> $GITHUB_ENV
       - name: Deploy to Anaconda Cloud
         run: |
           conda install -q anaconda-client
