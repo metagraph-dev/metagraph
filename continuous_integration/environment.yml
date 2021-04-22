@@ -11,7 +11,7 @@ dependencies:
 # metagraph dependencies (so setup.py develop doesn't pip install them)
   - dask
   - numpy
-  - networkx
+  - networkx>=2.5.1
   - pandas
   - scipy
   - scikit-learn
