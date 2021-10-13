@@ -19,6 +19,7 @@ setup(
         "nest-asyncio",
         "dask[array,dataframe,delayed]",
         "graphviz",
+        "packaging",
     ],
     include_package_data=True,
     entry_points={"metagraph.plugins": ["plugins=metagraph.plugins:find_plugins",]},
