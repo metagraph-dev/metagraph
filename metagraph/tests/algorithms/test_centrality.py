@@ -252,7 +252,7 @@ def test_hits_centrality(default_plugin_resolver):
     }
     MultiVerify(dpr).compute(
         "centrality.hits", graph, maxiter=100, tolerance=1e-06
-    ).assert_equal((hubs, authority), rel_tol=1e-3)
+    ).assert_equal((hubs, authority), abs_tol=2e-6, rel_tol=1e-3)
 
 
 def test_degree_centrality_directed(default_plugin_resolver):
