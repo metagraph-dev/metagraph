@@ -2,6 +2,7 @@ from metagraph.core.dask import loader
 import pandas as pd
 import numpy as np
 import dask.dataframe as dd
+import distributed
 import dataclasses
 import pytest
 import pickle
@@ -48,25 +49,25 @@ def test_build_plan(ex_coo_desc, ex_chunks, ex_coo_to_csr_plan):
     return expected
 
 
-@pytest.mark.parametrize("csr_matrix_class", [loader.CSRMatrix, loader.SharedCSRMatrix])
-def test_allocate_csr(csr_matrix_class, ex_coo_to_csr_plan):
-    csr = loader.allocate_csr(csr_matrix_class, ex_coo_to_csr_plan).compute()
+@pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
+def test_allocate_csr(dask_client, csr_loader, ex_coo_to_csr_plan):
+    csr = loader.allocate_csr(csr_loader, ex_coo_to_csr_plan).compute()
     assert csr.shape == (10, 10)
 
 
-@pytest.mark.parametrize("csr_matrix_class", [loader.CSRMatrix, loader.SharedCSRMatrix])
-def test_finalize_csr(csr_matrix_class, ex_coo_to_csr_plan):
-    csr = loader.allocate_csr(csr_matrix_class, ex_coo_to_csr_plan).compute()
-    finalize_csr = loader.finalize_csr(csr, [0, 1, 2]).compute()
+@pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
+def test_finalize_csr(dask_client, csr_loader, ex_coo_to_csr_plan):
+    csr = loader.allocate_csr(csr_loader, ex_coo_to_csr_plan).compute()
+    finalize_csr = loader.finalize_csr(csr_loader, csr, [0, 1, 2]).compute()
     assert finalize_csr.shape == (10, 10)
 
 
-@pytest.mark.parametrize("csr_matrix_class", [loader.CSRMatrix, loader.SharedCSRMatrix])
-def test_load_chunk(csr_matrix_class, ex_ddf, ex_coo_to_csr_plan):
-    csr = loader.allocate_csr(csr_matrix_class, ex_coo_to_csr_plan).compute()
+@pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
+def test_load_chunk(dask_client, csr_loader, ex_ddf, ex_coo_to_csr_plan):
+    csr = loader.allocate_csr(csr_loader, ex_coo_to_csr_plan).compute()
 
     result = loader.load_chunk(
-        0, ex_ddf.partitions[0], ex_coo_to_csr_plan, csr
+        csr_loader, 0, ex_ddf.partitions[0], ex_coo_to_csr_plan, csr
     ).compute()
     assert (
         result is not None
@@ -77,7 +78,7 @@ def test_load_chunk(csr_matrix_class, ex_ddf, ex_coo_to_csr_plan):
     np.testing.assert_equal(csr.values, [1, 2, 0, 0, 0, 0, 0])
 
     result = loader.load_chunk(
-        1, ex_ddf.partitions[1], ex_coo_to_csr_plan, csr
+        csr_loader, 1, ex_ddf.partitions[1], ex_coo_to_csr_plan, csr
     ).compute()
     assert (
         result is not None
@@ -88,7 +89,7 @@ def test_load_chunk(csr_matrix_class, ex_ddf, ex_coo_to_csr_plan):
     np.testing.assert_equal(csr.values, [1, 2, 3, 4, 5, 0, 0])
 
     result = loader.load_chunk(
-        2, ex_ddf.partitions[2], ex_coo_to_csr_plan, csr
+        csr_loader, 2, ex_ddf.partitions[2], ex_coo_to_csr_plan, csr
     ).compute()
     assert (
         result is not None
@@ -100,10 +101,12 @@ def test_load_chunk(csr_matrix_class, ex_ddf, ex_coo_to_csr_plan):
 
 
 def test_shared_csr_pickle(ex_coo_to_csr_plan):
-    csr = loader.allocate_csr(loader.SharedCSRMatrix, ex_coo_to_csr_plan).compute()
-    csr.load_pointers(0, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
-    csr.load_indices(0, [1, 3, 0, 3, 5, 7, 7])
-    csr.load_values(0, [1, 2, 3, 4, 5, 6, 7])
+    csr = loader.allocate_csr(loader.SharedCSRLoader, ex_coo_to_csr_plan).compute()
+    loader.SharedCSRLoader.load_pointers_chunk(
+        csr, 0, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7]
+    )
+    loader.SharedCSRLoader.load_indices_chunk(csr, 0, [1, 3, 0, 3, 5, 7, 7])
+    loader.SharedCSRLoader.load_values_chunk(csr, 0, [1, 2, 3, 4, 5, 6, 7])
 
     csr_2 = pickle.loads(pickle.dumps(csr))
     np.testing.assert_equal(csr_2.pointers, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
@@ -111,18 +114,13 @@ def test_shared_csr_pickle(ex_coo_to_csr_plan):
     np.testing.assert_equal(csr_2.values, [1, 2, 3, 4, 5, 6, 7])
 
 
-@pytest.mark.parametrize("csr_matrix_class", [loader.CSRMatrix, loader.SharedCSRMatrix])
-def test_load_coo_to_csr(csr_matrix_class, ex_ddf):
+@pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
+def test_load_coo_to_csr(dask_client, csr_loader, ex_ddf):
     csr = loader.load_coo_to_csr(
-        ex_ddf,
-        shape=(10, 10),
-        row="row",
-        col="col",
-        value="value",
-        csr_class=csr_matrix_class,
+        ex_ddf, shape=(10, 10), row="row", col="col", value="value", loader=csr_loader,
     )
 
-    csr.visualize(filename="test_load_coo_to_csr_" + csr_matrix_class.__name__ + ".png")
+    csr.visualize(filename="test_load_coo_to_csr_" + csr_loader.__name__ + ".png")
     csr = csr.compute()
 
     np.testing.assert_equal(csr.pointers, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
@@ -206,3 +204,14 @@ def ex_coo_to_csr_plan(ex_coo_desc, ex_chunks):
             ),
         ],
     )
+
+
+@pytest.fixture(scope="module")
+def dask_client():
+    cluster = distributed.LocalCluster(n_workers=3, threads_per_worker=1)
+    client = distributed.Client(cluster)
+
+    yield client
+
+    client.close()
+    cluster.close()

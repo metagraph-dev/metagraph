@@ -1,11 +1,234 @@
+from collections import defaultdict
+from os import stat
 import secrets
 from dask import delayed
 from dask import dataframe as dd
+import distributed
+from distributed.diagnostics.plugin import SchedulerPlugin
 import pandas as pd
 from dataclasses import dataclass
 import numpy as np
 from typing import List, Tuple
 from multiprocessing import shared_memory
+
+
+class CSRLoader:
+    @staticmethod
+    def register_dask_scheduler_plugin(client: distributed.client):
+        raise NotImplementedError
+
+    @staticmethod
+    def allocate(shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
+        raise NotImplementedError
+
+    @staticmethod
+    def dask_incref(csr):
+        raise NotImplementedError
+
+    @staticmethod
+    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
+        raise NotImplementedError
+
+    @staticmethod
+    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
+        raise NotImplementedError
+
+    @staticmethod
+    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
+        raise NotImplementedError
+
+
+### LocalCSRMatrix is for testing only
+
+
+class LocalCSRMatrix:
+    def __init__(self, shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
+        self.shape = shape
+        self.pointers = np.zeros(shape=(shape[0] + 1), dtype=pointers_dtype)
+        self.indices = np.zeros(shape=(nvalues,), dtype=indices_dtype)
+        self.values = np.zeros(shape=(nvalues,), dtype=values_dtype)
+
+    def __str__(self):
+        return f"shape: {self.shape}\npointers{self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
+
+
+class LocalCSRLoader:
+    @staticmethod
+    def register_dask_scheduler_plugin(client: distributed.Client):
+        # nothing to do since Python refcount works fine for LocalCSRMatrix
+        pass
+
+    @staticmethod
+    def allocate(shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
+        return LocalCSRMatrix(
+            shape, nvalues, pointers_dtype, indices_dtype, values_dtype
+        )
+
+    @staticmethod
+    def dask_incref(csr):
+        # nothing to do since Python refcount works fine for LocalCSRMatrix
+        pass
+
+    @staticmethod
+    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
+        csr.pointers[offset : offset + len(chunk)] = chunk
+
+    @staticmethod
+    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
+        csr.indices[offset : offset + len(chunk)] = chunk
+
+    @staticmethod
+    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
+        csr.values[offset : offset + len(chunk)] = chunk
+
+
+### SharedCSRMatrix is for testing only
+
+
+class SharedCSRMatrix:
+    TAG_POINTERS = "pointers"
+    TAG_INDICES = "indices"
+    TAG_VALUES = "values"
+
+    def __init__(self, shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
+        self.shape = shape
+        self.shm_name = "mg-" + secrets.token_hex(8)
+        self.pointers_shm, self.pointers = self._get_shared_array(
+            self.TAG_POINTERS, shape=(shape[0] + 1,), dtype=pointers_dtype, create=True
+        )
+        self.indices_shm, self.indices = self._get_shared_array(
+            self.TAG_INDICES, shape=(nvalues,), dtype=indices_dtype, create=True
+        )
+        self.values_shm, self.values = self._get_shared_array(
+            self.TAG_VALUES, shape=(nvalues,), dtype=values_dtype, create=True
+        )
+
+    def _get_shared_array(
+        self, tag: str, shape: Tuple[int], dtype: np.dtype, create: bool
+    ):
+        n = shape[0]
+        shm = shared_memory.SharedMemory(
+            name=self.shm_name + tag, create=create, size=n * np.dtype(dtype).itemsize
+        )
+        ary = np.ndarray(n, dtype=dtype, buffer=shm.buf)
+        return shm, ary
+
+    def __getstate__(self):
+        return {
+            "shape": self.shape,
+            "shm_name": self.shm_name,
+            "pointers": {
+                "tag": self.TAG_POINTERS,
+                "shape": self.pointers.shape,
+                "dtype": self.pointers.dtype,
+            },
+            "indices": {
+                "tag": self.TAG_INDICES,
+                "shape": self.indices.shape,
+                "dtype": self.indices.dtype,
+            },
+            "values": {
+                "tag": self.TAG_VALUES,
+                "shape": self.values.shape,
+                "dtype": self.values.dtype,
+            },
+        }
+
+    def _setstate_connect_shared_ndarray(self, array_desc):
+        tag = array_desc["tag"]
+        shape = array_desc["shape"]
+        n = shape[0]
+        dtype = array_desc["dtype"]
+
+        return self._get_shared_array(tag, shape, dtype, create=False)
+
+    def __setstate__(self, state):
+        self.shape = state["shape"]
+        self.shm_name = state["shm_name"]
+        self.pointers_shm, self.pointers = self._setstate_connect_shared_ndarray(
+            state["pointers"]
+        )
+        self.indices_shm, self.indices = self._setstate_connect_shared_ndarray(
+            state["indices"]
+        )
+        self.values_shm, self.values = self._setstate_connect_shared_ndarray(
+            state["values"]
+        )
+
+    def __str__(self):
+        return f"shape: {self.shape}\npointers{self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
+
+
+class SharedMemoryRefCounter(SchedulerPlugin):
+    def __init__(self, tag):
+        self.tag = tag
+        self.shmem_to_key = defaultdict(lambda: set())
+        self.key_to_shmem = defaultdict(lambda: set())
+
+    def transition(self, key, start, finish, *args, **kwargs):
+        if start == "released" and key.startswith(self.tag):
+            _, msg_key, msg_shmem = key.split(":")
+            self.key_to_shmem[msg_key].add(msg_shmem)
+            self.shmem_to_key[msg_shmem].add(msg_key)
+
+        if finish == "forgotten":
+            if key in self.key_to_shmem:
+                for shmem in self.key_to_shmem[key]:
+                    self.shmem_to_key[shmem].remove(key)
+                    if len(self.shmem_to_key[shmem]) == 0:
+                        sh = shared_memory.SharedMemory(shmem, create=False)
+                        sh.unlink()
+                        del self.shmem_to_key[shmem]
+                del self.key_to_shmem[key]
+
+
+class SharedCSRLoader:
+    REFCOUNT_TAG = "shared_csr_loader_refcount"
+
+    @classmethod
+    def register_dask_scheduler_plugin(cls, client: distributed.Client):
+        plugin = SharedMemoryRefCounter(cls.REFCOUNT_TAG)
+        client.register_scheduler_plugin(
+            plugin, idempotent=True, name="metagraph_shared_csr_refcount"
+        )
+
+    @staticmethod
+    def allocate(shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
+        csr = SharedCSRMatrix(
+            shape, nvalues, pointers_dtype, indices_dtype, values_dtype
+        )
+        return csr
+
+    @classmethod
+    def dask_incref(cls, csr):
+        def shared_csr_loader_incref(x):
+            # This does nothing.  Exists only to trick scheduler into generating an event
+            pass
+
+        key = distributed.get_worker().get_current_task()
+        client = distributed.get_client()
+
+        for shm in [csr.pointers_shm, csr.indices_shm, csr.values_shm]:
+            task_name = f"{cls.REFCOUNT_TAG}:{key}:{shm.name}"
+            dummy_arg = key + shm.name
+            client.submit(
+                shared_csr_loader_incref, dummy_arg, key=task_name, pure=False
+            )
+
+    @staticmethod
+    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
+        csr.pointers[offset : offset + len(chunk)] = chunk
+
+    @staticmethod
+    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
+        csr.indices[offset : offset + len(chunk)] = chunk
+
+    @staticmethod
+    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
+        csr.values[offset : offset + len(chunk)] = chunk
+
+
+### Generic COO to CSR Loading logic
 
 
 @dataclass
@@ -131,133 +354,33 @@ def build_plan(coo_desc: COODescriptor, chunks: List[COOChunkInfo]) -> COOtoCSRP
     return plan
 
 
-class CSRMatrix:
-    def __init__(self, shape, nvalues, pointer_dtype, index_dtype, value_dtype):
-        self.shape = shape
-        self.pointers = np.zeros(shape=(shape[0] + 1), dtype=pointer_dtype)
-        self.indices = np.zeros(shape=(nvalues,), dtype=index_dtype)
-        self.values = np.zeros(shape=(nvalues,), dtype=value_dtype)
-
-    def load_pointers(self, offset: int, chunk: np.ndarray):
-        self.pointers[offset : offset + len(chunk)] = chunk
-
-    def load_indices(self, offset: int, chunk: np.ndarray):
-        self.indices[offset : offset + len(chunk)] = chunk
-
-    def load_values(self, offset: int, chunk: np.ndarray):
-        self.values[offset : offset + len(chunk)] = chunk
-
-    def __str__(self):
-        return f"shape: {self.shape}\npointers{self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
-
-
-class SharedCSRMatrix:
-    TAG_POINTERS = "pointers"
-    TAG_INDICES = "indices"
-    TAG_VALUES = "values"
-
-    def __init__(self, shape, nvalues, pointer_dtype, index_dtype, value_dtype):
-        self.shape = shape
-        self.shm_name = "mg-" + secrets.token_hex(8)
-        self.pointers_shm, self.pointers = self._alloc_shared_array(
-            self.TAG_POINTERS, shape=(shape[0] + 1,), dtype=pointer_dtype
-        )
-        self.indices_shm, self.indices = self._alloc_shared_array(
-            self.TAG_INDICES, shape=(nvalues,), dtype=index_dtype
-        )
-        self.values_shm, self.values = self._alloc_shared_array(
-            self.TAG_VALUES, shape=(nvalues,), dtype=value_dtype
-        )
-
-    def _alloc_shared_array(self, tag: str, shape: Tuple[int], dtype: np.dtype):
-        n = shape[0]
-        shm = shared_memory.SharedMemory(
-            name=self.shm_name + tag, create=True, size=n * np.dtype(dtype).itemsize
-        )
-        ary = np.ndarray(n, dtype=dtype, buffer=shm.buf)
-        return shm, ary
-
-    def load_pointers(self, offset: int, chunk: np.ndarray):
-        self.pointers[offset : offset + len(chunk)] = chunk
-
-    def load_indices(self, offset: int, chunk: np.ndarray):
-        self.indices[offset : offset + len(chunk)] = chunk
-
-    def load_values(self, offset: int, chunk: np.ndarray):
-        self.values[offset : offset + len(chunk)] = chunk
-
-    def __getstate__(self):
-        return {
-            "shape": self.shape,
-            "shm_name": self.shm_name,
-            "pointers": {
-                "tag": self.TAG_POINTERS,
-                "shape": self.pointers.shape,
-                "dtype": self.pointers.dtype,
-            },
-            "indices": {
-                "tag": self.TAG_INDICES,
-                "shape": self.indices.shape,
-                "dtype": self.indices.dtype,
-            },
-            "values": {
-                "tag": self.TAG_VALUES,
-                "shape": self.values.shape,
-                "dtype": self.values.dtype,
-            },
-        }
-
-    def _setstate_connect_shared_ndarray(self, array_desc):
-        tag = array_desc["tag"]
-        shape = array_desc["shape"]
-        n = shape[0]
-        dtype = array_desc["dtype"]
-        shm = shared_memory.SharedMemory(
-            name=self.shm_name + tag, create=False, size=n * np.dtype(dtype).itemsize
-        )
-        ary = np.ndarray(n, dtype=dtype, buffer=shm.buf)
-        return shm, ary
-
-    def __setstate__(self, state):
-        self.shape = state["shape"]
-        self.shm_name = state["shm_name"]
-        self.pointers_shm, self.pointers = self._setstate_connect_shared_ndarray(
-            state["pointers"]
-        )
-        self.indices_shm, self.indices = self._setstate_connect_shared_ndarray(
-            state["indices"]
-        )
-        self.values_shm, self.values = self._setstate_connect_shared_ndarray(
-            state["values"]
-        )
-
-    def __str__(self):
-        return f"shape: {self.shape}\npointers{self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
-
-
 @delayed(pure=False)
-def allocate_csr(csr_matrix_class: type, plan: COOtoCSRPlan) -> CSRMatrix:
-    csr = csr_matrix_class(
+def allocate_csr(csr_loader: CSRLoader, plan: COOtoCSRPlan):
+    csr = csr_loader.allocate(
         plan.matrix_shape,
         plan.nvalues,
         plan.pointer_dtype,
         plan.index_dtype,
         plan.value_dtype,
     )
+
+    csr_loader.dask_incref(csr)
     return csr
 
 
-@delayed
+@delayed(pure=False)
 def load_chunk(
-    partition_id: int, partition: pd.DataFrame, plan: COOtoCSRPlan, csr: CSRMatrix
+    csr_loader: CSRLoader,
+    partition_id: int,
+    partition: pd.DataFrame,
+    plan: COOtoCSRPlan,
+    csr,
 ) -> str:
     coo_desc = plan.coo_desc
     chunk_plan = plan.chunks[partition_id]
 
     # we assume the records were already sorted by row number, but this ensures the column numbers are sorted within the row
     partition.sort_values(by=[coo_desc.row_fieldname, coo_desc.col_fieldname])
-
-    nvalues = len(partition)
 
     # compute pointer offsets
     rows = partition[coo_desc.row_fieldname].to_numpy()
@@ -270,31 +393,38 @@ def load_chunk(
     pointers = np.cumsum(pointers) + chunk_plan.index_value_offset
 
     # copy indices and values
-    csr.load_pointers(chunk_plan.fill_row_begin + 1, pointers)
-    csr.load_indices(
-        chunk_plan.index_value_offset, partition[coo_desc.col_fieldname].to_numpy()
+    csr_loader.load_pointers_chunk(csr, chunk_plan.fill_row_begin + 1, pointers)
+    csr_loader.load_indices_chunk(
+        csr, chunk_plan.index_value_offset, partition[coo_desc.col_fieldname].to_numpy()
     )
-    csr.load_values(
-        chunk_plan.index_value_offset, partition[coo_desc.value_fieldname].to_numpy()
+    csr_loader.load_values_chunk(
+        csr,
+        chunk_plan.index_value_offset,
+        partition[coo_desc.value_fieldname].to_numpy(),
     )
 
     # return dummy value
     return partition_id
 
 
-@delayed
-def finalize_csr(csr: CSRMatrix, load_chunk_results: list) -> CSRMatrix:
+@delayed(pure=False)
+def finalize_csr(csr_loader: CSRLoader, csr, load_chunk_results: list):
+    csr_loader.dask_incref(csr)
     return csr
 
 
 def load_coo_to_csr(
     coo: dd.DataFrame,
-    shape=Tuple[int, int],
+    shape: Tuple[int, int],
+    loader: CSRLoader,
     row="row",
     col="col",
     value="value",
-    csr_class=CSRMatrix,
+    client=None,
 ):
+    if client is None:
+        client = distributed.get_client()
+    loader.register_dask_scheduler_plugin(client)
 
     coo_desc = COODescriptor(shape, row, col, value)
     chunks = [
@@ -302,10 +432,11 @@ def load_coo_to_csr(
         for i, part in enumerate(coo.partitions)
     ]
     plan = build_plan(coo_desc, chunks)
-    empty_csr = allocate_csr(SharedCSRMatrix, plan)
+    empty_csr = allocate_csr(loader, plan)
     loaded_chunks = [
-        load_chunk(i, part, plan, empty_csr) for i, part in enumerate(coo.partitions)
+        load_chunk(loader, i, part, plan, empty_csr)
+        for i, part in enumerate(coo.partitions)
     ]
-    csr = finalize_csr(empty_csr, loaded_chunks)
+    csr = finalize_csr(loader, empty_csr, loaded_chunks)
 
     return csr
