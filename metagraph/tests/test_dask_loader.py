@@ -8,6 +8,23 @@ import pytest
 import pickle
 
 
+def test_loader_base_exceptions():
+    load_base = loader.CSRLoader()
+
+    with pytest.raises(NotImplementedError):
+        load_base.register_dask_scheduler_plugin(None)
+    with pytest.raises(NotImplementedError):
+        load_base.allocate((2, 2), 100, np.int64, np.int64, np.float64)
+    with pytest.raises(NotImplementedError):
+        load_base.dask_incref(None)
+    with pytest.raises(NotImplementedError):
+        load_base.load_pointers_chunk(None, 10, np.arange(10))
+    with pytest.raises(NotImplementedError):
+        load_base.load_indices_chunk(None, 10, np.arange(10))
+    with pytest.raises(NotImplementedError):
+        load_base.load_values_chunk(None, 10, np.arange(10))
+
+
 def test_extract_chunk_information(ex_coo_desc, ex_ddf):
     result0 = loader.extract_chunk_information(
         0, ex_ddf.partitions[0], ex_coo_desc
@@ -47,6 +64,23 @@ def test_build_plan(ex_coo_desc, ex_chunks, ex_coo_to_csr_plan):
     assert result == expected
 
     return expected
+
+
+def test_build_plan_empty(ex_coo_desc):
+    with pytest.raises(ValueError, match="must be at least one chunk"):
+        loader.build_plan(ex_coo_desc, []).compute()
+
+
+def test_build_plan_inconsistent_shape(ex_coo_desc, ex_chunks):
+    ex_chunks[1].matrix_shape = (20, 20)
+    with pytest.raises(ValueError, match="inconsistent with current shape"):
+        loader.build_plan(ex_coo_desc, ex_chunks).compute()
+
+
+def test_build_plan_row_overlap(ex_coo_desc, ex_chunks):
+    ex_chunks[1].first_row = 0
+    with pytest.raises(ValueError, match="row overlap"):
+        loader.build_plan(ex_coo_desc, ex_chunks).compute()
 
 
 @pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
@@ -126,6 +160,14 @@ def test_load_coo_to_csr(dask_client, csr_loader, ex_ddf):
     np.testing.assert_equal(csr.pointers, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
     np.testing.assert_equal(csr.indices, [1, 3, 0, 3, 5, 7, 7])
     np.testing.assert_equal(csr.values, [1, 2, 3, 4, 5, 6, 7])
+
+    assert (
+        str(csr)
+        == """shape: (10, 10)
+pointers: [0 2 2 2 2 5 5 5 5 6 7]
+indices: [1 3 0 3 5 7 7]
+values: [1. 2. 3. 4. 5. 6. 7.]"""
+    )
 
 
 @pytest.fixture

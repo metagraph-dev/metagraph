@@ -38,50 +38,6 @@ class CSRLoader:
         raise NotImplementedError
 
 
-### LocalCSRMatrix is for testing only
-
-
-class LocalCSRMatrix:
-    def __init__(self, shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
-        self.shape = shape
-        self.pointers = np.zeros(shape=(shape[0] + 1), dtype=pointers_dtype)
-        self.indices = np.zeros(shape=(nvalues,), dtype=indices_dtype)
-        self.values = np.zeros(shape=(nvalues,), dtype=values_dtype)
-
-    def __str__(self):
-        return f"shape: {self.shape}\npointers{self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
-
-
-class LocalCSRLoader:
-    @staticmethod
-    def register_dask_scheduler_plugin(client: distributed.Client):
-        # nothing to do since Python refcount works fine for LocalCSRMatrix
-        pass
-
-    @staticmethod
-    def allocate(shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
-        return LocalCSRMatrix(
-            shape, nvalues, pointers_dtype, indices_dtype, values_dtype
-        )
-
-    @staticmethod
-    def dask_incref(csr):
-        # nothing to do since Python refcount works fine for LocalCSRMatrix
-        pass
-
-    @staticmethod
-    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.pointers[offset : offset + len(chunk)] = chunk
-
-    @staticmethod
-    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.indices[offset : offset + len(chunk)] = chunk
-
-    @staticmethod
-    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.values[offset : offset + len(chunk)] = chunk
-
-
 ### SharedCSRMatrix is for testing only
 
 
@@ -156,7 +112,7 @@ class SharedCSRMatrix:
         )
 
     def __str__(self):
-        return f"shape: {self.shape}\npointers{self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
+        return f"shape: {self.shape}\npointers: {self.pointers}\nindices: {self.indices}\nvalues: {self.values}"
 
 
 class SharedMemoryRefCounter(SchedulerPlugin):
@@ -321,11 +277,11 @@ def build_plan(coo_desc: COODescriptor, chunks: List[COOChunkInfo]) -> COOtoCSRP
         # consistency check
         if chunk.matrix_shape != plan.matrix_shape:
             raise ValueError(
-                f"chunk {chunk.filename} has matrix shape {chunk.matrix_shape} inconsistent with current shape {plan.matrix_shape}"
+                f"chunk {chunk.partition_id} has matrix shape {chunk.matrix_shape} inconsistent with current shape {plan.matrix_shape}"
             )
         if chunk.first_row <= last_row:
             raise ValueError(
-                f"chunk {chunk.filename} has row overlap with another chunk"
+                f"chunk {chunk.partition_id} has row overlap with another chunk"
             )
 
         plan.pointer_dtype = np.result_type(
@@ -348,6 +304,7 @@ def build_plan(coo_desc: COODescriptor, chunks: List[COOChunkInfo]) -> COOtoCSRP
 
         plan.chunks.append(chunk_plan)
         nvalues += chunk.nvalues
+        last_row = chunk.last_row
 
     plan.nvalues = nvalues
 
