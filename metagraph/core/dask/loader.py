@@ -14,27 +14,51 @@ from multiprocessing import shared_memory
 
 class CSRLoader:
     @staticmethod
-    def register_dask_scheduler_plugin(client: distributed.client):
+    def register_dask_scheduler_plugin(client: distributed.Client):
+        """Register any required scheduler plugins with the Dask client.
+
+        These plugins should cooperate with the ``dask_incref`` method
+        to track the lifetime of any cluster-wide shared resources and
+        free them when they have been forgotten by the Dask cluster.
+
+        Scheduler plugins receive a callback for every state transition
+        in the DAG, so the plugin should free resources as appropriate
+        when Dask keys are forgotten.
+        """
         raise NotImplementedError
 
     @staticmethod
     def allocate(shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
+        """Return a new, empty distributed CSR object.
+
+        The 2D shape, number of values, and dtypes of the pointers, indices,
+        and values arrays are needed.
+        """
         raise NotImplementedError
 
     @staticmethod
     def dask_incref(csr):
+        """Perform whatever actions are required to incref the shared
+        resources associated with this CSR object.
+
+        This method should communicate with the Dask scheduler plugin to
+        indicate the Dask keys associated with cluster-wide shared resources.
+        """
         raise NotImplementedError
 
     @staticmethod
     def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
+        """Copy a chunk of CSR pointers into the distributed CSR object at the given offset."""
         raise NotImplementedError
 
     @staticmethod
     def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
+        """Copy a chunk of CSR indices into the distributed CSR object at the given offset."""
         raise NotImplementedError
 
     @staticmethod
     def load_values_chunk(csr, offset: int, chunk: np.ndarray):
+        """Copy a chunk of CSR values into the distributed CSR object at the given offset."""
         raise NotImplementedError
 
 
@@ -379,6 +403,26 @@ def load_coo_to_csr(
     value="value",
     client=None,
 ):
+    """Parallel conversion of COO graph in a Dask dataframe to a CSR graph.
+
+    The Dask dataframe ``coo`` will be interpreted as a graph in COO format
+    where the row, column, and edge value column names are given by ``row``,
+    ``col``, and ``value``.  The dimensions of the final CSR sparse adjacency
+    matrix are given by ``shape``.
+
+    Creation and management of the target CSR graph object is handled by the
+    ``loader`` class, which must be a subclass of ``CSRLoader``.  
+
+    Note that the algorithm used by this function for parallel translation
+    only makes sense for distributed CSR data structures that can be accessed
+    directly by all Dask workers in the cluster.  A loader for a CSR matrix
+    stored in POSIX shared memory is provided as an example
+    (``SharedCSRLoader``) that runs on single system, multi-process Dask
+    clusters.
+
+    The return value from this function is a Dask future for a CSR object
+    of the type created by ``loader``.
+    """
     if client is None:
         client = distributed.get_client()
     loader.register_dask_scheduler_plugin(client)
