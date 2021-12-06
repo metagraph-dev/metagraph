@@ -1,8 +1,10 @@
 Data Loading and Export
 =======================
 
-Metagraph has no built-in way to load and export data. Instead, users must use an existing graph library
-which they are familiar with and which has a metagraph plugin.
+Generally, users load data into a type that Metagraph is aware of, and has a
+translation path to the desired graph type via the plugins that have been
+installed.  Metagraph also provides special support for loading data into a 
+distributed graph structure (see `Distributed COO to CSR conversion`_).
 
 Loading
 -------
@@ -53,3 +55,25 @@ reported properties may be invalid.
 
 In short, do not mutate objects which are still in active use within Metagraph. There is a way of forcing
 the property cache to clear if mutation is impossible to avoid, but this is generally discouraged.
+
+
+Distributed COO to CSR conversion
+---------------------------------
+
+Metagraph has a special interface for loading COO graph data in a Dask
+Dataframe into a distributed CSR graph data structure.  Metagraph does not
+provide any distributed graph data structures itself, but a Metagraph plugin
+may offer a CSR graph object that is distributed across the Dask worker
+systems and is therefore visible to all workers.  In this situation, Metagraph
+offers support for parallel loading of data into the distributed CSR object.
+
+.. autofunction:: metagraph.core.dask.loader::load_coo_to_csr
+
+Because of the variety of potential distributed CSR implementations,
+``load_coo_to_csr`` requires a loader class that implements all of the following methods:
+
+.. autoclass:: metagraph.core.dask.loader::CSRLoader
+    :members:
+
+For details on how to create a new loader (especially how to manage shared
+resource lifetimes), see the implementation of the ``SharedCSRLoader`` class.

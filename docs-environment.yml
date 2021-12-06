@@ -9,6 +9,8 @@ dependencies:
   - nbsphinx
   - notebook
   - conda-forge::pydata-sphinx-theme
+  - dask
+  - distributed
   - pip
   - pip:
     - rst2pdf
