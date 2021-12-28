@@ -19,6 +19,8 @@ def test_loader_base_exceptions():
         load_base.dask_incref(None)
     with pytest.raises(NotImplementedError):
         load_base.load_chunk(None, 10, np.arange(10), 20, np.arange(10), np.arange(10))
+    with pytest.raises(NotImplementedError):
+        load_base.finalize(None, [])
 
 
 def test_extract_chunk_information(ex_coo_desc, ex_ddf):

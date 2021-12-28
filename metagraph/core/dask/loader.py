@@ -55,7 +55,19 @@ class CSRLoader:
         indices: np.ndarray,
         values: np.ndarray,
     ):
-        """Copy a chunk of CSR data into the distributed CSR object at the given offset."""
+        """Copy a chunk of CSR data into the distributed CSR object at the given offset.
+
+        Optionally return data that will be passed to finalize().
+        """
+        raise NotImplementedError
+
+    @staticmethod
+    def finalize(csr, chunks: List):
+        """Perform any final CSR construction tasks based on the csr returned
+        by allocate() and the chunk data returned by load_chunk().
+
+        Return the final CSR data structure to be used.
+        """
         raise NotImplementedError
 
 
@@ -204,6 +216,11 @@ class SharedCSRLoader:
         csr.pointers[row_offset : row_offset + len(pointers)] = pointers
         csr.indices[value_offset : value_offset + len(indices)] = indices
         csr.values[value_offset : value_offset + len(values)] = values
+
+    @staticmethod
+    def finalize(csr, chunks):
+        # nothing further needs to be done
+        return csr
 
 
 ### Generic COO to CSR Loading logic
@@ -387,8 +404,9 @@ def load_chunk(
 
 @delayed(pure=False)
 def finalize_csr(csr_loader: CSRLoader, csr, load_chunk_results: list):
-    csr_loader.dask_incref(csr)
-    return csr
+    final_csr = csr_loader.finalize(csr, load_chunk_results)
+    csr_loader.dask_incref(final_csr)
+    return final_csr
 
 
 def load_coo_to_csr(
