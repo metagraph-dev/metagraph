@@ -47,18 +47,15 @@ class CSRLoader:
         raise NotImplementedError
 
     @staticmethod
-    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
-        """Copy a chunk of CSR pointers into the distributed CSR object at the given offset."""
-        raise NotImplementedError
-
-    @staticmethod
-    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
-        """Copy a chunk of CSR indices into the distributed CSR object at the given offset."""
-        raise NotImplementedError
-
-    @staticmethod
-    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
-        """Copy a chunk of CSR values into the distributed CSR object at the given offset."""
+    def load_chunk(
+        csr,
+        row_offset: int,
+        pointers: np.ndarray,
+        value_offset: int,
+        indices: np.ndarray,
+        values: np.ndarray,
+    ):
+        """Copy a chunk of CSR data into the distributed CSR object at the given offset."""
         raise NotImplementedError
 
 
@@ -196,16 +193,17 @@ class SharedCSRLoader:
             )
 
     @staticmethod
-    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.pointers[offset : offset + len(chunk)] = chunk
-
-    @staticmethod
-    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.indices[offset : offset + len(chunk)] = chunk
-
-    @staticmethod
-    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.values[offset : offset + len(chunk)] = chunk
+    def load_chunk(
+        csr,
+        row_offset: int,
+        pointers: np.ndarray,
+        value_offset: int,
+        indices: np.ndarray,
+        values: np.ndarray,
+    ):
+        csr.pointers[row_offset : row_offset + len(pointers)] = pointers
+        csr.indices[value_offset : value_offset + len(indices)] = indices
+        csr.values[value_offset : value_offset + len(values)] = values
 
 
 ### Generic COO to CSR Loading logic
@@ -374,13 +372,12 @@ def load_chunk(
     pointers = np.cumsum(pointers) + chunk_plan.index_value_offset
 
     # copy indices and values
-    csr_loader.load_pointers_chunk(csr, chunk_plan.fill_row_begin + 1, pointers)
-    csr_loader.load_indices_chunk(
-        csr, chunk_plan.index_value_offset, partition[coo_desc.col_fieldname].to_numpy()
-    )
-    csr_loader.load_values_chunk(
+    csr_loader.load_chunk(
         csr,
+        chunk_plan.fill_row_begin + 1,
+        pointers,
         chunk_plan.index_value_offset,
+        partition[coo_desc.col_fieldname].to_numpy(),
         partition[coo_desc.value_fieldname].to_numpy(),
     )
 
@@ -411,7 +408,7 @@ def load_coo_to_csr(
     matrix are given by ``shape``.
 
     Creation and management of the target CSR graph object is handled by the
-    ``loader`` class, which must be a subclass of ``CSRLoader``.  
+    ``loader`` class, which must be a subclass of ``CSRLoader``.
 
     Note that the algorithm used by this function for parallel translation
     only makes sense for distributed CSR data structures that can be accessed

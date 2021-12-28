@@ -18,11 +18,7 @@ def test_loader_base_exceptions():
     with pytest.raises(NotImplementedError):
         load_base.dask_incref(None)
     with pytest.raises(NotImplementedError):
-        load_base.load_pointers_chunk(None, 10, np.arange(10))
-    with pytest.raises(NotImplementedError):
-        load_base.load_indices_chunk(None, 10, np.arange(10))
-    with pytest.raises(NotImplementedError):
-        load_base.load_values_chunk(None, 10, np.arange(10))
+        load_base.load_chunk(None, 10, np.arange(10), 20, np.arange(10), np.arange(10))
 
 
 def test_extract_chunk_information(ex_coo_desc, ex_ddf):
@@ -136,11 +132,14 @@ def test_load_chunk(dask_client, csr_loader, ex_ddf, ex_coo_to_csr_plan):
 
 def test_shared_csr_pickle(ex_coo_to_csr_plan):
     csr = loader.allocate_csr(loader.SharedCSRLoader, ex_coo_to_csr_plan).compute()
-    loader.SharedCSRLoader.load_pointers_chunk(
-        csr, 0, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7]
+    loader.SharedCSRLoader.load_chunk(
+        csr,
+        0,
+        [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7],
+        0,
+        [1, 3, 0, 3, 5, 7, 7],
+        [1, 2, 3, 4, 5, 6, 7],
     )
-    loader.SharedCSRLoader.load_indices_chunk(csr, 0, [1, 3, 0, 3, 5, 7, 7])
-    loader.SharedCSRLoader.load_values_chunk(csr, 0, [1, 2, 3, 4, 5, 6, 7])
 
     csr_2 = pickle.loads(pickle.dumps(csr))
     np.testing.assert_equal(csr_2.pointers, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
