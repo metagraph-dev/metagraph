@@ -61,10 +61,12 @@ class CSRLoader:
         """
         raise NotImplementedError
 
-    @staticmethod
-    def finalize(csr, chunks: List):
+    @classmethod
+    def finalize(cls, csr, plan, chunks: List):
         """Perform any final CSR construction tasks based on the csr returned
         by allocate() and the chunk data returned by load_chunk().
+
+        This is run immediately by the loader and not inside a delayed() function.
 
         Return the final CSR data structure to be used.
         """
@@ -217,10 +219,15 @@ class SharedCSRLoader:
         csr.indices[value_offset : value_offset + len(indices)] = indices
         csr.values[value_offset : value_offset + len(values)] = values
 
-    @staticmethod
-    def finalize(csr, chunks):
-        # nothing further needs to be done
-        return csr
+    @classmethod
+    def finalize(cls, csr, plan, chunks):
+        # force all chunks to load before proceeding
+        @delayed(pure=False)
+        def shared_finalizer(loader, csr, chunks):
+            loader.dask_incref(csr)
+            return csr
+
+        return shared_finalizer(cls, csr, chunks)
 
 
 ### Generic COO to CSR Loading logic
@@ -389,7 +396,7 @@ def load_chunk(
     pointers = np.cumsum(pointers) + chunk_plan.index_value_offset
 
     # copy indices and values
-    csr_loader.load_chunk(
+    result = csr_loader.load_chunk(
         csr,
         chunk_plan.fill_row_begin + 1,
         pointers,
@@ -398,15 +405,11 @@ def load_chunk(
         partition[coo_desc.value_fieldname].to_numpy(),
     )
 
-    # return dummy value
-    return partition_id
-
-
-@delayed(pure=False)
-def finalize_csr(csr_loader: CSRLoader, csr, load_chunk_results: list):
-    final_csr = csr_loader.finalize(csr, load_chunk_results)
-    csr_loader.dask_incref(final_csr)
-    return final_csr
+    if result is None:
+        # return dummy value
+        return partition_id
+    else:
+        return result
 
 
 def load_coo_to_csr(
@@ -453,6 +456,6 @@ def load_coo_to_csr(
         load_chunk(loader, i, part, plan, empty_csr)
         for i, part in enumerate(coo.partitions)
     ]
-    csr = finalize_csr(loader, empty_csr, loaded_chunks)
+    csr = loader.finalize(empty_csr, plan.compute(), loaded_chunks)
 
     return csr
