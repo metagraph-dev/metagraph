@@ -7,6 +7,13 @@ import dataclasses
 import pytest
 import pickle
 
+try:
+    import dask_grblas as dgb
+
+    TEST_DASK_GRBLAS = True
+except ImportError:
+    TEST_DASK_GRBLAS = False
+
 
 def test_loader_base_exceptions():
     load_base = loader.CSRLoader()
@@ -18,11 +25,9 @@ def test_loader_base_exceptions():
     with pytest.raises(NotImplementedError):
         load_base.dask_incref(None)
     with pytest.raises(NotImplementedError):
-        load_base.load_pointers_chunk(None, 10, np.arange(10))
+        load_base.load_chunk(None, 10, np.arange(10), 20, np.arange(10), np.arange(10))
     with pytest.raises(NotImplementedError):
-        load_base.load_indices_chunk(None, 10, np.arange(10))
-    with pytest.raises(NotImplementedError):
-        load_base.load_values_chunk(None, 10, np.arange(10))
+        load_base.finalize(None, None, [])
 
 
 def test_extract_chunk_information(ex_coo_desc, ex_ddf):
@@ -90,13 +95,6 @@ def test_allocate_csr(dask_client, csr_loader, ex_coo_to_csr_plan):
 
 
 @pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
-def test_finalize_csr(dask_client, csr_loader, ex_coo_to_csr_plan):
-    csr = loader.allocate_csr(csr_loader, ex_coo_to_csr_plan).compute()
-    finalize_csr = loader.finalize_csr(csr_loader, csr, [0, 1, 2]).compute()
-    assert finalize_csr.shape == (10, 10)
-
-
-@pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
 def test_load_chunk(dask_client, csr_loader, ex_ddf, ex_coo_to_csr_plan):
     csr = loader.allocate_csr(csr_loader, ex_coo_to_csr_plan).compute()
 
@@ -136,11 +134,14 @@ def test_load_chunk(dask_client, csr_loader, ex_ddf, ex_coo_to_csr_plan):
 
 def test_shared_csr_pickle(ex_coo_to_csr_plan):
     csr = loader.allocate_csr(loader.SharedCSRLoader, ex_coo_to_csr_plan).compute()
-    loader.SharedCSRLoader.load_pointers_chunk(
-        csr, 0, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7]
+    loader.SharedCSRLoader.load_chunk(
+        csr,
+        0,
+        [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7],
+        0,
+        [1, 3, 0, 3, 5, 7, 7],
+        [1, 2, 3, 4, 5, 6, 7],
     )
-    loader.SharedCSRLoader.load_indices_chunk(csr, 0, [1, 3, 0, 3, 5, 7, 7])
-    loader.SharedCSRLoader.load_values_chunk(csr, 0, [1, 2, 3, 4, 5, 6, 7])
 
     csr_2 = pickle.loads(pickle.dumps(csr))
     np.testing.assert_equal(csr_2.pointers, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
@@ -148,8 +149,8 @@ def test_shared_csr_pickle(ex_coo_to_csr_plan):
     np.testing.assert_equal(csr_2.values, [1, 2, 3, 4, 5, 6, 7])
 
 
-@pytest.mark.parametrize("csr_loader", [loader.SharedCSRLoader])
-def test_load_coo_to_csr(dask_client, csr_loader, ex_ddf):
+def test_load_coo_to_csr_shared(dask_client, ex_ddf):
+    csr_loader = loader.SharedCSRLoader
     csr = loader.load_coo_to_csr(
         ex_ddf, shape=(10, 10), row="row", col="col", value="value", loader=csr_loader,
     )
@@ -168,6 +169,49 @@ pointers: [0 2 2 2 2 5 5 5 5 6 7]
 indices: [1 3 0 3 5 7 7]
 values: [1. 2. 3. 4. 5. 6. 7.]"""
     )
+
+
+@pytest.mark.skipif(not TEST_DASK_GRBLAS, reason="dask-grblas not detected")
+def test_load_coo_to_csr_dgb(dask_client, ex_ddf):
+    from metagraph.core.dask.grblas import DaskGrblasLoader
+    import grblas as gb
+
+    csr = loader.load_coo_to_csr(
+        ex_ddf,
+        shape=(10, 10),
+        row="row",
+        col="col",
+        value="value",
+        loader=DaskGrblasLoader,
+    )
+
+    csr.visualize(filename="test_load_coo_to_csr_dgb.png")
+
+    csr = csr.compute()
+    sparse = gb.io.to_scipy_sparse_matrix(csr, format="csr")
+
+    np.testing.assert_equal(sparse.indptr, [0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
+    np.testing.assert_equal(sparse.indices, [1, 3, 0, 3, 5, 7, 7])
+    np.testing.assert_equal(sparse.data, [1, 2, 3, 4, 5, 6, 7])
+
+
+@pytest.mark.skipif(not TEST_DASK_GRBLAS, reason="dask-grblas not detected")
+def test_load_chunk_dgb():
+    from metagraph.core.dask.grblas import DaskGrblasLoader
+    import grblas as gb
+
+    pointers = np.array([0, 2, 2, 2, 2, 5, 5, 5, 5, 6, 7])
+    indices = np.array([1, 3, 0, 3, 5, 7, 7], dtype=np.int64)
+    values = np.array([1, 2, 3, 4, 5, 6, 7], np.float64)
+
+    chunk = DaskGrblasLoader.load_chunk(
+        dict(shape=(10, 10)), 0, pointers, 0, indices, values
+    )
+    sparse = gb.io.to_scipy_sparse_matrix(chunk, format="csr")
+
+    np.testing.assert_array_equal(pointers, sparse.indptr.astype(np.int64))
+    np.testing.assert_array_equal(indices, sparse.indices.astype(np.int64))
+    np.testing.assert_array_equal(values, sparse.data.astype(np.float64))
 
 
 @pytest.fixture

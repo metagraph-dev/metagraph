@@ -47,18 +47,29 @@ class CSRLoader:
         raise NotImplementedError
 
     @staticmethod
-    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
-        """Copy a chunk of CSR pointers into the distributed CSR object at the given offset."""
+    def load_chunk(
+        csr,
+        row_offset: int,
+        pointers: np.ndarray,
+        value_offset: int,
+        indices: np.ndarray,
+        values: np.ndarray,
+    ):
+        """Copy a chunk of CSR data into the distributed CSR object at the given offset.
+
+        Optionally return data that will be passed to finalize().
+        """
         raise NotImplementedError
 
-    @staticmethod
-    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
-        """Copy a chunk of CSR indices into the distributed CSR object at the given offset."""
-        raise NotImplementedError
+    @classmethod
+    def finalize(cls, csr, plan, chunks: List):
+        """Perform any final CSR construction tasks based on the csr returned
+        by allocate() and the chunk data returned by load_chunk().
 
-    @staticmethod
-    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
-        """Copy a chunk of CSR values into the distributed CSR object at the given offset."""
+        This is run immediately by the loader and not inside a delayed() function.
+
+        Return the final CSR data structure to be used.
+        """
         raise NotImplementedError
 
 
@@ -196,16 +207,27 @@ class SharedCSRLoader:
             )
 
     @staticmethod
-    def load_pointers_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.pointers[offset : offset + len(chunk)] = chunk
+    def load_chunk(
+        csr,
+        row_offset: int,
+        pointers: np.ndarray,
+        value_offset: int,
+        indices: np.ndarray,
+        values: np.ndarray,
+    ):
+        csr.pointers[row_offset : row_offset + len(pointers)] = pointers
+        csr.indices[value_offset : value_offset + len(indices)] = indices
+        csr.values[value_offset : value_offset + len(values)] = values
 
-    @staticmethod
-    def load_indices_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.indices[offset : offset + len(chunk)] = chunk
+    @classmethod
+    def finalize(cls, csr, plan, chunks):
+        # force all chunks to load before proceeding
+        @delayed(pure=False)
+        def shared_finalizer(loader, csr, chunks):
+            loader.dask_incref(csr)
+            return csr
 
-    @staticmethod
-    def load_values_chunk(csr, offset: int, chunk: np.ndarray):
-        csr.values[offset : offset + len(chunk)] = chunk
+        return shared_finalizer(cls, csr, chunks)
 
 
 ### Generic COO to CSR Loading logic
@@ -256,7 +278,13 @@ def extract_chunk_information(
     partition_id: int, partition: pd.DataFrame, coo_desc: COODescriptor
 ) -> COOChunkInfo:
     matrix_rows, matrix_cols = coo_desc.matrix_shape
+    nvalues_before = len(partition)
+    partition = partition.drop_duplicates(
+        [coo_desc.row_fieldname, coo_desc.col_fieldname]
+    )
     nvalues = len(partition)
+    if nvalues != nvalues_before:
+        print(f"INFO: dropped {nvalues_before - nvalues} duplicate entries!")
     first_row = partition[coo_desc.row_fieldname].iloc[0]
     last_row = partition[coo_desc.row_fieldname].iloc[-1]
 
@@ -361,7 +389,13 @@ def load_chunk(
     chunk_plan = plan.chunks[partition_id]
 
     # we assume the records were already sorted by row number, but this ensures the column numbers are sorted within the row
-    partition.sort_values(by=[coo_desc.row_fieldname, coo_desc.col_fieldname])
+    partition = partition.drop_duplicates(
+        [coo_desc.row_fieldname, coo_desc.col_fieldname]
+    )
+    # We can sort in place because the previous operation copied the dataframe
+    partition.sort_values(
+        by=[coo_desc.row_fieldname, coo_desc.col_fieldname], inplace=True
+    )
 
     # compute pointer offsets
     rows = partition[coo_desc.row_fieldname].to_numpy()
@@ -374,24 +408,20 @@ def load_chunk(
     pointers = np.cumsum(pointers) + chunk_plan.index_value_offset
 
     # copy indices and values
-    csr_loader.load_pointers_chunk(csr, chunk_plan.fill_row_begin + 1, pointers)
-    csr_loader.load_indices_chunk(
-        csr, chunk_plan.index_value_offset, partition[coo_desc.col_fieldname].to_numpy()
-    )
-    csr_loader.load_values_chunk(
+    result = csr_loader.load_chunk(
         csr,
+        chunk_plan.fill_row_begin + 1,
+        pointers,
         chunk_plan.index_value_offset,
+        partition[coo_desc.col_fieldname].to_numpy(),
         partition[coo_desc.value_fieldname].to_numpy(),
     )
 
-    # return dummy value
-    return partition_id
-
-
-@delayed(pure=False)
-def finalize_csr(csr_loader: CSRLoader, csr, load_chunk_results: list):
-    csr_loader.dask_incref(csr)
-    return csr
+    if result is None:
+        # return dummy value
+        return partition_id
+    else:
+        return result
 
 
 def load_coo_to_csr(
@@ -411,7 +441,7 @@ def load_coo_to_csr(
     matrix are given by ``shape``.
 
     Creation and management of the target CSR graph object is handled by the
-    ``loader`` class, which must be a subclass of ``CSRLoader``.  
+    ``loader`` class, which must be a subclass of ``CSRLoader``.
 
     Note that the algorithm used by this function for parallel translation
     only makes sense for distributed CSR data structures that can be accessed
@@ -438,6 +468,6 @@ def load_coo_to_csr(
         load_chunk(loader, i, part, plan, empty_csr)
         for i, part in enumerate(coo.partitions)
     ]
-    csr = finalize_csr(loader, empty_csr, loaded_chunks)
+    csr = loader.finalize(empty_csr, plan.compute(), loaded_chunks)
 
     return csr
