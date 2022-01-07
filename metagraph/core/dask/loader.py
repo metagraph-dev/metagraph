@@ -278,7 +278,13 @@ def extract_chunk_information(
     partition_id: int, partition: pd.DataFrame, coo_desc: COODescriptor
 ) -> COOChunkInfo:
     matrix_rows, matrix_cols = coo_desc.matrix_shape
+    nvalues_before = len(partition)
+    partition = partition.drop_duplicates(
+        [coo_desc.row_fieldname, coo_desc.col_fieldname]
+    )
     nvalues = len(partition)
+    if nvalues != nvalues_before:
+        print(f"INFO: dropped {nvalues_before - nvalues} duplicate entries!")
     first_row = partition[coo_desc.row_fieldname].iloc[0]
     last_row = partition[coo_desc.row_fieldname].iloc[-1]
 
@@ -383,7 +389,13 @@ def load_chunk(
     chunk_plan = plan.chunks[partition_id]
 
     # we assume the records were already sorted by row number, but this ensures the column numbers are sorted within the row
-    partition.sort_values(by=[coo_desc.row_fieldname, coo_desc.col_fieldname])
+    partition = partition.drop_duplicates(
+        [coo_desc.row_fieldname, coo_desc.col_fieldname]
+    )
+    # We can sort in place because the previous operation copied the dataframe
+    partition.sort_values(
+        by=[coo_desc.row_fieldname, coo_desc.col_fieldname], inplace=True
+    )
 
     # compute pointer offsets
     rows = partition[coo_desc.row_fieldname].to_numpy()
