@@ -100,7 +100,7 @@ def katanagraph_cleaned_8_12_ud():
 
 @pytest.fixture(autouse=True)
 def networkx_weighted_undirected_8_12():
-    df = pd.read_csv("tests/data/edge1.csv")
+    df = pd.read_csv("metagraph/tests/plugins/katana/data/edge1.csv")
     em = mg.wrappers.EdgeMap.PandasEdgeMap(
         df, "Source", "Destination", "Weight", is_directed=False
     )
@@ -110,7 +110,7 @@ def networkx_weighted_undirected_8_12():
 
 @pytest.fixture(autouse=True)
 def networkx_weighted_directed_8_12():
-    df = pd.read_csv("tests/data/edge1.csv")
+    df = pd.read_csv("metagraph/tests/plugins/katana/data/edge1.csv")
     em = mg.wrappers.EdgeMap.PandasEdgeMap(
         df, "Source", "Destination", "Weight", is_directed=True
     )
