@@ -74,11 +74,13 @@ registry = metagraph.PluginRegistry("core")
 
 def find_plugins():
     from . import core, graphblas, katana, networkx, numpy, pandas, python, scipy
+    import katana.local
 
     # Default Plugins
     registry.register_from_modules(core)
     registry.register_from_modules(graphblas, name="core_graphblas")
     registry.register_from_modules(katana, name="core_katana")
+    katana.local.initialize()
     registry.register_from_modules(networkx, name="core_networkx")
     registry.register_from_modules(numpy, name="core_numpy")
     registry.register_from_modules(pandas, name="core_pandas")
