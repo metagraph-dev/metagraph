@@ -32,3 +32,5 @@ dependencies:
   - conda-forge::grblas
   - conda-forge::python-louvain
   - conda-forge::websockets
+  - katanagraph/label/dev::katana-cpp
+  - katanagraph/label/dev::katana-python
