@@ -56,20 +56,7 @@ def test_edge_property_directed(kg_from_nx_di_8_12):
     ) == kg_from_nx_di_8_12.value.get_edge_property("value_from_translator")
     assert kg_from_nx_di_8_12.value.get_edge_property(
         "value_from_translator"
-    ).tolist() == [
-        4,
-        2,
-        7,
-        3,
-        5,
-        5,
-        2,
-        8,
-        1,
-        4,
-        4,
-        6,
-    ]
+    ).tolist() == [4, 2, 7, 3, 5, 5, 2, 8, 1, 4, 4, 6,]
 
 
 def test_compare_node_count(nx_from_kg_di_8_12, katanagraph_cleaned_8_12_di):

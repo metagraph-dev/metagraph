@@ -46,24 +46,13 @@ def test_topology(katanagraph_rmat15_cleaned_di):
     assert [
         katanagraph_rmat15_cleaned_di.value.get_edge_dest(i)
         for i in katanagraph_rmat15_cleaned_di.value.edge_ids(0)
-    ][0:5] == [
-        1,
-        2,
-        3,
-        4,
-        5,
-    ]
+    ][0:5] == [1, 2, 3, 4, 5,]
+
     assert katanagraph_rmat15_cleaned_di.value.edge_ids(8) == range(36475, 41133)
     assert [
         katanagraph_rmat15_cleaned_di.value.get_edge_dest(i)
         for i in katanagraph_rmat15_cleaned_di.value.edge_ids(8)
-    ][0:5] == [
-        0,
-        9,
-        10,
-        11,
-        12,
-    ]
+    ][0:5] == [0, 9, 10, 11, 12,]
 
 
 def test_num_nodes_networkx(
