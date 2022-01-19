@@ -144,14 +144,3 @@ def nx_from_kg_di_8_12(katanagraph_cleaned_8_12_di):
 @pytest.fixture(autouse=True)
 def nx_from_kg_ud_8_12(katanagraph_cleaned_8_12_ud):
     return mg.translate(katanagraph_cleaned_8_12_ud, mg.wrappers.Graph.NetworkXGraph)
-
-
-def pytest_addoption(parser):
-    parser.addoption(
-        "--runslow", action="store_true", default=False, help="run slow tests"
-    )
-
-
-def pytest_runtest_setup(item):
-    if "runslow" in item.keywords and not item.config.getoption("--runslow"):
-        pytest.skip("need --runslow option to run this test")
