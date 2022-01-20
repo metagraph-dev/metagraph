@@ -31,7 +31,10 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     # build the CSR format from the edge list (weight, (src, dst))
     row = np.array([each_edge[0] for each_edge in elist])
     col = np.array([each_edge[1] for each_edge in elist])
-    data = np.array([each_edge[2]["weight"] for each_edge in elist])
+    if is_weighted:
+        data = np.array([each_edge[2]["weight"] for each_edge in elist])
+    else:
+        data = np.array([0 for each_edge in elist])
     csr = csr_matrix((data, (row, col)), shape=(len(nlist), len(nlist)))
     # call the katana api to build a Graph (unweighted) from the CSR format
     # noting that the first 0 in csr.indptr is excluded

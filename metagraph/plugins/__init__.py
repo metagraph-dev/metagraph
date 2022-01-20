@@ -79,13 +79,14 @@ def find_plugins():
     registry.register_from_modules(core)
     registry.register_from_modules(graphblas, name="core_graphblas")
     registry.register_from_modules(katana, name="core_katana")
-    import katana.local
-
-    katana.local.initialize()
     registry.register_from_modules(networkx, name="core_networkx")
     registry.register_from_modules(numpy, name="core_numpy")
     registry.register_from_modules(pandas, name="core_pandas")
     registry.register_from_modules(python, name="core_python")
     registry.register_from_modules(scipy, name="core_scipy")
+    if has_katana:
+        import katana.local
+
+        katana.local.initialize()
 
     return registry.plugins
