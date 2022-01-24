@@ -10,14 +10,13 @@ from katana.example_data import get_rdg_dataset
 from katana.local import Graph
 from katana.local.import_data import from_csr
 
-from metagraph.plugins import has_katana
+katana.local.initialize()
 
 # Currently Graph does not support undirected graphs
 # we are using directed graphs with symmetric edges to denote undirected graphs.
 @pytest.fixture(autouse=True)
 def pg_rmat15_cleaned_symmetric():
-    if not has_katana:
-        katana.local.initialize()
+    #    katana.local.initialize()
     pg = Graph(get_rdg_dataset("rmat15_cleaned_symmetric"))
     return pg
 
@@ -43,8 +42,7 @@ def gen_pg_cleaned_8_12_from_csr(is_directed):
     """
     A helper function for the test, generating Katana's Graph from an edge list
     """
-    if not has_katana:
-        katana.local.initialize()
+    #    katana.local.initialize()
     elist_raw = [
         (0, 1, 4),
         (0, 3, 2),

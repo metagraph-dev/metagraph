@@ -85,7 +85,6 @@ if has_networkx:
                         except KeyError:
                             edge_values = None
                             break
-                    print("edges before checking:", edge_values)
                     if edge_values and edge_values != {0}:
                         ret["edge_type"] = "map"
                         if (
@@ -129,8 +128,8 @@ if has_networkx:
                 g1 = obj1.value
                 g2 = obj2.value
                 # Compare
-                assert (
-                    g1.nodes() == g2.nodes()
+                assert sorted(g1.nodes()) == sorted(
+                    g2.nodes()
                 ), f"node mismatch: {g1.nodes()} != {g2.nodes()}"
                 assert (
                     g1.edges() == g2.edges()

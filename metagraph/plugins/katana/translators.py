@@ -38,7 +38,9 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     if aprops["is_directed"]:
         elist = sorted(elist_raw, key=lambda each: (each[0], each[1]))
     else:
-        inv_elist = [(each[1], each[0], each[2]) for each in elist_raw]
+        inv_elist = [
+            (each[1], each[0], each[2]) for each in elist_raw if each[0] != each[1]
+        ]
         elist = sorted(elist_raw + inv_elist, key=lambda each: (each[0], each[1]))
     # build the CSR format from the edge list (weight, (src, dst))
     row = np.array([each_edge[0] for each_edge in elist])
@@ -55,7 +57,6 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     # add the edge weight as a new property
     t = pyarrow.table(dict(value_from_translator=data))
     pg.add_edge_property(t)
-    print("pg:", pg)
     # use the metagraph's Graph warpper to wrap the katana.local.Graph
     return KatanaGraph(
         pg_graph=pg,
@@ -88,7 +89,6 @@ def katanagraph_to_networkx(x: KatanaGraph, **props) -> NetworkXGraph:
         for src in pg
         for dest in [pg.get_edge_dest(e) for e in pg.edge_ids(src)]
     }
-    print("edge_dict_count: ", edge_dict_count)
     for src in pg:
         for dest in [pg.get_edge_dest(e) for e in pg.edge_ids(src)]:
             edge_dict_count[(src, dest)] += 1
@@ -128,9 +128,5 @@ def katanagraph_to_networkx(x: KatanaGraph, **props) -> NetworkXGraph:
     else:
         graph = nx.Graph()
     graph.add_nodes_from(node_list)
-    print("node list:", node_list)
     graph.add_weighted_edges_from(elist)
-    print("edge list:", elist)
-    nwx = mg.wrappers.Graph.NetworkXGraph(graph)
-    print("nwx from katanax:", nwx)
-    return nwx
+    return mg.wrappers.Graph.NetworkXGraph(graph)
