@@ -116,6 +116,12 @@ def katanagraph_to_networkx(x: KatanaGraph, **props) -> NetworkXGraph:
             for nid in pg
             for j in pg.edge_ids(nid)
         ]
+    elif isinstance(edge_weights[0], np.bool_):
+        elist = [
+            (nid, pg.get_edge_dest(j), bool(edge_weights[j]))
+            for nid in pg
+            for j in pg.edge_ids(nid)
+        ]
     elist = list(OrderedDict.fromkeys(elist))
     if x.is_directed:
         graph = nx.DiGraph()
