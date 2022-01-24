@@ -19,6 +19,8 @@ class KatanaGraph(GraphWrapper, abstract=Graph):
         node_weight_index=None,
         node_dtype=None,
         edge_dtype="int",
+        node_type=None,
+        edge_type=None,
         has_neg_weight=False,
     ):
         super().__init__()
@@ -30,7 +32,29 @@ class KatanaGraph(GraphWrapper, abstract=Graph):
         self.node_weight_index = node_weight_index
         self.node_dtype = node_dtype
         self.edge_dtype = edge_dtype
+        self.node_type = node_type
+        self.edge_type = edge_type
         self.has_neg_weight = has_neg_weight
+        print(
+            "init: ",
+            self,
+            ", is_weighted: ",
+            self.is_weighted,
+            ", is_directed",
+            self.is_directed,
+            ", node_weight_index:",
+            self.node_weight_index,
+            ", node_dtype:",
+            self.node_dtype,
+            ", edge_dtype:",
+            self.edge_dtype,
+            ", node_type:",
+            self.node_type,
+            ", edge_type:",
+            self.edge_type,
+            ", has_neg_weight:",
+            self.has_neg_weight,
+        )
 
     def copy(self):
         return KatanaGraph(
@@ -55,7 +79,10 @@ class KatanaGraph(GraphWrapper, abstract=Graph):
                 if prop == "is_directed":
                     ret[prop] = obj.is_directed
                 if prop == "node_type":
-                    ret[prop] = "set" if obj.node_weight_index is None else "map"
+                    if obj.node_type is None:
+                        ret[prop] = "set" if obj.node_weight_index is None else "map"
+                    else:
+                        ret[prop] = obj.node_type
                 if prop == "node_dtype":
                     ret[prop] = (
                         None if obj.node_weight_index is None else obj.node_dtype

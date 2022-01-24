@@ -85,7 +85,8 @@ if has_networkx:
                         except KeyError:
                             edge_values = None
                             break
-                    if edge_values:
+                    print("edges before checking:", edge_values)
+                    if edge_values and edge_values != {0}:
                         ret["edge_type"] = "map"
                         if (
                             "edge_dtype" in slow_props
@@ -108,6 +109,7 @@ if has_networkx:
                         ret["edge_dtype"] = None
                         ret["edge_has_negative_weights"] = None
 
+                print("networkx prop:", ret)
                 return ret
 
             @classmethod
