@@ -18,10 +18,10 @@ from .types import KatanaGraph
 @translator
 def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     nlist = sorted(list(x.value.nodes(data=True)), key=lambda each: each[0])
-    #    ranks = np.arange(0, len(nlist))
-    #    nodes = [each[0] for each in nlist]
-    #    mapping = dict(zip(nodes, ranks))
-    #    x.value = nx.relabel_nodes(x.value, mapping)
+    ranks = np.arange(0, len(nlist))
+    nodes = [each[0] for each in nlist]
+    mapping = dict(zip(nodes, ranks))
+    x.value = nx.relabel_nodes(x.value, mapping)
     aprops = NetworkXGraph.Type.compute_abstract_properties(
         x,
         {
@@ -131,4 +131,5 @@ def katanagraph_to_networkx(x: KatanaGraph, **props) -> NetworkXGraph:
     else:
         graph = nx.Graph()
     graph.add_weighted_edges_from(elist)
+    graph.add_nodes_from(node_list)  # add node list after edge list
     return mg.wrappers.Graph.NetworkXGraph(graph)

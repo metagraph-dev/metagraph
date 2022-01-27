@@ -148,6 +148,12 @@ def test_graph_roundtrip_directed_unweighted_nodevals(default_plugin_resolver):
     nodes = [1, 3, 5, 7, 8, 9, 10, 11, 15]
     node_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0, 0.01, 15.2]
     g.add_nodes_from(nodes)
+
+    nlist = sorted(nodes)
+    ranks = np.arange(0, len(nlist))
+    mapping = dict(zip(nodes, ranks))
+    g = nx.relabel_nodes(g, mapping)
+
     # nodevals as floats
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
@@ -174,6 +180,12 @@ def test_graph_roundtrip_directed_weighted_nodevals(default_plugin_resolver):
     edge_weights = [1.1, 2.2, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0]
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
+
+    nlist = sorted(nodes)
+    ranks = np.arange(0, len(nlist))
+    mapping = dict(zip(nodes, ranks))
+    g = nx.relabel_nodes(g, mapping)
+
     # nodevals as floats, edges as ints
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
@@ -207,6 +219,12 @@ def test_graph_roundtrip_undirected_unweighted_nodevals(default_plugin_resolver)
     nodes = [1, 3, 5, 7, 8, 9, 10, 11, 15]
     node_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0, 0.01, 15.2]
     g.add_nodes_from(nodes)
+
+    nlist = sorted(nodes)
+    ranks = np.arange(0, len(nlist))
+    mapping = dict(zip(nodes, ranks))
+    g = nx.relabel_nodes(g, mapping)
+
     # nodevals as floats
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
@@ -233,6 +251,12 @@ def test_graph_roundtrip_undirected_weighted_nodevals(default_plugin_resolver):
     edge_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0]
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
+
+    nlist = sorted(nodes)
+    ranks = np.arange(0, len(nlist))
+    mapping = dict(zip(nodes, ranks))
+    g = nx.relabel_nodes(g, mapping)
+
     # nodevals as floats, edges as bools
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
