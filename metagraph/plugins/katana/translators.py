@@ -130,6 +130,5 @@ def katanagraph_to_networkx(x: KatanaGraph, **props) -> NetworkXGraph:
         graph = nx.DiGraph()
     else:
         graph = nx.Graph()
-    graph.add_nodes_from(node_list)
     graph.add_weighted_edges_from(elist)
     return mg.wrappers.Graph.NetworkXGraph(graph)
