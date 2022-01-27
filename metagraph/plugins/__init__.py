@@ -84,4 +84,5 @@ def find_plugins():
     registry.register_from_modules(pandas, name="core_pandas")
     registry.register_from_modules(python, name="core_python")
     registry.register_from_modules(scipy, name="core_scipy")
+
     return registry.plugins

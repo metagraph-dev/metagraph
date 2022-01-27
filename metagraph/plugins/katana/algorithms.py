@@ -35,6 +35,13 @@ def kg_bfs_iter(
     :return: the BFS traversal result in order
     :rtype: NumpyVectorType
     """
+    g = graph.value
+    edges = [
+        (src, dest)
+        for src in g
+        for dest in [g.get_edge_dest(e) for e in g.edge_ids(src)]
+    ]
+    edge_weights = g.get_edge_property(graph.edge_weight_prop_name).to_pandas()
     bfs_prop_name = "bfs_prop_start_from_" + str(source_node)
     depth_limit_internal = (
         2 ** 30 - 1 if depth_limit == -1 else depth_limit
@@ -42,6 +49,7 @@ def kg_bfs_iter(
     start_node = source_node
     if not has_node_prop(graph.value, bfs_prop_name):
         bfs(graph.value, start_node, bfs_prop_name)
+    bfs_list_1st = graph.value.get_node_property(bfs_prop_name).to_numpy()
     pg_bfs_list = (
         graph.value.get_node_property(bfs_prop_name).to_pandas().values.tolist()
     )

@@ -35,26 +35,6 @@ class KatanaGraph(GraphWrapper, abstract=Graph):
         self.node_type = node_type
         self.edge_type = edge_type
         self.has_neg_weight = has_neg_weight
-        print(
-            "init: ",
-            self,
-            ", is_weighted: ",
-            self.is_weighted,
-            ", is_directed",
-            self.is_directed,
-            ", node_weight_index:",
-            self.node_weight_index,
-            ", node_dtype:",
-            self.node_dtype,
-            ", edge_dtype:",
-            self.edge_dtype,
-            ", node_type:",
-            self.node_type,
-            ", edge_type:",
-            self.edge_type,
-            ", has_neg_weight:",
-            self.has_neg_weight,
-        )
 
     def copy(self):
         return KatanaGraph(

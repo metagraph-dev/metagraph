@@ -108,7 +108,6 @@ if has_networkx:
                         ret["edge_dtype"] = None
                         ret["edge_has_negative_weights"] = None
 
-                print("networkx prop:", ret)
                 return ret
 
             @classmethod

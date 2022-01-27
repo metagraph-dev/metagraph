@@ -22,13 +22,6 @@ def test_graph_roundtrip_directed_unweighted(default_plugin_resolver):
     g = nx.DiGraph()
     g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
     g.add_edges_from([(1, 3), (3, 1), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)])
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     graph = NetworkXGraph(g)
     rt.verify_round_trip(graph)
 
@@ -36,13 +29,6 @@ def test_graph_roundtrip_directed_unweighted(default_plugin_resolver):
     g2 = nx.DiGraph()
     g2.add_nodes_from([1, 3, 5, 7, 8])
     g2.add_weighted_edges_from([(1, 3, 2), (3, 5, 4), (5, 7, 6)])
-
-    nlist2 = sorted(list(g2.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist2))
-    nodes = [each[0] for each in nlist2]
-    mapping = dict(zip(nodes, ranks))
-    g2 = nx.relabel_nodes(g2, mapping)
-
     graph2 = NetworkXGraph(g2, aprops={"edge_type": "set"})
     rt.verify_round_trip(graph2)
 
@@ -57,13 +43,6 @@ def test_graph_roundtrip_directed_weighted(default_plugin_resolver):
     g.add_weighted_edges_from(
         [(src, dst, wgt) for (src, dst), wgt in zip(edges, edge_weights)]
     )
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     rt.verify_round_trip(NetworkXGraph(g))
     # float without neg weights
     g.add_weighted_edges_from(
@@ -93,13 +72,6 @@ def test_graph_roundtrip_directed_symmetric(default_plugin_resolver):
     g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
     edges = [(1, 3), (3, 1), (3, 5), (5, 3), (3, 9), (9, 3), (5, 5), (11, 10), (10, 11)]
     edge_weights = [1.1, 1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0]
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     # float with neg weights
     g.add_weighted_edges_from(
         [(src, dst, wgt) for (src, dst), wgt in zip(edges, edge_weights)]
@@ -127,19 +99,11 @@ def test_graph_roundtrip_directed_symmetric(default_plugin_resolver):
     rt.verify_round_trip(NetworkXGraph(g))
 
 
-@pytest.mark.skip(reason="focused debugging")
 def test_graph_roundtrip_undirected_unweighted(default_plugin_resolver):
     rt = RoundTripper(default_plugin_resolver)
     g = nx.Graph()
     g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
     g.add_edges_from([(1, 3), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)])
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     graph = NetworkXGraph(g)
     rt.verify_round_trip(graph)
 
@@ -150,13 +114,6 @@ def test_graph_roundtrip_undirected_weighted(default_plugin_resolver):
     g.add_nodes_from([1, 3, 5, 7, 8, 9, 10, 11, 15])
     edges = [(1, 3), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)]
     edge_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0]
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     # float with neg weights
     g.add_weighted_edges_from(
         [(src, dst, wgt) for (src, dst), wgt in zip(edges, edge_weights)]
@@ -192,13 +149,6 @@ def test_graph_roundtrip_directed_unweighted_nodevals(default_plugin_resolver):
     node_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0, 0.01, 15.2]
     g.add_nodes_from(nodes)
     # nodevals as floats
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
     )
@@ -224,13 +174,6 @@ def test_graph_roundtrip_directed_weighted_nodevals(default_plugin_resolver):
     edge_weights = [1.1, 2.2, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0]
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     # nodevals as floats, edges as ints
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
@@ -264,13 +207,6 @@ def test_graph_roundtrip_undirected_unweighted_nodevals(default_plugin_resolver)
     nodes = [1, 3, 5, 7, 8, 9, 10, 11, 15]
     node_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0, 0.01, 15.2]
     g.add_nodes_from(nodes)
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     # nodevals as floats
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
@@ -297,13 +233,6 @@ def test_graph_roundtrip_undirected_weighted_nodevals(default_plugin_resolver):
     edge_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0]
     g.add_nodes_from(nodes)
     g.add_edges_from(edges)
-
-    nlist = sorted(list(g.nodes(data=True)), key=lambda each: each[0])
-    ranks = np.arange(0, len(nlist))
-    nodes = [each[0] for each in nlist]
-    mapping = dict(zip(nodes, ranks))
-    g = nx.relabel_nodes(g, mapping)
-
     # nodevals as floats, edges as bools
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
@@ -441,7 +370,6 @@ def test_scipy_graphblas_edgemap(default_plugin_resolver):
     dpr.assert_equal(y, intermediate)
 
 
-# @pytest.mark.skip(reason="focused debugging")
 # def test_networkx_2_pandas(default_plugin_resolver):
 #     dpr = default_plugin_resolver
 #     g = nx.DiGraph()

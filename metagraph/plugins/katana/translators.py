@@ -4,6 +4,8 @@ import metagraph as mg
 import networkx as nx
 import numpy as np
 import pyarrow
+import katana.local
+
 from metagraph import translator
 from metagraph.plugins.networkx.types import NetworkXGraph
 from scipy.sparse import csr_matrix
@@ -53,6 +55,7 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     csr = csr_matrix((data, (row, col)), shape=(len(nlist), len(nlist)))
     # call the katana api to build a Graph (unweighted) from the CSR format
     # noting that the first 0 in csr.indptr is excluded
+    katana.local.initialize()
     pg = from_csr(csr.indptr[1:], csr.indices)
     # add the edge weight as a new property
     t = pyarrow.table(dict(value_from_translator=data))

@@ -64,7 +64,9 @@ def gen_pg_cleaned_8_12_from_csr(is_directed):
     if is_directed:
         elist = sorted(elist_raw, key=lambda each: (each[0], each[1]))
     else:
-        inv_elist = [(each[1], each[0], each[2]) for each in elist_raw]
+        inv_elist = [
+            (each[1], each[0], each[2]) for each in elist_raw if each[0] != each[1]
+        ]
         elist = sorted(elist_raw + inv_elist, key=lambda each: (each[0], each[1]))
     nlist = sorted(nlist_raw, key=lambda each: each)
     # build the CSR format from the edge list (weight, (src, dst))
@@ -117,6 +119,25 @@ def networkx_weighted_directed_8_12():
     )
     graph1 = mg.algos.util.graph.build(em)
     return graph1
+
+
+@pytest.fixture(autouse=True)
+def networkx_weighted_directed_bfs():
+    df = pd.read_csv("metagraph/tests/plugins/katana/data/edge2.csv")
+    em = mg.wrappers.EdgeMap.PandasEdgeMap(
+        df, "Source", "Destination", "Weight", is_directed=True
+    )
+    graph1 = mg.algos.util.graph.build(em)
+    return graph1
+
+
+# directed graph
+@pytest.fixture(autouse=True)
+def kg_from_nx_di_bfs(networkx_weighted_directed_bfs):
+    pg_test_case = mg.translate(
+        networkx_weighted_directed_bfs, mg.wrappers.Graph.KatanaGraph
+    )
+    return pg_test_case
 
 
 # directed graph
