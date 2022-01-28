@@ -127,8 +127,8 @@ if has_networkx:
                 g1 = obj1.value
                 g2 = obj2.value
                 # Compare
-                assert sorted(g1.nodes()) == sorted(
-                    g2.nodes()
+                assert (
+                    g1.nodes() == g2.nodes()
                 ), f"node mismatch: {g1.nodes()} != {g2.nodes()}"
                 assert (
                     g1.edges() == g2.edges()
