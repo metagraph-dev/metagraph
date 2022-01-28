@@ -43,7 +43,7 @@ def test_topology(kg_from_nx_di_8_12):
 
 
 def test_schema(kg_from_nx_di_8_12):
-    assert len(kg_from_nx_di_8_12.value.loaded_node_schema()) == 0
+    assert len(kg_from_nx_di_8_12.value.loaded_node_schema()) == 1
     assert len(kg_from_nx_di_8_12.value.loaded_edge_schema()) == 1
 
 
