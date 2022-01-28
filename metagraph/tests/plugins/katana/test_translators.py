@@ -49,13 +49,14 @@ def test_schema(kg_from_nx_di_8_12):
 
 def test_edge_property_directed(kg_from_nx_di_8_12):
     assert (
-        kg_from_nx_di_8_12.value.loaded_edge_schema()[0].name == "value_from_translator"
+        kg_from_nx_di_8_12.value.loaded_edge_schema()[0].name
+        == "edge_value_from_translator"
     )
     assert kg_from_nx_di_8_12.value.get_edge_property(
         0
-    ) == kg_from_nx_di_8_12.value.get_edge_property("value_from_translator")
+    ) == kg_from_nx_di_8_12.value.get_edge_property("edge_value_from_translator")
     assert kg_from_nx_di_8_12.value.get_edge_property(
-        "value_from_translator"
+        "edge_value_from_translator"
     ).tolist() == [4, 2, 7, 3, 5, 5, 2, 8, 1, 4, 4, 6,]
 
 

@@ -15,6 +15,8 @@ class KatanaGraph(GraphWrapper, abstract=Graph):
         pg_graph,
         is_weighted=True,
         edge_weight_prop_name="value",
+        node_weight_prop_name=None,
+        node_id_map_prop_name=None,
         is_directed=True,
         node_weight_index=None,
         node_dtype=None,
@@ -28,6 +30,8 @@ class KatanaGraph(GraphWrapper, abstract=Graph):
         self.value = pg_graph
         self.is_weighted = is_weighted
         self.edge_weight_prop_name = edge_weight_prop_name
+        self.node_weight_prop_name = node_weight_prop_name
+        self.node_id_map_prop_name = node_id_map_prop_name
         self.is_directed = is_directed
         self.node_weight_index = node_weight_index
         self.node_dtype = node_dtype

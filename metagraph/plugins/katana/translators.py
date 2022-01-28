@@ -21,7 +21,8 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     ranks = np.arange(0, len(nlist))
     nodes = [each[0] for each in nlist]
     mapping = dict(zip(nodes, ranks))
-    x.value = nx.relabel_nodes(x.value, mapping)
+    # relabel Node IDs without changing the original graph
+    xval_map = nx.relabel_nodes(x.value, mapping)
     aprops = NetworkXGraph.Type.compute_abstract_properties(
         x,
         {
@@ -35,7 +36,7 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     )
     is_weighted = aprops["edge_type"] == "map"
     # get the edge list directly from the NetworkX Graph
-    elist_raw = list(x.value.edges(data=True))
+    elist_raw = list(xval_map.edges(data=True))
     # sort the eddge list and node list
     if aprops["is_directed"]:
         elist = sorted(elist_raw, key=lambda each: (each[0], each[1]))
@@ -58,13 +59,28 @@ def networkx_to_katanagraph(x: NetworkXGraph, **props) -> KatanaGraph:
     katana.local.initialize()
     pg = from_csr(csr.indptr[1:], csr.indices)
     # add the edge weight as a new property
-    t = pyarrow.table(dict(value_from_translator=data))
+    t = pyarrow.table(dict(edge_value_from_translator=data))
     pg.add_edge_property(t)
+    node_list = [nid for nid in nodes]
+    node_rmap = pyarrow.table(dict(node_id_reverse_map=node_list))
+    pg.add_node_property(node_rmap)
+    node_id_map_prop_name = "node_id_reverse_map"
+
+    node_attributes = nx.get_node_attributes(x.value, "weight")
+    node_weight_prop_name = None
+    if node_attributes:
+        weights = [node_attributes[node] for node in node_list]
+        node_weight_prop = pyarrow.table(dict(node_value_from_translator=weights))
+        node_weight_prop_name = "node_value_from_translator"
+        pg.add_node_property(node_weight_prop)
+
     # use the metagraph's Graph warpper to wrap the katana.local.Graph
     return KatanaGraph(
         pg_graph=pg,
         is_weighted=is_weighted,
-        edge_weight_prop_name="value_from_translator",
+        edge_weight_prop_name="edge_value_from_translator",
+        node_weight_prop_name=node_weight_prop_name,
+        node_id_map_prop_name=node_id_map_prop_name,
         is_directed=aprops["is_directed"],
         node_weight_index=0,
         node_dtype=aprops["node_dtype"],
@@ -130,6 +146,32 @@ def katanagraph_to_networkx(x: KatanaGraph, **props) -> NetworkXGraph:
         graph = nx.DiGraph()
     else:
         graph = nx.Graph()
+    # add node list first for the same order as weights
     graph.add_weighted_edges_from(elist)
-    graph.add_nodes_from(node_list)  # add node list after edge list
+    graph.add_nodes_from(node_list)
+
+    # remap Node IDs if needed
+    if x.node_id_map_prop_name:
+        nodeid_map = pg.get_node_property(x.node_id_map_prop_name).to_pandas()
+        ranks = np.arange(0, len(nodeid_map))
+        mapping = dict(zip(ranks, nodeid_map))
+        graph = nx.relabel_nodes(graph, mapping)
+
+    # retrieve node weights and set the graph
+    if x.node_weight_prop_name:
+        nodes = graph.nodes()
+        nlist = []
+        node_weights = pg.get_node_property(x.node_weight_prop_name).to_pandas()
+        if isinstance(node_weights[0], np.int64):
+            nlist = [int(wgt) for wgt in node_weights]
+        elif isinstance(node_weights[0], pyarrow.lib.Int64Scalar):
+            nlist = [wgt.as_py() for wgt in node_weights]
+        elif isinstance(node_weights[0], np.float64):
+            nlist = [float(wgt) for wgt in node_weights]
+        elif isinstance(node_weights[0], np.bool_):
+            nlist = [bool(wgt) for wgt in node_weights]
+        nx.set_node_attributes(
+            graph, {node: wgt for node, wgt in zip(nodeid_map, nlist)}, name="weight"
+        )
+
     return mg.wrappers.Graph.NetworkXGraph(graph)
