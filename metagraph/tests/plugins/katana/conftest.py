@@ -13,6 +13,38 @@ from katana.local.import_data import from_csr
 
 katana.local.initialize()
 
+data_8_12 = """
+Source,Destination,Weight
+0,1,4
+0,3,2
+0,4,7
+1,3,3
+1,4,5
+2,4,5
+2,5,2
+2,6,8
+3,4,1
+4,7,4
+5,6,4
+5,7,6
+"""
+
+
+data_8_11 = """
+Source,Destination,Weight
+0,3,1
+1,0,2
+1,4,3
+2,4,4
+2,5,5
+2,7,6
+3,4,8
+4,5,9
+5,6,10
+6,2,11
+"""
+
+
 # Currently Graph does not support undirected graphs
 # we are using directed graphs with symmetric edges to denote undirected graphs.
 @pytest.fixture(autouse=True)
@@ -104,7 +136,8 @@ def katanagraph_cleaned_8_12_ud():
 
 @pytest.fixture(autouse=True)
 def networkx_weighted_undirected_8_12():
-    df = pd.read_csv("metagraph/tests/plugins/katana/data/edge1.csv")
+    csv_file = io.StringIO(data_8_12)
+    df = pd.read_csv(csv_file)
     em = mg.wrappers.EdgeMap.PandasEdgeMap(
         df, "Source", "Destination", "Weight", is_directed=False
     )
@@ -114,7 +147,8 @@ def networkx_weighted_undirected_8_12():
 
 @pytest.fixture(autouse=True)
 def networkx_weighted_directed_8_12():
-    df = pd.read_csv("metagraph/tests/plugins/katana/data/edge1.csv")
+    csv_file = io.StringIO(data_8_12)
+    df = pd.read_csv(csv_file)
     em = mg.wrappers.EdgeMap.PandasEdgeMap(
         df, "Source", "Destination", "Weight", is_directed=True
     )
@@ -124,20 +158,7 @@ def networkx_weighted_directed_8_12():
 
 @pytest.fixture(autouse=True)
 def networkx_weighted_directed_bfs():
-    data = """
-Source,Destination,Weight
-0,3,1
-1,0,2
-1,4,3
-2,4,4
-2,5,5
-2,7,6
-3,4,8
-4,5,9
-5,6,10
-6,2,11
-"""
-    csv_file = io.StringIO(data)
+    csv_file = io.StringIO(data_8_11)
     df = pd.read_csv(csv_file)
     em = mg.wrappers.EdgeMap.PandasEdgeMap(
         df, "Source", "Destination", "Weight", is_directed=True

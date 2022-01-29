@@ -144,11 +144,10 @@ def test_graph_roundtrip_undirected_weighted(default_plugin_resolver):
 def test_graph_roundtrip_directed_unweighted_nodevals(default_plugin_resolver):
     rt = RoundTripper(default_plugin_resolver)
     g = nx.DiGraph()
-    nodes = [1, 3, 5, 7, 8, 9, 10, 11, 15]
-    # have to add nodes first to keep the same order with the weights
-    g.add_nodes_from(nodes)
     g.add_edges_from([(1, 3), (3, 1), (3, 5), (5, 7), (7, 9), (9, 3), (5, 5), (11, 10)])
+    nodes = [1, 3, 5, 7, 8, 9, 10, 11, 15]
     node_weights = [1.1, 0.0, -4.4, 4.4, 6.5, 1.2, 2.0, 0.01, 15.2]
+    g.add_nodes_from(nodes)
     # nodevals as floats
     nx.set_node_attributes(
         g, {node: wgt for node, wgt in zip(nodes, node_weights)}, name="weight"
