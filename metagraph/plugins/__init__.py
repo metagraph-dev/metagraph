@@ -49,11 +49,11 @@ except ImportError:  # pragma: no cover
     has_grblas = False
 
 try:
-    import katana as _
+    import katanagraph as _
 
-    has_katana = True
+    has_katanagraph = True
 except ImportError:  # pragma: no cover
-    has_katana = False
+    has_katanagraph = False
 
 try:
     import numba as _
@@ -73,12 +73,12 @@ registry = metagraph.PluginRegistry("core")
 
 
 def find_plugins():
-    from . import core, graphblas, katana, networkx, numpy, pandas, python, scipy
+    from . import core, graphblas, katanagraph, networkx, numpy, pandas, python, scipy
 
     # Default Plugins
     registry.register_from_modules(core)
     registry.register_from_modules(graphblas, name="core_graphblas")
-    registry.register_from_modules(katana, name="core_katana")
+    registry.register_from_modules(katanagraph, name="core_katanagraph")
     registry.register_from_modules(networkx, name="core_networkx")
     registry.register_from_modules(numpy, name="core_numpy")
     registry.register_from_modules(pandas, name="core_pandas")
