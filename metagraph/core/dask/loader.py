@@ -179,9 +179,7 @@ class SharedCSRLoader:
     @classmethod
     def register_dask_scheduler_plugin(cls, client: distributed.Client):
         plugin = SharedMemoryRefCounter(cls.REFCOUNT_TAG)
-        client.register_scheduler_plugin(
-            plugin, idempotent=True, name="metagraph_shared_csr_refcount"
-        )
+        client.register_scheduler_plugin(plugin, name="metagraph_shared_csr_refcount")
 
     @staticmethod
     def allocate(shape, nvalues, pointers_dtype, indices_dtype, values_dtype):
@@ -391,11 +389,7 @@ def load_chunk(
     # we assume the records were already sorted by row number, but this ensures the column numbers are sorted within the row
     partition = partition.drop_duplicates(
         [coo_desc.row_fieldname, coo_desc.col_fieldname]
-    )
-    # We can sort in place because the previous operation copied the dataframe
-    partition.sort_values(
-        by=[coo_desc.row_fieldname, coo_desc.col_fieldname], inplace=True
-    )
+    ).sort_values(by=[coo_desc.row_fieldname, coo_desc.col_fieldname])
 
     # compute pointer offsets
     rows = partition[coo_desc.row_fieldname].to_numpy()

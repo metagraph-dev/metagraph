@@ -25,9 +25,10 @@ dependencies:
   - numpy
   - networkx
   - pandas
-  - scipy
+  - scipy>=1.8.0
   - scikit-learn
-  - dask
+  - dask==2021.10.0
+  - conda-forge::distributed
   - conda-forge::donfig
   - conda-forge::grblas
   - conda-forge::python-louvain
