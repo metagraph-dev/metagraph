@@ -390,7 +390,7 @@ def load_chunk(
 
     # we assume the records were already sorted by row number, but this ensures the column numbers are sorted within the row
     partition = partition.drop_duplicates(
-        [coo_desc.row_fieldname, coo_desc.col_fieldname]
+        [coo_desc.row_fieldname, coo_desc.col_fieldname], inplace=False
     )
     # We can sort in place because the previous operation copied the dataframe
     partition.sort_values(
