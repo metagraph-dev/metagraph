@@ -85,7 +85,7 @@ if has_networkx:
                         except KeyError:
                             edge_values = None
                             break
-                    if edge_values:
+                    if edge_values and edge_values != {0}:
                         ret["edge_type"] = "map"
                         if (
                             "edge_dtype" in slow_props
