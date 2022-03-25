@@ -9,12 +9,13 @@ dependencies:
   - python-graphviz
 
 # metagraph dependencies (so setup.py develop doesn't pip install them)
-  - dask
+  - dask==2021.10.0
   - numpy
   - networkx>=2.5.1
   - pandas
-  - scipy
+  - scipy>=1.8.0
   - scikit-learn
+  - conda-forge::distributed
   - conda-forge::donfig
   - conda-forge::grblas
   - conda-forge::python-louvain
